@@ -376,6 +376,7 @@ async function renderAdminStats() {
       <div class="stat-card">
         <h4>Quiz Attempts</h4>
         <div class="stat-number">${stats.totalQuizAttempts}</div>
+        ${stats.totalPartialAttempts ? `<div style="font-size:0.72rem;color:#8a5a00;font-weight:600">${stats.totalPartialAttempts} incomplete</div>` : ''}
       </div>
     `;
 
@@ -388,7 +389,7 @@ async function renderAdminStats() {
         html += `
           <div class="learner-stat" style="grid-column:1/-1">
             <div class="learner-stat-name">👤 ${l.learner}</div>
-            <div style="font-size:0.85rem;color:#6c757d">${l.attempts} quiz attempt(s) · ${l.totalScore}/${l.totalMax} correct (${pct}%)</div>
+            <div style="font-size:0.85rem;color:#6c757d">${l.attempts} quiz attempt(s)${l.partialAttempts ? ` · <span style="color:#8a5a00;font-weight:600">${l.partialAttempts} incomplete</span>` : ''} · ${l.totalScore}/${l.totalMax} correct (${pct}%)</div>
             <div class="learner-stat-level">
         `;
         for (const lvl of [1, 2, 3]) {

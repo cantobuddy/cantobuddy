@@ -4,7 +4,10 @@
    network-first so vocabulary stays fresh but still works without a connection.
    ============================================================================= */
 
-const CACHE = 'cantobuddy-v1';
+// Bump this whenever app.js / i18n.js / styles.css change. The app shell is
+// cached cache-first, so without a version bump installed PWAs would keep
+// serving the previous build from cache.
+const CACHE = 'cantobuddy-v2';
 
 const APP_SHELL = [
   '/',

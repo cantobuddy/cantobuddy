@@ -255,6 +255,29 @@ app.post('/api/progress', (req, res) => {
   const db = load();
   const b = req.body;
   if (!b.learner) return res.status(400).json({ error: 'Learner name required.' });
+
+  const now = new Date().toISOString();
+  const sessionId = b.session_id ? String(b.session_id) : null;
+  const completed = b.completed !== false; // legacy callers omit it → treat as finished
+
+  // A quiz is saved repeatedly while it is in progress (once after every
+  // answered question) and once more when it finishes. Writes are therefore
+  // UPSERTED on `session_id`, so one quiz always occupies exactly ONE row no
+  // matter how many times it is saved — and a quiz the learner abandons
+  // halfway still leaves a record instead of nothing.
+  if (sessionId) {
+    const existing = db.progress.find((p) => p.session_id === sessionId);
+    if (existing) {
+      existing.score = Number(b.score) || 0;
+      existing.total = Number(b.total) || 0;
+      existing.answered = Number(b.answered) || 0;
+      existing.completed = completed;
+      existing.updated_at = now;
+      save(db);
+      return res.json(existing);
+    }
+  }
+
   const entry = {
     id: nextId(db.progress),
     learner: b.learner,
@@ -263,7 +286,11 @@ app.post('/api/progress', (req, res) => {
     quiz_type: b.quiz_type || 'multiple_choice',
     score: Number(b.score) || 0,
     total: Number(b.total) || 0,
-    created_at: new Date().toISOString(),
+    answered: Number(b.answered) || 0,
+    completed,
+    session_id: sessionId,
+    created_at: now,
+    updated_at: now,
   };
   db.progress.push(entry);
   save(db);
@@ -276,10 +303,21 @@ app.get('/api/stats', requireAdmin, (req, res) => {
   const learnerMap = {};
   for (const p of db.progress) {
     if (!learnerMap[p.learner]) {
-      learnerMap[p.learner] = { learner: p.learner, attempts: 0, totalScore: 0, totalMax: 0, byLevel: {} };
+      learnerMap[p.learner] = {
+        learner: p.learner,
+        attempts: 0,
+        completedAttempts: 0,
+        partialAttempts: 0,
+        totalScore: 0,
+        totalMax: 0,
+        byLevel: {},
+      };
     }
     const l = learnerMap[p.learner];
+    const finished = p.completed !== false; // records predating this field count as finished
     l.attempts++;
+    if (finished) l.completedAttempts++;
+    else l.partialAttempts++;
     l.totalScore += p.score;
     l.totalMax += p.total;
     if (!l.byLevel[p.level]) l.byLevel[p.level] = { attempts: 0, score: 0, max: 0 };
@@ -291,6 +329,7 @@ app.get('/api/stats', requireAdmin, (req, res) => {
     totalVocabulary: db.vocabulary.length,
     totalCategories: db.categories.length,
     totalQuizAttempts: db.progress.length,
+    totalPartialAttempts: db.progress.filter((p) => p.completed === false).length,
     learners: Object.values(learnerMap),
   });
 });

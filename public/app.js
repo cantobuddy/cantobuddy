@@ -785,6 +785,75 @@ function generateQuestions(type, level) {
   return questions;
 }
 
+// ---- Progress persistence --------------------------------------------------
+
+/** Unique id for one run through a quiz. */
+function newQuizSessionId() {
+  return 'q_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10);
+}
+
+/**
+ * Save the current quiz to the server.
+ *
+ * Called after EVERY answered question (completed = false) and once more when
+ * the quiz finishes (completed = true). The server upserts on `session_id`, so
+ * all of these writes collapse into a single row — which means a learner who
+ * stops halfway still leaves a record behind instead of nothing at all.
+ */
+async function persistProgress(completed) {
+  const q = STATE.quiz;
+  if (!q || !STATE.learner) return null;
+  try {
+    return await apiPost('/api/progress', {
+      session_id: q.sessionId,
+      learner: STATE.learner,
+      level: q.level,
+      category_id: 0,
+      quiz_type: q.type,
+      score: q.score,
+      total: q.questions.length,
+      answered: q.answeredCount,
+      completed: !!completed,
+    });
+  } catch (err) {
+    // A failed save must never interrupt the quiz itself.
+    console.error('Failed to save progress:', err);
+    return null;
+  }
+}
+
+/**
+ * Last-resort flush for when the learner closes the tab or switches away.
+ * A normal fetch would be cancelled as the page unloads, so this uses
+ * sendBeacon, which the browser guarantees to deliver.
+ */
+function flushProgressBeacon() {
+  const q = STATE.quiz;
+  if (!q || !STATE.learner) return;
+  const payload = JSON.stringify({
+    session_id: q.sessionId,
+    learner: STATE.learner,
+    level: q.level,
+    category_id: 0,
+    quiz_type: q.type,
+    score: q.score,
+    total: q.questions.length,
+    answered: q.answeredCount,
+    completed: false,
+  });
+  try {
+    navigator.sendBeacon('/api/progress', new Blob([payload], { type: 'application/json' }));
+  } catch (e) {
+    /* nothing more we can do while the page is going away */
+  }
+}
+
+window.addEventListener('pagehide', flushProgressBeacon);
+// iOS Safari often skips pagehide, but does fire visibilitychange.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') flushProgressBeacon();
+});
+
 // ---- Start quiz ----
 function startQuiz(type) {
   const level = getQuizLevel();
@@ -809,6 +878,8 @@ function startQuiz(type) {
     questions,
     index: 0,
     score: 0,
+    answeredCount: 0,
+    sessionId: newQuizSessionId(),
     answered: false,
   };
 
@@ -903,6 +974,11 @@ function answerQuiz(btn) {
     fWrap.innerHTML = `<div class="fb-wrong">${t('quiz.answerIs')} ${item.answer}</div>`;
   }
 
+  // Persist right away (fire-and-forget) so that even a quiz abandoned on the
+  // very next screen still counts as an attempt.
+  q.answeredCount++;
+  persistProgress(false);
+
   // Next button
   const isLast = q.index === q.questions.length - 1;
   fWrap.innerHTML += `<div class="fb-next"><button class="btn btn-primary" onclick="${isLast ? 'finishQuiz()' : 'nextQuestion()'}">${isLast ? t('quiz.seeResults') : t('quiz.next')}</button></div>`;
@@ -921,19 +997,10 @@ async function finishQuiz() {
   const score = q.score;
   const pct = Math.round((score / total) * 100);
 
-  // Save progress
-  try {
-    await apiPost('/api/progress', {
-      learner: STATE.learner,
-      level: q.level,
-      category_id: 0,
-      quiz_type: q.type,
-      score,
-      total,
-    });
-  } catch (err) {
-    console.error('Failed to save progress:', err);
-  }
+  // Mark this attempt as finished. The server upserts on session_id, so this
+  // updates the partial row already written during the quiz rather than
+  // creating a second one.
+  await persistProgress(true);
 
   // Remember the result so the share button can use it
   window._lastResult = { score, total, pct, type: q.type };
@@ -955,7 +1022,10 @@ async function finishQuiz() {
   document.getElementById('view-quiz-play').innerHTML = resultHtml;
 }
 
-function quitQuiz() {
+async function quitQuiz() {
+  // Flush the partial result before the page reloads, then clear the session so
+  // the unload beacon can't write a duplicate row.
+  await persistProgress(false);
   STATE.quiz = null;
   // Restore original quiz-play HTML (in case it was overwritten by results)
   location.reload();
@@ -1024,14 +1094,21 @@ async function renderProgress() {
     html += `<div class="progress-card"><h4>${t('progress.recent')}</h4>`;
     const recent = records.slice(-5).reverse();
     for (const r of recent) {
+      const partial = r.completed === false;
       const rpct = r.total > 0 ? Math.round((r.score / r.total) * 100) : 0;
       const type = QUIZ_TYPES.find((x) => x.id === r.quiz_type);
       const date = new Date(r.created_at).toLocaleDateString();
+      const badge = partial
+        ? ` <span style="font-size:0.68rem;font-weight:600;color:#8a5a00;background:#fdf0d5;border-radius:999px;padding:1px 7px">${t('progress.partial')}</span>`
+        : '';
+      const detail = partial
+        ? `${levelEmojis[r.level]} ${levelLabel(r.level)} • ${t('progress.stoppedAt')} ${r.answered || 0}/${r.total}`
+        : `${levelEmojis[r.level]} ${levelLabel(r.level)} • ${date}`;
       html += `
         <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f0f0f0">
           <div>
-            <div style="font-weight:600">${type ? type.icon + ' ' + quizTypeName(r.quiz_type) : r.quiz_type}</div>
-            <div style="font-size:0.78rem;color:#6c757d">${levelEmojis[r.level]} ${levelLabel(r.level)} • ${date}</div>
+            <div style="font-weight:600">${type ? type.icon + ' ' + quizTypeName(r.quiz_type) : r.quiz_type}${badge}</div>
+            <div style="font-size:0.78rem;color:#6c757d">${detail}</div>
           </div>
           <div style="font-weight:700;color:${rpct >= 50 ? '#52b788' : '#e63946'}">${r.score}/${r.total}</div>
         </div>

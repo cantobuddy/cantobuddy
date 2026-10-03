@@ -87,6 +87,8 @@ const I18N = {
     'progress.correctOutOf': 'correct out of',
     'progress.attempts': 'quiz attempt(s)',
     'progress.couldNotLoad': 'Could not load progress.',
+    'progress.partial': 'Incomplete',
+    'progress.stoppedAt': 'Stopped at',
 
     // name modal
     'name.title': 'Your Name',
@@ -209,6 +211,8 @@ const I18N = {
     'progress.correctOutOf': 'tama sa',
     'progress.attempts': 'pagsubok',
     'progress.couldNotLoad': 'Hindi ma-load ang progreso.',
+    'progress.partial': 'Hindi kumpleto',
+    'progress.stoppedAt': 'Huminto sa',
 
     // name modal
     'name.title': 'Iyong Pangalan',

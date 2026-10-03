@@ -1,0 +1,22 @@
+{
+  "name": "cantobuddy",
+  "version": "1.0.0",
+  "description": "A Cantonese learning app for Filipino domestic helpers, with content management for employers.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "cantonese",
+    "language-learning",
+    "filipino",
+    "jyutping"
+  ],
+  "author": "CantoBuddy",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "express-session": "^1.17.3"
+  }
+}

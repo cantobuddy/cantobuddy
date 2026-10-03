@@ -1,0 +1,11 @@
+# Shell scripts must keep LF line endings. CRLF breaks /bin/sh on Alpine with
+# "/usr/local/bin/docker-entrypoint.sh: not found". Forcing this here means the
+# build machine's git config can never corrupt the entrypoint.
+*.sh text eol=lf
+
+# Source and config files: normalise to LF.
+*.js   text eol=lf
+*.json text eol=lf
+*.css  text eol=lf
+*.html text eol=lf
+*.md   text eol=lf

@@ -1,6 +1,10 @@
 /**
- * CantoBuddy Data Store
- * JSON-based persistent storage with seed data for Cantonese vocabulary.
+ * CantoBuddy Data Store — seed data + LEGACY JSON store.
+ *
+ * NOTE: the app no longer reads db.json at runtime. SQLite (see db.js) is the
+ * store of record. This module is retained for two reasons:
+ *   1. It holds the canonical SEED_* arrays that db.js seeds a fresh database from.
+ *   2. `load()` is used by migrate.js to import an existing db.json in one shot.
  */
 const fs = require('fs');
 const path = require('path');
@@ -153,4 +157,14 @@ function nextId(items) {
   return Math.max(...items.map((i) => i.id)) + 1;
 }
 
-module.exports = { load, save, reset, nextId };
+module.exports = {
+  load,
+  save,
+  reset,
+  nextId,
+  DB_PATH,
+  SEED_DATA,
+  SEED_CATEGORIES,
+  SEED_VOCABULARY,
+  SEED_USERS,
+};

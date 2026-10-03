@@ -1,0 +1,31 @@
+# Dependencies (installed by the host)
+node_modules/
+
+# Runtime data store — contains the admin password and learner progress.
+# The app re-seeds this from data.js on first run, so it is safe to exclude.
+db.json
+
+# SQLite database and its WAL sidecar files. NEVER commit a live database:
+# it holds password hashes, session tokens and learner progress.
+cantobuddy.db
+cantobuddy.db-wal
+cantobuddy.db-shm
+*.db
+*.db-wal
+*.db-shm
+
+# WorkBuddy workspace metadata (project notes, app marker files)
+.workbuddy-ai/
+.workbuddy/
+.wbapp_*.genie
+
+# Local launcher with a machine-specific Node path
+Start CantoBuddy.cmd
+
+# Staging folder used for the browser-based GitHub upload
+upload-to-github/
+
+# OS / editor cruft
+*.log
+.DS_Store
+Thumbs.db

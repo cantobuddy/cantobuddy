@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <meta name="theme-color" content="#1d3557" />
+  <title>CantoBuddy – Admin</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body class="admin-body">
+
+<!-- ============================ HEADER ============================ -->
+<header class="app-header admin-header">
+  <div class="header-inner">
+    <div class="logo">
+      <span class="logo-emoji">🦜</span>
+      <span class="logo-text">CantoBuddy <span class="logo-sub">Admin</span></span>
+    </div>
+    <div class="header-right">
+      <a href="/" class="admin-link">← Learner App</a>
+      <button id="logout-btn" class="btn btn-sm btn-outline" style="display:none" onclick="adminLogout()">Log Out</button>
+    </div>
+  </div>
+</header>
+
+<main id="admin-app" class="app-main admin-main">
+
+  <!-- ---- LOGIN ---- -->
+  <section id="admin-login" class="admin-section active">
+    <div class="login-card">
+      <div class="login-icon">🔐</div>
+      <h2>Admin Login</h2>
+      <p class="login-hint">Manage vocabulary, categories, and view learner progress.</p>
+      <form onsubmit="adminLogin(event)">
+        <div class="form-field">
+          <label>Username</label>
+          <input type="text" id="login-user" placeholder="admin" required autocomplete="username" />
+        </div>
+        <div class="form-field">
+          <label>Password</label>
+          <input type="password" id="login-pass" placeholder="••••••••" required autocomplete="current-password" />
+        </div>
+        <div id="login-error" class="form-error"></div>
+        <button type="submit" class="btn btn-primary btn-lg btn-block">Log In</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- ---- DASHBOARD ---- -->
+  <section id="admin-dash" class="admin-section">
+
+    <!-- tabs -->
+    <div class="admin-tabs">
+      <button class="admin-tab active" data-tab="vocab" onclick="switchTab('vocab')">📚 Vocabulary</button>
+      <button class="admin-tab" data-tab="categories" onclick="switchTab('categories')">📁 Categories</button>
+      <button class="admin-tab" data-tab="progress" onclick="switchTab('progress')">📊 Progress</button>
+    </div>
+
+    <!-- ---- vocab tab ---- -->
+    <div id="tab-vocab" class="admin-tab-content active">
+      <div class="admin-toolbar">
+        <h3>Vocabulary List</h3>
+        <button class="btn btn-primary" onclick="openVocabForm()">+ Add Word</button>
+      </div>
+      <div class="admin-filters">
+        <select id="admin-filter-level" onchange="renderAdminVocab()">
+          <option value="0">All Levels</option>
+          <option value="1">Beginner</option>
+          <option value="2">Intermediate</option>
+          <option value="3">Advanced</option>
+        </select>
+        <input type="text" id="admin-search" placeholder="Search Cantonese or English…" oninput="renderAdminVocab()" />
+      </div>
+      <div id="admin-vocab-list" class="admin-list"></div>
+    </div>
+
+    <!-- ---- categories tab ---- -->
+    <div id="tab-categories" class="admin-tab-content">
+      <div class="admin-toolbar">
+        <h3>Categories</h3>
+        <button class="btn btn-primary" onclick="openCategoryForm()">+ Add Category</button>
+      </div>
+      <p class="admin-hint">Use ↑ / ↓ to set the order. This is the order learners see in the app.</p>
+      <div id="admin-cat-list" class="admin-cat-grid"></div>
+    </div>
+
+    <!-- ---- progress tab ---- -->
+    <div id="tab-progress" class="admin-tab-content">
+      <h3>Learner Progress Overview</h3>
+      <div id="admin-stats" class="stats-grid"></div>
+    </div>
+
+  </section>
+</main>
+
+<!-- ============================ VOCAB FORM MODAL ============================ -->
+<div id="vocab-form-modal" class="modal-overlay" onclick="closeVocabForm(event)">
+  <div class="modal-form" onclick="event.stopPropagation()">
+    <h3 id="vocab-form-title">Add Vocabulary</h3>
+    <form onsubmit="submitVocabForm(event)">
+      <input type="hidden" id="vf-id" />
+      <div class="form-field">
+        <label>Cantonese (Characters) *</label>
+        <input type="text" id="vf-cantonese" placeholder="你好" required />
+      </div>
+      <div class="form-field">
+        <label>Jyutping *</label>
+        <input type="text" id="vf-jyutping" placeholder="nei5 hou2" required />
+      </div>
+      <div class="form-field">
+        <label>English Translation *</label>
+        <input type="text" id="vf-english" placeholder="Hello" required />
+      </div>
+      <div class="form-field">
+        <label>Tagalog Translation</label>
+        <input type="text" id="vf-tagalog" placeholder="Kumusta" />
+      </div>
+      <div class="form-field">
+        <label>Image (Emoji)</label>
+        <input type="text" id="vf-emoji" placeholder="👋" maxlength="4" />
+        <p class="form-hint">Use a single emoji that represents the word.</p>
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label>Level *</label>
+          <select id="vf-level">
+            <option value="1">Beginner</option>
+            <option value="2">Intermediate</option>
+            <option value="3">Advanced</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Category *</label>
+          <select id="vf-category"></select>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-outline" onclick="closeVocabForm()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============================ CATEGORY FORM MODAL ============================ -->
+<div id="cat-form-modal" class="modal-overlay" onclick="closeCatForm(event)">
+  <div class="modal-form" onclick="event.stopPropagation()">
+    <h3 id="cat-form-title">Add Category</h3>
+    <form onsubmit="submitCatForm(event)">
+      <input type="hidden" id="cf-id" />
+      <div class="form-field">
+        <label>English Name *</label>
+        <input type="text" id="cf-name-en" placeholder="Greetings" required />
+      </div>
+      <div class="form-field">
+        <label>Cantonese Name</label>
+        <input type="text" id="cf-name-yue" placeholder="問候" />
+      </div>
+      <div class="form-field">
+        <label>Tagalog Name</label>
+        <input type="text" id="cf-name-fil" placeholder="Bati" />
+      </div>
+      <div class="form-field">
+        <label>Icon (Emoji)</label>
+        <input type="text" id="cf-icon" placeholder="👋" maxlength="4" />
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-outline" onclick="closeCatForm()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="admin.js"></script>
+</body>
+</html>

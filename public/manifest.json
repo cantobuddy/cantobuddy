@@ -1,0 +1,33 @@
+{
+  "name": "CantoBuddy – Learn Cantonese",
+  "short_name": "CantoBuddy",
+  "description": "Learn practical Cantonese for daily life in Hong Kong — vocabulary, audio and quizzes. Free for helpers.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f7f8fa",
+  "theme_color": "#e63946",
+  "lang": "en",
+  "categories": ["education", "lifestyle"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

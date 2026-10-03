@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <meta name="theme-color" content="#e63946" />
+  <meta name="description" content="Learn practical Cantonese for daily life in Hong Kong — vocabulary, audio and quizzes. Free for helpers." />
+  <title>CantoBuddy – Learn Cantonese</title>
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="CantoBuddy" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+<!-- ============================ HEADER ============================ -->
+<header class="app-header">
+  <div class="header-inner">
+    <div class="logo" onclick="navigate('home')">
+      <span class="logo-emoji">🦜</span>
+      <span class="logo-text">CantoBuddy</span>
+    </div>
+    <div class="header-right">
+      <button id="lang-btn" class="lang-btn" onclick="toggleLang()" title="Change language" aria-label="Change language">EN</button>
+      <button id="voice-btn" class="voice-btn" onclick="openVoiceModal()" title="Choose practice voice" aria-label="Choose practice voice">👩</button>
+      <span id="learner-badge" class="learner-badge" onclick="editLearnerName()" data-i18n="header.setName">Set your name</span>
+      <a href="/admin.html" class="admin-link" data-i18n="header.admin">Admin</a>
+    </div>
+  </div>
+</header>
+
+<!-- ============================ MAIN ============================ -->
+<main id="app" class="app-main">
+
+  <!-- ---- HOME VIEW ---- -->
+  <section id="view-home" class="view active">
+    <div class="hero">
+      <h1 class="hero-title"><span data-i18n="home.title">Learn Cantonese</span> <span class="hero-sub" data-i18n="home.subtitle">for daily life in Hong Kong</span></h1>
+      <p class="hero-desc" data-i18n="home.desc">Practical words and phrases with audio, pictures, and quizzes. Start at your level!</p>
+    </div>
+
+    <div class="level-cards">
+      <div class="level-card" onclick="goBrowse(1)">
+        <div class="level-icon">🌱</div>
+        <h3 data-i18n="home.beginner">Beginner</h3>
+        <p data-i18n="home.beginnerDesc">Basic greetings &amp; common words</p>
+        <span class="level-count" id="count-1">—</span>
+      </div>
+      <div class="level-card" onclick="goBrowse(2)">
+        <div class="level-icon">🌿</div>
+        <h3 data-i18n="home.intermediate">Intermediate</h3>
+        <p data-i18n="home.intermediateDesc">Daily activities &amp; routines</p>
+        <span class="level-count" id="count-2">—</span>
+      </div>
+      <div class="level-card" onclick="goBrowse(3)">
+        <div class="level-icon">🌳</div>
+        <h3 data-i18n="home.advanced">Advanced</h3>
+        <p data-i18n="home.advancedDesc">Full sentences &amp; phrases</p>
+        <span class="level-count" id="count-3">—</span>
+      </div>
+    </div>
+
+    <div class="home-quick">
+      <button class="btn btn-primary btn-lg" onclick="goQuizSelect()" data-i18n="home.startQuiz">📝 Start Quiz</button>
+      <button class="btn btn-outline btn-lg" onclick="navigate('progress')" data-i18n="home.myProgress">📊 My Progress</button>
+    </div>
+
+    <div class="home-categories" id="home-categories"></div>
+  </section>
+
+  <!-- ---- BROWSE VIEW ---- -->
+  <section id="view-browse" class="view">
+    <div class="browse-header">
+      <button class="btn-back" onclick="navigate('home')" data-i18n="browse.backHome">← Home</button>
+      <h2 id="browse-title" data-i18n="browse.title">Vocabulary</h2>
+    </div>
+
+    <div class="filters">
+      <div class="filter-row">
+        <label data-i18n="browse.level">Level:</label>
+        <div class="chip-group" id="filter-level">
+          <button class="chip active" data-val="0" data-i18n="browse.all">All</button>
+          <button class="chip" data-val="1" data-i18n="home.beginner">Beginner</button>
+          <button class="chip" data-val="2" data-i18n="home.intermediate">Intermediate</button>
+          <button class="chip" data-val="3" data-i18n="home.advanced">Advanced</button>
+        </div>
+      </div>
+      <div class="filter-row">
+        <label data-i18n="browse.category">Category:</label>
+        <div class="chip-group" id="filter-cat">
+          <button class="chip active" data-val="0" data-i18n="browse.all">All</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="vocab-list" class="vocab-list"></div>
+  </section>
+
+  <!-- ---- QUIZ SELECT VIEW ---- -->
+  <section id="view-quiz-select" class="view">
+    <div class="browse-header">
+      <button class="btn-back" onclick="navigate('home')" data-i18n="browse.backHome">← Home</button>
+      <h2 data-i18n="quiz.title">Quiz Time!</h2>
+    </div>
+
+    <div class="quiz-setup">
+      <div class="setup-group">
+        <label data-i18n="quiz.chooseLevel">Choose Level</label>
+        <div class="chip-group" id="quiz-level">
+          <button class="chip active" data-val="1">🌱 <span data-i18n="home.beginner">Beginner</span></button>
+          <button class="chip" data-val="2">🌿 <span data-i18n="home.intermediate">Intermediate</span></button>
+          <button class="chip" data-val="3">🌳 <span data-i18n="home.advanced">Advanced</span></button>
+        </div>
+      </div>
+
+      <div class="setup-group">
+        <label data-i18n="quiz.chooseType">Choose Quiz Type</label>
+        <div class="quiz-type-list" id="quiz-types"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---- QUIZ PLAY VIEW ---- -->
+  <section id="view-quiz-play" class="view">
+    <div class="quiz-header">
+      <button class="btn-back" onclick="quitQuiz()" data-i18n="quiz.quit">← Quit</button>
+      <div class="quiz-progress">
+        <span id="quiz-q-num">Q 1/10</span>
+        <span id="quiz-score">Score: 0</span>
+      </div>
+    </div>
+
+    <div class="quiz-bar"><div id="quiz-bar-fill" class="quiz-bar-fill"></div></div>
+
+    <div id="quiz-question" class="quiz-question"></div>
+    <div id="quiz-options" class="quiz-options"></div>
+    <div id="quiz-feedback" class="quiz-feedback"></div>
+  </section>
+
+  <!-- ---- PROGRESS VIEW ---- -->
+  <section id="view-progress" class="view">
+    <div class="browse-header">
+      <button class="btn-back" onclick="navigate('home')" data-i18n="browse.backHome">← Home</button>
+      <h2 data-i18n="progress.title">My Progress</h2>
+    </div>
+    <div id="progress-content" class="progress-content"></div>
+  </section>
+
+</main>
+
+<!-- ============================ BOTTOM NAV ============================ -->
+<nav class="bottom-nav">
+  <button class="nav-btn active" data-view="home" onclick="navigate('home')">
+    <span class="nav-icon">🏠</span><span data-i18n="nav.home">Home</span>
+  </button>
+  <button class="nav-btn" data-view="browse" onclick="goBrowse()">
+    <span class="nav-icon">📖</span><span data-i18n="nav.learn">Learn</span>
+  </button>
+  <button class="nav-btn" data-view="quiz" onclick="goQuizSelect()">
+    <span class="nav-icon">📝</span><span data-i18n="nav.quiz">Quiz</span>
+  </button>
+  <button class="nav-btn" data-view="progress" onclick="navigate('progress')">
+    <span class="nav-icon">📊</span><span data-i18n="nav.progress">Progress</span>
+  </button>
+</nav>
+
+<!-- ============================ VOCAB CARD MODAL ============================ -->
+<div id="vocab-modal" class="modal-overlay" onclick="closeModal(event)">
+  <div class="modal-card" onclick="event.stopPropagation()"></div>
+</div>
+
+<!-- ============================ LEARNER NAME MODAL ============================ -->
+<div id="name-modal" class="modal-overlay" onclick="closeNameModal(event)">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <h3 data-i18n="name.title">Your Name</h3>
+    <p class="modal-hint" data-i18n="name.hint">Enter your name so your quiz scores are saved.</p>
+    <input type="text" id="name-input" placeholder="e.g. Maria" maxlength="30" data-i18n="name.placeholder" data-i18n-attr="placeholder" />
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeNameModal()" data-i18n="name.cancel">Cancel</button>
+      <button class="btn btn-primary" onclick="saveLearnerName()" data-i18n="name.save">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ VOICE PICKER MODAL ============================ -->
+<div id="voice-modal" class="modal-overlay" onclick="closeVoiceModal(event)">
+  <div class="modal-box voice-box" onclick="event.stopPropagation()">
+    <h3 data-i18n="voice.title">🎙️ Choose a Practice Voice</h3>
+    <p class="modal-hint" data-i18n="voice.hint">Tap a voice to hear 你好 — choose a woman's or a man's voice, slow or natural.</p>
+    <div id="voice-list" class="voice-grid"></div>
+    <div id="voice-status" class="voice-status"></div>
+    <div id="voice-all-wrap" class="voice-all-wrap" style="display:none">
+      <div class="voice-all-title" data-i18n="voice.allOnDevice">All voices on this device</div>
+      <div id="voice-all" class="voice-all"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary btn-block" onclick="closeVoiceModal()" data-i18n="voice.done">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ TOAST ============================ -->
+<div id="toast" class="toast"></div>
+
+<script src="i18n.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

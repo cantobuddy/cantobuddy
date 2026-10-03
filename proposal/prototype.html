@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CantoBuddy 2.0 — Screen Proposal (v2, no money)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --primary:#e63946; --primary-dark:#c1121f; --primary-light:#f8d7da;
+  --secondary:#2a9d8f; --accent:#f4a261;
+  --bg:#f7f8fa; --surface:#fff; --text:#1a1a2e; --soft:#6c757d;
+  --border:#e0e0e6; --correct:#52b788; --navy:#1d3557;
+  --radius:14px; --radius-sm:8px; --radius-lg:20px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:#eef0f4;color:var(--text);
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  -webkit-font-smoothing:antialiased}
+.shell{display:flex;min-height:100vh}
+
+.side{width:262px;flex:0 0 262px;background:var(--navy);color:#fff;
+  padding:22px 16px;position:sticky;top:0;height:100vh;overflow-y:auto}
+.brand{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.brand-bird{width:34px;height:34px;border-radius:9px;background:#2a4a73;
+  display:grid;place-items:center;font-size:18px}
+.brand h1{font-size:15px;font-weight:700;margin:0;letter-spacing:.2px}
+.brand small{display:block;font-size:10.5px;color:#9db4d0;font-weight:500;letter-spacing:.4px;text-transform:uppercase}
+.rolelabel{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:#8aa4c4;
+  margin:22px 0 8px;font-weight:600}
+.roletab{display:block;width:100%;text-align:left;padding:9px 12px;margin-bottom:5px;
+  border:0;border-radius:9px;background:rgba(255,255,255,.06);color:#dbe6f2;
+  font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;transition:.15s}
+.roletab:hover{background:rgba(255,255,255,.12)}
+.roletab.on{background:var(--primary);color:#fff;font-weight:600}
+.navitem{display:block;width:100%;text-align:left;padding:8px 12px;margin-bottom:3px;
+  border:0;border-radius:8px;background:transparent;color:#c3d3e6;
+  font-size:12.5px;cursor:pointer;font-family:inherit;transition:.15s}
+.navitem:hover{background:rgba(255,255,255,.08);color:#fff}
+.navitem.on{background:rgba(255,255,255,.16);color:#fff;font-weight:600}
+.navitem .num{display:inline-block;width:16px;color:#7f9cc0;font-size:11px}
+.foot{margin-top:22px;padding-top:14px;border-top:1px solid rgba(255,255,255,.12);
+  font-size:10.5px;color:#7f9cc0;line-height:1.6}
+.foot b{color:#5dcaa5}
+.foot .no{color:#f09595}
+
+.main{flex:1;padding:26px 34px 60px;min-width:0}
+.pagehead{margin-bottom:20px}
+.pagehead h2{margin:0 0 4px;font-size:21px;font-weight:700;letter-spacing:-.2px}
+.pagehead p{margin:0;font-size:13px;color:var(--soft)}
+.badge-new{display:inline-block;background:var(--primary);color:#fff;font-size:9.5px;
+  font-weight:700;padding:2px 7px;border-radius:99px;letter-spacing:.5px;
+  text-transform:uppercase;vertical-align:middle;margin-left:7px}
+.badge-exists{background:#2a9d8f}
+.stage{display:flex;justify-content:center;align-items:flex-start;padding:10px 0 0}
+.notes{max-width:660px;margin:26px auto 0;background:#fff;border:1px solid var(--border);
+  border-radius:var(--radius);padding:16px 18px}
+.notes h4{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:var(--soft)}
+.notes ul{margin:0;padding-left:18px;font-size:12.5px;line-height:1.75;color:#3d4453}
+.notes li{margin-bottom:3px}
+
+.phone{width:390px;flex:0 0 390px;background:#0d1b2a;border-radius:38px;padding:11px;
+  box-shadow:0 18px 50px rgba(13,27,42,.28)}
+.phone-screen{background:var(--bg);border-radius:28px;overflow:hidden;height:760px;
+  display:flex;flex-direction:column;position:relative}
+.statusbar{height:32px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;font-size:11px;font-weight:600;color:var(--navy);background:var(--surface);
+  flex:0 0 32px}
+.appbar{display:flex;align-items:center;justify-content:space-between;padding:8px 16px 12px;
+  background:var(--surface);border-bottom:1px solid var(--border);flex:0 0 auto}
+.appbar .who{display:flex;align-items:center;gap:9px}
+.avatar{width:30px;height:30px;border-radius:50%;background:var(--primary-light);
+  display:grid;place-items:center;font-size:15px}
+.appbar b{font-size:13px;font-weight:600}
+.appbar .sub{font-size:10px;color:var(--soft)}
+.bell{position:relative;font-size:17px}
+.bell .dot{position:absolute;top:-3px;right:-4px;background:var(--primary);color:#fff;
+  font-size:8.5px;font-weight:700;min-width:15px;height:15px;border-radius:99px;
+  display:grid;place-items:center;padding:0 3px;font-family:'Inter'}
+.body{flex:1;overflow-y:auto;padding:14px 16px 78px}
+.tabbar{position:absolute;bottom:0;left:0;right:0;height:62px;background:var(--surface);
+  border-top:1px solid var(--border);display:flex;align-items:center;
+  justify-content:space-around;font-size:9.5px;color:var(--soft)}
+.tabbar div{display:flex;flex-direction:column;align-items:center;gap:2px;font-weight:500}
+.tabbar .ic{font-size:17px}
+.tabbar .on{color:var(--primary);font-weight:700}
+
+.browser{width:100%;max-width:1020px;background:#fff;border-radius:12px;overflow:hidden;
+  box-shadow:0 18px 50px rgba(13,27,42,.18);border:1px solid #d8dde5}
+.chrome{height:34px;background:#e9ecf1;display:flex;align-items:center;gap:7px;
+  padding:0 13px;border-bottom:1px solid #d8dde5}
+.chrome i{width:10px;height:10px;border-radius:50%;display:block}
+.chrome .url{margin-left:12px;background:#fff;border-radius:6px;padding:3px 12px;
+  font-size:10.5px;color:#6c757d;flex:1;max-width:420px}
+.web{background:var(--bg);min-height:560px}
+.webbar{background:var(--navy);color:#fff;padding:0 22px;height:52px;
+  display:flex;align-items:center;justify-content:space-between}
+.webbar .l{display:flex;align-items:center;gap:10px;font-weight:700;font-size:14px}
+.webbar .l .bird{width:27px;height:27px;border-radius:7px;background:#2a4a73;
+  display:grid;place-items:center;font-size:14px}
+.webbar .r{display:flex;align-items:center;gap:18px;font-size:12px;color:#c3d3e6}
+.webbar .r .act{color:#fff;font-weight:600}
+.webwrap{padding:20px 22px 26px}
+.webhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:15px}
+.webhead h3{margin:0;font-size:17px;font-weight:700}
+.webhead p{margin:2px 0 0;font-size:12px;color:var(--soft)}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:14px;margin-bottom:11px}
+.btn{border:0;border-radius:var(--radius-sm);padding:8px 14px;font-size:12px;font-weight:600;
+  cursor:pointer;font-family:inherit}
+.btn-p{background:var(--primary);color:#fff}
+.btn-o{background:#fff;color:var(--text);border:1px solid var(--border)}
+.btn-s{background:var(--secondary);color:#fff}
+.btn-sm{padding:5px 10px;font-size:11px}
+.btn-block{width:100%;padding:11px;font-size:13px}
+.prog{height:7px;background:#eef0f4;border-radius:99px;overflow:hidden}
+.prog>i{display:block;height:100%;background:var(--primary);border-radius:99px}
+.prog.gr>i{background:var(--correct)}
+.pill{display:inline-block;font-size:9.5px;font-weight:700;padding:2px 8px;border-radius:99px;
+  letter-spacing:.3px}
+.pill-red{background:var(--primary-light);color:var(--primary-dark)}
+.pill-green{background:#d4edda;color:#1b5e20}
+.pill-amber{background:#fff3cd;color:#856404}
+.pill-blue{background:#e3f2fd;color:#0d47a1}
+.pill-grey{background:#eef0f4;color:var(--soft)}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.muted{color:var(--soft);font-size:11.5px}
+.tiny{font-size:10.5px;color:var(--soft)}
+.hr{height:1px;background:var(--border);margin:12px 0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:11px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:11px}
+.kpi{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:13px}
+.kpi .n{font-size:23px;font-weight:800;letter-spacing:-.5px;margin:3px 0 1px}
+.kpi .l{font-size:10.5px;color:var(--soft);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+.sticker{width:52px;height:52px;border-radius:13px;background:var(--bg);border:1px solid var(--border);
+  display:grid;place-items:center;font-size:25px;cursor:pointer;transition:.15s}
+.sticker:hover{border-color:var(--primary);transform:translateY(-2px)}
+.sticker.sel{border:2px solid var(--primary);background:var(--primary-light)}
+.sticker-wrap{display:flex;flex-wrap:wrap;gap:9px}
+.price{font-size:9.5px;color:var(--soft);text-align:center;margin-top:3px}
+.field{width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:var(--radius-sm);
+  font-size:12.5px;font-family:inherit;background:#fff;color:var(--text)}
+.field::placeholder{color:#a9b0bb}
+label.fl{display:block;font-size:11px;font-weight:600;margin:0 0 5px;color:#3d4453}
+.note-box{background:#fff3cd;border:1px solid #ffe08a;border-radius:var(--radius-sm);
+  padding:10px 12px;font-size:11.5px;color:#856404;line-height:1.6}
+.ok-box{background:#d4edda;border:1px solid #a3cfbb;border-radius:var(--radius-sm);
+  padding:10px 12px;font-size:11.5px;color:#1b5e20;line-height:1.6}
+.info-box{background:#e3f2fd;border:1px solid #b6dcfb;border-radius:var(--radius-sm);
+  padding:10px 12px;font-size:11.5px;color:#0d47a1;line-height:1.6}
+.empty{border:1.5px dashed var(--border);border-radius:var(--radius);padding:26px;
+  text-align:center;color:var(--soft);font-size:12.5px;background:#fff}
+.tl{position:relative;padding-left:22px}
+.tl:before{content:'';position:absolute;left:6px;top:6px;bottom:6px;width:2px;background:var(--border)}
+.tl .ev{position:relative;margin-bottom:14px}
+.tl .ev:before{content:'';position:absolute;left:-20px;top:4px;width:10px;height:10px;
+  border-radius:50%;background:var(--primary);border:2px solid #fff;box-shadow:0 0 0 1.5px var(--primary)}
+.tl .ev.g:before{background:var(--correct);box-shadow:0 0 0 1.5px var(--correct)}
+.tl .ev.b:before{background:#378add;box-shadow:0 0 0 1.5px #378add}
+.dash{border-top:2px dashed var(--border);margin:14px 0}
+.credit-badge{display:inline-flex;align-items:center;gap:4px;background:#fff3cd;color:#856404;
+  font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:99px}
+.removed{text-decoration:line-through;opacity:.55}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <aside class="side">
+    <div class="brand">
+      <div class="brand-bird">🐦</div>
+      <div>
+        <h1>CantoBuddy</h1>
+        <small>v2 · no money handling</small>
+      </div>
+    </div>
+    <div class="rolelabel">Role</div>
+    <div id="roles"></div>
+    <div class="rolelabel">Screens</div>
+    <div id="nav"></div>
+    <div class="foot">
+      Mockup only — no real data.<br />
+      Existing screens marked <b>KEEP</b>.<br />
+      <span class="no">✕ Payments, store, wallet, cash payouts and donations removed.</span>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="pagehead">
+      <h2 id="ttl">—</h2>
+      <p id="sub">—</p>
+    </div>
+    <div class="stage" id="stage"></div>
+    <div class="notes" id="notes"></div>
+  </main>
+
+</div>
+
+<script>
+const PHONE = (inner) => `
+  <div class="phone"><div class="phone-screen">
+    <div class="statusbar"><span>9:41</span><span>▮▮▮ ⌁ ▰</span></div>
+    ${inner}
+  </div></div>`;
+
+const TABBAR = (active) => `
+  <div class="tabbar">
+    <div class="${active==='home'?'on':''}"><span class="ic">🏠</span>Home</div>
+    <div class="${active==='learn'?'on':''}"><span class="ic">📖</span>Learn</div>
+    <div class="${active==='quiz'?'on':''}"><span class="ic">📝</span>Quiz</div>
+    <div class="${active==='prog'?'on':''}"><span class="ic">📊</span>Progress</div>
+  </div>`;
+
+const WEB = (inner, page) => `
+  <div class="browser">
+    <div class="chrome">
+      <i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i>
+      <span class="url">cantobuddy.com${page||''}</span>
+    </div>
+    <div class="web">${inner}</div>
+  </div>`;
+
+const WEBBAR = (who) => `
+  <div class="webbar">
+    <div class="l"><span class="bird">🐦</span> CantoBuddy <span style="font-weight:400;color:#9db4d0;font-size:12px">for Employers</span></div>
+    <div class="r"><span class="act">Helpers</span><span>Stickers</span><span>Rewards</span>
+      <span style="color:#fff">${who}</span></div>
+  </div>`;
+
+/* ============================================================
+   LEARNER (mobile)
+   ============================================================ */
+
+const learner = {
+
+dashboard: { title:'Learner · Dashboard', sub:'Personalised learning, streak, and stickers received from the employer.',
+  notes:['New screen. Today the learner lands on a plain category list — no sense of progress or reward.',
+         'The bell is the single entry point for encouragement and stickers.',
+         'Credits are shown as a running total only. No value in money, no redemption by the helper.'],
+  html: PHONE(`
+    <div class="appbar">
+      <div class="who"><div class="avatar">👩</div>
+        <div><b>Hi, Jeanilyn</b><div class="sub">Day 12 streak 🔥</div></div></div>
+      <div class="bell">🔔<span class="dot">3</span></div>
+    </div>
+    <div class="body">
+      <div class="card" style="text-align:center;background:linear-gradient(180deg,#fff,#fff8f8)">
+        <div style="font-size:11px;font-weight:700;color:var(--primary);letter-spacing:.6px">BEGINNER</div>
+        <div style="font-size:40px;font-weight:800;letter-spacing:-1.5px;margin:2px 0 0">68<span style="font-size:19px">%</span></div>
+        <div class="muted" style="margin-bottom:9px">44 of 64 words practised</div>
+        <div class="prog"><i style="width:68%"></i></div>
+      </div>
+
+      <div class="row" style="margin:16px 0 8px">
+        <b style="font-size:13px">Today's lesson</b><span class="tiny">3 min</span>
+      </div>
+      <div class="card" style="border-left:4px solid var(--accent)">
+        <div class="row">
+          <div style="display:flex;align-items:center;gap:11px">
+            <div style="font-size:26px">🍳</div>
+            <div><b style="font-size:13px">Kitchen words</b><div class="tiny">10 words · new</div></div>
+          </div>
+          <button class="btn btn-p btn-sm">Start</button>
+        </div>
+      </div>
+
+      <div class="row" style="margin:16px 0 8px">
+        <b style="font-size:13px">From your employer</b><span class="tiny">View all</span>
+      </div>
+      <div class="card" style="background:#fffdf5;border-color:#ffe08a">
+        <div style="display:flex;gap:9px;align-items:center;margin-bottom:9px">
+          <div class="sticker" style="width:42px;height:42px;font-size:21px">🌟</div>
+          <div class="sticker" style="width:42px;height:42px;font-size:21px">🌟</div>
+          <div class="sticker" style="width:42px;height:42px;font-size:21px">💐</div>
+          <div style="margin-left:auto;text-align:right">
+            <div style="font-weight:800;font-size:15px;color:#856404">280</div>
+            <div class="tiny">credits</div>
+          </div>
+        </div>
+        <div style="font-size:11.5px;color:#6b5a1e;line-height:1.6">
+          <b>Emily sent:</b> "Great work this week, keep going!" — 2h ago
+        </div>
+      </div>
+    </div>
+    ${TABBAR('home')}
+  `)},
+
+learn: { title:'Learner · Learn', sub:'This is the existing browse experience — unchanged.',
+  notes:['KEEP — already built and working.','Shown here only so you can see it in context.'],
+  html: PHONE(`
+    <div class="appbar"><div class="who"><div class="avatar">👩</div>
+      <div><b>Learn</b><div class="sub">64 words · 11 categories</div></div></div>
+      <div class="bell">🔔<span class="dot">3</span></div></div>
+    <div class="body">
+      <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
+        <span class="pill pill-red">All levels</span><span class="pill pill-grey">🌱 Beginner</span>
+        <span class="pill pill-grey">🌿 Intermediate</span><span class="pill pill-grey">🌳 Advanced</span>
+      </div>
+      <div class="grid2">
+        ${[['👋','Greetings','問候',8],['💬','Common','常用',12],['🍳','Kitchen','廚房',9],
+           ['🧹','Cleaning','清潔',7],['🛒','Shopping','買嘢',6],['🧓','Elder Care','長者照顧',19]]
+          .map(([e,en,yue,n])=>`
+          <div class="card" style="margin:0;text-align:center">
+            <div style="font-size:25px">${e}</div>
+            <div style="font-weight:600;font-size:12.5px;margin-top:3px">${en}</div>
+            <div class="tiny">${yue} · ${n} words</div>
+          </div>`).join('')}
+      </div>
+    </div>
+    ${TABBAR('learn')}
+  `)},
+
+notifications: { title:'Learner · Notifications', sub:'Encouragement and stickers in one inbox.',
+  notes:['New screen — the core of the motivation loop.',
+         'Employer messages and sticker gifts land here.',
+         'Off-site bonuses appear as a note from the employer, not as an in-app balance.'],
+  html: PHONE(`
+    <div class="appbar"><div class="who"><div class="avatar">👩</div>
+      <div><b>Notifications</b><div class="sub">3 unread</div></div></div>
+      <div class="bell">🔔<span class="dot">3</span></div></div>
+    <div class="body">
+      <div class="card" style="background:#fffdf5;border-color:#ffe08a">
+        <div class="row" style="align-items:flex-start">
+          <div style="display:flex;gap:11px">
+            <div class="sticker" style="width:44px;height:44px;font-size:22px;border:0;background:transparent">🌟</div>
+            <div><b style="font-size:13px">You received 3 Gold Stars</b>
+              <div class="muted" style="margin-top:3px">"Great work this week, keep going!"</div>
+              <div class="tiny" style="margin-top:4px">+15 credits · 2 hours ago</div></div>
+          </div>
+          <span class="pill pill-amber">NEW</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="row" style="align-items:flex-start">
+          <div style="display:flex;gap:11px">
+            <div class="sticker" style="width:44px;height:44px;font-size:22px;border:0;background:transparent">💐</div>
+            <div><b style="font-size:13px">Emily sent you flowers</b>
+              <div class="muted" style="margin-top:3px">"Thank you for helping with grandma"</div>
+              <div class="tiny" style="margin-top:4px">+10 credits · Yesterday</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="border-left:4px solid var(--secondary)">
+        <div class="row" style="align-items:flex-start">
+          <div style="display:flex;gap:11px">
+            <div class="sticker" style="width:44px;height:44px;font-size:22px;border:0;background:transparent">🤝</div>
+            <div><b style="font-size:13px">Emily recorded a bonus for you</b>
+              <div class="muted" style="margin-top:3px">"Bonus for the 12-day streak — given to you directly"</div>
+              <div class="tiny" style="margin-top:4px">2 hours ago</div></div>
+          </div>
+        </div>
+        <div class="info-box" style="margin-top:9px">
+          This bonus is arranged between you and Emily outside the app. CantoBuddy does not handle it.
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="row" style="align-items:flex-start">
+          <div style="display:flex;gap:11px">
+            <div class="sticker" style="width:44px;height:44px;font-size:22px;border:0;background:transparent">🏆</div>
+            <div><b style="font-size:13px">7-day streak reached</b>
+              <div class="muted" style="margin-top:3px">Keep it up to earn the Silver badge</div>
+              <div class="tiny" style="margin-top:4px">3 days ago</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    ${TABBAR('home')}
+  `)},
+
+stickers: { title:'Learner · My Stickers', sub:'The collection and the credits earned. Nothing to buy, nothing to cash out.',
+  notes:['Rewritten. There is no store, no price and no payout button anywhere on this screen.',
+         'Credits are a score, not a wallet — the helper can never withdraw or spend them.',
+         'The reward itself is defined by the employer (see the Employer · Rewards screen) and arranged off-platform.'],
+  html: PHONE(`
+    <div class="appbar"><div class="who"><div class="avatar">👩</div>
+      <div><b>My Stickers</b><div class="sub">From your employer</div></div></div>
+      <div class="bell">🔔<span class="dot">3</span></div></div>
+    <div class="body">
+      <div class="card" style="text-align:center;background:linear-gradient(180deg,#fff,#fffdf5)">
+        <div class="tiny" style="letter-spacing:.6px;font-weight:700">CREDITS EARNED</div>
+        <div style="font-size:38px;font-weight:800;letter-spacing:-1.4px;color:#856404;margin:2px 0 2px">280</div>
+        <div class="muted">from 26 stickers received</div>
+      </div>
+
+      <div class="card" style="border-left:4px solid var(--secondary)">
+        <div style="font-size:12.5px;font-weight:700;margin-bottom:7px">🎁 Emily's reward</div>
+        <div style="font-size:12px;line-height:1.65;color:#3d4453">
+          <b>100 credits = HK$50</b>, paid to you directly by Emily.
+        </div>
+        <div class="hr"></div>
+        <div class="row" style="margin-bottom:5px">
+          <span class="tiny">Progress to next reward</span>
+          <span class="tiny"><b>80 / 100</b></span>
+        </div>
+        <div class="prog gr"><i style="width:80%"></i></div>
+        <div class="tiny" style="margin-top:6px">20 credits to go</div>
+      </div>
+
+      <div class="row" style="margin:16px 0 9px"><b style="font-size:13px">Collection</b><span class="tiny">6 types</span></div>
+      <div class="grid3" style="gap:9px">
+        ${[['🌟','Gold Star','×14','5'],['💐','Flowers','×4','10'],['🍰','Cake','×2','15'],
+           ['🎁','Gift Box','×1','25'],['🏆','Trophy','×1','50'],['❤️','Heart','×9','3']]
+          .map(([e,n,c,v])=>`
+          <div class="card" style="margin:0;text-align:center;padding:11px 6px">
+            <div style="font-size:27px">${e}</div>
+            <div style="font-weight:600;font-size:10.5px;margin-top:3px">${n}</div>
+            <div class="tiny">${c} · ${v} cr</div>
+          </div>`).join('')}
+      </div>
+
+      <div class="dash"></div>
+      <div style="font-size:13px;font-weight:700;margin-bottom:9px">Recent gifts</div>
+      ${[['🌟','3 Gold Stars','+15 credits','2h ago'],['💐','Flowers','+10 credits','Yesterday'],
+         ['🤝','Bonus recorded by Emily','—','Yesterday']]
+        .map(([e,n,c,t])=>`
+        <div class="card" style="padding:11px">
+          <div class="row">
+            <div style="display:flex;gap:10px;align-items:center">
+              <div style="font-size:21px">${e}</div>
+              <div><div style="font-size:12.5px;font-weight:600">${n}</div><div class="tiny">${t}</div></div>
+            </div>
+            <span style="font-weight:700;font-size:12px;color:#856404">${c}</span>
+          </div>
+        </div>`).join('')}
+
+      <div class="info-box" style="margin-top:4px">
+        Learning is always free. You never need to buy anything, and CantoBuddy never holds money for you.
+      </div>
+    </div>
+    ${TABBAR('home')}
+  `)},
+
+progress: { title:'Learner · Progress', sub:'The existing progress view, extended with stickers received.',
+  notes:['KEEP (extended). Already shows overall score, by-level breakdown and recent attempts.',
+         'Now also surfaces abandoned attempts, thanks to the incremental saving we shipped.',
+         'Sticker count added so the motivation and the learning sit on one screen.'],
+  html: PHONE(`
+    <div class="appbar"><div class="who"><div class="avatar">👩</div>
+      <div><b>My Progress</b><div class="sub">Last 30 days</div></div></div>
+      <div class="bell">🔔<span class="dot">3</span></div></div>
+    <div class="body">
+      <div class="card" style="text-align:center">
+        <div class="tiny" style="letter-spacing:.6px;font-weight:700">OVERALL SCORE</div>
+        <div style="font-size:38px;font-weight:800;letter-spacing:-1.4px;color:var(--primary);margin:2px 0">78<span style="font-size:19px">%</span></div>
+        <div class="muted" style="margin-bottom:9px">156 correct out of 200 · 18 attempts</div>
+        <div class="prog"><i style="width:78%"></i></div>
+      </div>
+
+      <div class="grid2" style="gap:11px;margin-bottom:11px">
+        <div class="card" style="margin:0;text-align:center">
+          <div style="font-size:26px;font-weight:800;color:#856404">280</div>
+          <div class="tiny">credits earned</div>
+        </div>
+        <div class="card" style="margin:0;text-align:center">
+          <div style="font-size:26px;font-weight:800;color:var(--primary)">26</div>
+          <div class="tiny">stickers received</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="font-size:13px;font-weight:700;margin-bottom:11px">By level</div>
+        ${[['🌱','Beginner',142,160,89],['🌿','Intermediate',14,30,47],['🌳','Advanced',0,10,0]]
+          .map(([e,n,s,m,pct])=>`
+          <div style="margin-bottom:11px">
+            <div class="row" style="margin-bottom:4px">
+              <span style="font-size:12px">${e} ${n}</span>
+              <span class="tiny">${s}/${m} (${pct}%)</span>
+            </div>
+            <div class="prog ${pct>=70?'gr':''}"><i style="width:${pct}%"></i></div>
+          </div>`).join('')}
+      </div>
+
+      <div class="card">
+        <div style="font-size:13px;font-weight:700;margin-bottom:9px">Recent attempts</div>
+        ${[['🍳','Kitchen words','8/10','80%','2h ago',''],
+           ['💬','Common words','6/10','60%','Yesterday',''],
+           ['🧹','Cleaning words','4/10','40%','2 days ago','incomplete']]
+          .map(([e,n,s,p,t,st])=>`
+          <div class="row" style="padding:9px 0;border-bottom:1px solid var(--border)">
+            <div style="display:flex;gap:9px;align-items:center">
+              <span style="font-size:16px">${e}</span>
+              <div><div style="font-size:12px;font-weight:600">${n}</div>
+                <div class="tiny">${t}${st?' · <span style="color:#856404;font-weight:600">'+st+'</span>':''}</div></div>
+            </div>
+            <span style="font-weight:700;font-size:12.5px;color:${parseInt(p)>=60?'var(--correct)':'var(--primary)'}">${s}</span>
+          </div>`).join('')}
+      </div>
+    </div>
+    ${TABBAR('prog')}
+  `)},
+
+profile: { title:'Learner · Profile & Connect', sub:'Login is optional — connect only if the helper wants the employer to see progress.',
+  notes:['Matches your requirement: "no login to learn, login to connect with the employer".',
+         'Guest mode keeps full access to all 64 words and quizzes.',
+         'Connecting requires an invite code from the employer — helpers cannot browse for employers.',
+         'Sharing can be switched off at any time (HK PDPO).'],
+  html: PHONE(`
+    <div class="appbar"><div class="who"><div class="avatar">👩</div>
+      <div><b>Profile</b><div class="sub">Guest — learning saved on this phone</div></div></div>
+      <div class="bell">🔔<span class="dot">3</span></div></div>
+    <div class="body">
+      <div class="card" style="text-align:center">
+        <div class="avatar" style="width:62px;height:62px;font-size:30px;margin:4px auto 9px">👩</div>
+        <div style="font-weight:700;font-size:15px">Jeanilyn R.</div>
+        <div class="tiny">Connected to Emily Chan</div>
+        <div style="display:flex;gap:8px;margin-top:13px">
+          <button class="btn btn-o" style="flex:1">Sign out</button>
+          <button class="btn btn-p" style="flex:1">Edit name</button>
+        </div>
+      </div>
+
+      <div class="ok-box" style="margin-bottom:12px">
+        <b>You don't need an account.</b> All 64 words, audio and quizzes work without signing in.
+      </div>
+
+      <div class="card">
+        <b style="font-size:12.5px">Connect to your employer</b>
+        <div class="muted" style="margin:6px 0 10px;line-height:1.6">
+          Enter the 6-character code your employer shared with you.
+        </div>
+        <input class="field" placeholder="CB-4K9T2" style="text-align:center;letter-spacing:3px;font-weight:700" />
+        <button class="btn btn-p btn-block" style="margin-top:9px">Connect</button>
+      </div>
+
+      <div class="card">
+        <div class="row"><div><b style="font-size:12.5px">Share progress</b>
+          <div class="tiny">Let Emily see your learning</div></div>
+          <span class="pill pill-green">ON</span></div>
+        <div class="hr"></div>
+        <div class="row"><div><b style="font-size:12.5px">Notification reminders</b>
+          <div class="tiny">A gentle nudge once a day</div></div>
+          <span class="pill pill-green">ON</span></div>
+        <div class="hr"></div>
+        <div class="row"><div><b style="font-size:12.5px">Disconnect from employer</b>
+          <div class="tiny">Your learning stays, sharing stops</div></div>
+          <button class="btn btn-o btn-sm">Disconnect</button></div>
+      </div>
+
+      <div class="card" style="border-left:4px solid var(--secondary)">
+        <b style="font-size:12.5px">🌐 Language</b>
+        <div class="tiny" style="margin:5px 0 9px">English · Filipino</div>
+        <div style="display:flex;gap:7px">
+          <span class="pill pill-red">English</span><span class="pill pill-grey">Filipino</span>
+        </div>
+      </div>
+    </div>
+    ${TABBAR('home')}
+  `)}
+};
+
+/* ============================================================
+   EMPLOYER (desktop)
+   ============================================================ */
+
+const employer = {
+
+signin: { title:'Employer · Sign in', sub:'Separate authentication for employers — email and password.',
+  notes:['Replaces the single shared admin password with real per-user accounts.',
+         'Three independent login surfaces: helper, employer, admin.',
+         'No card, no billing details anywhere in the sign-up flow.'],
+  html: WEB(`
+    <div style="display:flex;align-items:center;justify-content:center;padding:56px 22px;background:#f7f8fa">
+      <div style="width:390px;background:#fff;border:1px solid var(--border);border-radius:var(--radius-lg);padding:28px">
+        <div style="text-align:center;margin-bottom:20px">
+          <div style="width:52px;height:52px;border-radius:14px;background:var(--navy);margin:0 auto 12px;display:grid;place-items:center;font-size:26px">🐦</div>
+          <div style="font-size:18px;font-weight:700">CantoBuddy for Employers</div>
+          <div class="muted" style="margin-top:4px">Invite your helper, follow their progress, send encouragement</div>
+        </div>
+        <label class="fl">Email</label>
+        <input class="field" value="emily.chan@example.com" style="margin-bottom:12px" />
+        <label class="fl">Password</label>
+        <input class="field" type="password" value="••••••••••" style="margin-bottom:16px" />
+        <button class="btn btn-p btn-block">Sign in</button>
+        <div style="text-align:center;margin-top:13px">
+          <span class="tiny">No account? <b style="color:var(--primary)">Create one</b></span>
+        </div>
+        <div class="hr"></div>
+        <div class="tiny" style="text-align:center">Free. No payment details required, ever.</div>
+      </div>
+    </div>
+  `, '/employer/login')},
+
+dashboard: { title:'Employer · Dashboard', sub:'Who you have invited, how far they have got, and what needs attention.',
+  notes:['New. The employer currently has no portal at all.',
+         '"Not started" is called out loudly — that is the case worth acting on.',
+         'The money KPI is gone; stickers sent is the engagement metric instead.'],
+  html: WEB(`
+    ${WEBBAR('Emily Chan ▾')}
+    <div class="webwrap">
+      <div class="webhead">
+        <div><h3>Your helpers</h3><p>2 helpers · 1 active today</p></div>
+        <button class="btn btn-p">+ Invite a helper</button>
+      </div>
+
+      <div class="grid4" style="margin-bottom:16px">
+        <div class="kpi"><div class="l">Helpers</div><div class="n">2</div></div>
+        <div class="kpi"><div class="l">Words learned</div><div class="n">51</div></div>
+        <div class="kpi"><div class="l">Quizzes taken</div><div class="n">18</div></div>
+        <div class="kpi"><div class="l">Stickers sent</div><div class="n" style="color:var(--primary)">26</div></div>
+      </div>
+
+      <div class="card">
+        <div class="row" style="align-items:flex-start">
+          <div style="display:flex;gap:13px">
+            <div class="avatar" style="width:44px;height:44px;font-size:21px">👩</div>
+            <div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <b style="font-size:14px">Jeanilyn R.</b><span class="pill pill-green">ACTIVE</span>
+                <span class="credit-badge">280 credits</span>
+              </div>
+              <div class="muted" style="margin:3px 0 8px">jeanilyn@example.com · joined 12 days ago</div>
+              <div style="width:270px"><div class="prog gr"><i style="width:68%"></i></div></div>
+              <div class="tiny" style="margin-top:5px">44 / 64 words · 12-day streak · last active 2 hours ago</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:7px">
+            <button class="btn btn-o btn-sm">View progress</button>
+            <button class="btn btn-p btn-sm">Send stickers</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="row" style="align-items:flex-start">
+          <div style="display:flex;gap:13px">
+            <div class="avatar" style="width:44px;height:44px;font-size:21px;background:#eef0f4">👩</div>
+            <div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <b style="font-size:14px">Grace M.</b><span class="pill pill-amber">NOT STARTED</span>
+              </div>
+              <div class="muted" style="margin:3px 0 8px">Invited 3 days ago · invitation not yet accepted</div>
+              <div style="width:270px"><div class="prog"><i style="width:0%"></i></div></div>
+              <div class="tiny" style="margin-top:5px">No activity yet</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:7px">
+            <button class="btn btn-o btn-sm">Resend invite</button>
+            <button class="btn btn-o btn-sm">Copy link</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="hr"></div>
+      <div style="font-size:12.5px;font-weight:600;margin-bottom:10px">Recent activity</div>
+      <div class="tl">
+        <div class="ev g"><b style="font-size:12.5px">Jeanilyn finished "Kitchen words" quiz</b>
+          <div class="tiny">8/10 correct · 2 hours ago</div></div>
+        <div class="ev b"><b style="font-size:12.5px">You sent 3 Gold Stars and recorded a bonus</b>
+          <div class="tiny">2 hours ago</div></div>
+        <div class="ev"><b style="font-size:12.5px">Jeanilyn reached a 12-day streak</b>
+          <div class="tiny">Today</div></div>
+      </div>
+    </div>
+  `, '/employer')},
+
+invite: { title:'Employer · Invite a helper', sub:'Email invitation or a shareable link, with a unique code.',
+  notes:['New. This is how a helper gets connected to an employer.',
+         'The code is what the helper enters on their Profile screen.',
+         'Helpers cannot search for employers — invitations only, which keeps it safe.'],
+  html: WEB(`
+    ${WEBBAR('Emily Chan ▾')}
+    <div class="webwrap">
+      <div class="webhead"><div><h3>Invite a helper</h3><p>They can start learning immediately — an account is optional</p></div></div>
+
+      <div style="display:grid;grid-template-columns:1.35fr 1fr;gap:16px">
+        <div>
+          <div class="card">
+            <div style="font-size:12.5px;font-weight:700;margin-bottom:11px">Invite by email</div>
+            <label class="fl">Helper's name</label>
+            <input class="field" placeholder="e.g. Grace M." style="margin-bottom:11px" />
+            <label class="fl">Email address</label>
+            <input class="field" placeholder="helper@example.com" style="margin-bottom:11px" />
+            <label class="fl">Personal message (optional)</label>
+            <textarea class="field" rows="3" placeholder="Hi Grace! This app helped Jeanilyn a lot with Cantonese. Take a look when you have time."></textarea>
+            <button class="btn btn-p btn-block" style="margin-top:13px">Send invitation</button>
+            <div class="tiny" style="text-align:center;margin-top:9px">Free forever — for both of you.</div>
+          </div>
+
+          <div class="card">
+            <div style="font-size:12.5px;font-weight:700;margin-bottom:9px">Or share a link</div>
+            <div class="row">
+              <code style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 12px;font-size:12px;flex:1">cantobuddy.com/join/CB-4K9T2</code>
+              <button class="btn btn-o btn-sm">Copy</button>
+            </div>
+            <div class="tiny" style="margin-top:9px">Anyone with this link can join and connect to you. Expires in 14 days.</div>
+          </div>
+        </div>
+
+        <div>
+          <div class="card" style="background:#fffdf5;border-color:#ffe08a">
+            <div style="font-size:12.5px;font-weight:700;margin-bottom:8px">Your invite code</div>
+            <div style="text-align:center;padding:14px 0">
+              <div style="font-size:26px;font-weight:800;letter-spacing:4px;color:#856404">CB-4K9T2</div>
+            </div>
+            <div class="tiny" style="text-align:center">Your helper can type this in their app instead of using the link.</div>
+          </div>
+          <div class="info-box">
+            <b>Privacy:</b> you only ever see learning progress. You cannot see your helper's other activity, and they can turn sharing off at any time.
+          </div>
+        </div>
+      </div>
+    </div>
+  `, '/employer/invite')},
+
+helper: { title:'Employer · Helper progress', sub:'A detailed report — what was learned, when, and how well.',
+  notes:['New. Answers the question you actually asked: "why can\'t I see Jeanilyn\'s progress?"',
+         'Per-category breakdown makes gaps obvious (e.g. Elder Care not started).',
+         'Quiz history includes abandoned attempts, now that partials are recorded.'],
+  html: WEB(`
+    ${WEBBAR('Emily Chan ▾')}
+    <div class="webwrap">
+      <div class="webhead">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div class="avatar" style="width:44px;height:44px;font-size:21px">👩</div>
+          <div><h3>Jeanilyn R.</h3><p>Joined 12 days ago · last active 2 hours ago</p></div>
+        </div>
+        <div style="display:flex;gap:7px">
+          <button class="btn btn-o">Export report</button>
+          <button class="btn btn-p">Send stickers</button>
+        </div>
+      </div>
+
+      <div class="grid4" style="margin-bottom:16px">
+        <div class="kpi"><div class="l">Words learned</div><div class="n">44<span style="font-size:13px;color:var(--soft)">/64</span></div></div>
+        <div class="kpi"><div class="l">Quizzes taken</div><div class="n">18</div></div>
+        <div class="kpi"><div class="l">Average score</div><div class="n" style="color:var(--correct)">78%</div></div>
+        <div class="kpi"><div class="l">Credits earned</div><div class="n" style="color:#856404">280</div></div>
+      </div>
+
+      <div class="grid2" style="grid-template-columns:1.15fr 1fr;gap:16px">
+        <div class="card">
+          <div style="font-size:12.5px;font-weight:700;margin-bottom:12px">By category</div>
+          ${[['👋','Greetings',8,8,100],['💬','Common',12,10,83],['🍳','Kitchen',9,6,67],
+             ['🧹','Cleaning',7,4,57],['🛒','Shopping',6,3,50],['🧓','Elder Care',19,0,0]]
+            .map(([e,n,done,tot,pct])=>`
+            <div style="margin-bottom:11px">
+              <div class="row" style="margin-bottom:4px">
+                <span style="font-size:12px">${e} ${n}</span>
+                <span class="tiny">${done}/${tot} · ${pct}%</span>
+              </div>
+              <div class="prog ${pct>=70?'gr':''}"><i style="width:${pct}%"></i></div>
+            </div>`).join('')}
+          <div class="note-box" style="margin-top:6px">
+            <b>Elder Care</b> has 19 words and none are started — likely the most useful for her day-to-day work.
+          </div>
+        </div>
+
+        <div class="card">
+          <div style="font-size:12.5px;font-weight:700;margin-bottom:12px">Quiz history</div>
+          ${[['🍳','Kitchen words','8/10','80%','2h ago','done'],
+             ['💬','Common words','6/10','60%','Yesterday','done'],
+             ['🧹','Cleaning words','4/10','40%','2 days ago','partial'],
+             ['👋','Greetings','10/10','100%','3 days ago','done']]
+            .map(([e,n,s,p,t,st])=>`
+            <div class="row" style="padding:8px 0;border-bottom:1px solid var(--border)">
+              <div style="display:flex;gap:9px;align-items:center">
+                <span style="font-size:16px">${e}</span>
+                <div><div style="font-size:12px;font-weight:600">${n}</div>
+                  <div class="tiny">${t}${st==='partial'?' · <span style="color:#856404;font-weight:600">incomplete</span>':''}</div></div>
+              </div>
+              <span style="font-weight:700;font-size:12.5px;color:${parseInt(p)>=60?'var(--correct)':'var(--primary)'}">${s}</span>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>
+  `, '/employer/helpers/jeanilyn')},
+
+send: { title:'Employer · Send stickers', sub:'Pick stickers, add a message, optionally note a bonus you gave outside the app.',
+  notes:['Rewritten — the wallet and the cash-bonus field are gone.',
+         'Stickers carry credit values. No prices, no payment, nothing to check out.',
+         'The bonus is a note that RECORDS something you did off-platform. CantoBuddy never moves the money.'],
+  html: WEB(`
+    ${WEBBAR('Emily Chan ▾')}
+    <div class="webwrap">
+      <div class="webhead"><div><h3>Send stickers to Jeanilyn</h3><p>She will get a notification straight away</p></div></div>
+
+      <div style="display:grid;grid-template-columns:1.35fr 1fr;gap:16px">
+        <div>
+          <div class="card">
+            <div style="font-size:12.5px;font-weight:700;margin-bottom:11px">1. Choose stickers</div>
+            <div class="sticker-wrap">
+              ${[['🌟','Gold Star','5'],['💐','Flowers','10'],['🍰','Cake','15'],['🎁','Gift Box','25'],
+                 ['🏆','Trophy','50'],['❤️','Heart','3'],['🔥','Fire','8'],['🎉','Party','12']]
+                .map(([e,n,c],i)=>`
+                <div>
+                  <div class="sticker ${i===0||i===5?'sel':''}">${e}</div>
+                  <div class="price"><b style="color:var(--text)">${c}</b> cr</div>
+                </div>`).join('')}
+            </div>
+            <div class="hr"></div>
+            <div class="row">
+              <span class="muted">Selected: 🌟 ×1, ❤️ ×1</span>
+              <span style="font-weight:700;font-size:13px">8 credits</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div style="font-size:12.5px;font-weight:700;margin-bottom:9px">2. Add a message</div>
+            <textarea class="field" rows="3">Great work this week — grandma is so happy you can talk with her now. Keep going!</textarea>
+            <div style="display:flex;gap:6px;margin-top:9px;flex-wrap:wrap">
+              <span class="pill pill-grey">Thank you 🙏</span>
+              <span class="pill pill-grey">Well done 👏</span>
+              <span class="pill pill-grey">Keep going 💪</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div style="font-size:12.5px;font-weight:700;margin-bottom:4px">3. Record a bonus (optional)</div>
+            <div class="muted" style="margin-bottom:11px;line-height:1.6">
+              If you have given Jeanilyn something directly — money, a gift, time off — note it here so she gets a notification and it shows in her history.
+            </div>
+            <div class="grid2" style="margin-bottom:11px">
+              <div><label class="fl">What you gave</label>
+                <input class="field" value="HK$100" /></div>
+              <div><label class="fl">Note (optional)</label>
+                <input class="field" value="12-day streak bonus" /></div>
+            </div>
+            <div class="info-box">
+              <b>Nothing is charged and nothing is transferred.</b> This is a record of something you arranged directly with your helper.
+            </div>
+          </div>
+
+          <button class="btn btn-p btn-block">Send to Jeanilyn</button>
+        </div>
+
+        <div>
+          <div class="card" style="background:#fffdf5;border-color:#ffe08a">
+            <div style="font-size:12.5px;font-weight:700;margin-bottom:10px">Jeanilyn's credits</div>
+            <div class="row" style="margin-bottom:9px"><span class="muted">Current</span><b style="font-size:17px;color:#856404">280</b></div>
+            <div class="row" style="margin-bottom:9px"><span class="muted">After this send</span><b style="font-size:17px">288</b></div>
+            <div class="hr"></div>
+            <div class="tiny" style="line-height:1.6">
+              Your reward rule: <b>100 credits = HK$50</b><br />
+              She is 80 / 100 toward the next reward.
+            </div>
+          </div>
+
+          <div class="card">
+            <div style="font-size:12.5px;font-weight:700;margin-bottom:9px">What Jeanilyn sees</div>
+            <div class="card" style="margin:0;background:var(--bg);padding:12px">
+              <div style="display:flex;gap:9px;align-items:center;margin-bottom:8px">
+                <div class="sticker" style="width:38px;height:38px;font-size:19px">🌟</div>
+                <div class="sticker" style="width:38px;height:38px;font-size:19px">❤️</div>
+              </div>
+              <div style="font-size:11.5px;line-height:1.6"><b>Emily sent:</b> "Great work this week — grandma is so happy you can talk with her now. Keep going!"</div>
+              <div class="tiny" style="margin-top:7px">+8 credits</div>
+            </div>
+          </div>
+
+          <div class="info-box">
+            💡 Stickers are worth credits. You decide what credits are worth to you — see <b>Rewards</b>.
+          </div>
+        </div>
+      </div>
+    </div>
+  `, '/employer/send')},
+
+rewards: { title:'Employer · Rewards', sub:'You define what credits are worth. CantoBuddy only counts them.',
+  notes:['NEW — this screen replaces the wallet entirely.',
+         'The employer writes their own credit-to-gift rule in their own words.',
+         'No money is processed. Whatever the reward is, you arrange it directly with your helper.',
+         'This is what keeps "free for helpers" true while still giving the helper something real.'],
+  html: WEB(`
+    ${WEBBAR('Emily Chan ▾')}
+    <div class="webwrap">
+      <div class="webhead"><div><h3>Rewards</h3><p>What credits are worth — decided by you, arranged by you</p></div></div>
+
+      <div class="info-box" style="margin-bottom:16px">
+        <b>How this works.</b> Stickers give Jeanilyn credits. You decide what those credits mean. CantoBuddy counts them and shows her the target — it never handles money or goods.
+      </div>
+
+      <div style="display:grid;grid-template-columns:1.15fr 1fr;gap:16px">
+        <div class="card">
+          <div style="font-size:12.5px;font-weight:700;margin-bottom:12px">Your reward rule</div>
+          <label class="fl">Credits needed</label>
+          <input class="field" value="100" style="margin-bottom:12px;max-width:160px" />
+          <label class="fl">What they get — in your own words</label>
+          <textarea class="field" rows="2">HK$50, paid to you directly by Emily</textarea>
+          <div class="tiny" style="margin-top:8px">Examples: "a day off", "HK$100 paid directly", "a gift of your choice", "dinner out"</div>
+
+          <div class="hr"></div>
+          <div style="font-size:12.5px;font-weight:700;margin-bottom:9px">Preview — what Jeanilyn sees</div>
+          <div class="card" style="margin:0;background:var(--bg);border-left:4px solid var(--secondary)">
+            <div style="font-size:12px;font-weight:700;margin-bottom:6px">🎁 Emily's reward</div>
+            <div style="font-size:12px;line-height:1.6">100 credits = HK$50, paid to you directly by Emily.</div>
+            <div class="hr"></div>
+            <div class="row" style="margin-bottom:5px">
+              <span class="tiny">Progress to next reward</span><span class="tiny"><b>80 / 100</b></span>
+            </div>
+            <div class="prog gr"><i style="width:80%"></i></div>
+          </div>
+          <button class="btn btn-p btn-block" style="margin-top:12px">Save rule</button>
+        </div>
+
+        <div>
+          <div class="card">
+            <div style="font-size:12.5px;font-weight:700;margin-bottom:11px">Rewards you have given</div>
+            ${[['Jeanilyn R.','280 credits','HK$50 paid directly','3 Oct'],
+               ['Jeanilyn R.','100 credits','Day off','18 Sep']]
+              .map(([n,c,r,d])=>`
+              <div style="padding:10px 0;border-bottom:1px solid var(--border)">
+                <div class="row" style="margin-bottom:3px">
+                  <b style="font-size:12.5px">${n}</b><span class="tiny">${d}</span>
+                </div>
+                <div class="row">
+                  <span class="tiny">${c}</span>
+                  <span class="pill pill-green">${r}</span>
+                </div>
+              </div>`).join('')}
+          </div>
+
+          <div class="card">
+            <div style="font-size:12.5px;font-weight:700;margin-bottom:9px">Credits outstanding</div>
+            <div class="row" style="padding:7px 0"><span class="muted">Jeanilyn R.</span><b>280</b></div>
+            <div class="row" style="padding:7px 0"><span class="muted">Grace M.</span><b>0</b></div>
+            <div class="hr"></div>
+            <div class="tiny" style="line-height:1.6">
+              These are credits you have awarded that have not yet reached a reward threshold.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `, '/employer/rewards')}
+};
+
+/* ============================================================
+   ADMIN (desktop)
+   ============================================================ */
+
+const admin = {
+
+overview: { title:'Admin · Overview', sub:'Everything the operator needs to run the platform.',
+  notes:['Expands the current admin (which only manages vocabulary) into a full back office.',
+         'All money KPIs removed — stickers and credits are the engagement metrics instead.',
+         'Feedback surfaces here for the first time.'],
+  html: WEB(`
+    ${WEBBAR('Admin ▾')}
+    <div class="webwrap">
+      <div class="webhead"><div><h3>Overview</h3><p>Saturday, 3 October 2026</p></div></div>
+
+      <div class="grid4" style="margin-bottom:12px">
+        <div class="kpi"><div class="l">Helpers</div><div class="n">1,284</div><div class="tiny" style="color:var(--correct)">+112 this week</div></div>
+        <div class="kpi"><div class="l">Employers</div><div class="n">317</div><div class="tiny" style="color:var(--correct)">+24 this week</div></div>
+        <div class="kpi"><div class="l">Active today</div><div class="n">428</div><div class="tiny">33% of helpers</div></div>
+        <div class="kpi"><div class="l">Connected pairs</div><div class="n">241</div><div class="tiny">helper ↔ employer</div></div>
+      </div>
+
+      <div class="grid4" style="margin-bottom:16px">
+        <div class="kpi"><div class="l">Stickers sent</div><div class="n">9,120</div></div>
+        <div class="kpi"><div class="l">Credits awarded</div><div class="n" style="color:#856404">61,400</div></div>
+        <div class="kpi"><div class="l">Open feedback</div><div class="n" style="color:var(--primary)">14</div></div>
+        <div class="kpi"><div class="l">Invites pending</div><div class="n">87</div></div>
+      </div>
+
+      <div class="grid2" style="grid-template-columns:1.3fr 1fr;gap:16px">
+        <div class="card">
+          <div style="font-size:12.5px;font-weight:700;margin-bottom:12px">Learning activity — last 14 days</div>
+          <div style="display:flex;align-items:flex-end;gap:5px;height:120px">
+            ${[42,55,48,62,70,58,66,74,69,81,76,88,92,85].map(v=>
+              `<div style="flex:1;background:var(--primary);opacity:.85;height:${v}%;border-radius:3px 3px 0 0"></div>`).join('')}
+          </div>
+          <div class="row" style="margin-top:7px"><span class="tiny">Sep 20</span><span class="tiny">Oct 3</span></div>
+        </div>
+        <div class="card">
+          <div style="font-size:12.5px;font-weight:700;margin-bottom:12px">Needs attention</div>
+          <div class="tl">
+            <div class="ev"><b style="font-size:12.5px">14 unanswered feedback items</b><div class="tiny">Oldest is 6 days old</div></div>
+            <div class="ev"><b style="font-size:12.5px">87 invitations never accepted</b><div class="tiny">Consider a reminder email</div></div>
+            <div class="ev g"><b style="font-size:12.5px">Elder Care category is popular</b><div class="tiny">19 words · 62% completion</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `, '/admin')},
+
+content: { title:'Admin · Content', sub:'The vocabulary manager you already have — kept as-is.',
+  notes:['KEEP — this already works. 64 words, 11 categories, full CRUD.','Shown for completeness.'],
+  html: WEB(`
+    ${WEBBAR('Admin ▾')}
+    <div class="webwrap">
+      <div class="webhead"><div><h3>Vocabulary</h3><p>64 words · 11 categories</p></div>
+        <button class="btn btn-p">+ Add word</button></div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <div class="row" style="padding:10px 14px;background:var(--bg);font-size:11px;font-weight:700;color:var(--soft);text-transform:uppercase;letter-spacing:.5px">
+          <span style="flex:1">Cantonese</span><span style="flex:1">Jyutping</span><span style="flex:1.2">English</span><span style="flex:1.2">Tagalog</span><span style="width:80px">Level</span>
+        </div>
+        ${[['你好','nei5 hou2','Hello','Kumusta','🌱 Beginner'],
+           ['多謝','do1 ze6','Thank you','Salamat','🌱 Beginner'],
+           ['唔該','m4 goi1','Please / Excuse me','Pakiusap','🌱 Beginner'],
+           ['洗衫','sai2 saam1','Wash clothes','Maglaba','🌿 Intermediate'],
+           ['食藥','sik6 joek6','Take medicine','Uminom ng gamot','🌳 Advanced']]
+          .map(([c,j,e,t,l])=>`
+          <div class="row" style="padding:11px 14px;border-top:1px solid var(--border);font-size:12.5px">
+            <span style="flex:1;font-family:'Noto Sans SC',sans-serif;font-weight:600">${c}</span>
+            <span style="flex:1;color:var(--soft)">${j}</span>
+            <span style="flex:1.2">${e}</span><span style="flex:1.2;color:var(--soft)">${t}</span>
+            <span style="width:80px"><span class="pill pill-grey">${l}</span></span>
+          </div>`).join('')}
+      </div>
+    </div>
+  `, '/admin/content')},
+
+catalogue: { title:'Admin · Sticker catalogue', sub:'Manage the stickers and how many credits each one is worth.',
+  notes:['Rewritten. No prices, no exchange rate, no margin, no gift costs — none of that exists any more.',
+         'The only number per sticker is its credit value.',
+         'Credits-to-gift is defined per employer, not by you — see Employer · Rewards.'],
+  html: WEB(`
+    ${WEBBAR('Admin ▾')}
+    <div class="webwrap">
+      <div class="webhead"><div><h3>Sticker catalogue</h3><p>8 stickers · credits only, no prices</p></div>
+        <button class="btn btn-p">+ Add sticker</button></div>
+
+      <div class="info-box" style="margin-bottom:14px">
+        <b>Stickers are worth credits, not money.</b> Each employer decides for themselves what credits mean to their helper.
+      </div>
+
+      <div class="card">
+        <div style="font-size:12.5px;font-weight:700;margin-bottom:12px">Stickers</div>
+        <div class="sticker-wrap">
+          ${[['🌟','Gold Star','5'],['💐','Flowers','10'],['🍰','Cake','15'],['🎁','Gift Box','25'],
+             ['🏆','Trophy','50'],['❤️','Heart','3'],['🔥','Fire','8'],['🎉','Party','12']]
+            .map(([e,n,c])=>`
+            <div style="text-align:center">
+              <div class="sticker">${e}</div>
+              <div class="price" style="font-weight:600;color:var(--text)">${n}</div>
+              <div class="price"><b style="color:#856404">${c}</b> credits</div>
+            </div>`).join('')}
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="font-size:12.5px;font-weight:700;margin-bottom:11px">Sticker table</div>
+        <div class="row" style="padding:8px 0;background:var(--bg);font-size:10.5px;font-weight:700;color:var(--soft);text-transform:uppercase;letter-spacing:.5px">
+          <span style="flex:1">Sticker</span><span style="width:110px">Credits</span><span style="width:110px">Sent (all time)</span><span style="width:90px">Status</span>
+        </div>
+        ${[['🌟 Gold Star','5','3,120','on'],['❤️ Heart','3','2,880','on'],['💐 Flowers','10','1,240','on'],
+           ['🍰 Cake','15','640','on'],['🎁 Gift Box','25','410','on'],['🏆 Trophy','50','96','on'],
+           ['🔥 Fire','8','510','on'],['🎉 Party','12','224','off']]
+          .map(([n,c,sent,st])=>`
+          <div class="row" style="padding:10px 0;border-bottom:1px solid var(--border);font-size:12.5px">
+            <span style="flex:1;font-weight:600">${n}</span>
+            <span style="width:110px;color:#856404;font-weight:700">${c}</span>
+            <span style="width:110px;color:var(--soft)">${sent}</span>
+            <span style="width:90px"><span class="pill ${st==='on'?'pill-green':'pill-grey'}">${st==='on'?'LIVE':'OFF'}</span></span>
+          </div>`).join('')}
+      </div>
+    </div>
+  `, '/admin/catalogue')},
+
+reports: { title:'Admin · Reports', sub:'Engagement and learning reporting — no financials.',
+  notes:['Rewritten. The financial summary is gone; this is a learning and engagement report now.',
+         'Cohort view shows whether invitations actually convert to active learners.',
+         'Export to CSV so you can share with funders or sponsors.'],
+  html: WEB(`
+    ${WEBBAR('Admin ▾')}
+    <div class="webwrap">
+      <div class="webhead"><div><h3>Reports</h3><p>Last 30 days</p></div>
+        <div style="display:flex;gap:7px"><button class="btn btn-o">Export CSV</button><button class="btn btn-o">Email report</button></div></div>
+
+      <div class="grid2" style="grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+        <div class="card">
+          <div style="font-size:12.5px;font-weight:700;margin-bottom:12px">Invitation funnel</div>
+          ${[['Invitations sent',482,100],['Opened',371,77],['Joined',248,51],['Started learning',203,42],['Still active after 7 days',156,32]]
+            .map(([n,v,pct])=>`
+            <div style="margin-bottom:11px">
+              <div class="row" style="margin-bottom:4px"><span style="font-size:12px">${n}</span><b style="font-size:12px">${v}</b></div>
+              <div class="prog"><i style="width:${pct}%"></i></div>
+            </div>`).join('')}
+          <div class="note-box">32% of invited helpers are still learning after a week — the benchmark for voluntary learning apps is closer to 10%.</div>
+        </div>
+
+        <div class="card">
+          <div style="font-size:12.5px;font-weight:700;margin-bottom:12px">Most studied categories</div>
+          ${[['🧓','Elder Care',62],['🍳','Kitchen',54],['💬','Common',48],['🛒','Shopping',41],['🧹','Cleaning',33]]
+            .map(([e,n,pct])=>`
+            <div class="row" style="padding:8px 0;border-bottom:1px solid var(--border)">
+              <span style="font-size:12.5px">${e} ${n}</span>
+              <div style="display:flex;align-items:center;gap:9px;width:150px">
+                <div class="prog" style="flex:1"><i style="width:${pct}%"></i></div>
+                <span class="tiny">${pct}%</span>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="font-size:12.5px;font-weight:700;margin-bottom:11px">Engagement summary</div>
+        <div class="grid4">
+          <div><div class="tiny" style="text-transform:uppercase;font-weight:700;letter-spacing:.5px">Stickers sent</div><div style="font-size:20px;font-weight:800;margin-top:3px">9,120</div></div>
+          <div><div class="tiny" style="text-transform:uppercase;font-weight:700;letter-spacing:.5px">Credits awarded</div><div style="font-size:20px;font-weight:800;margin-top:3px">61,400</div></div>
+          <div><div class="tiny" style="text-transform:uppercase;font-weight:700;letter-spacing:.5px">Helpers with a reward rule</div><div style="font-size:20px;font-weight:800;margin-top:3px">188</div></div>
+          <div><div class="tiny" style="text-transform:uppercase;font-weight:700;letter-spacing:.5px">Avg. session</div><div style="font-size:20px;font-weight:800;margin-top:3px">6m 40s</div></div>
+        </div>
+      </div>
+    </div>
+  `, '/admin/reports')},
+
+feedback: { title:'Admin · Feedback', sub:'Submissions from helpers and employers — visible only to admin.',
+  notes:['New. As specified, feedback is admin-only.',
+         'Status tracking matters: unanswered feedback is how you lose trust.',
+         'Helper feedback is anonymous by default, so people speak honestly.'],
+  html: WEB(`
+    ${WEBBAR('Admin ▾')}
+    <div class="webwrap">
+      <div class="webhead"><div><h3>Feedback</h3><p>14 open · 96 resolved</p></div>
+        <div style="display:flex;gap:7px">
+          <span class="pill pill-red" style="padding:7px 14px;font-size:12px">Open 14</span>
+          <span class="pill pill-grey" style="padding:7px 14px;font-size:12px">Resolved 96</span>
+        </div></div>
+
+      ${[['helper','"Can you add more words about taking care of elderly people? My employer\'s mother is 80."','Jeanilyn R. · 2 hours ago','NEW'],
+         ['employer','"I would like to set the reward to a day off instead of money."','Emily Chan · Yesterday','NEW'],
+         ['helper','"The audio is too fast on some words."','Anonymous · 2 days ago','REVIEWING'],
+         ['helper','"Thank you! I can now talk to my employer\'s children."','Anonymous · 3 days ago','RESOLVED']]
+        .map(([role,text,meta,st])=>`
+        <div class="card" style="border-left:4px solid ${role==='employer'?'var(--navy)':'var(--secondary)'}">
+          <div class="row" style="align-items:flex-start">
+            <div style="flex:1">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                <span class="pill ${role==='employer'?'pill-blue':'pill-green'}">${role.toUpperCase()}</span>
+                <span class="tiny">${meta}</span>
+              </div>
+              <div style="font-size:13px;line-height:1.6">${text}</div>
+            </div>
+            <span class="pill ${st==='NEW'?'pill-amber':st==='REVIEWING'?'pill-blue':'pill-grey'}">${st}</span>
+          </div>
+        </div>`).join('')}
+    </div>
+  `, '/admin/feedback')}
+};
+
+const ROLES = [
+  { id:'learner',  label:'👩  Learner (helper)', screens: learner },
+  { id:'employer', label:'🏠  Employer',          screens: employer },
+  { id:'admin',    label:'🛠  Admin',             screens: admin },
+];
+
+let curRole = 'learner';
+let curScreen = 'dashboard';
+
+function render(){
+  const role = ROLES.find(r=>r.id===curRole);
+
+  document.getElementById('roles').innerHTML = ROLES.map(r=>
+    `<button class="roletab ${r.id===curRole?'on':''}" data-role="${r.id}">${r.label}</button>`
+  ).join('');
+
+  document.getElementById('nav').innerHTML = Object.keys(role.screens).map((k,i)=>{
+    const s = role.screens[k];
+    return `<button class="navitem ${k===curScreen?'on':''}" data-screen="${k}">
+      <span class="num">${i+1}</span>${s.title.split('· ').pop()}</button>`;
+  }).join('');
+
+  const s = role.screens[curScreen] || role.screens[Object.keys(role.screens)[0]];
+  const keep = /KEEP/.test(s.notes.join(' '));
+  document.getElementById('ttl').innerHTML = s.title +
+    (keep ? '<span class="badge-new badge-exists">Keep</span>' : '<span class="badge-new">New</span>');
+  document.getElementById('sub').textContent = s.sub;
+  document.getElementById('stage').innerHTML = s.html;
+  document.getElementById('notes').innerHTML =
+    `<h4>Design notes</h4><ul>${s.notes.map(n=>`<li>${n}</li>`).join('')}</ul>`;
+
+  document.querySelectorAll('[data-role]').forEach(b=>b.onclick=()=>{
+    curRole = b.dataset.role;
+    curScreen = Object.keys(ROLES.find(r=>r.id===curRole).screens)[0];
+    render();
+  });
+  document.querySelectorAll('[data-screen]').forEach(b=>b.onclick=()=>{
+    curScreen = b.dataset.screen; render();
+  });
+}
+
+render();
+</script>
+</body>
+</html>

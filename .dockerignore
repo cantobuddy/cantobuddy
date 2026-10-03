@@ -7,3 +7,18 @@ db.json
 *.md
 Dockerfile
 .dockerignore
+
+# SQLite database and WAL sidecars — never bake a live database into an image.
+# It holds password hashes, session tokens and learner progress.
+*.db
+*.db-wal
+*.db-shm
+
+# Not needed at runtime
+proposal
+upload-to-github
+tools
+Start CantoBuddy.cmd
+icon-preview.png
+header-preview.png
+*.log

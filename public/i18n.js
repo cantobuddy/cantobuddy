@@ -12,7 +12,6 @@ const I18N = {
     'nav.learn': 'Learn',
     'nav.quiz': 'Quiz',
     'nav.progress': 'Progress',
-    'header.admin': 'Admin',
     'header.setName': 'Set your name',
     'header.voiceTitle': 'Choose practice voice',
     'header.langTitle': 'Change language',
@@ -87,6 +86,8 @@ const I18N = {
     'progress.correctOutOf': 'correct out of',
     'progress.attempts': 'quiz attempt(s)',
     'progress.couldNotLoad': 'Could not load progress.',
+    'progress.partial': 'Incomplete',
+    'progress.stoppedAt': 'Stopped at',
 
     // name modal
     'name.title': 'Your Name',
@@ -122,6 +123,29 @@ const I18N = {
     'share.copied': 'Copied to clipboard!',
     'share.failed': 'Could not share.',
 
+    // connecting to an employer (invitation link)
+    'connect.title': 'Connect to {name}?',
+    'connect.see': '{name} will be able to see your CantoBuddy practice — your quiz scores and progress. Nothing else.',
+    'connect.yourName': 'Your name',
+    'connect.nameHint': 'The name your employer will see.',
+    'connect.notNow': 'Not now',
+    'connect.connect': 'Connect',
+    'connect.connecting': 'Connecting…',
+    'connect.doneTitle': "You're connected 🎉",
+    'connect.doneBody': '{name} can now see your practice. You can stop sharing any time.',
+    'connect.doneBtn': 'Start learning',
+    'connect.invalid': 'This invitation link is not valid or has expired.',
+    'connect.failed': 'Could not connect. Please try again.',
+
+    // who can see my progress
+    'sharing.title': 'Who can see my progress',
+    'sharing.hint': 'These people can see your quiz scores. You can stop sharing at any time — your progress always stays with you.',
+    'sharing.none': 'Nobody can see your progress. Only you.',
+    'sharing.since': 'Connected',
+    'sharing.stop': 'Stop sharing',
+    'sharing.stopped': 'Stopped sharing',
+    'sharing.failed': 'Could not update. Please try again.',
+
     // misc
     'misc.close': 'Close',
     'misc.loadFailed': 'Could not load data. Is the server running?',
@@ -134,7 +158,6 @@ const I18N = {
     'nav.learn': 'Mag-aral',
     'nav.quiz': 'Pagsusulit',
     'nav.progress': 'Progreso',
-    'header.admin': 'Admin',
     'header.setName': 'Ilagay ang pangalan',
     'header.voiceTitle': 'Pumili ng boses',
     'header.langTitle': 'Palitan ang wika',
@@ -209,6 +232,8 @@ const I18N = {
     'progress.correctOutOf': 'tama sa',
     'progress.attempts': 'pagsubok',
     'progress.couldNotLoad': 'Hindi ma-load ang progreso.',
+    'progress.partial': 'Hindi kumpleto',
+    'progress.stoppedAt': 'Huminto sa',
 
     // name modal
     'name.title': 'Iyong Pangalan',
@@ -243,6 +268,29 @@ const I18N = {
     'share.scoreText': 'Nakakuha ako ng {score}/{total} sa CantoBuddy! 🇭🇰',
     'share.copied': 'Nakopya sa clipboard!',
     'share.failed': 'Hindi maibahagi.',
+
+    // connecting to an employer (invitation link)
+    'connect.title': 'Kumonekta kay {name}?',
+    'connect.see': 'Makikita ni {name} ang iyong pagsasanay sa CantoBuddy — ang iyong mga puntos at progreso. Wala nang iba.',
+    'connect.yourName': 'Iyong pangalan',
+    'connect.nameHint': 'Ang pangalang makikita ng iyong employer.',
+    'connect.notNow': 'Mamaya na',
+    'connect.connect': 'Kumonekta',
+    'connect.connecting': 'Kumokonekta…',
+    'connect.doneTitle': 'Konektado ka na 🎉',
+    'connect.doneBody': 'Makikita na ni {name} ang iyong pagsasanay. Maaari mong itigil ang pagbabahagi anumang oras.',
+    'connect.doneBtn': 'Magsimula',
+    'connect.invalid': 'Hindi wasto o lipas na ang link na ito.',
+    'connect.failed': 'Hindi makakonekta. Subukan muli.',
+
+    // who can see my progress
+    'sharing.title': 'Sino ang nakakakita ng progreso ko',
+    'sharing.hint': 'Nakikita ng mga taong ito ang iyong mga puntos. Maaari mong itigil ang pagbabahagi anumang oras — mananatili sa iyo ang progreso mo.',
+    'sharing.none': 'Walang nakakakita ng progreso mo. Ikaw lang.',
+    'sharing.since': 'Konektado',
+    'sharing.stop': 'Itigil ang pagbabahagi',
+    'sharing.stopped': 'Itinigil ang pagbabahagi',
+    'sharing.failed': 'Hindi ma-update. Subukan muli.',
 
     // misc
     'misc.close': 'Isara',

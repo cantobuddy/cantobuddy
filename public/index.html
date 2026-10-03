@@ -7,12 +7,13 @@
   <meta name="description" content="Learn practical Cantonese for daily life in Hong Kong — vocabulary, audio and quizzes. Free for helpers." />
   <title>CantoBuddy – Learn Cantonese</title>
   <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
   <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
-  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="CantoBuddy" />
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="/styles.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -30,7 +31,10 @@
       <button id="lang-btn" class="lang-btn" onclick="toggleLang()" title="Change language" aria-label="Change language">EN</button>
       <button id="voice-btn" class="voice-btn" onclick="openVoiceModal()" title="Choose practice voice" aria-label="Choose practice voice">👩</button>
       <span id="learner-badge" class="learner-badge" onclick="editLearnerName()" data-i18n="header.setName">Set your name</span>
-      <a href="/admin.html" class="admin-link" data-i18n="header.admin">Admin</a>
+      <!-- The admin link was deliberately removed from the learner header.
+           Helpers (and future employer accounts) must never see a route into
+           the operator area. The admin dashboard is reached by typing
+           /admin.html directly — see the note in server.js. -->
     </div>
   </div>
 </header>
@@ -205,10 +209,21 @@
   </div>
 </div>
 
+<!-- ============================ JOIN MODAL (employer invitation) ============================ -->
+<!-- Opened when the helper follows an invite link (/join/<code>). She has no
+     account; she is being asked to let one employer see her practice. -->
+<div id="join-modal" class="modal-overlay" onclick="closeJoinModal(event)">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div id="join-body"></div>
+  </div>
+</div>
+
 <!-- ============================ TOAST ============================ -->
 <div id="toast" class="toast"></div>
 
-<script src="i18n.js"></script>
-<script src="app.js"></script>
+<!-- Absolute paths: this same HTML is served from /join/<code>, where a
+     relative "app.js" would resolve to /join/app.js and 404. -->
+<script src="/i18n.js"></script>
+<script src="/app.js"></script>
 </body>
 </html>

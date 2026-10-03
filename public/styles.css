@@ -1188,6 +1188,24 @@ body {
 .admin-header .admin-link { color: rgba(255,255,255,0.8); }
 .admin-header .admin-link:hover { background: rgba(255,255,255,0.1); color: #fff; }
 
+/* The default .btn-outline uses --c-text (#1a1a2e), which is almost identical
+   to this header's navy (#1d3557) — dark-on-dark, so the label was unreadable.
+   Override it to a light outline here; the learner header keeps the default. */
+.admin-header .btn-outline {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.5);
+  white-space: nowrap;
+  padding: 7px 16px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+.admin-header .btn-outline:hover,
+.admin-header .btn-outline:focus-visible {
+  color: #fff;
+  border-color: #fff;
+  background: rgba(255, 255, 255, 0.14);
+}
+
 .admin-main { max-width: 800px; padding: 20px 16px; }
 
 .admin-section { display: none; }
@@ -1558,3 +1576,310 @@ body {
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--c-border); border-radius: 3px; }
+
+/* ===========================================================================
+   EMPLOYER PORTAL
+   ---------------------------------------------------------------------------
+   Shares the admin shell (.admin-header / .admin-section / .login-card) so the
+   two operator-facing areas stay visually identical; only the dashboard body
+   is new. Navy header, light content, red/teal accents from the design tokens.
+   =========================================================================== */
+
+.portal-body { background: #eef0f4; }
+
+.portal-main { max-width: 800px; padding: 20px 16px; }
+
+/* ---- Auth card: sign in / create account ---- */
+.portal-auth-tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--c-bg);
+  border-radius: var(--radius);
+  padding: 4px;
+  margin-bottom: 20px;
+}
+
+.portal-auth-tab {
+  flex: 1;
+  padding: 10px 8px;
+  border: none;
+  background: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: var(--font-en);
+  color: var(--c-text-soft);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.portal-auth-tab.active {
+  background: var(--c-surface);
+  color: var(--c-primary);
+  box-shadow: 0 1px 4px var(--c-shadow);
+}
+
+.portal-fineprint {
+  font-size: 0.78rem;
+  color: var(--c-text-soft);
+  margin-top: 18px;
+  line-height: 1.55;
+}
+
+/* The shared .form-field rule covers input + select; textarea is portal-only. */
+.form-field textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 2px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  font-size: 1rem;
+  font-family: var(--font-en);
+  resize: vertical;
+  transition: border-color 0.15s;
+}
+
+.form-field textarea:focus { border-color: var(--c-primary); outline: none; }
+
+.form-field .optional { font-weight: 400; color: var(--c-text-soft); font-size: 0.78rem; }
+
+/* ---- Greeting ---- */
+.portal-hello { margin-bottom: 22px; }
+.portal-hello h2 { font-size: 1.4rem; font-weight: 700; margin-bottom: 4px; }
+.portal-hello p { font-size: 0.88rem; color: var(--c-text-soft); line-height: 1.55; }
+
+/* ---- Helper cards ---- */
+.portal-helper-list { display: grid; gap: 12px; }
+
+.helper-card {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: 0 1px 3px var(--c-shadow);
+}
+
+.helper-head { display: flex; align-items: center; gap: 12px; }
+
+.helper-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--c-primary-light);
+  color: var(--c-primary-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.helper-name { font-size: 1.05rem; font-weight: 700; }
+.helper-meta { font-size: 0.78rem; color: var(--c-text-soft); margin-top: 2px; }
+
+.helper-stats { display: flex; gap: 22px; margin-top: 14px; }
+.helper-stat-num { font-size: 1.3rem; font-weight: 700; color: var(--c-primary); line-height: 1.1; }
+.helper-stat-lbl {
+  font-size: 0.68rem;
+  color: var(--c-text-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-top: 2px;
+}
+
+.helper-progress { margin-top: 14px; }
+.progress-track { height: 8px; background: var(--c-bg); border-radius: 6px; overflow: hidden; }
+.progress-fill {
+  height: 100%;
+  background: var(--c-secondary);
+  border-radius: 6px;
+  transition: width 0.4s ease;
+}
+
+.helper-levels { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.helper-level {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: var(--c-bg);
+  color: var(--c-text-soft);
+}
+.helper-level.good { background: #d4edda; color: #1b5e20; }
+.helper-level.mid { background: #fff3cd; color: #856404; }
+
+.helper-actions { display: flex; gap: 8px; margin-top: 16px; }
+.helper-actions .btn { flex: 1; }
+
+/* ---- Empty state ---- */
+.portal-empty {
+  background: var(--c-surface);
+  border: 1px dashed var(--c-border);
+  border-radius: var(--radius);
+  padding: 28px 20px;
+  text-align: center;
+  color: var(--c-text-soft);
+}
+.portal-empty-icon { font-size: 2.2rem; margin-bottom: 8px; }
+.portal-empty p { font-size: 0.88rem; line-height: 1.55; }
+.portal-empty strong { color: var(--c-text); }
+
+/* ---- Invitations ---- */
+.portal-invite-list { display: grid; gap: 10px; }
+
+.invite-card {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.invite-card-body { flex: 1; min-width: 0; }
+.invite-card-title { font-weight: 700; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.invite-card-meta { font-size: 0.76rem; color: var(--c-text-soft); margin-top: 4px; }
+.invite-card-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+.status-chip {
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 3px 9px;
+  border-radius: 10px;
+}
+.status-pending { background: #fff3cd; color: #856404; }
+.status-accepted { background: #d4edda; color: #1b5e20; }
+.status-revoked { background: #f8d7da; color: #b71c1c; }
+.status-expired { background: #e2e3e5; color: #5a5a66; }
+
+.code-pill {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  background: var(--c-bg);
+  border-radius: 6px;
+  padding: 3px 8px;
+}
+
+/* ---- "Invitation ready" modal ---- */
+.invite-link-box { display: flex; gap: 8px; margin: 16px 0; }
+.invite-link-box input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 2px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  background: var(--c-bg);
+}
+.invite-code-display { text-align: center; margin: 4px 0 22px; }
+.invite-code-label { display: block; font-size: 0.78rem; color: var(--c-text-soft); margin-bottom: 6px; }
+.invite-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 1.8rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--c-primary);
+  word-break: break-all;
+}
+
+/* ---- Helper detail modal ---- */
+.helper-detail-head { margin-bottom: 16px; }
+.helper-detail-head h3 { font-size: 1.2rem; font-weight: 700; }
+.helper-detail-head p { font-size: 0.8rem; color: var(--c-text-soft); margin-top: 3px; }
+
+.detail-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 18px; }
+.detail-stat { background: var(--c-bg); border-radius: var(--radius-sm); padding: 12px 10px; text-align: center; }
+.detail-stat-num { font-size: 1.35rem; font-weight: 700; color: var(--c-primary); }
+.detail-stat-lbl { font-size: 0.66rem; color: var(--c-text-soft); text-transform: uppercase; margin-top: 2px; letter-spacing: 0.03em; }
+
+.recent-title {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--c-text-soft);
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+.recent-list { display: grid; gap: 6px; }
+.recent-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--c-bg);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  font-size: 0.82rem;
+}
+.recent-row-when { color: var(--c-text-soft); font-size: 0.74rem; }
+.recent-score { font-weight: 700; }
+.recent-score.good { color: #1b5e20; }
+.recent-score.mid { color: #856404; }
+.recent-score.low { color: var(--c-wrong); }
+.recent-incomplete { font-size: 0.68rem; color: #8a5a00; font-weight: 600; }
+
+@media (min-width: 480px) {
+  .detail-stats { gap: 12px; }
+}
+
+/* ---- Operator header on narrow phones ----
+   .header-inner is a single non-wrapping flex row, so on a 360–430 px phone the
+   right-hand link is pushed off-screen and clipped. Let it wrap and keep the
+   right-hand group right-aligned when it lands on its own line. */
+.admin-body .header-inner { flex-wrap: wrap; row-gap: 6px; }
+.admin-body .logo { min-width: 0; }
+.admin-body .header-right { margin-left: auto; }
+
+/* ===========================================================================
+   EMPLOYER CONNECTIONS (learner side)
+   =========================================================================== */
+
+/* ---- Invitation card (opened from /join/<code>) ---- */
+#join-modal .modal-box { max-width: 380px; }
+.join-icon { font-size: 2.6rem; margin-bottom: 8px; text-align: center; }
+#join-body h3 { text-align: center; }
+#join-body .modal-hint { text-align: center; }
+
+.join-note {
+  margin: 4px 0 16px;
+  padding: 10px 14px;
+  background: var(--c-bg);
+  border-left: 3px solid var(--c-secondary);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 0.85rem;
+  color: var(--c-text);
+  font-style: italic;
+}
+
+/* The join card owns its own spacing — the shared .form-error reserves a line
+   of height, which would leave a gap above the buttons. */
+#join-body .form-error { min-height: 0; margin-bottom: 10px; }
+#join-body .form-field { margin-bottom: 14px; }
+
+/* ---- Sharing panel at the foot of My Progress ---- */
+.sharing-card { margin-top: 12px; }
+.sharing-hint { font-size: 0.82rem; color: var(--c-text-soft); line-height: 1.5; margin: 6px 0 12px; }
+.sharing-none { font-size: 0.85rem; color: var(--c-text-soft); }
+
+.sharing-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 0;
+  border-top: 1px solid #f0f0f0;
+}
+.sharing-row:first-of-type { border-top: none; }
+.sharing-name { font-weight: 600; font-size: 0.92rem; }
+.sharing-meta { font-size: 0.74rem; color: var(--c-text-soft); margin-top: 2px; }
+.sharing-row .btn { flex-shrink: 0; }
+
+/* ---- Link on the portal's reset card ---- */
+.portal-link { color: var(--c-primary); font-weight: 600; text-decoration: none; }
+.portal-link:hover { text-decoration: underline; }

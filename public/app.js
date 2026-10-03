@@ -4,10 +4,35 @@
 
 // ---- State -----------------------------------------------------------------
 
+// ---- Device identity -------------------------------------------------------
+//
+// A helper never creates an account. Her identity is a long random token kept
+// in localStorage; the server turns it into a learner row the first time it
+// sees it. The name is only a label — she can change it at any time without
+// losing a single quiz result, because nothing is keyed on the name.
+const DEVICE_KEY = 'cb_device';
+
+function randomToken(bytes = 18) {
+  const buf = new Uint8Array(bytes);
+  crypto.getRandomValues(buf);
+  return Array.from(buf, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+function loadDeviceId() {
+  let id = localStorage.getItem(DEVICE_KEY);
+  if (!id) {
+    id = 'dev_' + randomToken();
+    localStorage.setItem(DEVICE_KEY, id);
+  }
+  return id;
+}
+
 const STATE = {
   vocabulary: [],
   categories: [],
   learner: localStorage.getItem('cb_learner') || '',
+  deviceId: loadDeviceId(),   // this device's identity — never shown to the user
+  employers: [],              // who is allowed to see this learner's progress
   currentLevel: 0,      // 0 = all, 1-3 = specific
   currentCat: 0,        // 0 = all
   quiz: null,           // active quiz object
@@ -375,6 +400,25 @@ async function apiPost(url, body) {
   return r.json();
 }
 
+async function apiDelete(url) {
+  const r = await fetch(url, { method: 'DELETE' });
+  if (!r.ok) {
+    const e = await r.json().catch(() => ({}));
+    throw new Error(e.error || `API ${url} failed: ${r.status}`);
+  }
+  return r.json();
+}
+
+/** Escape text that came from another person before putting it in innerHTML. */
+function escapeHtml(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // ---- Navigation ------------------------------------------------------------
 
 function navigate(view) {
@@ -624,6 +668,8 @@ function saveLearnerName() {
   localStorage.setItem('cb_learner', name);
   updateLearnerBadge();
   closeNameModal();
+  // Push the new label to the server so any connected employer sees it too.
+  identifySelf();
 }
 
 // ===========================================================================
@@ -785,6 +831,77 @@ function generateQuestions(type, level) {
   return questions;
 }
 
+// ---- Progress persistence --------------------------------------------------
+
+/** Unique id for one run through a quiz. */
+function newQuizSessionId() {
+  return 'q_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10);
+}
+
+/**
+ * Save the current quiz to the server.
+ *
+ * Called after EVERY answered question (completed = false) and once more when
+ * the quiz finishes (completed = true). The server upserts on `session_id`, so
+ * all of these writes collapse into a single row — which means a learner who
+ * stops halfway still leaves a record behind instead of nothing at all.
+ */
+async function persistProgress(completed) {
+  const q = STATE.quiz;
+  if (!q || !STATE.learner) return null;
+  try {
+    return await apiPost('/api/progress', {
+      session_id: q.sessionId,
+      public_id: STATE.deviceId,
+      learner: STATE.learner,
+      level: q.level,
+      category_id: 0,
+      quiz_type: q.type,
+      score: q.score,
+      total: q.questions.length,
+      answered: q.answeredCount,
+      completed: !!completed,
+    });
+  } catch (err) {
+    // A failed save must never interrupt the quiz itself.
+    console.error('Failed to save progress:', err);
+    return null;
+  }
+}
+
+/**
+ * Last-resort flush for when the learner closes the tab or switches away.
+ * A normal fetch would be cancelled as the page unloads, so this uses
+ * sendBeacon, which the browser guarantees to deliver.
+ */
+function flushProgressBeacon() {
+  const q = STATE.quiz;
+  if (!q || !STATE.learner) return;
+  const payload = JSON.stringify({
+    session_id: q.sessionId,
+    public_id: STATE.deviceId,
+    learner: STATE.learner,
+    level: q.level,
+    category_id: 0,
+    quiz_type: q.type,
+    score: q.score,
+    total: q.questions.length,
+    answered: q.answeredCount,
+    completed: false,
+  });
+  try {
+    navigator.sendBeacon('/api/progress', new Blob([payload], { type: 'application/json' }));
+  } catch (e) {
+    /* nothing more we can do while the page is going away */
+  }
+}
+
+window.addEventListener('pagehide', flushProgressBeacon);
+// iOS Safari often skips pagehide, but does fire visibilitychange.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') flushProgressBeacon();
+});
+
 // ---- Start quiz ----
 function startQuiz(type) {
   const level = getQuizLevel();
@@ -809,6 +926,8 @@ function startQuiz(type) {
     questions,
     index: 0,
     score: 0,
+    answeredCount: 0,
+    sessionId: newQuizSessionId(),
     answered: false,
   };
 
@@ -903,6 +1022,11 @@ function answerQuiz(btn) {
     fWrap.innerHTML = `<div class="fb-wrong">${t('quiz.answerIs')} ${item.answer}</div>`;
   }
 
+  // Persist right away (fire-and-forget) so that even a quiz abandoned on the
+  // very next screen still counts as an attempt.
+  q.answeredCount++;
+  persistProgress(false);
+
   // Next button
   const isLast = q.index === q.questions.length - 1;
   fWrap.innerHTML += `<div class="fb-next"><button class="btn btn-primary" onclick="${isLast ? 'finishQuiz()' : 'nextQuestion()'}">${isLast ? t('quiz.seeResults') : t('quiz.next')}</button></div>`;
@@ -921,19 +1045,10 @@ async function finishQuiz() {
   const score = q.score;
   const pct = Math.round((score / total) * 100);
 
-  // Save progress
-  try {
-    await apiPost('/api/progress', {
-      learner: STATE.learner,
-      level: q.level,
-      category_id: 0,
-      quiz_type: q.type,
-      score,
-      total,
-    });
-  } catch (err) {
-    console.error('Failed to save progress:', err);
-  }
+  // Mark this attempt as finished. The server upserts on session_id, so this
+  // updates the partial row already written during the quiz rather than
+  // creating a second one.
+  await persistProgress(true);
 
   // Remember the result so the share button can use it
   window._lastResult = { score, total, pct, type: q.type };
@@ -955,7 +1070,10 @@ async function finishQuiz() {
   document.getElementById('view-quiz-play').innerHTML = resultHtml;
 }
 
-function quitQuiz() {
+async function quitQuiz() {
+  // Flush the partial result before the page reloads, then clear the session so
+  // the unload beacon can't write a duplicate row.
+  await persistProgress(false);
   STATE.quiz = null;
   // Restore original quiz-play HTML (in case it was overwritten by results)
   location.reload();
@@ -971,10 +1089,13 @@ async function renderProgress() {
   }
 
   try {
-    const records = await apiGet(`/api/progress?learner=${encodeURIComponent(STATE.learner)}`);
+    // Read by device token, not by name. The server resolves the token, so this
+    // can only ever return the rows belonging to this device.
+    const records = await apiGet(`/api/progress?public_id=${encodeURIComponent(STATE.deviceId)}`);
 
     if (records.length === 0) {
-      wrap.innerHTML = `<div class="progress-empty">${t('progress.none')}</div>`;
+      wrap.innerHTML =
+        `<div class="progress-empty">${t('progress.none')}</div>` + renderSharingCard();
       return;
     }
 
@@ -1024,14 +1145,23 @@ async function renderProgress() {
     html += `<div class="progress-card"><h4>${t('progress.recent')}</h4>`;
     const recent = records.slice(-5).reverse();
     for (const r of recent) {
+      // `completed` arrives as a boolean from the old JSON store and as 0/1
+      // from SQLite — accept both, or abandoned quizzes stop being flagged.
+      const partial = r.completed === false || r.completed === 0;
       const rpct = r.total > 0 ? Math.round((r.score / r.total) * 100) : 0;
       const type = QUIZ_TYPES.find((x) => x.id === r.quiz_type);
       const date = new Date(r.created_at).toLocaleDateString();
+      const badge = partial
+        ? ` <span style="font-size:0.68rem;font-weight:600;color:#8a5a00;background:#fdf0d5;border-radius:999px;padding:1px 7px">${t('progress.partial')}</span>`
+        : '';
+      const detail = partial
+        ? `${levelEmojis[r.level]} ${levelLabel(r.level)} • ${t('progress.stoppedAt')} ${r.answered || 0}/${r.total}`
+        : `${levelEmojis[r.level]} ${levelLabel(r.level)} • ${date}`;
       html += `
         <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f0f0f0">
           <div>
-            <div style="font-weight:600">${type ? type.icon + ' ' + quizTypeName(r.quiz_type) : r.quiz_type}</div>
-            <div style="font-size:0.78rem;color:#6c757d">${levelEmojis[r.level]} ${levelLabel(r.level)} • ${date}</div>
+            <div style="font-weight:600">${type ? type.icon + ' ' + quizTypeName(r.quiz_type) : r.quiz_type}${badge}</div>
+            <div style="font-size:0.78rem;color:#6c757d">${detail}</div>
           </div>
           <div style="font-weight:700;color:${rpct >= 50 ? '#52b788' : '#e63946'}">${r.score}/${r.total}</div>
         </div>
@@ -1039,9 +1169,65 @@ async function renderProgress() {
     }
     html += '</div>';
 
+    // Who is allowed to see all of the above.
+    html += renderSharingCard();
+
     wrap.innerHTML = html;
   } catch (err) {
     wrap.innerHTML = `<div class="progress-empty">${t('progress.couldNotLoad')}</div>`;
+  }
+}
+
+// ---- Sharing: who can see my progress --------------------------------------
+
+/**
+ * The consent panel, shown at the bottom of My Progress.
+ *
+ * This is the helper's side of the deal. It lists exactly who can see her
+ * scores and lets her withdraw that with one tap — no confirmation, no
+ * notification to the employer. She may not feel free to refuse an employer's
+ * invitation, so leaving has to be frictionless.
+ */
+function renderSharingCard() {
+  const list = STATE.employers || [];
+  let inner;
+
+  if (!list.length) {
+    inner = `<p class="sharing-none">${t('sharing.none')}</p>`;
+  } else {
+    inner = list
+      .map(
+        (e) => `
+      <div class="sharing-row">
+        <div style="min-width:0">
+          <div class="sharing-name">👤 ${escapeHtml(e.employer_name || '')}</div>
+          <div class="sharing-meta">${t('sharing.since')} ${new Date(e.connected_at).toLocaleDateString()}</div>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="disconnectEmployer(${e.id})">${t('sharing.stop')}</button>
+      </div>`
+      )
+      .join('');
+  }
+
+  return `
+    <div class="progress-card sharing-card">
+      <h4>${t('sharing.title')}</h4>
+      <p class="sharing-hint">${t('sharing.hint')}</p>
+      ${inner}
+    </div>`;
+}
+
+/** Withdraw an employer's access. One call, no confirmation dialog. */
+async function disconnectEmployer(linkId) {
+  try {
+    const res = await apiDelete(
+      `/api/learners/employers/${linkId}?public_id=${encodeURIComponent(STATE.deviceId)}`
+    );
+    STATE.employers = res.employers || [];
+    showToast(t('sharing.stopped'));
+    renderProgress();
+  } catch (err) {
+    showToast(t('sharing.failed'));
   }
 }
 
@@ -1097,6 +1283,132 @@ function shareResult() {
   shareOrCopy({ title: 'CantoBuddy', text, url: location.origin });
 }
 
+// ---- Employer connections --------------------------------------------------
+//
+// A helper connects to an employer by opening an invitation link. She has no
+// account, so the link is the entire flow: show who is asking, then accept.
+
+/** Tell the server which device this is, and who may see its progress. */
+async function identifySelf() {
+  try {
+    const res = await apiPost('/api/learners/identify', {
+      public_id: STATE.deviceId,
+      display_name: STATE.learner,
+    });
+    STATE.employers = res.employers || [];
+  } catch (err) {
+    console.warn('Could not identify this device:', err);
+  }
+}
+
+/** The invitation code from /join/<code>, if this is an invitation link. */
+function inviteCodeFromPath() {
+  const m = location.pathname.match(/^\/join\/([A-Za-z0-9]+)\/?$/);
+  return m ? m[1].toUpperCase() : null;
+}
+
+/** Handle /join/<code>: look the invitation up and show the connect card. */
+async function handleJoinLink() {
+  const code = inviteCodeFromPath();
+  if (!code) return;
+  try {
+    const inv = await apiGet('/api/invitations/' + encodeURIComponent(code));
+    openJoinModal(inv, code);
+  } catch (err) {
+    openJoinError(err.message);
+  }
+}
+
+function openJoinModal(inv, code) {
+  const employer = inv.employer_name || '';
+  const needsName = !STATE.learner;
+
+  document.getElementById('join-body').innerHTML = `
+    <div class="join-icon">🤝</div>
+    <h3>${t('connect.title').replace('{name}', escapeHtml(employer))}</h3>
+    <p class="modal-hint">${t('connect.see').replace('{name}', escapeHtml(employer))}</p>
+    ${inv.note ? `<blockquote class="join-note">${escapeHtml(inv.note)}</blockquote>` : ''}
+    ${
+      needsName
+        ? `<div class="form-field" style="text-align:left">
+             <label for="join-name">${t('connect.yourName')}</label>
+             <input type="text" id="join-name" maxlength="30" placeholder="${t('name.placeholder')}" />
+             <p class="form-hint">${t('connect.nameHint')}</p>
+           </div>`
+        : ''
+    }
+    <div id="join-error" class="form-error"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeJoinModal()">${t('connect.notNow')}</button>
+      <button class="btn btn-primary" id="join-connect" onclick="acceptInvite('${code}')">${t('connect.connect')}</button>
+    </div>`;
+  document.getElementById('join-modal').classList.add('show');
+}
+
+function openJoinError(message) {
+  document.getElementById('join-body').innerHTML = `
+    <div class="join-icon">⚠️</div>
+    <h3>${t('connect.invalid')}</h3>
+    <p class="modal-hint">${escapeHtml(message || '')}</p>
+    <div class="modal-actions">
+      <button class="btn btn-primary btn-block" onclick="closeJoinModal()">${t('misc.close')}</button>
+    </div>`;
+  document.getElementById('join-modal').classList.add('show');
+}
+
+async function acceptInvite(code) {
+  const btn = document.getElementById('join-connect');
+  const errEl = document.getElementById('join-error');
+  if (errEl) errEl.textContent = '';
+
+  // If she has no name yet, take the one she typed on the card.
+  const nameInput = document.getElementById('join-name');
+  if (nameInput) {
+    const name = nameInput.value.trim();
+    if (!name) {
+      if (errEl) errEl.textContent = t('connect.yourName');
+      return;
+    }
+    STATE.learner = name;
+    localStorage.setItem('cb_learner', name);
+    updateLearnerBadge();
+  }
+
+  btn.disabled = true;
+  btn.textContent = t('connect.connecting');
+
+  try {
+    const res = await apiPost(`/api/invitations/${encodeURIComponent(code)}/accept`, {
+      public_id: STATE.deviceId,
+      display_name: STATE.learner,
+    });
+    STATE.employers = res.employers || [];
+    const employer = (res.employer && res.employer.name) || '';
+
+    // Rewrite /join/<code> → / so a refresh does not replay the join.
+    history.replaceState({}, '', '/');
+
+    document.getElementById('join-body').innerHTML = `
+      <div class="join-icon">🎉</div>
+      <h3>${t('connect.doneTitle')}</h3>
+      <p class="modal-hint">${t('connect.doneBody').replace('{name}', escapeHtml(employer))}</p>
+      <div class="modal-actions">
+        <button class="btn btn-primary btn-block" onclick="closeJoinModal()">${t('connect.doneBtn')}</button>
+      </div>`;
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = t('connect.connect');
+    if (errEl) errEl.textContent = err.message || t('connect.failed');
+  }
+}
+
+function closeJoinModal(e) {
+  if (e && e.target !== e.currentTarget) return;
+  document.getElementById('join-modal').classList.remove('show');
+  // Dismissing an invitation should also get the join URL out of the way.
+  if (inviteCodeFromPath()) history.replaceState({}, '', '/');
+}
+
 // ---- PWA -------------------------------------------------------------------
 
 if ('serviceWorker' in navigator) {
@@ -1109,4 +1421,11 @@ if ('serviceWorker' in navigator) {
 
 // ---- Boot ------------------------------------------------------------------
 
-init();
+(async function boot() {
+  await init();
+  // Register this device with the server so it can attach progress to a learner
+  // row, and learn who (if anyone) is allowed to see that progress.
+  await identifySelf();
+  // Then handle an invitation link, if this load is one.
+  handleJoinLink();
+})();

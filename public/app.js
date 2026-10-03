@@ -1094,7 +1094,9 @@ async function renderProgress() {
     html += `<div class="progress-card"><h4>${t('progress.recent')}</h4>`;
     const recent = records.slice(-5).reverse();
     for (const r of recent) {
-      const partial = r.completed === false;
+      // `completed` arrives as a boolean from the old JSON store and as 0/1
+      // from SQLite — accept both, or abandoned quizzes stop being flagged.
+      const partial = r.completed === false || r.completed === 0;
       const rpct = r.total > 0 ? Math.round((r.score / r.total) * 100) : 0;
       const type = QUIZ_TYPES.find((x) => x.id === r.quiz_type);
       const date = new Date(r.created_at).toLocaleDateString();

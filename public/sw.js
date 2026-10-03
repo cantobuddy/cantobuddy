@@ -7,7 +7,7 @@
 // Bump this whenever app.js / i18n.js / styles.css change. The app shell is
 // cached cache-first, so without a version bump installed PWAs would keep
 // serving the previous build from cache.
-const CACHE = 'cantobuddy-v3';
+const CACHE = 'cantobuddy-v4';
 
 const APP_SHELL = [
   '/',

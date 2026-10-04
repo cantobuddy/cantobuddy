@@ -665,13 +665,31 @@ function closeNameModal(e) {
   document.getElementById('name-modal').classList.remove('show');
 }
 
+/**
+ * Write the learner's name, and confirm it really landed.
+ *
+ * localStorage throws rather than failing quietly when it is unavailable —
+ * private windows, "block all cookies", or storage evicted under pressure. Her
+ * name is the one thing she types in herself, so if it cannot be kept, say so
+ * now instead of letting her find out on the next visit.
+ */
+function persistLearnerName(name) {
+  try {
+    localStorage.setItem('cb_learner', name);
+    return localStorage.getItem('cb_learner') === name;
+  } catch (err) {
+    console.warn('Could not save the learner name:', err);
+    return false;
+  }
+}
+
 function saveLearnerName() {
   const name = document.getElementById('name-input').value.trim();
   if (!name) return;
   STATE.learner = name;
-  localStorage.setItem('cb_learner', name);
   updateLearnerBadge();
   closeNameModal();
+  if (!persistLearnerName(name)) showToast(t('name.notSaved'));
   // Push the new label to the server so any connected employer sees it too.
   identifySelf();
 }
@@ -1620,8 +1638,8 @@ async function acceptInvite(code) {
       return;
     }
     STATE.learner = name;
-    localStorage.setItem('cb_learner', name);
     updateLearnerBadge();
+    if (!persistLearnerName(name)) showToast(t('name.notSaved'));
   }
 
   btn.disabled = true;
@@ -1670,6 +1688,26 @@ function closeJoinModal(e) {
 // ---- PWA -------------------------------------------------------------------
 
 if ('serviceWorker' in navigator) {
+  // A new build takes over the moment it is installed (the worker calls
+  // skipWaiting + clients.claim), but the page keeps running the app.js it was
+  // loaded with. That mismatch is what "I refreshed and the fix still isn't
+  // there" actually is: the worker is serving the new cache while the old code
+  // is still on screen, and it takes a second visit to resolve.
+  //
+  // Reloading once closes the gap, so the next visit always runs the build the
+  // worker is serving. Two guards on it:
+  //   - Only on an *update*. On the very first install there was no controller,
+  //     and reloading then would just be a pointless extra load.
+  //   - Never mid-quiz. Answers are saved after every question, but the screen
+  //     she is looking at would be thrown away under her.
+  const hadController = !!navigator.serviceWorker.controller;
+  let reloading = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (reloading || !hadController || STATE.quiz) return;
+    reloading = true;
+    location.reload();
+  });
+
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').catch((err) => {
       console.warn('Service worker registration failed:', err);

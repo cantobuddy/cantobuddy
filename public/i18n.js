@@ -103,6 +103,7 @@ const I18N = {
     'name.placeholder': 'e.g. Maria',
     'name.cancel': 'Cancel',
     'name.save': 'Save',
+    'name.notSaved': 'Your browser is blocking saved data, so your name may not be remembered. Try a normal window, not private browsing.',
 
     // voice modal
     'voice.title': '🎙️ Choose a Practice Voice',
@@ -292,6 +293,7 @@ const I18N = {
     'name.placeholder': 'hal. Maria',
     'name.cancel': 'Kanselahin',
     'name.save': 'I-save',
+    'name.notSaved': 'Hinaharang ng browser mo ang pag-save ng data, kaya maaaring hindi maalala ang pangalan mo. Subukan ang normal na window, hindi private browsing.',
 
     // voice modal
     'voice.title': '🎙️ Pumili ng Boses',

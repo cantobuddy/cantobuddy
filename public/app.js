@@ -460,13 +460,6 @@ async function init() {
     STATE.vocabulary = vocab;
     STATE.categories = cats;
 
-    // Level counts on home
-    for (const lvl of [1, 2, 3]) {
-      const n = vocab.filter((v) => v.level === lvl).length;
-      const el = document.getElementById('count-' + lvl);
-      if (el) el.textContent = n + ' ' + t('home.words');
-    }
-
     // Category pills on home
     renderHomeCategories();
 
@@ -500,12 +493,6 @@ async function init() {
  * Called by setLang() whenever the learner switches language.
  */
 function rerenderForLanguage() {
-  const counts = {};
-  for (const lvl of [1, 2, 3]) counts[lvl] = STATE.vocabulary.filter((v) => v.level === lvl).length;
-  for (const lvl of [1, 2, 3]) {
-    const el = document.getElementById('count-' + lvl);
-    if (el) el.textContent = counts[lvl] + ' ' + t('home.words');
-  }
   renderHomeCategories();
   renderCategoryChips();
   renderQuizTypes();

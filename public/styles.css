@@ -310,17 +310,6 @@ body {
   color: var(--c-text-soft);
 }
 
-.level-count {
-  display: inline-block;
-  margin-top: 8px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--c-primary);
-  background: var(--c-primary-light);
-  padding: 3px 10px;
-  border-radius: 12px;
-}
-
 /* ---- Buttons ---- */
 .btn {
   display: inline-flex;

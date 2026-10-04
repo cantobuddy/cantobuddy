@@ -2245,3 +2245,79 @@ body {
   margin-top: 8px;
 }
 .report-export .btn { text-decoration: none; }
+
+/* ---- Learner statistics (inside My Progress) ------------------------------ */
+
+/* The streak leads with a number big enough to read at arm's length. It is the
+   one figure with a reason attached: the only thing she can lose by not coming
+   back tomorrow. Warm tint so it reads as a reward, not as an error. */
+.stats-streak { background: #fffdf7; border-color: #ffe08a; }
+.stats-streak h4 { color: #8a5a00; }
+.stats-streak-row { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.stats-streak-value { font-size: 1.9rem; font-weight: 700; line-height: 1.15; color: #8a5a00; }
+.stats-streak-suffix { font-size: 0.9rem; color: var(--c-text-soft); }
+.stats-streak-sub { font-size: 0.84rem; color: var(--c-text-soft); margin-top: 2px; }
+.stats-streak-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px solid #f3e6c8;
+  font-size: 0.78rem;
+  color: var(--c-text-soft);
+}
+
+/* Three figures across, so "this week" reads at a glance. */
+.stats-week { display: flex; gap: 10px; }
+.stats-week > div { flex: 1; text-align: center; min-width: 0; }
+.stats-week-num { font-size: 1.3rem; font-weight: 700; }
+.stats-week-lbl { font-size: 0.72rem; color: var(--c-text-soft); margin-top: 1px; }
+.stats-compare {
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px solid #f0f0f0;
+  font-size: 0.78rem;
+  color: var(--c-text-soft);
+}
+
+/* Range chips mirror the admin's report ranges, so the two views agree on what
+   "the last 30 days" means. */
+.stats-ranges { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 10px; }
+.stats-range {
+  border: 1px solid var(--c-border);
+  background: var(--c-surface);
+  color: var(--c-text-soft);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+.stats-range.active {
+  background: var(--c-primary);
+  border-color: var(--c-primary);
+  color: #fff;
+}
+
+.stats-axis {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 2px;
+  font-size: 0.68rem;
+  color: var(--c-text-soft);
+}
+.stats-chart-hint { text-align: center; font-size: 0.68rem; color: #a0a0ad; padding: 2px 0 4px; }
+
+.stats-type { margin-bottom: 12px; }
+.stats-type:last-child { margin-bottom: 2px; }
+.stats-type-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.stats-type-name { font-weight: 600; font-size: 0.86rem; }
+.stats-type-num { font-size: 0.78rem; color: var(--c-text-soft); white-space: nowrap; }

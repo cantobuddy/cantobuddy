@@ -514,6 +514,28 @@ app.get('/api/learners/rewards', (req, res) => {
   res.json(store.getRewards(learner.id));
 });
 
+/**
+ * A device's own learning statistics — streaks, activity over time, and how she
+ * does on each kind of quiz.
+ *
+ * Same trust model as rewards above: the token is resolved to a learner row
+ * server-side, so this can only ever return that device's own practice. There is
+ * no learner_id in the query string, deliberately — a client-supplied id is
+ * never trusted anywhere in this app, and this is no exception.
+ *
+ * An unknown device gets a well-formed empty set rather than an error, because
+ * a device the server has not seen yet is the ordinary first-visit case. -1
+ * matches no learner, so every aggregate comes back as a zero and the client
+ * never has to special-case the shape.
+ */
+app.get('/api/learners/stats', (req, res) => {
+  const publicId = req.query.public_id;
+  if (!publicId) return res.status(400).json({ error: 'Missing device id.' });
+
+  const learner = store.getLearnerByPublicId(publicId);
+  res.json(store.getLearnerStats(learner ? learner.id : -1, req.query.days));
+});
+
 // ---------------------------------------------------------------------------
 // Invitations
 // ---------------------------------------------------------------------------

@@ -36,6 +36,8 @@ const STATE = {
   currentLevel: 0,      // 0 = all, 1-3 = specific
   currentCat: 0,        // 0 = all
   quiz: null,           // active quiz object
+  stats: null,          // her own statistics, from /api/learners/stats
+  statsDays: 30,        // chart window only — never affects totals or streak
 };
 
 // ---- TTS (Cantonese text-to-speech) with selectable practice voices --------
@@ -1282,6 +1284,212 @@ async function submitEmployerCode() {
 
 // ---- Progress view ---------------------------------------------------------
 
+// ---- Statistics: her own numbers -------------------------------------------
+
+/**
+ * Fetch her statistics for the current chart window.
+ *
+ * Read by device token, exactly like progress and rewards, so this can only
+ * ever come back with her own rows. A failure leaves STATE.stats null and the
+ * statistics simply do not render — a chart that will not load must never stop
+ * the rest of My Progress from showing.
+ */
+async function fetchLearnerStats() {
+  try {
+    STATE.stats = await apiGet(
+      `/api/learners/stats?public_id=${encodeURIComponent(STATE.deviceId)}&days=${STATE.statsDays}`
+    );
+  } catch (err) {
+    console.warn('Could not load statistics:', err);
+    STATE.stats = null;
+  }
+}
+
+/** "1 day" / "3 days" — English needs the distinction, Filipino does not. */
+function statPlural(n, oneKey, manyKey) {
+  return `${n} ${t(n === 1 ? oneKey : manyKey)}`;
+}
+
+/**
+ * The practice chart: one bar per day, oldest on the left.
+ *
+ * Inline SVG, so it scales to whatever width the phone gives it with no
+ * charting library and nothing to download. A quiet day gets a short grey stub
+ * rather than nothing at all — the shape of her habit is the whole point, and
+ * an invisible zero would hide exactly the gaps worth seeing.
+ *
+ * Each bar carries a <title>, which the browser shows as a tooltip on tap.
+ */
+function practiceChart(series) {
+  const n = series.length;
+  if (!n) return '';
+
+  const W = 300;
+  const H = 88;
+  const BASELINE = 74;
+  const MAXH = 58;
+
+  const gap = n <= 10 ? 4 : n <= 35 ? 2 : 1;
+  const barW = (W - (n - 1) * gap) / n;
+  const peak = Math.max(1, ...series.map((d) => d.attempts));
+
+  const bars = series
+    .map((d, i) => {
+      const x = i * (barW + gap);
+      // A day with no practice still gets a 2px stub, so the chart reads as a
+      // bar per day rather than as missing data.
+      const h = d.attempts ? Math.max(3, Math.round((d.attempts / peak) * MAXH)) : 2;
+      const fill = d.attempts ? '#e63946' : '#e6e6ee';
+      const label = `${d.day} · ${statPlural(d.attempts, 'stats.attemptOne', 'stats.attempts')}`;
+      return `<rect x="${x.toFixed(2)}" y="${BASELINE - h}" width="${barW.toFixed(2)}" height="${h}" rx="1" fill="${fill}"><title>${escapeHtml(label)}</title></rect>`;
+    })
+    .join('');
+
+  // Only the two ends are labelled. On a 90-day window there is no room for
+  // more, and on a phone the exact date of a bar is what the tooltip is for.
+  const first = series[0].day.slice(5);
+  const last = series[n - 1].day.slice(5);
+
+  return `
+    <div class="report-chart">
+      <svg class="report-svg" viewBox="0 0 ${W} ${H}" role="img"
+           aria-label="${escapeHtml(t('stats.overTime'))}">
+        <line x1="0" y1="${BASELINE}" x2="${W}" y2="${BASELINE}" stroke="#e6e6ee" stroke-width="1" />
+        ${bars}
+      </svg>
+      <div class="stats-axis"><span>${escapeHtml(first)}</span><span>${escapeHtml(last)}</span></div>
+      <div class="stats-chart-hint">${t('stats.chartHint')}</div>
+    </div>`;
+}
+
+/**
+ * The streak, on its own so it can sit directly under the sticker album.
+ *
+ * This is the number with a reason attached: it is the only one she can lose by
+ * not coming back tomorrow, which is why it goes above the overall score rather
+ * than below it. Nothing is shown until she has practised at least once.
+ */
+function renderStreakCard() {
+  const s = STATE.stats;
+  if (!s || !s.totals.attempts) return '';
+
+  const { streak } = s;
+  const value = streak.current
+    ? statPlural(streak.current, 'stats.dayOne', 'stats.days')
+    : t('stats.streakNone');
+
+  return `
+    <div class="progress-card stats-streak">
+      <h4>${t('stats.streak')}</h4>
+      <div class="stats-streak-row">
+        <div class="stats-streak-value">${escapeHtml(value)}</div>
+        ${streak.current ? `<div class="stats-streak-suffix">${t('stats.inARow')}</div>` : ''}
+      </div>
+      <div class="stats-streak-sub">${escapeHtml(streak.practisedToday ? t('stats.practisedToday') : t('stats.practiseToday'))}</div>
+      <div class="stats-streak-facts">
+        <span>${t('stats.best')}: ${escapeHtml(statPlural(streak.longest, 'stats.dayOne', 'stats.days'))}</span>
+        <span>${t('stats.daysPractised')}: ${streak.daysActive}</span>
+      </div>
+    </div>`;
+}
+
+/**
+ * The rest of the statistics: this week, the chart, and how she practises.
+ *
+ * Renders nothing when she has never finished a quiz, so a new device sees the
+ * friendly empty state instead of a wall of zeros.
+ */
+function renderStatsCards() {
+  const s = STATE.stats;
+  if (!s || !s.totals.attempts) return '';
+
+  const { weeks, byQuizType } = s;
+
+  // ---- this week, against last week ----
+  const w = weeks.thisWeek;
+  const lw = weeks.lastWeek;
+  const delta = w.accuracy - lw.accuracy;
+  let compare;
+  if (!lw.questions) {
+    compare = t('stats.nothingLastWeek');
+  } else if (delta === 0) {
+    compare = `${t('stats.lastWeek')}: ${t('stats.correctPct').replace('{n}', lw.accuracy)}`;
+  } else {
+    compare = `${t('stats.lastWeek')}: ${t('stats.correctPct').replace('{n}', lw.accuracy)} · ${delta > 0 ? '+' : ''}${delta}%`;
+  }
+
+  let html = `
+    <div class="progress-card">
+      <h4>${t('stats.thisWeek')}</h4>
+      <div class="stats-week">
+        <div>
+          <div class="stats-week-num">${w.attempts}</div>
+          <div class="stats-week-lbl">${t(w.attempts === 1 ? 'stats.attemptOne' : 'stats.attempts')}</div>
+        </div>
+        <div>
+          <div class="stats-week-num">${w.accuracy}%</div>
+          <div class="stats-week-lbl">${t('stats.correctPct').replace('{n}', '').replace('%', '').trim()}</div>
+        </div>
+        <div>
+          <div class="stats-week-num">${w.days}</div>
+          <div class="stats-week-lbl">${t(w.days === 1 ? 'stats.dayOne' : 'stats.days')}</div>
+        </div>
+      </div>
+      <div class="stats-compare">${escapeHtml(compare)}</div>
+    </div>`;
+
+  // ---- practice over time ----
+  html += `
+    <div class="progress-card">
+      <h4>${t('stats.overTime')}</h4>
+      <div class="stats-ranges">
+        ${[7, 30, 90]
+          .map(
+            (d) =>
+              `<button type="button" class="stats-range${d === STATE.statsDays ? ' active' : ''}"
+                 onclick="setStatsDays(${d})">${t('stats.range' + d)}</button>`
+          )
+          .join('')}
+      </div>
+      ${practiceChart(s.series)}
+    </div>`;
+
+  // ---- how she practises ----
+  if (byQuizType.length) {
+    html += `<div class="progress-card"><h4>${t('stats.byQuizType')}</h4>`;
+    for (const q of byQuizType) {
+      const type = QUIZ_TYPES.find((x) => x.id === q.quiz_type);
+      const label = type ? `${type.icon} ${quizTypeName(q.quiz_type)}` : q.quiz_type;
+      html += `
+        <div class="stats-type">
+          <div class="stats-type-row">
+            <span class="stats-type-name">${escapeHtml(label)}</span>
+            <span class="stats-type-num">${q.accuracy}% · ${escapeHtml(statPlural(q.attempts, 'stats.attemptOne', 'stats.attempts'))}</span>
+          </div>
+          <div class="progress-bar-mini"><div class="progress-bar-mini-fill" style="width:${q.accuracy}%"></div></div>
+        </div>`;
+    }
+    html += '</div>';
+  }
+
+  return html;
+}
+
+/**
+ * Switch the chart window.
+ *
+ * Only the chart changes. Totals and the streak come from her whole history on
+ * the server, so a narrower window can never make her numbers look worse.
+ *
+ * No fetch here on purpose: renderProgress() already pulls the statistics, and
+ * calling it here as well sent the same request twice on every chip tap.
+ */
+async function setStatsDays(days) {
+  if (STATE.statsDays === days) return;
+  STATE.statsDays = days;
+  renderProgress();
+}
+
 async function renderProgress() {
   const wrap = document.getElementById('progress-content');
   if (!STATE.learner) {
@@ -1293,7 +1501,8 @@ async function renderProgress() {
     // Read by device token, not by name. The server resolves the token, so this
     // can only ever return the rows belonging to this device.
     const records = await apiGet(`/api/progress?public_id=${encodeURIComponent(STATE.deviceId)}`);
-    await fetchRewards();
+    // Both are read by device token, so neither can return anyone else's rows.
+    await Promise.all([fetchRewards(), fetchLearnerStats()]);
 
     if (records.length === 0) {
       wrap.innerHTML =
@@ -1319,7 +1528,7 @@ async function renderProgress() {
 
     const levelEmojis = { 1: '🌱', 2: '🌿', 3: '🌳' };
 
-    let html = renderRewardsCard() + `
+    let html = renderRewardsCard() + renderStreakCard() + `
       <div class="progress-card">
         <h4>${t('progress.overall')}</h4>
         <div class="progress-score">${pct}%</div>
@@ -1327,6 +1536,10 @@ async function renderProgress() {
         <div class="progress-bar-mini"><div class="progress-bar-mini-fill" style="width:${pct}%"></div></div>
       </div>
     `;
+
+    // Statistics come after the headline score: the streak above it is the
+    // motivation, this is the detail for anyone who wants to look closer.
+    html += renderStatsCards();
 
     html += `<div class="progress-card"><h4>${t('progress.byLevel')}</h4>`;
     for (const lvl of [1, 2, 3]) {

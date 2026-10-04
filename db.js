@@ -709,6 +709,58 @@ const S = {
     SELECT level, COUNT(*) AS attempts, SUM(score) AS score, SUM(total) AS max
       FROM progress WHERE learner_id = ? GROUP BY level
   `),
+
+  /*
+   * Learner-scoped reporting — the learner's own view of her practice.
+   *
+   * Same Hong Kong day bucketing as reportDaily, and for the same reason: she
+   * is in Hong Kong, so "yesterday" has to mean yesterday there. In UTC
+   * everything she does before 08:00 lands on the previous date, and early
+   * morning is exactly when someone caring for an elderly person gets a quiet
+   * moment to practise.
+   */
+  learnerDaily: db.prepare(`
+    SELECT date(created_at, '+8 hours') AS day,
+           COUNT(*) AS attempts,
+           SUM(CASE WHEN completed = 1 THEN 1 ELSE 0 END) AS completed,
+           SUM(score) AS correct,
+           SUM(total) AS questions
+      FROM progress
+     WHERE learner_id = ? AND created_at >= ?
+     GROUP BY day
+     ORDER BY day
+  `),
+  /*
+   * Every distinct Hong Kong day she has practised on, newest first.
+   *
+   * Streaks are computed from this and NOT from the windowed daily series, so a
+   * long streak is never silently truncated to whatever range the chart happens
+   * to be showing. Dates come back as YYYY-MM-DD, which sorts correctly as text.
+   */
+  learnerActiveDays: db.prepare(`
+    SELECT DISTINCT date(created_at, '+8 hours') AS day
+      FROM progress
+     WHERE learner_id = ?
+     ORDER BY day DESC
+  `),
+  learnerByQuizType: db.prepare(`
+    SELECT quiz_type,
+           COUNT(*) AS attempts,
+           SUM(score) AS score,
+           SUM(total) AS max
+      FROM progress
+     WHERE learner_id = ?
+     GROUP BY quiz_type
+     ORDER BY attempts DESC, quiz_type
+  `),
+  learnerSpan: db.prepare(`
+    SELECT MIN(created_at) AS first_at,
+           MAX(created_at) AS last_at,
+           COUNT(*) AS attempts
+      FROM progress
+     WHERE learner_id = ?
+  `),
+
   countUsers: db.prepare('SELECT COUNT(*) AS n FROM users'),
 };
 
@@ -1618,6 +1670,168 @@ function getReport(days) {
 }
 
 // ---------------------------------------------------------------------------
+// Learner reporting — what the helper sees about her own practice
+// ---------------------------------------------------------------------------
+
+/**
+ * Chart windows the learner can pick between, in days.
+ *
+ * Deliberately the same three as the operator's report. A helper looking at her
+ * own numbers and the operator looking at the platform should not have to hold
+ * two different meanings of "the last 30 days" in their heads.
+ */
+const LEARNER_STATS_RANGES = [7, 30, 90];
+
+/**
+ * Current and longest run of consecutive days, from a list of YYYY-MM-DD days.
+ *
+ * A streak stays alive until a whole day has been missed. Practising yesterday
+ * but not yet today still counts — that is what every streak counter she has
+ * ever seen does, and expiring at midnight would punish her for not having
+ * practised *yet* on a day she is about to practise.
+ *
+ * Callers pass the days newest-first; they are sorted defensively here anyway,
+ * because a wrong order silently produces a plausible-looking wrong number.
+ */
+function streaksFrom(activeDays, now = Date.now()) {
+  if (!activeDays.length) return { current: 0, longest: 0 };
+
+  const days = new Set(activeDays);
+  const today = hktDate(now);
+  const yesterday = hktDate(now - DAY_MS);
+
+  let current = 0;
+  const cursor = days.has(today) ? today : days.has(yesterday) ? yesterday : null;
+  if (cursor) {
+    let ms = Date.parse(`${cursor}T00:00:00Z`);
+    while (days.has(hktDate(ms))) {
+      current++;
+      ms -= DAY_MS;
+    }
+  }
+
+  let longest = 0;
+  let run = 0;
+  let prev = null;
+  for (const day of [...days].sort()) {
+    const ms = Date.parse(`${day}T00:00:00Z`);
+    run = prev && ms - Date.parse(`${prev}T00:00:00Z`) === DAY_MS ? run + 1 : 1;
+    if (run > longest) longest = run;
+    prev = day;
+  }
+
+  return { current, longest };
+}
+
+/**
+ * One learner's own statistics.
+ *
+ * Everything is derived from the progress rows she created. There is no stats
+ * table that could drift out of step with the quizzes it was built from — the
+ * same reasoning that makes credits a SUM rather than a stored balance.
+ *
+ * `days` sizes the chart only. Totals and streaks come from her whole history,
+ * so changing the range never changes the numbers she actually cares about.
+ *
+ * An unknown or absent learner is not an error: every query matches nothing and
+ * the caller gets a well-formed zero. That matters here, because this is reached
+ * by device token and a device the server has never seen is the ordinary
+ * first-visit case, not a failure worth surfacing.
+ */
+function getLearnerStats(learnerId, days) {
+  const id = Number(learnerId);
+  const span = LEARNER_STATS_RANGES.includes(Number(days)) ? Number(days) : 30;
+  const now = Date.now();
+
+  const totals = S.statsByLearnerId.get(id) || {};
+  const totalScore = totals.totalScore || 0;
+  const totalMax = totals.totalMax || 0;
+
+  const byLevel = {};
+  for (const r of S.statsByLearnerIdLevel.all(id)) {
+    byLevel[r.level] = { attempts: r.attempts, score: r.score || 0, max: r.max || 0 };
+  }
+
+  const byQuizType = S.learnerByQuizType.all(id).map((r) => ({
+    quiz_type: r.quiz_type,
+    attempts: r.attempts,
+    score: r.score || 0,
+    max: r.max || 0,
+    accuracy: r.max ? Math.round(((r.score || 0) / r.max) * 100) : 0,
+  }));
+
+  // Widen by a day at each end: the SQL cutoff is an instant while the series is
+  // in Hong Kong days, and the fill loop below decides what actually falls in
+  // range. Quiet days are filled in as zero — a gap is data, not missing data.
+  const rows = S.learnerDaily.all(id, new Date(now - (span + 1) * DAY_MS).toISOString());
+  const byDay = new Map(rows.map((r) => [r.day, r]));
+
+  const series = [];
+  for (let i = span - 1; i >= 0; i--) {
+    const day = hktDate(now - i * DAY_MS);
+    const r = byDay.get(day);
+    series.push({
+      day,
+      attempts: r ? r.attempts : 0,
+      completed: r ? r.completed : 0,
+      correct: r ? (r.correct || 0) : 0,
+      questions: r ? (r.questions || 0) : 0,
+    });
+  }
+
+  // This week against last week: two seven-day Hong Kong windows ending today.
+  const recent = S.learnerDaily.all(id, new Date(now - 15 * DAY_MS).toISOString());
+  const windowSum = (from, to) => {
+    const acc = { attempts: 0, completed: 0, correct: 0, questions: 0, days: 0 };
+    for (const r of recent) {
+      if (r.day < from || r.day > to) continue;
+      acc.attempts += r.attempts;
+      acc.completed += r.completed;
+      acc.correct += r.correct || 0;
+      acc.questions += r.questions || 0;
+      // learnerDaily returns exactly one row per day, so the row count in the
+      // window is the number of days she turned up on.
+      acc.days++;
+    }
+    return {
+      ...acc,
+      accuracy: acc.questions ? Math.round((acc.correct / acc.questions) * 100) : 0,
+    };
+  };
+  const thisWeek = windowSum(hktDate(now - 6 * DAY_MS), hktDate(now));
+  const lastWeek = windowSum(hktDate(now - 13 * DAY_MS), hktDate(now - 7 * DAY_MS));
+
+  const activeDays = S.learnerActiveDays.all(id).map((r) => r.day);
+  const { current, longest } = streaksFrom(activeDays, now);
+  const spanRow = S.learnerSpan.get(id) || {};
+
+  return {
+    days: span,
+    totals: {
+      attempts: totals.attempts || 0,
+      completedAttempts: totals.completedAttempts || 0,
+      partialAttempts: totals.partialAttempts || 0,
+      totalScore,
+      totalMax,
+      accuracy: totalMax ? Math.round((totalScore / totalMax) * 100) : 0,
+      firstAt: spanRow.first_at || null,
+      lastAt: spanRow.last_at || null,
+    },
+    streak: {
+      current,
+      longest,
+      daysActive: activeDays.length,
+      practisedToday: activeDays.includes(hktDate(now)),
+    },
+    weeks: { thisWeek, lastWeek },
+    byLevel,
+    byQuizType,
+    series,
+  };
+}
+
+
+// ---------------------------------------------------------------------------
 // Sessions
 // ---------------------------------------------------------------------------
 
@@ -1701,6 +1915,10 @@ module.exports = {
   getReportEmployers,
   getReportHelpers,
   REPORT_RANGES,
+
+  // Learner reporting — her own numbers, scoped to one device.
+  getLearnerStats,
+  LEARNER_STATS_RANGES,
 
   createResetToken,
   peekResetToken,

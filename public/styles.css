@@ -2198,3 +2198,36 @@ body {
 /* ---- Link on the portal's reset card ---- */
 .portal-link { color: var(--c-primary); font-weight: 600; text-decoration: none; }
 .portal-link:hover { text-decoration: underline; }
+
+/* ---- Reports: platform totals, activity chart, employer engagement ---- */
+.report-chart {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  padding: 10px 6px 4px;
+  margin: 4px 0 10px;
+}
+
+/* The SVG scales to its container, so one markup serves a 320px phone and a
+   desktop. display:block removes the inline-baseline gap under the graphic. */
+.report-svg { display: block; width: 100%; height: auto; }
+
+.report-notes { margin: 0 0 4px; }
+
+.report-note {
+  font-size: 0.84rem;
+  color: var(--c-text-soft);
+  padding: 3px 0;
+}
+.report-note strong { color: var(--c-text); }
+
+/* Range chips sit in the admin's own row, not the learner app's filter bar. */
+#admin-report-range { margin: 4px 0 10px; }
+
+.report-export {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.report-export .btn { text-decoration: none; }

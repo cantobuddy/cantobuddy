@@ -736,6 +736,99 @@ app.get('/api/admin/learners/:id', requireAdmin, (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
+// Reporting
+// ---------------------------------------------------------------------------
+
+/**
+ * GET /api/admin/report — the operator's numbers.
+ *
+ * `days` picks the trend window (7 / 30 / 90, default 30). Everything is keyed
+ * on the device identity, so two helpers who share a name stay two people.
+ */
+app.get('/api/admin/report', requireAdmin, (req, res) => {
+  res.json(store.getReport(req.query.days));
+});
+
+/**
+ * Escape one CSV cell.
+ *
+ * Two things matter beyond the obvious quoting:
+ *
+ *  - A cell starting with =, +, - or @ is run as a formula by Excel and Sheets.
+ *    Helper names are user-supplied, so a name is all it takes to execute
+ *    something on the operator's machine when they open the export. Prefixing
+ *    with an apostrophe forces it to text.
+ *  - toCsv() adds a leading BOM. Without it Excel on Windows reads the file as
+ *    the local code page and mangles any non-ASCII name.
+ */
+function csvCell(value) {
+  if (value === null || value === undefined) return '';
+  let s = String(value);
+  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+function toCsv(header, rows) {
+  const lines = [header, ...rows].map((r) => r.map(csvCell).join(','));
+  return `\uFEFF${lines.join('\r\n')}\r\n`;
+}
+
+/** The export shapes. Each is a header row plus a row mapper. */
+const CSV_EXPORTS = {
+  employers: {
+    header: ['employer', 'email', 'status', 'joined', 'last_login', 'helpers',
+      'helpers_active_7d', 'attempts', 'completed', 'correct', 'questions',
+      'accuracy_pct', 'last_activity'],
+    rows: () => store.getReportEmployers().map((e) => [
+      e.name, e.email, e.status, e.created_at, e.last_login_at, e.helper_count,
+      e.helpers_active_7d, e.attempts, e.completed_attempts, e.correct_answers,
+      e.questions_answered, e.accuracy_rate, e.last_activity,
+    ]),
+  },
+  helpers: {
+    header: ['helper', 'learner_id', 'employers', 'employer_count', 'joined',
+      'last_seen', 'active_7d', 'attempts', 'completed', 'partial', 'correct',
+      'questions', 'accuracy_pct', 'credits', 'last_activity'],
+    rows: () => store.getReportHelpers().map((h) => [
+      h.display_name, h.learner_id, h.employers, h.employer_count, h.created_at,
+      h.last_seen_at, h.active_7d ? 'yes' : 'no', h.attempts, h.completed_attempts,
+      h.partial_attempts, h.correct_answers, h.questions_answered, h.accuracy_rate,
+      h.credits, h.last_activity,
+    ]),
+  },
+  daily: {
+    header: ['day', 'attempts', 'completed', 'correct', 'questions', 'helpers_active'],
+    rows: () => store.getReportTrends(90).series.map((d) => [
+      d.day, d.attempts, d.completed, d.correct, d.questions, d.learners,
+    ]),
+  },
+  summary: {
+    header: ['metric', 'value'],
+    rows: () => Object.entries(store.getReportTotals()).map(([k, v]) => [k, v]),
+  },
+};
+
+/**
+ * GET /api/admin/report.csv?type=employers|helpers|daily|summary
+ *
+ * Built on the server rather than in the browser so the file arrives with a
+ * filename and the right encoding, and so the numbers in the export are the
+ * same numbers the tab shows.
+ */
+app.get('/api/admin/report.csv', requireAdmin, (req, res) => {
+  const type = String(req.query.type || 'employers');
+  const shape = CSV_EXPORTS[type];
+  if (!shape) {
+    return res.status(400).json({ error: 'Unknown report type.', types: Object.keys(CSV_EXPORTS) });
+  }
+  const stamp = new Date().toISOString().slice(0, 10);
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="cantobuddy-${type}-${stamp}.csv"`);
+  res.setHeader('Cache-Control', 'no-store');
+  return res.send(toCsv(shape.header, shape.rows()));
+});
+
+// ---------------------------------------------------------------------------
 // Deep links
 //
 // The learner app is one static HTML file, so its non-file routes have to be

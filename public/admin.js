@@ -7,6 +7,8 @@ const ADMIN = {
   vocabulary: [],
   stats: null,
   people: null,
+  report: null,
+  reportDays: 30,
 };
 
 // ---- API helpers -----------------------------------------------------------
@@ -119,6 +121,7 @@ async function loadAdminData() {
     renderAdminCategories();
     renderAdminStats();
     renderAdminPeople();
+    renderAdminReport();
 
     // Populate category select in vocab form
     const sel = document.getElementById('vf-category');
@@ -535,6 +538,149 @@ async function renderAdminPeople() {
     empEl.innerHTML = '<div class="progress-empty">Could not load the people overview.</div>';
     unEl.innerHTML = '';
   }
+}
+
+// ---- Statistics & reporting -------------------------------------------------
+//
+// Everything here reads /api/admin/report, which keys on the device identity.
+// Two helpers who share a name are two people in every number on this tab.
+
+function setReportDays(days) {
+  ADMIN.reportDays = Number(days) || 30;
+  document.querySelectorAll('#admin-report-range .chip').forEach((c) => {
+    c.classList.toggle('active', Number(c.dataset.days) === ADMIN.reportDays);
+  });
+  renderAdminReport();
+}
+
+async function renderAdminReport() {
+  const totalsEl = document.getElementById('admin-report-totals');
+  const chartEl = document.getElementById('admin-report-chart');
+  const notesEl = document.getElementById('admin-report-notes');
+  const empEl = document.getElementById('admin-report-employers');
+  const stampEl = document.getElementById('admin-report-stamp');
+  if (!totalsEl) return;
+
+  chartEl.innerHTML = '<div class="progress-empty">Loading…</div>';
+  empEl.innerHTML = '';
+  notesEl.innerHTML = '';
+
+  try {
+    const data = await apiGet(`/api/admin/report?days=${ADMIN.reportDays}`);
+    ADMIN.report = data;
+    const t = data.totals;
+
+    stampEl.textContent = `Generated ${new Date(data.generated_at).toLocaleString()}`;
+
+    totalsEl.innerHTML = [
+      reportCard('Learners', t.learners, `${t.helpers} connected to an employer`),
+      reportCard('Active this week', t.activeThisWeek, `${t.newThisWeek} joined this week`),
+      reportCard('Quiz attempts', t.attempts, `${t.completionRate}% finished`),
+      reportCard('Correct answers', t.correctAnswers,
+        `${t.accuracyRate}% of ${t.questionsAnswered} questions`),
+      reportCard('Employers', t.employers, `${t.employersWithHelpers} with helpers`),
+      reportCard('Stickers unlocked', t.stickersUnlocked,
+        `${t.partialAttempts} quiz(zes) left unfinished`),
+    ].join('');
+
+    chartEl.innerHTML = trendChart(data.trends);
+    notesEl.innerHTML = trendNotes(data.trends);
+
+    empEl.innerHTML = data.employers.length
+      ? data.employers.map(engagementRow).join('')
+      : '<div class="progress-empty">No employer accounts yet.</div>';
+  } catch (err) {
+    chartEl.innerHTML = '<div class="progress-empty">Could not load the report.</div>';
+    empEl.innerHTML = '';
+  }
+}
+
+function reportCard(title, value, sub) {
+  return `<div class="stat-card">
+    <h4>${escapeHtml(title)}</h4>
+    <div class="stat-number">${escapeHtml(String(value))}</div>
+    <div class="stat-label">${escapeHtml(sub)}</div>
+  </div>`;
+}
+
+/**
+ * A bar chart of daily quizzes, drawn inline as SVG.
+ *
+ * No charting library: this app has no build step and no CDN dependency, and a
+ * bar chart of at most 90 values does not need one. The SVG scales with its
+ * container, so the same markup works at 320px and on a desktop.
+ *
+ * Days with no activity get a flat stub rather than nothing, because "she did
+ * not practise that day" is the finding — a gap would read as missing data.
+ */
+function trendChart(trends) {
+  const series = (trends && trends.series) || [];
+  if (!series.length) return '<div class="progress-empty">No activity in this period.</div>';
+
+  const max = Math.max(1, ...series.map((d) => d.attempts));
+  const W = 680;
+  const H = 180;
+  const padL = 8;
+  const padR = 8;
+  const padT = 16;
+  const padB = 26;
+  const plotW = W - padL - padR;
+  const plotH = H - padT - padB;
+  const slot = plotW / series.length;
+  const barW = Math.max(2, Math.min(26, slot * 0.72));
+  const base = padT + plotH;
+
+  const bars = series.map((d, i) => {
+    const x = padL + i * slot + (slot - barW) / 2;
+    const title = `<title>${escapeHtml(`${d.day}: ${d.attempts} quiz(zes), ${d.learners} helper(s) active`)}</title>`;
+    if (!d.attempts) {
+      return `<rect x="${x.toFixed(1)}" y="${(base - 2).toFixed(1)}" width="${barW.toFixed(1)}" height="2" rx="1" fill="#e9ecef">${title}</rect>`;
+    }
+    const h = Math.max(3, Math.round((d.attempts / max) * plotH));
+    return `<rect x="${x.toFixed(1)}" y="${(base - h).toFixed(1)}" width="${barW.toFixed(1)}" height="${h}" rx="2" fill="#52b788">${title}</rect>`;
+  }).join('');
+
+  // Three labels only — more would collide on a phone.
+  const ticks = [...new Set([0, Math.floor((series.length - 1) / 2), series.length - 1])]
+    .map((i) => {
+      const x = padL + i * slot + slot / 2;
+      return `<text x="${x.toFixed(1)}" y="${H - 8}" text-anchor="middle" font-size="11" fill="#6c757d">${escapeHtml(series[i].day.slice(5))}</text>`;
+    })
+    .join('');
+
+  return `<svg viewBox="0 0 ${W} ${H}" class="report-svg" role="img"
+      aria-label="Daily quiz attempts over the last ${escapeHtml(String(trends.days))} days">
+    <line x1="${padL}" y1="${base}" x2="${W - padR}" y2="${base}" stroke="#dee2e6" stroke-width="1"/>
+    <text x="${padL}" y="${padT - 5}" font-size="11" fill="#6c757d">peak ${max} per day</text>
+    ${bars}${ticks}
+  </svg>`;
+}
+
+function trendNotes(trends) {
+  const series = (trends && trends.series) || [];
+  if (!series.length) return '';
+  const total = series.reduce((s, d) => s + d.attempts, 0);
+  const activeDays = series.filter((d) => d.attempts > 0).length;
+  const busiest = series.reduce((a, b) => (b.attempts > a.attempts ? b : a), series[0]);
+  const avg = Math.round((total / series.length) * 10) / 10;
+
+  return `<div class="report-note"><strong>${total}</strong> quiz(zes) over ${escapeHtml(String(trends.days))} days</div>
+    <div class="report-note">Practised on <strong>${activeDays}</strong> of ${series.length} days · average <strong>${avg}</strong> per day</div>
+    <div class="report-note">Busiest day: <strong>${escapeHtml(busiest.day)}</strong> (${busiest.attempts})</div>`;
+}
+
+function engagementRow(e) {
+  const bits = [
+    `${e.helper_count} helper(s)`,
+    `${e.helpers_active_7d} active this week`,
+    `${e.attempts} attempt(s)`,
+    `${e.accuracy_rate}% correct`,
+  ];
+  return `<div class="learner-stat">
+    <div class="learner-stat-name">🏠 ${escapeHtml(e.name)}</div>
+    <div class="learner-stat-sub">${escapeHtml(e.email)} · ${bits.join(' · ')}</div>
+    <div class="learner-stat-sub">joined ${fmtDate(e.created_at)} · ${e.last_login_at ? `last login ${fmtDate(e.last_login_at)}` : 'never signed in'} · last activity ${fmtDate(e.last_activity)}</div>
+  </div>`;
 }
 
 // ---- Init ------------------------------------------------------------------

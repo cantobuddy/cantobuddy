@@ -532,6 +532,50 @@ const S = {
      GROUP BY p.learner_id, COALESCE(l.display_name, p.learner), p.level
   `),
 
+  // --- operator reporting -------------------------------------------------
+  // Per-learner activity, keyed on the device identity. This is the fact table
+  // the platform totals, the per-employer engagement and the CSV all read from,
+  // so it is computed once per request rather than re-aggregated per view.
+  reportPerLearner: db.prepare(`
+    SELECT p.learner_id AS learner_id,
+           MAX(p.created_at) AS last_activity,
+           COUNT(*) AS attempts,
+           SUM(CASE WHEN p.completed = 1 THEN 1 ELSE 0 END) AS completed,
+           SUM(CASE WHEN p.completed = 0 THEN 1 ELSE 0 END) AS partial,
+           SUM(p.score) AS correct,
+           SUM(p.total) AS questions
+      FROM progress p
+     WHERE p.learner_id IS NOT NULL
+     GROUP BY p.learner_id
+  `),
+  // One row per day. The +8 hours is not decoration: the helpers are in Hong
+  // Kong, so a "day" has to be a Hong Kong day. Without it, everything a helper
+  // does before 08:00 local time is counted against the previous date, and the
+  // daily chart is quietly wrong for the hours she is most likely to use it.
+  reportDaily: db.prepare(`
+    SELECT date(p.created_at, '+8 hours') AS day,
+           COUNT(*) AS attempts,
+           SUM(CASE WHEN p.completed = 1 THEN 1 ELSE 0 END) AS completed,
+           SUM(p.score) AS correct,
+           SUM(p.total) AS questions,
+           COUNT(DISTINCT p.learner_id) AS learners
+      FROM progress p
+     WHERE p.created_at >= ?
+     GROUP BY day
+     ORDER BY day
+  `),
+  // Only live consent links: an employer's engagement is about the helpers who
+  // can actually see them, not the ones who withdrew.
+  reportActiveLinks: db.prepare(
+    `SELECT el.employer_id AS employer_id,
+            el.learner_id  AS learner_id,
+            el.connected_at AS connected_at
+       FROM employer_learners el
+      WHERE el.revoked_at IS NULL`
+  ),
+  countLearnersSeenSince: db.prepare('SELECT COUNT(*) AS n FROM learners WHERE last_seen_at >= ?'),
+  countLearnersCreatedSince: db.prepare('SELECT COUNT(*) AS n FROM learners WHERE created_at >= ?'),
+
   sumScoreByLearner: db.prepare('SELECT COALESCE(SUM(score), 0) AS n FROM progress WHERE learner_id = ?'),
   listStickersByLearner: db.prepare('SELECT sticker_key, unlocked_at FROM learner_stickers WHERE learner_id = ?'),
   // OR IGNORE + the UNIQUE constraint is what makes unlocking safe to repeat:
@@ -1354,6 +1398,226 @@ function getPeopleOverview() {
 }
 
 // ---------------------------------------------------------------------------
+// Operator reporting
+// ---------------------------------------------------------------------------
+
+/**
+ * Report days are Hong Kong days.
+ *
+ * The helpers are in Hong Kong and the app is for them, so "how many quizzes
+ * yesterday" has to mean yesterday in Hong Kong. In UTC, everything a helper
+ * does before 08:00 local time lands on the previous date — and early morning
+ * is exactly when someone caring for an elderly person gets a quiet moment.
+ */
+const HKT_OFFSET_MS = 8 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Report windows the operator can pick between, in days. */
+const REPORT_RANGES = [7, 30, 90];
+
+/** The Hong Kong calendar date (YYYY-MM-DD) for an instant. */
+const hktDate = (ms) => new Date(ms + HKT_OFFSET_MS).toISOString().slice(0, 10);
+
+/** Every learner's activity, keyed by learner id, from one query. */
+const activityByLearner = () =>
+  new Map(S.reportPerLearner.all().map((r) => [Number(r.learner_id), r]));
+
+/**
+ * Platform totals.
+ *
+ * `helpers` (learners connected to someone) and `learners` (every device that
+ * has ever opened the app) are deliberately different numbers. A helper using
+ * the app on her own is the normal case here, not a gap in the data — the whole
+ * point of the product is that she never has to connect to an employer.
+ */
+function getReportTotals() {
+  let attempts = 0;
+  let completed = 0;
+  let partial = 0;
+  let correct = 0;
+  let questions = 0;
+  let stickersUnlocked = 0;
+  for (const r of activityByLearner().values()) {
+    attempts += r.attempts;
+    completed += r.completed;
+    partial += r.partial;
+    correct += r.correct || 0;
+    questions += r.questions || 0;
+    // Derived from credits, exactly as credits are derived from scores. The
+    // learner_stickers table records only which stickers have been *celebrated*
+    // — it stays empty until a helper opens her album — so counting rows there
+    // reports 0 for someone who has earned a dozen.
+    stickersUnlocked += SEED_STICKERS.filter((s) => (r.correct || 0) >= s.credits).length;
+  }
+
+  const links = S.reportActiveLinks.all();
+  const weekAgo = new Date(Date.now() - 7 * DAY_MS).toISOString();
+
+  return {
+    learners: S.listLearners.all().length,
+    helpers: new Set(links.map((l) => Number(l.learner_id))).size,
+    employers: S.listEmployers.all().length,
+    employersWithHelpers: new Set(links.map((l) => Number(l.employer_id))).size,
+    attempts,
+    completedAttempts: completed,
+    partialAttempts: partial,
+    completionRate: attempts ? Math.round((completed / attempts) * 100) : 0,
+    correctAnswers: correct,
+    questionsAnswered: questions,
+    accuracyRate: questions ? Math.round((correct / questions) * 100) : 0,
+    stickersUnlocked,
+    activeThisWeek: S.countLearnersSeenSince.get(weekAgo).n,
+    newThisWeek: S.countLearnersCreatedSince.get(weekAgo).n,
+  };
+}
+
+/**
+ * A daily activity series, gap-filled so there is one bar per day.
+ *
+ * Quiet days are data, not missing data. Dropping them would make a week with
+ * no practice at all look the same as a busy one.
+ */
+function getReportTrends(days) {
+  const span = REPORT_RANGES.includes(Number(days)) ? Number(days) : 30;
+  const now = Date.now();
+  // Widen the query by a day at each end: the SQL cutoff is an instant while the
+  // series is in Hong Kong days, and the fill loop below decides what is in range.
+  const rows = S.reportDaily.all(new Date(now - (span + 1) * DAY_MS).toISOString());
+  const byDay = new Map(rows.map((r) => [r.day, r]));
+
+  const series = [];
+  for (let i = span - 1; i >= 0; i--) {
+    const day = hktDate(now - i * DAY_MS);
+    const r = byDay.get(day);
+    series.push({
+      day,
+      attempts: r ? r.attempts : 0,
+      completed: r ? r.completed : 0,
+      correct: r ? (r.correct || 0) : 0,
+      questions: r ? (r.questions || 0) : 0,
+      learners: r ? r.learners : 0,
+    });
+  }
+  return { days: span, series };
+}
+
+/**
+ * How engaged each employer's helpers are.
+ *
+ * A helper working for two families is counted under both, which is the right
+ * answer to "are the people who share with this employer practising?" — and
+ * exactly why these rows must never be summed into a platform total. Totals
+ * come from getReportTotals(), which answers that from its own query.
+ */
+function getReportEmployers() {
+  const perLearner = activityByLearner();
+  const weekAgo = new Date(Date.now() - 7 * DAY_MS).toISOString();
+  const learnersById = new Map(S.listLearners.all().map((l) => [Number(l.id), l]));
+
+  const linksByEmployer = new Map();
+  for (const l of S.reportActiveLinks.all()) {
+    const eid = Number(l.employer_id);
+    if (!linksByEmployer.has(eid)) linksByEmployer.set(eid, new Set());
+    linksByEmployer.get(eid).add(Number(l.learner_id));
+  }
+
+  return S.listEmployers.all()
+    .map((u) => {
+      const ids = [...(linksByEmployer.get(Number(u.id)) || [])];
+      let attempts = 0;
+      let completed = 0;
+      let correct = 0;
+      let questions = 0;
+      let active = 0;
+      let lastActivity = null;
+
+      for (const id of ids) {
+        const l = learnersById.get(id);
+        if (l && l.last_seen_at && l.last_seen_at >= weekAgo) active++;
+        const r = perLearner.get(id);
+        if (!r) continue;
+        attempts += r.attempts;
+        completed += r.completed;
+        correct += r.correct || 0;
+        questions += r.questions || 0;
+        if (r.last_activity && (!lastActivity || r.last_activity > lastActivity)) {
+          lastActivity = r.last_activity;
+        }
+      }
+
+      return {
+        employer_id: Number(u.id),
+        name: u.name || u.username,
+        email: u.email || u.username,
+        status: u.status,
+        created_at: u.created_at,
+        last_login_at: u.last_login_at,
+        helper_count: ids.length,
+        helpers_active_7d: active,
+        attempts,
+        completed_attempts: completed,
+        correct_answers: correct,
+        questions_answered: questions,
+        accuracy_rate: questions ? Math.round((correct / questions) * 100) : 0,
+        last_activity: lastActivity,
+      };
+    })
+    .sort((a, b) => b.attempts - a.attempts || a.name.localeCompare(b.name));
+}
+
+/** Every learner, with their activity and who can currently see them. */
+function getReportHelpers() {
+  const perLearner = activityByLearner();
+  const weekAgo = new Date(Date.now() - 7 * DAY_MS).toISOString();
+  const employerName = new Map(
+    S.listEmployers.all().map((u) => [Number(u.id), u.name || u.username])
+  );
+
+  const employersByLearner = new Map();
+  for (const l of S.reportActiveLinks.all()) {
+    const lid = Number(l.learner_id);
+    if (!employersByLearner.has(lid)) employersByLearner.set(lid, []);
+    employersByLearner.get(lid).push(employerName.get(Number(l.employer_id)) || '');
+  }
+
+  return S.listLearners.all()
+    .map((l) => {
+      const r = perLearner.get(Number(l.id));
+      const employers = (employersByLearner.get(Number(l.id)) || []).filter(Boolean).sort();
+      const correct = r ? r.correct || 0 : 0;
+      const questions = r ? r.questions || 0 : 0;
+      return {
+        learner_id: Number(l.id),
+        display_name: l.display_name || '',
+        created_at: l.created_at,
+        last_seen_at: l.last_seen_at,
+        active_7d: Boolean(l.last_seen_at && l.last_seen_at >= weekAgo),
+        employer_count: employers.length,
+        employers: employers.join('; '),
+        attempts: r ? r.attempts : 0,
+        completed_attempts: r ? r.completed : 0,
+        partial_attempts: r ? r.partial : 0,
+        correct_answers: correct,
+        questions_answered: questions,
+        accuracy_rate: questions ? Math.round((correct / questions) * 100) : 0,
+        credits: correct,
+        last_activity: r ? r.last_activity : null,
+      };
+    })
+    .sort((a, b) => b.attempts - a.attempts || a.display_name.localeCompare(b.display_name));
+}
+
+/** Everything the Reports tab needs, in one read. */
+function getReport(days) {
+  return {
+    generated_at: new Date().toISOString(),
+    totals: getReportTotals(),
+    trends: getReportTrends(days),
+    employers: getReportEmployers(),
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Sessions
 // ---------------------------------------------------------------------------
 
@@ -1430,6 +1694,13 @@ module.exports = {
   revokeLink,
   getLearnerReport,
   getPeopleOverview,
+
+  getReport,
+  getReportTotals,
+  getReportTrends,
+  getReportEmployers,
+  getReportHelpers,
+  REPORT_RANGES,
 
   createResetToken,
   peekResetToken,

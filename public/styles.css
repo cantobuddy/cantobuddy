@@ -98,6 +98,12 @@ body {
   cursor: pointer;
   white-space: nowrap;
   transition: opacity 0.15s;
+  /* The badge also shows the learner's own name (up to 30 characters). Cap it
+     relative to the viewport so a long name can never push the header out of
+     shape; short names and the "Set your name" prompt are unaffected. */
+  max-width: 46vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .learner-badge:hover { opacity: 0.85; }
@@ -149,6 +155,65 @@ body {
 }
 
 .lang-btn:active { transform: scale(0.92); }
+
+/* ---- Cross-site icon button (learner header → employer portal) ----
+   Both public sites link to each other: the learner app carries a 👩‍💼 icon
+   into /portal, and the portal carries a 📚 link back to /. The admin area
+   intentionally has no such icon — the operator reaches it by URL only. */
+.site-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 2px solid var(--c-border);
+  background: var(--c-surface);
+  /* Set the colour explicitly: one of these buttons is an <a> and one is a
+     <button>, and an <a> would otherwise paint an inline SVG in link-blue
+     while the <button> inherits the body text colour. */
+  color: var(--c-text);
+  font-size: 1.05rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  flex-shrink: 0;
+  transition: border-color 0.15s, transform 0.1s;
+}
+
+.site-btn:hover { border-color: var(--c-primary); }
+.site-btn:active { transform: scale(0.92); }
+.site-btn:focus-visible { outline: 2px solid var(--c-primary); outline-offset: 2px; }
+
+/* ---- The share glyph (inline SVG, see SHARE_ICON_SVG in app.js) ----
+   A box with an arrow leaving it — the shape people already read as "share".
+   Sized in em so it scales with whatever text it sits beside, and drawn in
+   currentColor so it takes the colour of its context: grey on an inactive nav
+   tab, red when active, white on a primary button. */
+.share-glyph {
+  width: 1.05em;
+  height: 1.05em;
+  display: inline-block;
+  vertical-align: -0.16em;
+  flex-shrink: 0;
+}
+
+/* In the bottom nav, match the size of the emoji icons beside it. */
+.nav-icon .share-glyph {
+  width: 21px;
+  height: 21px;
+  vertical-align: 0;
+}
+
+/* In the header, sit the glyph inside the 38px .site-btn circle at the same
+   visual weight as the emoji in the neighbouring buttons. Kept generic (any
+   svg) so a second glyph cannot drift out of step with the first. */
+.site-btn svg {
+  width: 19px;
+  height: 19px;
+  display: block;
+  vertical-align: 0;
+}
 
 .admin-link {
   color: var(--c-text-soft);
@@ -358,6 +423,71 @@ body {
   flex: 1;
   min-width: 0;
 }
+
+/* ===========================================================================
+   SHARE PAGE (#view-share)
+   ---------------------------------------------------------------------------
+   Its own destination, reached from the Share tab in the bottom nav. This
+   started life as a card at the bottom of Home, but that sat below the
+   category grid — more than a screen down — so it was easy to never see.
+   =========================================================================== */
+
+.share-hero {
+  text-align: center;
+  padding: 4px 0 10px;
+}
+
+.share-hero-icon { font-size: 2.6rem; line-height: 1; }
+
+.share-hero-title {
+  margin: 10px 0 6px;
+  font-size: 1.15rem;
+  color: var(--c-text);
+}
+
+.share-hero-body {
+  margin: 0 auto;
+  max-width: 34ch;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--c-text-soft);
+}
+
+/* ---- Preview of the message the friend actually receives ---- */
+.share-preview { margin: 20px 0 22px; }
+
+.share-preview-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--c-text-soft);
+  margin-bottom: 8px;
+}
+
+.share-bubble {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+
+.share-bubble-text {
+  margin: 0 0 8px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--c-text);
+}
+
+/* The URL is long and must never widen the card */
+.share-bubble-link {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--c-secondary);
+  word-break: break-all;
+}
+
+.share-copy-btn { margin-top: 10px; }
 
 /* ---- Browse header ---- */
 .browse-header {
@@ -616,7 +746,10 @@ body {
 
 /* ---- Share button (vocab modal) ---- */
 .modal-share-btn {
-  display: block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   width: 100%;
   margin-top: 16px;
   padding: 12px 16px;
@@ -1174,7 +1307,15 @@ body {
 }
 
 .nav-btn.active { color: var(--c-primary); }
-.nav-icon { font-size: 1.3rem; }
+.nav-icon {
+  font-size: 1.3rem;
+  /* Fixed-height flex box so the emoji icons and the SVG share glyph all sit
+     on the same baseline across the five tabs. */
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
 /* ===========================================================================
    ADMIN
@@ -1553,6 +1694,27 @@ body {
    RESPONSIVE — tablet / desktop
    =========================================================================== */
 
+/* ---- Header on narrow phones: wrap, don't clip ----
+   .header-inner is a single non-wrapping flex row. It now holds four things —
+   the language button, the voice button, the employer-portal icon and the name
+   badge — which together are wider than a 360–430 px phone. A flex row shrinks
+   its items rather than wrapping them, so the badge used to be pushed past the
+   right edge and silently cut off (worse in Filipino, where "Ilagay ang
+   pangalan" is longer than "Set your name").
+
+   Wrapping lets the controls drop onto their own line instead of losing them.
+   Because the row only breaks when the content genuinely does not fit, wide
+   screens keep the single-row layout. This mirrors the fix the admin/portal
+   header already uses further down this file. */
+.app-header .header-inner {
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+
+.app-header .header-right {
+  margin-left: auto;
+}
+
 @media (min-width: 480px) {
   .level-cards { grid-template-columns: 1fr 1fr 1fr; }
   .cat-strip { grid-template-columns: repeat(3, 1fr); }
@@ -1576,3 +1738,400 @@ body {
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--c-border); border-radius: 3px; }
+
+/* ===========================================================================
+   EMPLOYER PORTAL
+   ---------------------------------------------------------------------------
+   Shares the admin shell (.admin-header / .admin-section / .login-card) so the
+   two operator-facing areas stay visually identical; only the dashboard body
+   is new. Navy header, light content, red/teal accents from the design tokens.
+   =========================================================================== */
+
+.portal-body { background: #eef0f4; }
+
+.portal-main { max-width: 800px; padding: 20px 16px; }
+
+/* ---- Auth card: sign in / create account ---- */
+.portal-auth-tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--c-bg);
+  border-radius: var(--radius);
+  padding: 4px;
+  margin-bottom: 20px;
+}
+
+.portal-auth-tab {
+  flex: 1;
+  padding: 10px 8px;
+  border: none;
+  background: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: var(--font-en);
+  color: var(--c-text-soft);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.portal-auth-tab.active {
+  background: var(--c-surface);
+  color: var(--c-primary);
+  box-shadow: 0 1px 4px var(--c-shadow);
+}
+
+.portal-fineprint {
+  font-size: 0.78rem;
+  color: var(--c-text-soft);
+  margin-top: 18px;
+  line-height: 1.55;
+}
+
+/* The shared .form-field rule covers input + select; textarea is portal-only. */
+.form-field textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 2px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  font-size: 1rem;
+  font-family: var(--font-en);
+  resize: vertical;
+  transition: border-color 0.15s;
+}
+
+.form-field textarea:focus { border-color: var(--c-primary); outline: none; }
+
+.form-field .optional { font-weight: 400; color: var(--c-text-soft); font-size: 0.78rem; }
+
+/* ---- Greeting ---- */
+.portal-hello { margin-bottom: 22px; }
+.portal-hello h2 { font-size: 1.4rem; font-weight: 700; margin-bottom: 4px; }
+.portal-hello p { font-size: 0.88rem; color: var(--c-text-soft); line-height: 1.55; }
+
+/* ---- Helper cards ---- */
+.portal-helper-list { display: grid; gap: 12px; }
+
+.helper-card {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: 0 1px 3px var(--c-shadow);
+}
+
+.helper-head { display: flex; align-items: center; gap: 12px; }
+
+.helper-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--c-primary-light);
+  color: var(--c-primary-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.helper-name { font-size: 1.05rem; font-weight: 700; }
+.helper-meta { font-size: 0.78rem; color: var(--c-text-soft); margin-top: 2px; }
+
+.helper-stats { display: flex; gap: 22px; margin-top: 14px; }
+.helper-stat-num { font-size: 1.3rem; font-weight: 700; color: var(--c-primary); line-height: 1.1; }
+.helper-stat-lbl {
+  font-size: 0.68rem;
+  color: var(--c-text-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-top: 2px;
+}
+
+.helper-progress { margin-top: 14px; }
+.progress-track { height: 8px; background: var(--c-bg); border-radius: 6px; overflow: hidden; }
+.progress-fill {
+  height: 100%;
+  background: var(--c-secondary);
+  border-radius: 6px;
+  transition: width 0.4s ease;
+}
+
+.helper-levels { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.helper-level {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: var(--c-bg);
+  color: var(--c-text-soft);
+}
+.helper-level.good { background: #d4edda; color: #1b5e20; }
+.helper-level.mid { background: #fff3cd; color: #856404; }
+
+.helper-actions { display: flex; gap: 8px; margin-top: 16px; }
+.helper-actions .btn { flex: 1; }
+
+/* ---- Empty state ---- */
+.portal-empty {
+  background: var(--c-surface);
+  border: 1px dashed var(--c-border);
+  border-radius: var(--radius);
+  padding: 28px 20px;
+  text-align: center;
+  color: var(--c-text-soft);
+}
+.portal-empty-icon { font-size: 2.2rem; margin-bottom: 8px; }
+.portal-empty p { font-size: 0.88rem; line-height: 1.55; }
+.portal-empty strong { color: var(--c-text); }
+
+/* ---- Invitations ---- */
+.portal-invite-list { display: grid; gap: 10px; }
+
+.invite-card {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.invite-card-body { flex: 1; min-width: 0; }
+.invite-card-title { font-weight: 700; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.invite-card-meta { font-size: 0.76rem; color: var(--c-text-soft); margin-top: 4px; }
+.invite-card-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+.status-chip {
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 3px 9px;
+  border-radius: 10px;
+}
+.status-pending { background: #fff3cd; color: #856404; }
+.status-accepted { background: #d4edda; color: #1b5e20; }
+.status-revoked { background: #f8d7da; color: #b71c1c; }
+.status-expired { background: #e2e3e5; color: #5a5a66; }
+
+.code-pill {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  background: var(--c-bg);
+  border-radius: 6px;
+  padding: 3px 8px;
+}
+
+/* ---- "Invitation ready" modal ---- */
+.invite-link-box { display: flex; gap: 8px; margin: 16px 0; }
+.invite-link-box input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 2px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  background: var(--c-bg);
+}
+.invite-code-display { text-align: center; margin: 4px 0 22px; }
+.invite-code-label { display: block; font-size: 0.78rem; color: var(--c-text-soft); margin-bottom: 6px; }
+.invite-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 1.8rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--c-primary);
+  word-break: break-all;
+}
+
+/* ---- Helper detail modal ---- */
+.helper-detail-head { margin-bottom: 16px; }
+.helper-detail-head h3 { font-size: 1.2rem; font-weight: 700; }
+.helper-detail-head p { font-size: 0.8rem; color: var(--c-text-soft); margin-top: 3px; }
+
+.detail-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 18px; }
+.detail-stat { background: var(--c-bg); border-radius: var(--radius-sm); padding: 12px 10px; text-align: center; }
+.detail-stat-num { font-size: 1.35rem; font-weight: 700; color: var(--c-primary); }
+.detail-stat-lbl { font-size: 0.66rem; color: var(--c-text-soft); text-transform: uppercase; margin-top: 2px; letter-spacing: 0.03em; }
+
+.recent-title {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--c-text-soft);
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+.recent-list { display: grid; gap: 6px; }
+.recent-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--c-bg);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  font-size: 0.82rem;
+}
+.recent-row-when { color: var(--c-text-soft); font-size: 0.74rem; }
+.recent-score { font-weight: 700; }
+.recent-score.good { color: #1b5e20; }
+.recent-score.mid { color: #856404; }
+.recent-score.low { color: var(--c-wrong); }
+.recent-incomplete { font-size: 0.68rem; color: #8a5a00; font-weight: 600; }
+
+@media (min-width: 480px) {
+  .detail-stats { gap: 12px; }
+}
+
+/* ---- Operator header on narrow phones ----
+   .header-inner is a single non-wrapping flex row, so on a 360–430 px phone the
+   right-hand link is pushed off-screen and clipped. Let it wrap and keep the
+   right-hand group right-aligned when it lands on its own line. */
+.admin-body .header-inner { flex-wrap: wrap; row-gap: 6px; }
+.admin-body .logo { min-width: 0; }
+.admin-body .header-right { margin-left: auto; }
+
+/* ===========================================================================
+   EMPLOYER CONNECTIONS (learner side)
+   =========================================================================== */
+
+/* ---- Invitation card (opened from /join/<code>) ---- */
+#join-modal .modal-box { max-width: 380px; }
+.join-icon { font-size: 2.6rem; margin-bottom: 8px; text-align: center; }
+#join-body h3 { text-align: center; }
+#join-body .modal-hint { text-align: center; }
+
+.join-note {
+  margin: 4px 0 16px;
+  padding: 10px 14px;
+  background: var(--c-bg);
+  border-left: 3px solid var(--c-secondary);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 0.85rem;
+  color: var(--c-text);
+  font-style: italic;
+}
+
+/* The join card owns its own spacing — the shared .form-error reserves a line
+   of height, which would leave a gap above the buttons. */
+#join-body .form-error { min-height: 0; margin-bottom: 10px; }
+#join-body .form-field { margin-bottom: 14px; }
+
+/* ---- Sharing panel at the foot of My Progress ---- */
+.sharing-card { margin-top: 12px; }
+.sharing-hint { font-size: 0.82rem; color: var(--c-text-soft); line-height: 1.5; margin: 6px 0 12px; }
+.sharing-none { font-size: 0.85rem; color: var(--c-text-soft); }
+
+.sharing-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 0;
+  border-top: 1px solid #f0f0f0;
+}
+.sharing-row:first-of-type { border-top: none; }
+.sharing-name { font-weight: 600; font-size: 0.92rem; }
+.sharing-meta { font-size: 0.74rem; color: var(--c-text-soft); margin-top: 2px; }
+.sharing-row .btn { flex-shrink: 0; }
+
+/* The way in for a code the employer read out loud or wrote down. */
+.sharing-code-btn { margin-top: 14px; }
+
+/* ---- Rewards: credits and the sticker album ---- */
+.rewards-card { margin-bottom: 12px; }
+
+.rewards-balance {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  margin: 4px 0 2px;
+}
+.rewards-credits {
+  font-size: 2.1rem;
+  font-weight: 700;
+  color: var(--c-primary);
+  line-height: 1.1;
+}
+.rewards-credit-word { font-size: 0.92rem; color: var(--c-text-soft); font-weight: 600; }
+.rewards-count {
+  margin-left: auto;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--c-text-soft);
+  background: #f1f1f5;
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+.rewards-hint { font-size: 0.82rem; color: var(--c-text-soft); line-height: 1.5; margin: 8px 0 12px; }
+
+.rewards-next { background: #fff8f8; border: 1px solid #f6dfe1; border-radius: 10px; padding: 10px 12px; }
+.rewards-next-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--c-text-soft);
+}
+.rewards-next-name { font-weight: 600; font-size: 0.9rem; margin: 3px 0 7px; }
+.rewards-complete { font-weight: 600; color: var(--c-primary); font-size: 0.9rem; margin: 4px 0 12px; }
+
+.sticker-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 14px;
+}
+.sticker-tile {
+  border-radius: 10px;
+  padding: 10px 6px;
+  text-align: center;
+  border: 1px solid var(--c-border);
+  background: var(--c-surface);
+  min-width: 0;
+}
+.sticker-tile.is-unlocked { border-color: #f3c9cd; background: #fff8f8; }
+.sticker-tile.is-locked { background: #fafafb; opacity: 0.75; }
+.sticker-emoji { font-size: 1.5rem; line-height: 1.2; }
+.sticker-name {
+  font-size: 0.68rem;
+  font-weight: 600;
+  margin-top: 4px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.sticker-canto { font-size: 0.72rem; color: var(--c-text-soft); margin-top: 2px; }
+.sticker-tile.is-locked .sticker-emoji { filter: grayscale(1); opacity: 0.5; }
+
+/* The "new sticker" block on the quiz result screen. */
+.sticker-celebrate {
+  margin: 18px auto 0;
+  max-width: 320px;
+  background: #fff8f8;
+  border: 1px solid #f3c9cd;
+  border-radius: 12px;
+  padding: 14px;
+}
+.sticker-celebrate-title {
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--c-primary);
+}
+.sticker-celebrate-row { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 8px 0 6px; }
+.sticker-celebrate-tile { font-size: 2rem; line-height: 1; }
+.sticker-celebrate-body { font-size: 0.86rem; color: var(--c-text); font-weight: 600; }
+
+/* ---- Link on the portal's reset card ---- */
+.portal-link { color: var(--c-primary); font-weight: 600; text-decoration: none; }
+.portal-link:hover { text-decoration: underline; }

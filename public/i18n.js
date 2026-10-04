@@ -12,10 +12,17 @@ const I18N = {
     'nav.learn': 'Learn',
     'nav.quiz': 'Quiz',
     'nav.progress': 'Progress',
-    'header.admin': 'Admin',
+    'nav.share': 'Share',
     'header.setName': 'Set your name',
     'header.voiceTitle': 'Choose practice voice',
     'header.langTitle': 'Change language',
+    // The language button advertises the language you would switch TO, so
+    // these two are the button's label/tooltip, not the current language.
+    'header.langSwitchEn': 'Switch to English',
+    'header.langSwitchFil': 'Switch to Filipino',
+    'header.employerSite': 'For employers',
+    'header.learnerSite': 'Learner app',
+    'header.shareSite': 'Share CantoBuddy',
 
     // home
     'home.title': 'Learn Cantonese',
@@ -75,7 +82,7 @@ const I18N = {
     'result.percentCorrect': '% correct',
     'result.tryAgain': 'Try Again',
     'result.done': 'Done',
-    'result.share': '📤 Share my score',
+    'result.share': 'Share my score',
 
     // progress
     'progress.title': 'My Progress',
@@ -124,10 +131,70 @@ const I18N = {
     'share.copied': 'Copied to clipboard!',
     'share.failed': 'Could not share.',
 
+    // share page — inviting a friend to the app
+    'sharePage.title': 'Share CantoBuddy',
+    'sharePage.hero': 'Tell a friend',
+    'sharePage.body': "Learning is easier with company. Send CantoBuddy to a friend — it's free for helpers, always.",
+    'sharePage.previewLabel': 'What your friend will see',
+    'sharePage.shareBtn': 'Share CantoBuddy',
+    'sharePage.copyBtn': '🔗 Copy link',
+    'sharePage.copied': 'Link copied!',
+    'sharePage.copyFailed': 'Could not copy the link.',
+    'sharePage.message': "I'm learning Cantonese with CantoBuddy — free, and made for helpers in Hong Kong. Try it!",
+
+    // connecting to an employer (invitation link)
+    'connect.title': 'Connect to {name}?',
+    'connect.see': '{name} will be able to see your CantoBuddy practice — your quiz scores and progress. Nothing else.',
+    'connect.yourName': 'Your name',
+    'connect.nameHint': 'The name your employer will see.',
+    'connect.notNow': 'Not now',
+    'connect.connect': 'Connect',
+    'connect.connecting': 'Connecting…',
+    'connect.doneTitle': "You're connected 🎉",
+    'connect.doneBody': '{name} can now see your practice. You can stop sharing any time.',
+    'connect.doneBtn': 'Start learning',
+    'connect.invalid': 'This invitation link is not valid or has expired.',
+    'connect.failed': 'Could not connect. Please try again.',
+
+    // who can see my progress
+    'sharing.title': 'Who can see my progress',
+    'sharing.hint': 'These people can see your quiz scores. You can stop sharing at any time — your progress always stays with you.',
+    'sharing.none': 'Nobody can see your progress. Only you.',
+    'sharing.since': 'Connected',
+    'sharing.stop': 'Stop sharing',
+    'sharing.stopped': 'Stopped sharing',
+    'sharing.failed': 'Could not update. Please try again.',
+    'sharing.enterCode': 'Have a code from your employer?',
+
+    // rewards: credits and the sticker album
+    'rewards.title': 'My Stickers',
+    'rewards.hint': 'You earn 1 credit for every correct answer. Reach a sticker\'s number and it is yours.',
+    'rewards.credits': 'credits',
+    'rewards.creditOne': 'credit',
+    'rewards.next': 'Next sticker',
+    'rewards.toGo': 'to go',
+    'rewards.locked': 'Locked',
+    'rewards.complete': 'You collected the whole album! 🏆',
+    'rewards.newTitle': 'New sticker!',
+    'rewards.newBody': 'You earned {name}',
+    'rewards.newBodyMany': 'You earned {n} new stickers!',
+    'rewards.viewAlbum': 'See my album',
+    'rewards.notYet': 'Not collected yet',
+
+    // connecting with a code instead of a link
+    'connect.enterCode': 'Enter a code',
+    'connect.codeTitle': 'Connect to your employer',
+    'connect.codeHint': 'Type the code your employer gave you.',
+    'connect.codeLabel': 'Employer code',
+    'connect.codePlaceholder': 'e.g. 4GTBVT6R',
+    'connect.codeSubmit': 'Connect',
+    'connect.codeChecking': 'Checking…',
+    'connect.codeNotFound': 'That code was not found. Please check it and try again.',
+
     // misc
     'misc.close': 'Close',
     'misc.loadFailed': 'Could not load data. Is the server running?',
-    'misc.shareWord': '📤 Share this word',
+    'misc.shareWord': 'Share this word',
   },
 
   fil: {
@@ -136,10 +203,15 @@ const I18N = {
     'nav.learn': 'Mag-aral',
     'nav.quiz': 'Pagsusulit',
     'nav.progress': 'Progreso',
-    'header.admin': 'Admin',
+    'nav.share': 'Ibahagi',
     'header.setName': 'Ilagay ang pangalan',
     'header.voiceTitle': 'Pumili ng boses',
     'header.langTitle': 'Palitan ang wika',
+    'header.langSwitchEn': 'Palitan sa Ingles',
+    'header.langSwitchFil': 'Palitan sa Filipino',
+    'header.employerSite': 'Para sa employer',
+    'header.learnerSite': 'App ng mag-aaral',
+    'header.shareSite': 'Ibahagi ang CantoBuddy',
 
     // home
     'home.title': 'Mag-aral ng Cantonese',
@@ -199,7 +271,7 @@ const I18N = {
     'result.percentCorrect': '% tama',
     'result.tryAgain': 'Subukan Muli',
     'result.done': 'Tapos',
-    'result.share': '📤 Ibahagi ang puntos',
+    'result.share': 'Ibahagi ang puntos',
 
     // progress
     'progress.title': 'Aking Progreso',
@@ -248,10 +320,70 @@ const I18N = {
     'share.copied': 'Nakopya sa clipboard!',
     'share.failed': 'Hindi maibahagi.',
 
+    // share page — inviting a friend to the app
+    'sharePage.title': 'Ibahagi ang CantoBuddy',
+    'sharePage.hero': 'Sabihan ang kaibigan',
+    'sharePage.body': 'Mas masaya mag-aral kapag may kasama. Ipadala ang CantoBuddy sa kaibigan — libre ito para sa mga katulong, habang-buhay.',
+    'sharePage.previewLabel': 'Ang makikita ng kaibigan mo',
+    'sharePage.shareBtn': 'Ibahagi ang CantoBuddy',
+    'sharePage.copyBtn': '🔗 Kopyahin ang link',
+    'sharePage.copied': 'Nakopya ang link!',
+    'sharePage.copyFailed': 'Hindi makopya ang link.',
+    'sharePage.message': 'Nag-aaral ako ng Cantonese sa CantoBuddy — libre, at para sa mga katulong sa Hong Kong. Subukan mo!',
+
+    // connecting to an employer (invitation link)
+    'connect.title': 'Kumonekta kay {name}?',
+    'connect.see': 'Makikita ni {name} ang iyong pagsasanay sa CantoBuddy — ang iyong mga puntos at progreso. Wala nang iba.',
+    'connect.yourName': 'Iyong pangalan',
+    'connect.nameHint': 'Ang pangalang makikita ng iyong employer.',
+    'connect.notNow': 'Mamaya na',
+    'connect.connect': 'Kumonekta',
+    'connect.connecting': 'Kumokonekta…',
+    'connect.doneTitle': 'Konektado ka na 🎉',
+    'connect.doneBody': 'Makikita na ni {name} ang iyong pagsasanay. Maaari mong itigil ang pagbabahagi anumang oras.',
+    'connect.doneBtn': 'Magsimula',
+    'connect.invalid': 'Hindi wasto o lipas na ang link na ito.',
+    'connect.failed': 'Hindi makakonekta. Subukan muli.',
+
+    // who can see my progress
+    'sharing.title': 'Sino ang nakakakita ng progreso ko',
+    'sharing.hint': 'Nakikita ng mga taong ito ang iyong mga puntos. Maaari mong itigil ang pagbabahagi anumang oras — mananatili sa iyo ang progreso mo.',
+    'sharing.none': 'Walang nakakakita ng progreso mo. Ikaw lang.',
+    'sharing.since': 'Konektado',
+    'sharing.stop': 'Itigil ang pagbabahagi',
+    'sharing.stopped': 'Itinigil ang pagbabahagi',
+    'sharing.failed': 'Hindi ma-update. Subukan muli.',
+    'sharing.enterCode': 'May code ka ba mula sa employer mo?',
+
+    // rewards: credits and the sticker album
+    'rewards.title': 'Aking mga Sticker',
+    'rewards.hint': 'May 1 credit ka sa bawat tamang sagot. Abutin ang numero ng sticker at sa iyo na ito.',
+    'rewards.credits': 'credits',
+    'rewards.creditOne': 'credit',
+    'rewards.next': 'Susunod na sticker',
+    'rewards.toGo': 'pa',
+    'rewards.locked': 'Naka-lock',
+    'rewards.complete': 'Nakuha mo na ang buong album! 🏆',
+    'rewards.newTitle': 'Bagong sticker!',
+    'rewards.newBody': 'Nakuha mo ang {name}',
+    'rewards.newBodyMany': 'Nakakuha ka ng {n} bagong sticker!',
+    'rewards.viewAlbum': 'Tingnan ang album ko',
+    'rewards.notYet': 'Wala pa',
+
+    // connecting with a code instead of a link
+    'connect.enterCode': 'Maglagay ng code',
+    'connect.codeTitle': 'Kumonekta sa employer mo',
+    'connect.codeHint': 'I-type ang code na ibinigay ng employer mo.',
+    'connect.codeLabel': 'Code ng employer',
+    'connect.codePlaceholder': 'hal. 4GTBVT6R',
+    'connect.codeSubmit': 'Kumonekta',
+    'connect.codeChecking': 'Sinusuri…',
+    'connect.codeNotFound': 'Hindi mahanap ang code. Pakisuri at subukan muli.',
+
     // misc
     'misc.close': 'Isara',
     'misc.loadFailed': 'Hindi ma-load ang data. Gumagana ba ang server?',
-    'misc.shareWord': '📤 Ibahagi ang salitang ito',
+    'misc.shareWord': 'Ibahagi ang salitang ito',
   },
 };
 
@@ -288,6 +420,9 @@ function applyTranslations() {
     const attr = el.dataset.i18nAttr;
     if (attr) el.setAttribute(attr, t(key));
     else el.textContent = t(key);
+    // Icon-only controls carry no visible text, so mirror the same string into
+    // aria-label — otherwise screen readers announce a bare emoji.
+    if (el.dataset.i18nAria) el.setAttribute('aria-label', t(key));
   });
   document.documentElement.lang = _lang === 'fil' ? 'tl' : 'en';
   updateLangButton();
@@ -296,8 +431,13 @@ function applyTranslations() {
 function updateLangButton() {
   const btn = document.getElementById('lang-btn');
   if (!btn) return;
-  btn.textContent = _lang === 'fil' ? 'FIL' : 'EN';
-  btn.title = t('header.langTitle');
+  // The button shows the language you would switch TO, not the one you are
+  // reading: while the app is in English it reads "FIL", and while it is in
+  // Filipino it reads "EN". So it is a label for the *action*, not the state.
+  const next = _lang === 'fil' ? 'en' : 'fil';
+  btn.textContent = next === 'fil' ? 'FIL' : 'EN';
+  btn.title = t(next === 'fil' ? 'header.langSwitchFil' : 'header.langSwitchEn');
+  btn.setAttribute('aria-label', btn.title);
 }
 
 function setLang(lang) {

@@ -9,16 +9,18 @@
 const fs = require('fs');
 const path = require('path');
 
-// Where the data file lives.
+// Where the legacy data file lives.
 //   - Running locally:  db.json sits next to this file.
 //   - Hosted:           set DATA_DIR to a mounted persistent volume, e.g. /data.
 //                       Most free hosts use an EPHEMERAL disk, so a volume (or
 //                       external database) is required or admin changes will be
 //                       lost on every restart / redeploy.
+//
+// NOTE: nothing is created on require. db.js imports the SEED_* arrays below and
+// never touches the JSON file, so requiring this module must not have side
+// effects — on a read-only hosting sandbox, a mkdir here would take the whole
+// app down before SQLite ever opened. The directory is created lazily in save().
 const DATA_DIR = process.env.DATA_DIR || __dirname;
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-}
 const DB_PATH = process.env.DB_PATH || path.join(DATA_DIR, 'db.json');
 
 // ---------------------------------------------------------------------------
@@ -114,8 +116,14 @@ const SEED_VOCABULARY = [
   { id: 64, cantonese: '企穩啲先',             jyutping: 'kei5 wan2 di1 sin1',                          english: 'Stand steady first',                      tagalog: 'Tumayo nang matatag muna',                       emoji: '🧍', level: 3, category_id: 11 },
 ];
 
+// No password is stored here, deliberately. This repository is public, so a
+// committed default would be a published credential — anyone could read it and
+// sign in as the operator. The password comes from the ADMIN_USER /
+// ADMIN_PASSWORD environment variables instead (see db.js → syncEnvAdmin). If
+// they are unset, the first run generates a random password and prints it once
+// to the server log, so there is never a guessable default to fall back on.
 const SEED_USERS = [
-  { id: 1, username: 'admin', password: 'cantobuddy2024', role: 'admin', name: 'Employer' },
+  { id: 1, username: 'admin', password: null, role: 'admin', name: 'Operator' },
 ];
 
 const SEED_DATA = {
@@ -144,6 +152,8 @@ function load() {
 }
 
 function save(data) {
+  // Created here rather than at require time — see the note above.
+  fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
   fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2));
 }
 

@@ -25,6 +25,14 @@ Start CantoBuddy.cmd
 # Staging folder used for the browser-based GitHub upload
 upload-to-github/
 
+# Local deploy helper (contains no secrets — reads GITHUB_TOKEN from env)
+tools/
+
+# Local secrets — the GitHub deploy token lives here, never in the repo
+.env
+.env.*
+!.env.example
+
 # OS / editor cruft
 *.log
 .DS_Store

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <meta name="theme-color" content="#1d3557" />
+  <!-- Operator-facing, like /admin.html: reachable by typing the URL, never indexed. -->
+  <meta name="robots" content="noindex, nofollow" />
+  <title>CantoBuddy – Employer</title>
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body class="admin-body portal-body">
+
+<!-- ============================ HEADER ============================ -->
+<header class="app-header admin-header">
+  <div class="header-inner">
+    <div class="logo">
+      <span class="logo-emoji">🦜</span>
+      <span class="logo-text">CantoBuddy <span class="logo-sub">Employer</span></span>
+    </div>
+    <div class="header-right">
+      <a href="/" class="admin-link" title="Learner app" aria-label="Learner app">📚 Learner App</a>
+      <button id="logout-btn" class="btn btn-sm btn-outline" style="display:none" onclick="portalLogout()">Log Out</button>
+    </div>
+  </div>
+</header>
+
+<main class="app-main admin-main portal-main">
+
+  <!-- ======================= AUTH ======================= -->
+  <section id="portal-auth" class="admin-section active">
+    <div class="login-card">
+      <div class="login-icon">🏠</div>
+      <h2 id="auth-title">Employer Sign In</h2>
+      <p class="login-hint" id="auth-hint">See how your helper's Cantonese is coming along.</p>
+
+      <div class="portal-auth-tabs">
+        <button type="button" class="portal-auth-tab active" data-mode="login" onclick="setAuthMode('login')">Sign In</button>
+        <button type="button" class="portal-auth-tab" data-mode="register" onclick="setAuthMode('register')">Create Account</button>
+      </div>
+
+      <form id="auth-form" onsubmit="submitAuth(event)">
+        <div class="form-field" id="field-name" style="display:none">
+          <label for="auth-name">Your Name</label>
+          <input type="text" id="auth-name" placeholder="e.g. Mrs Chan" autocomplete="name" />
+        </div>
+        <div class="form-field">
+          <label for="auth-email">Email</label>
+          <input type="email" id="auth-email" placeholder="you@example.com" required autocomplete="username" />
+        </div>
+        <div class="form-field">
+          <label for="auth-pass">Password</label>
+          <input type="password" id="auth-pass" placeholder="••••••••" required autocomplete="current-password" />
+          <p class="form-hint" id="pass-hint" style="display:none">At least 8 characters.</p>
+        </div>
+        <div id="auth-error" class="form-error"></div>
+        <button type="submit" id="auth-submit" class="btn btn-primary btn-lg btn-block">Sign In</button>
+      </form>
+
+      <p class="portal-fineprint">
+        Forgot your password? Ask the CantoBuddy operator to send you a reset link.
+      </p>
+    </div>
+  </section>
+
+  <!-- ======================= SET NEW PASSWORD (/reset?token=…) ======================= -->
+  <section id="portal-reset" class="admin-section">
+    <div class="login-card">
+      <div class="login-icon">🔑</div>
+      <h2>Set a New Password</h2>
+      <p class="login-hint">Choose a new password for your CantoBuddy account.</p>
+      <form onsubmit="submitReset(event)">
+        <div class="form-field">
+          <label for="reset-pass">New Password</label>
+          <input type="password" id="reset-pass" placeholder="••••••••" required autocomplete="new-password" />
+          <p class="form-hint">At least 8 characters.</p>
+        </div>
+        <div class="form-field">
+          <label for="reset-pass2">Repeat Password</label>
+          <input type="password" id="reset-pass2" placeholder="••••••••" required autocomplete="new-password" />
+        </div>
+        <div id="reset-error" class="form-error"></div>
+        <button type="submit" id="reset-submit" class="btn btn-primary btn-lg btn-block">Save New Password</button>
+      </form>
+      <p class="portal-fineprint"><a href="/portal" class="portal-link">← Back to sign in</a></p>
+    </div>
+  </section>
+
+  <!-- ======================= DASHBOARD ======================= -->
+  <section id="portal-dash" class="admin-section">
+
+    <div class="portal-hello">
+      <h2 id="hello-name">Hello</h2>
+      <p>
+        Here is how your helper's Cantonese practice is going. She can disconnect at any
+        time and keeps every bit of her progress — you only ever see her learning, never
+        anything else.
+      </p>
+    </div>
+
+    <!-- ---- helpers ---- -->
+    <div class="admin-toolbar">
+      <h3>Your Helpers</h3>
+      <button class="btn btn-primary btn-sm" onclick="openInviteForm()">+ Invite a Helper</button>
+    </div>
+    <div id="helpers-list" class="portal-helper-list"></div>
+
+    <!-- ---- invitations ---- -->
+    <div class="admin-toolbar" style="margin-top:28px">
+      <h3>Invitations</h3>
+    </div>
+    <p class="admin-hint">
+      Share the link, or read the code aloud. Codes leave out 0/O and 1/I so they are
+      never misheard.
+    </p>
+    <div id="invites-list" class="portal-invite-list"></div>
+
+  </section>
+</main>
+
+<!-- ============================ INVITE FORM MODAL ============================ -->
+<div id="invite-modal" class="modal-overlay" onclick="closeInviteForm(event)">
+  <div class="modal-form" onclick="event.stopPropagation()">
+    <h3>Invite a Helper</h3>
+    <form onsubmit="submitInvite(event)">
+      <div class="form-field">
+        <label for="inv-label">Helper's Name <span class="optional">(optional)</span></label>
+        <input type="text" id="inv-label" placeholder="e.g. Jeanilyn" maxlength="80" />
+        <p class="form-hint">Only you see this — it just helps you tell your helpers apart.</p>
+      </div>
+      <div class="form-field">
+        <label for="inv-note">Note <span class="optional">(optional)</span></label>
+        <textarea id="inv-note" rows="2" maxlength="400" placeholder="e.g. Please practise the Elder Care words"></textarea>
+      </div>
+      <div id="inv-error" class="form-error"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-outline" onclick="closeInviteForm()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Create Invite</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============================ INVITATION READY MODAL ============================ -->
+<div id="created-modal" class="modal-overlay" onclick="closeCreated(event)">
+  <div class="modal-form" onclick="event.stopPropagation()">
+    <h3>Invitation Ready 🎉</h3>
+    <p class="modal-hint">
+      Give this to your helper. She opens it once to connect — no account or password needed.
+    </p>
+    <div class="invite-link-box">
+      <input type="text" id="created-link" readonly onclick="this.select()" />
+      <button type="button" class="btn btn-primary btn-sm" onclick="copyCreated()">Copy</button>
+    </div>
+    <div class="invite-code-display">
+      <span class="invite-code-label">Or read this code aloud:</span>
+      <span class="invite-code" id="created-code"></span>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-primary btn-block" onclick="closeCreated()">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ HELPER DETAIL MODAL ============================ -->
+<div id="helper-modal" class="modal-overlay" onclick="closeHelper(event)">
+  <div class="modal-form" onclick="event.stopPropagation()">
+    <div id="helper-detail"></div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="/portal.js"></script>
+</body>
+</html>

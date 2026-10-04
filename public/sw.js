@@ -4,10 +4,10 @@
    network-first so vocabulary stays fresh but still works without a connection.
    ============================================================================= */
 
-// Bump this whenever app.js / i18n.js / styles.css change. The app shell is
-// cached cache-first, so without a version bump installed PWAs would keep
-// serving the previous build from cache.
-const CACHE = 'cantobuddy-v5';
+// Bump this whenever index.html / app.js / i18n.js / styles.css / the icons
+// change. The app shell is cached cache-first, so without a version bump
+// installed PWAs would keep serving the previous build from cache.
+const CACHE = 'cantobuddy-v19';
 
 const APP_SHELL = [
   '/',
@@ -49,8 +49,9 @@ self.addEventListener('fetch', (event) => {
   // Only handle our own origin; let fonts and other CDNs hit the network
   if (url.origin !== self.location.origin) return;
 
-  // Admin pages must always be fresh (they are used to edit content)
-  if (url.pathname.startsWith('/admin')) {
+  // Admin and employer-portal pages must always be fresh — they show live
+  // account and progress data, never a cached shell.
+  if (url.pathname.startsWith('/admin') || url.pathname.startsWith('/portal')) {
     event.respondWith(fetch(req).catch(() => caches.match(req)));
     return;
   }

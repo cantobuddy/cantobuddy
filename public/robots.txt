@@ -1,0 +1,11 @@
+# CantoBuddy
+# The learner app is public. The admin area is operator-only and must not be
+# indexed or crawled — see the X-Robots-Tag header in server.js, which enforces
+# the same thing at the response level (robots.txt is a request, not a control).
+
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin.html
+Disallow: /admin.js
+Disallow: /api/

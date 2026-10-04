@@ -3,9 +3,16 @@
 # build machine's git config can never corrupt the entrypoint.
 *.sh text eol=lf
 
+# The Dockerfile has no extension, so it needs its own rule — otherwise a
+# Windows checkout with core.autocrlf=true hands Render a CRLF Dockerfile.
+Dockerfile text eol=lf
+
 # Source and config files: normalise to LF.
 *.js   text eol=lf
 *.json text eol=lf
 *.css  text eol=lf
 *.html text eol=lf
 *.md   text eol=lf
+*.txt  text eol=lf
+*.yml  text eol=lf
+*.yaml text eol=lf

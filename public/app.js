@@ -4,10 +4,35 @@
 
 // ---- State -----------------------------------------------------------------
 
+// ---- Device identity -------------------------------------------------------
+//
+// A helper never creates an account. Her identity is a long random token kept
+// in localStorage; the server turns it into a learner row the first time it
+// sees it. The name is only a label — she can change it at any time without
+// losing a single quiz result, because nothing is keyed on the name.
+const DEVICE_KEY = 'cb_device';
+
+function randomToken(bytes = 18) {
+  const buf = new Uint8Array(bytes);
+  crypto.getRandomValues(buf);
+  return Array.from(buf, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+function loadDeviceId() {
+  let id = localStorage.getItem(DEVICE_KEY);
+  if (!id) {
+    id = 'dev_' + randomToken();
+    localStorage.setItem(DEVICE_KEY, id);
+  }
+  return id;
+}
+
 const STATE = {
   vocabulary: [],
   categories: [],
   learner: localStorage.getItem('cb_learner') || '',
+  deviceId: loadDeviceId(),   // this device's identity — never shown to the user
+  employers: [],              // who is allowed to see this learner's progress
   currentLevel: 0,      // 0 = all, 1-3 = specific
   currentCat: 0,        // 0 = all
   quiz: null,           // active quiz object
@@ -375,6 +400,25 @@ async function apiPost(url, body) {
   return r.json();
 }
 
+async function apiDelete(url) {
+  const r = await fetch(url, { method: 'DELETE' });
+  if (!r.ok) {
+    const e = await r.json().catch(() => ({}));
+    throw new Error(e.error || `API ${url} failed: ${r.status}`);
+  }
+  return r.json();
+}
+
+/** Escape text that came from another person before putting it in innerHTML. */
+function escapeHtml(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // ---- Navigation ------------------------------------------------------------
 
 function navigate(view) {
@@ -389,6 +433,7 @@ function navigate(view) {
   window.scrollTo(0, 0);
 
   if (view === 'progress') renderProgress();
+  if (view === 'share') renderSharePage();
 }
 
 function goBrowse(level) {
@@ -466,6 +511,7 @@ function rerenderForLanguage() {
 
   const active = document.querySelector('.view.active');
   if (active && active.id === 'view-progress') renderProgress();
+  if (active && active.id === 'view-share') renderSharePage();
 }
 
 function renderHomeCategories() {
@@ -584,7 +630,7 @@ function openVocabModal(id) {
     ${cat ? `<div style="margin-top:8px;font-size:0.8rem;color:#6c757d">${cat.icon} ${categoryLabel(cat)}</div>` : ''}
     <button class="modal-audio-btn" onclick="speak('${v.cantonese.replace(/'/g, "\\'")}', this)">🔊</button>
     <div style="font-size:0.75rem;color:#6c757d;margin-top:6px">${t('browse.tapToHear')}</div>
-    <button class="modal-share-btn" onclick="shareWord(${v.id})">${t('misc.shareWord')}</button>
+    <button class="modal-share-btn" onclick="shareWord(${v.id})">${SHARE_ICON_SVG}${t('misc.shareWord')}</button>
     <button class="modal-close" onclick="closeModal()">${t('misc.close')}</button>
   `;
   modal.classList.add('show');
@@ -624,6 +670,8 @@ function saveLearnerName() {
   localStorage.setItem('cb_learner', name);
   updateLearnerBadge();
   closeNameModal();
+  // Push the new label to the server so any connected employer sees it too.
+  identifySelf();
 }
 
 // ===========================================================================
@@ -806,6 +854,7 @@ async function persistProgress(completed) {
   try {
     return await apiPost('/api/progress', {
       session_id: q.sessionId,
+      public_id: STATE.deviceId,
       learner: STATE.learner,
       level: q.level,
       category_id: 0,
@@ -832,6 +881,7 @@ function flushProgressBeacon() {
   if (!q || !STATE.learner) return;
   const payload = JSON.stringify({
     session_id: q.sessionId,
+    public_id: STATE.deviceId,
     learner: STATE.learner,
     level: q.level,
     category_id: 0,
@@ -1002,6 +1052,12 @@ async function finishQuiz() {
   // creating a second one.
   await persistProgress(true);
 
+  // Ask for the rewards now, while the learner is looking at her score — this
+  // is the moment a new sticker actually means something. The server reports
+  // each unlock exactly once, so this cannot re-announce an old one.
+  const rewards = await fetchRewards();
+  const celebration = renderStickerCelebration(rewards);
+
   // Remember the result so the share button can use it
   window._lastResult = { score, total, pct, type: q.type };
 
@@ -1011,11 +1067,17 @@ async function finishQuiz() {
       <h2 style="font-size:1.6rem;font-weight:700;margin-bottom:8px">${t('result.complete')}</h2>
       <div style="font-size:2.5rem;font-weight:700;color:#e63946;margin:12px 0">${score} / ${total}</div>
       <div style="font-size:1rem;color:#6c757d">${pct}${t('result.percentCorrect')}</div>
+      ${celebration}
       <div style="margin-top:24px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
         <button class="btn btn-outline" onclick="startQuiz('${q.type}')">${t('result.tryAgain')}</button>
         <button class="btn btn-primary" onclick="navigate('home')">${t('result.done')}</button>
       </div>
-      <button class="btn btn-outline btn-block" style="margin-top:12px" onclick="shareResult()">${t('result.share')}</button>
+      ${
+        rewards && rewards.newly_unlocked && rewards.newly_unlocked.length
+          ? `<button class="btn btn-primary btn-block" style="margin-top:12px" onclick="navigate('progress')">🏅 ${t('rewards.viewAlbum')}</button>`
+          : ''
+      }
+      <button class="btn btn-outline btn-block" style="margin-top:12px" onclick="shareResult()">${SHARE_ICON_SVG}${t('result.share')}</button>
     </div>
   `;
 
@@ -1031,6 +1093,173 @@ async function quitQuiz() {
   location.reload();
 }
 
+// ---- Rewards: credits and stickers -----------------------------------------
+//
+// Credits are earned, never bought: one per correct quiz answer, counted by the
+// server from the progress rows themselves. Stickers unlock at credit
+// thresholds. Nothing here is money — see the note in the project memory.
+
+/** The reward state for this device, cached for the current render. */
+let _rewards = null;
+
+async function fetchRewards() {
+  try {
+    _rewards = await apiGet(
+      '/api/learners/rewards?public_id=' + encodeURIComponent(STATE.deviceId)
+    );
+  } catch (err) {
+    _rewards = null;
+  }
+  return _rewards;
+}
+
+/** A sticker's name in the language currently being read. */
+function stickerName(s) {
+  return currentLang() === 'fil' ? s.tagalog || s.english : s.english;
+}
+
+/**
+ * The credit balance and the sticker album.
+ *
+ * Uncollected stickers still show what they cost, so the album reads as
+ * something to work towards rather than a wall of padlocks. Each sticker is
+ * also a phrase worth knowing, so it doubles as a vocabulary list.
+ */
+function renderRewardsCard() {
+  const r = _rewards;
+  if (!r || !r.stickers.length) return '';
+
+  const collected = r.stickers.filter((s) => s.unlocked).length;
+  const creditWord = r.credits === 1 ? t('rewards.creditOne') : t('rewards.credits');
+
+  let next;
+  if (r.next) {
+    const pct = Math.min(100, Math.round((r.credits / r.next.credits) * 100));
+    const left = r.next.credits - r.credits;
+    next = `
+      <div class="rewards-next">
+        <div class="rewards-next-row">
+          <span>${t('rewards.next')}</span>
+          <span class="rewards-next-count">${left} ${t('rewards.toGo')}</span>
+        </div>
+        <div class="rewards-next-name">${r.next.emoji} ${escapeHtml(stickerName(r.next))}</div>
+        <div class="progress-bar-mini"><div class="progress-bar-mini-fill" style="width:${pct}%"></div></div>
+      </div>`;
+  } else {
+    next = `<p class="rewards-complete">${t('rewards.complete')}</p>`;
+  }
+
+  const tiles = r.stickers
+    .map((s) =>
+      s.unlocked
+        ? `<div class="sticker-tile is-unlocked">
+             <div class="sticker-emoji">${s.emoji}</div>
+             <div class="sticker-name">${escapeHtml(stickerName(s))}</div>
+             <div class="sticker-canto">${escapeHtml(s.cantonese)}</div>
+           </div>`
+        : `<div class="sticker-tile is-locked" title="${t('rewards.notYet')}">
+             <div class="sticker-emoji">🔒</div>
+             <div class="sticker-name">${s.credits}</div>
+             <div class="sticker-canto">${t('rewards.credits')}</div>
+           </div>`
+    )
+    .join('');
+
+  return `
+    <div class="progress-card rewards-card">
+      <h4>${t('rewards.title')}</h4>
+      <div class="rewards-balance">
+        <span class="rewards-credits">${r.credits}</span>
+        <span class="rewards-credit-word">${creditWord}</span>
+        <span class="rewards-count">${collected}/${r.stickers.length}</span>
+      </div>
+      <p class="rewards-hint">${t('rewards.hint')}</p>
+      ${next}
+      <div class="sticker-grid">${tiles}</div>
+    </div>`;
+}
+
+/**
+ * The "you earned a sticker" block shown on the quiz result screen.
+ *
+ * Only ever shows stickers unlocked by THIS quiz — the server reports them once
+ * and then forgets, so re-opening the result cannot re-announce them.
+ */
+function renderStickerCelebration(r) {
+  if (!r || !r.newly_unlocked || !r.newly_unlocked.length) return '';
+  const won = r.stickers.filter((s) => r.newly_unlocked.includes(s.key));
+  const body =
+    won.length === 1
+      ? t('rewards.newBody').replace('{name}', escapeHtml(stickerName(won[0])))
+      : t('rewards.newBodyMany').replace('{n}', won.length);
+
+  return `
+    <div class="sticker-celebrate">
+      <div class="sticker-celebrate-title">${t('rewards.newTitle')}</div>
+      <div class="sticker-celebrate-row">
+        ${won.map((s) => `<span class="sticker-celebrate-tile">${s.emoji}</span>`).join('')}
+      </div>
+      <div class="sticker-celebrate-body">${body}</div>
+    </div>`;
+}
+
+// ---- Connect with a code ---------------------------------------------------
+//
+// An invitation link needs the employer to send it. Reading a code out loud or
+// writing it on paper is often easier — so the code is a second door into the
+// SAME flow, not a second implementation of it: this only looks the code up and
+// then hands over to openJoinModal().
+
+/** Accept what a person actually types: spaces, dashes, lower case. */
+function normaliseCode(raw) {
+  return String(raw || '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '');
+}
+
+function openCodeModal() {
+  const input = document.getElementById('code-input');
+  const err = document.getElementById('code-error');
+  if (input) input.value = '';
+  if (err) err.textContent = '';
+  document.getElementById('code-modal').classList.add('show');
+  setTimeout(() => input && input.focus(), 120);
+}
+
+function closeCodeModal(e) {
+  if (e && e.target !== e.currentTarget) return;
+  document.getElementById('code-modal').classList.remove('show');
+}
+
+async function submitEmployerCode() {
+  const input = document.getElementById('code-input');
+  const errEl = document.getElementById('code-error');
+  const btn = document.getElementById('code-submit');
+  const code = normaliseCode(input && input.value);
+  if (errEl) errEl.textContent = '';
+
+  // Codes are 8 characters; anything much shorter is a typo, and asking the
+  // server about it would just burn a lookup.
+  if (code.length < 6) {
+    if (errEl) errEl.textContent = t('connect.codeNotFound');
+    return;
+  }
+
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = t('connect.codeChecking');
+  try {
+    const inv = await apiGet('/api/invitations/' + encodeURIComponent(code));
+    document.getElementById('code-modal').classList.remove('show');
+    openJoinModal(inv, code);
+  } catch (err) {
+    if (errEl) errEl.textContent = t('connect.codeNotFound');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = original;
+  }
+}
+
 // ---- Progress view ---------------------------------------------------------
 
 async function renderProgress() {
@@ -1041,10 +1270,16 @@ async function renderProgress() {
   }
 
   try {
-    const records = await apiGet(`/api/progress?learner=${encodeURIComponent(STATE.learner)}`);
+    // Read by device token, not by name. The server resolves the token, so this
+    // can only ever return the rows belonging to this device.
+    const records = await apiGet(`/api/progress?public_id=${encodeURIComponent(STATE.deviceId)}`);
+    await fetchRewards();
 
     if (records.length === 0) {
-      wrap.innerHTML = `<div class="progress-empty">${t('progress.none')}</div>`;
+      wrap.innerHTML =
+        `<div class="progress-empty">${t('progress.none')}</div>` +
+        renderRewardsCard() +
+        renderSharingCard();
       return;
     }
 
@@ -1064,7 +1299,7 @@ async function renderProgress() {
 
     const levelEmojis = { 1: '🌱', 2: '🌿', 3: '🌳' };
 
-    let html = `
+    let html = renderRewardsCard() + `
       <div class="progress-card">
         <h4>${t('progress.overall')}</h4>
         <div class="progress-score">${pct}%</div>
@@ -1118,9 +1353,68 @@ async function renderProgress() {
     }
     html += '</div>';
 
+    // Who is allowed to see all of the above.
+    html += renderSharingCard();
+
     wrap.innerHTML = html;
   } catch (err) {
     wrap.innerHTML = `<div class="progress-empty">${t('progress.couldNotLoad')}</div>`;
+  }
+}
+
+// ---- Sharing: who can see my progress --------------------------------------
+
+/**
+ * The consent panel, shown at the bottom of My Progress.
+ *
+ * This is the helper's side of the deal. It lists exactly who can see her
+ * scores and lets her withdraw that with one tap — no confirmation, no
+ * notification to the employer. She may not feel free to refuse an employer's
+ * invitation, so leaving has to be frictionless.
+ */
+function renderSharingCard() {
+  const list = STATE.employers || [];
+  let inner;
+
+  if (!list.length) {
+    inner = `<p class="sharing-none">${t('sharing.none')}</p>`;
+  } else {
+    inner = list
+      .map(
+        (e) => `
+      <div class="sharing-row">
+        <div style="min-width:0">
+          <div class="sharing-name">👤 ${escapeHtml(e.employer_name || '')}</div>
+          <div class="sharing-meta">${t('sharing.since')} ${new Date(e.connected_at).toLocaleDateString()}</div>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="disconnectEmployer(${e.id})">${t('sharing.stop')}</button>
+      </div>`
+      )
+      .join('');
+  }
+
+  return `
+    <div class="progress-card sharing-card">
+      <h4>${t('sharing.title')}</h4>
+      <p class="sharing-hint">${t('sharing.hint')}</p>
+      ${inner}
+      <button class="btn btn-outline btn-block sharing-code-btn" onclick="openCodeModal()">
+        🔑 ${t('sharing.enterCode')}
+      </button>
+    </div>`;
+}
+
+/** Withdraw an employer's access. One call, no confirmation dialog. */
+async function disconnectEmployer(linkId) {
+  try {
+    const res = await apiDelete(
+      `/api/learners/employers/${linkId}?public_id=${encodeURIComponent(STATE.deviceId)}`
+    );
+    STATE.employers = res.employers || [];
+    showToast(t('sharing.stopped'));
+    renderProgress();
+  } catch (err) {
+    showToast(t('sharing.failed'));
   }
 }
 
@@ -1168,12 +1462,199 @@ function shareWord(id) {
   shareOrCopy({ title: 'CantoBuddy', text: text.trim(), url: location.origin });
 }
 
+/**
+ * The share glyph — a box with an arrow leaving it, the icon people already
+ * recognise as "share".
+ *
+ * Inline SVG rather than an emoji, for two reasons: it inherits the surrounding
+ * text colour, so it is grey on an inactive nav tab and red when active; and it
+ * stays crisp at any size. The outbox-tray emoji it replaces rendered as a pale
+ * grey tray that read as a small cloud at nav size.
+ */
+const SHARE_ICON_SVG = `
+  <svg class="share-glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <path d="M12.4 5.4H7.2A2.6 2.6 0 0 0 4.6 8v9.4A2.6 2.6 0 0 0 7.2 20h9.2A2.6 2.6 0 0 0 19 17.4V12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M9.5 14.8C9.9 11.4 12.2 9.5 15.3 9.5h2.2" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M17.1 6.1 22.6 9.5 17.1 12.9z" fill="currentColor"/>
+  </svg>`;
+
+/** Fill every `data-share-icon` placeholder with the share glyph. */
+function mountShareIcons() {
+  document.querySelectorAll('[data-share-icon]').forEach((el) => {
+    el.innerHTML = SHARE_ICON_SVG;
+  });
+}
+
 /** Share the most recent quiz score. */
 function shareResult() {
   const r = window._lastResult;
   if (!r) return;
   const text = t('share.scoreText').replace('{score}', r.score).replace('{total}', r.total);
   shareOrCopy({ title: 'CantoBuddy', text, url: location.origin });
+}
+
+/**
+ * Share the app itself, so a helper can tell a friend about CantoBuddy.
+ *
+ * The URL is deliberately `location.origin` and never the current path. If she
+ * is sitting on a /join/<code> page, the path holds a private invitation code,
+ * and forwarding it would hand a stranger access to her practice. The origin
+ * is always just the site itself.
+ */
+function shareApp() {
+  shareOrCopy({
+    title: 'CantoBuddy',
+    text: t('sharePage.message'),
+    url: location.origin,
+  });
+}
+
+/** Copy just the site link, for pasting somewhere by hand. */
+async function copyShareLink() {
+  try {
+    await navigator.clipboard.writeText(location.origin);
+    showToast(t('sharePage.copied'));
+  } catch {
+    showToast(t('sharePage.copyFailed'));
+  }
+}
+
+/**
+ * Fill in the Share page: the exact message the friend will receive, and the
+ * link. Re-run on language change so the preview matches what would be sent.
+ */
+function renderSharePage() {
+  const url = location.origin;
+  const previewText = document.getElementById('share-preview-text');
+  const previewLink = document.getElementById('share-preview-link');
+  if (previewText) previewText.textContent = t('sharePage.message');
+  if (previewLink) previewLink.textContent = url;
+}
+
+// ---- Employer connections --------------------------------------------------
+//
+// A helper connects to an employer by opening an invitation link. She has no
+// account, so the link is the entire flow: show who is asking, then accept.
+
+/** Tell the server which device this is, and who may see its progress. */
+async function identifySelf() {
+  try {
+    const res = await apiPost('/api/learners/identify', {
+      public_id: STATE.deviceId,
+      display_name: STATE.learner,
+    });
+    STATE.employers = res.employers || [];
+  } catch (err) {
+    console.warn('Could not identify this device:', err);
+  }
+}
+
+/** The invitation code from /join/<code>, if this is an invitation link. */
+function inviteCodeFromPath() {
+  const m = location.pathname.match(/^\/join\/([A-Za-z0-9]+)\/?$/);
+  return m ? m[1].toUpperCase() : null;
+}
+
+/** Handle /join/<code>: look the invitation up and show the connect card. */
+async function handleJoinLink() {
+  const code = inviteCodeFromPath();
+  if (!code) return;
+  try {
+    const inv = await apiGet('/api/invitations/' + encodeURIComponent(code));
+    openJoinModal(inv, code);
+  } catch (err) {
+    openJoinError(err.message);
+  }
+}
+
+function openJoinModal(inv, code) {
+  const employer = inv.employer_name || '';
+  const needsName = !STATE.learner;
+
+  document.getElementById('join-body').innerHTML = `
+    <div class="join-icon">🤝</div>
+    <h3>${t('connect.title').replace('{name}', escapeHtml(employer))}</h3>
+    <p class="modal-hint">${t('connect.see').replace('{name}', escapeHtml(employer))}</p>
+    ${inv.note ? `<blockquote class="join-note">${escapeHtml(inv.note)}</blockquote>` : ''}
+    ${
+      needsName
+        ? `<div class="form-field" style="text-align:left">
+             <label for="join-name">${t('connect.yourName')}</label>
+             <input type="text" id="join-name" maxlength="30" placeholder="${t('name.placeholder')}" />
+             <p class="form-hint">${t('connect.nameHint')}</p>
+           </div>`
+        : ''
+    }
+    <div id="join-error" class="form-error"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeJoinModal()">${t('connect.notNow')}</button>
+      <button class="btn btn-primary" id="join-connect" onclick="acceptInvite('${code}')">${t('connect.connect')}</button>
+    </div>`;
+  document.getElementById('join-modal').classList.add('show');
+}
+
+function openJoinError(message) {
+  document.getElementById('join-body').innerHTML = `
+    <div class="join-icon">⚠️</div>
+    <h3>${t('connect.invalid')}</h3>
+    <p class="modal-hint">${escapeHtml(message || '')}</p>
+    <div class="modal-actions">
+      <button class="btn btn-primary btn-block" onclick="closeJoinModal()">${t('misc.close')}</button>
+    </div>`;
+  document.getElementById('join-modal').classList.add('show');
+}
+
+async function acceptInvite(code) {
+  const btn = document.getElementById('join-connect');
+  const errEl = document.getElementById('join-error');
+  if (errEl) errEl.textContent = '';
+
+  // If she has no name yet, take the one she typed on the card.
+  const nameInput = document.getElementById('join-name');
+  if (nameInput) {
+    const name = nameInput.value.trim();
+    if (!name) {
+      if (errEl) errEl.textContent = t('connect.yourName');
+      return;
+    }
+    STATE.learner = name;
+    localStorage.setItem('cb_learner', name);
+    updateLearnerBadge();
+  }
+
+  btn.disabled = true;
+  btn.textContent = t('connect.connecting');
+
+  try {
+    const res = await apiPost(`/api/invitations/${encodeURIComponent(code)}/accept`, {
+      public_id: STATE.deviceId,
+      display_name: STATE.learner,
+    });
+    STATE.employers = res.employers || [];
+    const employer = (res.employer && res.employer.name) || '';
+
+    // Rewrite /join/<code> → / so a refresh does not replay the join.
+    history.replaceState({}, '', '/');
+
+    document.getElementById('join-body').innerHTML = `
+      <div class="join-icon">🎉</div>
+      <h3>${t('connect.doneTitle')}</h3>
+      <p class="modal-hint">${t('connect.doneBody').replace('{name}', escapeHtml(employer))}</p>
+      <div class="modal-actions">
+        <button class="btn btn-primary btn-block" onclick="closeJoinModal()">${t('connect.doneBtn')}</button>
+      </div>`;
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = t('connect.connect');
+    if (errEl) errEl.textContent = err.message || t('connect.failed');
+  }
+}
+
+function closeJoinModal(e) {
+  if (e && e.target !== e.currentTarget) return;
+  document.getElementById('join-modal').classList.remove('show');
+  // Dismissing an invitation should also get the join URL out of the way.
+  if (inviteCodeFromPath()) history.replaceState({}, '', '/');
 }
 
 // ---- PWA -------------------------------------------------------------------
@@ -1188,4 +1669,13 @@ if ('serviceWorker' in navigator) {
 
 // ---- Boot ------------------------------------------------------------------
 
-init();
+(async function boot() {
+  // Icons first, so the share glyph is present even if the data fetch fails.
+  mountShareIcons();
+  await init();
+  // Register this device with the server so it can attach progress to a learner
+  // row, and learn who (if anyone) is allowed to see that progress.
+  await identifySelf();
+  // Then handle an invitation link, if this load is one.
+  handleJoinLink();
+})();

@@ -253,30 +253,86 @@ async function deleteVocab(id) {
 
 // ---- Category management ---------------------------------------------------
 
+/**
+ * Categories as a single-column listing rather than a tile grid.
+ *
+ * The grid looked tidy and told the operator nothing: each category got a large
+ * tile carrying its name and nothing else. The one number that matters — does
+ * this category have enough words to be usable — was nowhere on the screen, so
+ * the only way to find a category a learner would bounce off was to open it.
+ *
+ * Each row now carries the total and the per-level split, flagged against the
+ * same threshold the quiz engine uses, so a category that cannot produce a quiz
+ * says so instead of waiting to be discovered.
+ */
 function renderAdminCategories() {
   const wrap = document.getElementById('admin-cat-list');
+  const summaryEl = document.getElementById('admin-cat-summary');
+
   if (ADMIN.categories.length === 0) {
     wrap.innerHTML = '<div class="progress-empty">No categories yet.</div>';
+    if (summaryEl) summaryEl.textContent = '';
     return;
   }
+
+  // Counts are derived from the vocabulary the admin already holds, so this
+  // needs no extra request and cannot drift from what the app serves.
+  const counts = new Map();
+  for (const v of ADMIN.vocabulary) {
+    const c = counts.get(v.category_id) || { total: 0, levels: { 1: 0, 2: 0, 3: 0 } };
+    c.total += 1;
+    if (c.levels[v.level] != null) c.levels[v.level] += 1;
+    counts.set(v.category_id, c);
+  }
+
   const last = ADMIN.categories.length - 1;
+  let quizReady = 0;
+
   wrap.innerHTML = ADMIN.categories
-    .map(
-      (c, i) => `
-    <div class="admin-cat-card">
-      <div class="admin-cat-order">${i + 1}</div>
-      <div class="admin-cat-icon">${c.icon}</div>
-      <div class="admin-cat-name">${c.name_en}</div>
-      <div class="admin-cat-name-yue">${c.name_yue || ''}</div>
-      <div class="admin-cat-actions">
-        <button class="move-btn" title="Move up" ${i === 0 ? 'disabled' : ''} onclick="moveCategory(${c.id}, -1)">↑</button>
-        <button class="move-btn" title="Move down" ${i === last ? 'disabled' : ''} onclick="moveCategory(${c.id}, 1)">↓</button>
-        <button class="edit-btn" title="Edit" onclick="openCategoryForm(${c.id})">✏️</button>
-        <button class="del-btn" title="Delete" onclick="deleteCategory(${c.id})">🗑️</button>
-      </div>
-    </div>`
-    )
+    .map((c, i) => {
+      const n = counts.get(c.id) || { total: 0, levels: { 1: 0, 2: 0, 3: 0 } };
+
+      const chips = [1, 2, 3]
+        .map((lvl) => {
+          const k = n.levels[lvl];
+          // The quiz engine returns nothing below QUIZ_MIN words, so 0 and 1-3
+          // are both unusable — just differently bad.
+          const state = k === 0 ? 'empty' : k < QUIZ_MIN ? 'low' : 'ok';
+          if (state === 'ok') quizReady += 1;
+          const label = k === 0 ? 'no words' : `${k} word${k === 1 ? '' : 's'}`;
+          return `<span class="cat-level lv-${state}" title="${ADMIN_LEVELS[lvl]} — ${label}">L${lvl} <b>${k}</b></span>`;
+        })
+        .join('');
+
+      const alt = [c.name_yue, c.name_fil].filter(Boolean).map(escapeHtml).join(' · ');
+
+      return `
+      <div class="admin-cat-row">
+        <div class="admin-cat-order">${i + 1}</div>
+        <div class="admin-cat-icon">${escapeHtml(c.icon || '📁')}</div>
+        <div class="admin-cat-body">
+          <div class="admin-cat-name">${escapeHtml(c.name_en)}</div>
+          <div class="admin-cat-name-yue">${alt || '<span class="admin-cat-none">no Cantonese or Filipino name</span>'}</div>
+        </div>
+        <div class="admin-cat-coverage">${chips}</div>
+        <div class="admin-cat-total">${n.total}<span> word${n.total === 1 ? '' : 's'}</span></div>
+        <div class="admin-cat-actions">
+          <button class="move-btn" title="Move up" ${i === 0 ? 'disabled' : ''} onclick="moveCategory(${c.id}, -1)">↑</button>
+          <button class="move-btn" title="Move down" ${i === last ? 'disabled' : ''} onclick="moveCategory(${c.id}, 1)">↓</button>
+          <button class="edit-btn" title="Edit" onclick="openCategoryForm(${c.id})">✏️</button>
+          <button class="del-btn" title="Delete" onclick="deleteCategory(${c.id})">🗑️</button>
+        </div>
+      </div>`;
+    })
     .join('');
+
+  if (summaryEl) {
+    const cells = ADMIN.categories.length * 3;
+    summaryEl.innerHTML =
+      `<b>${ADMIN.vocabulary.length}</b> words across <b>${ADMIN.categories.length}</b> categories · ` +
+      `<b>${quizReady}</b> of <b>${cells}</b> category-and-level combinations can produce a quiz ` +
+      `(a quiz needs ${QUIZ_MIN} words)`;
+  }
 }
 
 /**
@@ -439,6 +495,14 @@ function pct(score, max) {
 }
 
 const ADMIN_LEVELS = { 1: '🌱 Beginner', 2: '🌿 Intermediate', 3: '🌳 Advanced' };
+
+/**
+ * The fewest words the quiz engine will build a question set from — it is
+ * `if (pool.length < 4) return []` in app.js. Kept here as a named constant so
+ * the coverage flags on the Categories tab mean the same thing the learner
+ * experiences, rather than a number someone guessed.
+ */
+const QUIZ_MIN = 4;
 
 function levelChips(byLevel) {
   const parts = [];

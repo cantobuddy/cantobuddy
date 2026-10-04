@@ -46,7 +46,13 @@
            "EN" while reading Filipino. i18n.js keeps this in sync. -->
       <button id="lang-btn" class="lang-btn" onclick="toggleLang()" title="Switch to Filipino" aria-label="Switch to Filipino">FIL</button>
       <button id="voice-btn" class="voice-btn" onclick="openVoiceModal()" title="Choose practice voice" aria-label="Choose practice voice">👩</button>
-      <span id="learner-badge" class="learner-badge" onclick="editLearnerName()" data-i18n="header.setName">Set your name</span>
+      <!-- Deliberately NOT data-i18n: this label is dynamic (the helper's name,
+           or "Set your name" when she has none), and updateLearnerBadge() in
+           app.js owns it. applyTranslations() overwrites every [data-i18n]
+           element's textContent, so tagging this one would wipe her name back
+           to the placeholder on every launch. The placeholder below is just the
+           pre-boot default; app.js replaces it, translating it if needed. -->
+      <span id="learner-badge" class="learner-badge" onclick="editLearnerName()">Set your name</span>
       <!-- The admin link was deliberately removed from the learner header.
            Helpers (and future employer accounts) must never see a route into
            the operator area. The admin dashboard is reached by typing

@@ -474,14 +474,16 @@ async function init() {
     // Quiz type cards
     renderQuizTypes();
 
-    // Learner badge
-    updateLearnerBadge();
-
     // Voice picker button
     updateVoiceButton();
 
-    // Apply the saved language to all static labels
+    // Apply the saved language to all static labels. This rewrites the
+    // textContent of every [data-i18n] element, so anything dynamic has to be
+    // rendered *after* it or it gets overwritten with the static placeholder.
     applyTranslations();
+
+    // Learner badge last, for that reason — it shows her name, not a label.
+    updateLearnerBadge();
   } catch (err) {
     console.error('Init error:', err);
     document.getElementById('app').insertAdjacentHTML(
@@ -1643,6 +1645,14 @@ async function acceptInvite(code) {
       <div class="modal-actions">
         <button class="btn btn-primary btn-block" onclick="closeJoinModal()">${t('connect.doneBtn')}</button>
       </div>`;
+
+    // The "Enter a code" button lives *inside* the sharing card, so she connects
+    // without ever leaving My Progress — nothing else would re-render that card,
+    // and it would keep claiming nobody can see her progress. Redraw it here, the
+    // same way disconnectEmployer() does, so the new employer appears immediately.
+    // renderProgress() writes into #progress-content whether or not it is on
+    // screen, so the card is also correct the next time she opens the view.
+    renderProgress();
   } catch (err) {
     btn.disabled = false;
     btn.textContent = t('connect.connect');

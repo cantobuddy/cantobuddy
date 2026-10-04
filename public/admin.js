@@ -6,6 +6,7 @@ const ADMIN = {
   categories: [],
   vocabulary: [],
   stats: null,
+  people: null,
 };
 
 // ---- API helpers -----------------------------------------------------------
@@ -117,6 +118,7 @@ async function loadAdminData() {
     renderAdminVocab();
     renderAdminCategories();
     renderAdminStats();
+    renderAdminPeople();
 
     // Populate category select in vocab form
     const sel = document.getElementById('vf-category');
@@ -407,6 +409,131 @@ async function renderAdminStats() {
     wrap.innerHTML = html;
   } catch (err) {
     wrap.innerHTML = '<div class="progress-empty">Could not load stats.</div>';
+  }
+}
+
+// ---- People: employers, their helpers, and learners with no employer --------
+//
+// Read-only. The operator runs the service but is not a party to the consent
+// relationship, so this screen shows who is connected to whom and nothing more
+// — there is deliberately no way to create or break a link from here.
+
+function escapeHtml(value) {
+  return String(value == null ? '' : value).replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[c]));
+}
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function pct(score, max) {
+  return max > 0 ? Math.round((score / max) * 100) : 0;
+}
+
+const ADMIN_LEVELS = { 1: '🌱 Beginner', 2: '🌿 Intermediate', 3: '🌳 Advanced' };
+
+function levelChips(byLevel) {
+  const parts = [];
+  for (const lvl of [1, 2, 3]) {
+    const d = byLevel && byLevel[lvl];
+    if (!d) continue;
+    parts.push(`<span>${ADMIN_LEVELS[lvl]}: ${d.score}/${d.max} (${pct(d.score, d.max)}%)</span>`);
+  }
+  return parts.length ? `<div class="learner-stat-level">${parts.join('')}</div>` : '';
+}
+
+/** "3 attempt(s) · 1 incomplete · 42/60 correct (70%)" */
+function learnerLine(summary) {
+  const s = summary || {};
+  const bits = [`${s.attempts || 0} attempt(s)`];
+  if (s.partialAttempts) bits.push(`<span class="stat-warn">${s.partialAttempts} incomplete</span>`);
+  bits.push(`${s.totalScore || 0}/${s.totalMax || 0} correct (${pct(s.totalScore, s.totalMax)}%)`);
+  return bits.join(' · ');
+}
+
+function employerCard(e) {
+  const meta = [
+    `joined ${fmtDate(e.created_at)}`,
+    e.last_login_at ? `last login ${fmtDate(e.last_login_at)}` : 'never signed in',
+    `${e.invitations_sent} invitation(s)${e.invitations_pending ? ` · ${e.invitations_pending} pending` : ''}`,
+  ];
+  if (e.disconnected_count) meta.push(`${e.disconnected_count} disconnected`);
+
+  const helpers = e.helpers.length
+    ? e.helpers.map((h) => `
+        <div class="helper-row">
+          <div class="helper-name">👤 ${escapeHtml(h.display_name || 'Unnamed helper')}</div>
+          <div class="helper-meta">connected ${fmtDate(h.connected_at)} · last active ${fmtDate(h.last_seen_at)}</div>
+          <div class="helper-stats">${learnerLine(h.summary)}</div>
+          ${levelChips(h.summary && h.summary.byLevel)}
+        </div>`).join('')
+    : '<div class="helper-none">No helpers connected yet.</div>';
+
+  return `
+    <div class="employer-card">
+      <div class="employer-head">
+        <div>
+          <div class="employer-name">🏠 ${escapeHtml(e.name)}</div>
+          <div class="employer-email">${escapeHtml(e.email || e.username)}</div>
+        </div>
+        <div class="employer-count">${e.helper_count} helper(s)</div>
+      </div>
+      <div class="employer-meta">${meta.join(' · ')}</div>
+      ${helpers}
+    </div>`;
+}
+
+async function renderAdminPeople() {
+  const summaryEl = document.getElementById('admin-people-summary');
+  const empEl = document.getElementById('admin-employers');
+  const unEl = document.getElementById('admin-unconnected');
+  if (!empEl) return;
+
+  empEl.innerHTML = '<div class="progress-empty">Loading…</div>';
+  unEl.innerHTML = '';
+
+  try {
+    const data = await apiGet('/api/admin/people');
+    ADMIN.people = data;
+    const t = data.totals;
+
+    summaryEl.innerHTML = `
+      <div class="stat-card">
+        <h4>Employers</h4>
+        <div class="stat-number">${t.employers}</div>
+        <div class="stat-label">${t.employersWithHelpers} with helpers</div>
+      </div>
+      <div class="stat-card">
+        <h4>Helpers connected</h4>
+        <div class="stat-number">${t.helpers}</div>
+        <div class="stat-label">linked to an employer</div>
+      </div>
+      <div class="stat-card">
+        <h4>No employer</h4>
+        <div class="stat-number">${t.unconnected}</div>
+        <div class="stat-label">using the app alone</div>
+      </div>`;
+
+    empEl.innerHTML = data.employers.length
+      ? data.employers.map(employerCard).join('')
+      : '<div class="progress-empty">No employer accounts yet.</div>';
+
+    unEl.innerHTML = data.unconnected.length
+      ? data.unconnected.map((l) => `
+          <div class="learner-stat">
+            <div class="learner-stat-name">👤 ${escapeHtml(l.display_name || 'Unnamed learner')}</div>
+            <div class="learner-stat-sub">last active ${fmtDate(l.last_seen_at)} · ${learnerLine(l.summary)}</div>
+            ${levelChips(l.summary && l.summary.byLevel)}
+          </div>`).join('')
+      : '<div class="progress-empty">Every learner is connected to an employer.</div>';
+  } catch (err) {
+    empEl.innerHTML = '<div class="progress-empty">Could not load the people overview.</div>';
+    unEl.innerHTML = '';
   }
 }
 

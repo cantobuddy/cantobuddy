@@ -59,6 +59,7 @@
       <button class="admin-tab active" data-tab="vocab" onclick="switchTab('vocab')">📚 Vocabulary</button>
       <button class="admin-tab" data-tab="categories" onclick="switchTab('categories')">📁 Categories</button>
       <button class="admin-tab" data-tab="progress" onclick="switchTab('progress')">📊 Progress</button>
+      <button class="admin-tab" data-tab="people" onclick="switchTab('people')">👥 People</button>
     </div>
 
     <!-- ---- vocab tab ---- -->
@@ -93,6 +94,21 @@
     <div id="tab-progress" class="admin-tab-content">
       <h3>Learner Progress Overview</h3>
       <div id="admin-stats" class="stats-grid"></div>
+    </div>
+
+    <!-- ---- people tab ---- -->
+    <div id="tab-people" class="admin-tab-content">
+      <div class="admin-toolbar">
+        <h3>Employers &amp; helpers</h3>
+        <button class="btn btn-outline btn-sm" onclick="renderAdminPeople()">↻ Refresh</button>
+      </div>
+      <p class="admin-hint">Read-only. An employer can see a helper only after that helper has agreed to share.</p>
+      <div id="admin-people-summary" class="stats-grid"></div>
+      <div id="admin-employers" class="admin-list"></div>
+
+      <h3 class="admin-subhead">Learners with no employer</h3>
+      <p class="admin-hint">Helpers using the app on their own — not connected to anyone.</p>
+      <div id="admin-unconnected" class="admin-list"></div>
     </div>
 
   </section>

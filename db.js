@@ -497,18 +497,39 @@ const S = {
   countCategories: db.prepare('SELECT COUNT(*) AS n FROM categories'),
   countProgress: db.prepare('SELECT COUNT(*) AS n FROM progress'),
   countPartial: db.prepare('SELECT COUNT(*) AS n FROM progress WHERE completed = 0'),
-  statsByLearner: db.prepare(`
-    SELECT learner,
+  // Reporting keys on learner_id, never on the name. Grouping by `learner` (the
+  // name text) merged two helpers who happen to share one — "Maria" is one of
+  // the most common names in the Philippines — into a single row with their
+  // scores added together, presented to the operator as fact.
+  //
+  // The name comes from the learners table, not from the progress row: progress
+  // stores the name as it was when the row was written, so reading it back
+  // would show a stale name after the helper renames herself.
+  //
+  // Rows written before device tokens existed have no learner_id. They fall
+  // back to the name, which is the best key those rows have — and the GROUP BY
+  // keeps them in their own bucket rather than mixing them with anyone.
+  statsAllByLearnerId: db.prepare(`
+    SELECT p.learner_id AS learner_id,
+           COALESCE(l.display_name, p.learner) AS learner,
            COUNT(*) AS attempts,
-           SUM(CASE WHEN completed = 1 THEN 1 ELSE 0 END) AS completedAttempts,
-           SUM(CASE WHEN completed = 0 THEN 1 ELSE 0 END) AS partialAttempts,
-           SUM(score) AS totalScore,
-           SUM(total) AS totalMax
-    FROM progress GROUP BY learner ORDER BY learner
+           SUM(CASE WHEN p.completed = 1 THEN 1 ELSE 0 END) AS completedAttempts,
+           SUM(CASE WHEN p.completed = 0 THEN 1 ELSE 0 END) AS partialAttempts,
+           SUM(p.score) AS totalScore,
+           SUM(p.total) AS totalMax
+      FROM progress p
+      LEFT JOIN learners l ON l.id = p.learner_id
+     GROUP BY p.learner_id, COALESCE(l.display_name, p.learner)
+     ORDER BY learner COLLATE NOCASE, p.learner_id
   `),
-  statsByLearnerLevel: db.prepare(`
-    SELECT learner, level, COUNT(*) AS attempts, SUM(score) AS score, SUM(total) AS max
-    FROM progress GROUP BY learner, level
+  statsAllByLearnerIdLevel: db.prepare(`
+    SELECT p.learner_id AS learner_id,
+           COALESCE(l.display_name, p.learner) AS learner,
+           p.level AS level,
+           COUNT(*) AS attempts, SUM(p.score) AS score, SUM(p.total) AS max
+      FROM progress p
+      LEFT JOIN learners l ON l.id = p.learner_id
+     GROUP BY p.learner_id, COALESCE(l.display_name, p.learner), p.level
   `),
 
   sumScoreByLearner: db.prepare('SELECT COALESCE(SUM(score), 0) AS n FROM progress WHERE learner_id = ?'),
@@ -608,6 +629,26 @@ const S = {
       ORDER BY el.id`
   ),
   revokeLinkById: db.prepare('UPDATE employer_learners SET revoked_at = ?, revoked_by = ? WHERE id = ?'),
+
+  // --- operator view: who is on the platform, and who is connected to whom ---
+  listEmployers: db.prepare(
+    "SELECT * FROM users WHERE role = 'employer' ORDER BY name COLLATE NOCASE, id"
+  ),
+  listAllLinksByEmployer: db.prepare('SELECT * FROM employer_learners WHERE employer_id = ? ORDER BY id'),
+  countInvitationsByEmployer: db.prepare('SELECT COUNT(*) AS n FROM invitations WHERE employer_id = ?'),
+  countPendingInvitationsByEmployer: db.prepare(
+    'SELECT COUNT(*) AS n FROM invitations WHERE employer_id = ? AND accepted_at IS NULL AND revoked_at IS NULL'
+  ),
+  // Learners nobody can currently see — no *active* consent link to any employer.
+  // A revoked link does not count, so a helper who withdrew access appears here.
+  listLearnersWithoutEmployer: db.prepare(
+    `SELECT l.* FROM learners l
+      WHERE NOT EXISTS (
+        SELECT 1 FROM employer_learners el
+         WHERE el.learner_id = l.id AND el.revoked_at IS NULL
+      )
+      ORDER BY l.display_name COLLATE NOCASE, l.id`
+  ),
 
   // --- progress read by learner id (what an employer is allowed to see) ---
   listProgressByLearnerId: db.prepare('SELECT * FROM progress WHERE learner_id = ? ORDER BY id'),
@@ -757,7 +798,11 @@ function listProgress({ learner, learner_id, level, category_id } = {}) {
 function saveProgress(b) {
   const now = new Date().toISOString();
   const sessionId = b.session_id ? String(b.session_id) : null;
-  const completed = b.completed !== false; // legacy callers omit it → treat as finished
+  // Accept a boolean OR the 0/1 the read path returns. `0 !== false`, so a
+  // caller that echoed back a row it had just read would otherwise flip an
+  // abandoned quiz to "completed". Legacy callers that omit it mean finished.
+  const raw = b.completed;
+  const completed = !(raw === false || raw === 0 || raw === '0');
   const learnerId = b.learner_id != null && b.learner_id !== '' ? Number(b.learner_id) : null;
 
   if (sessionId) {
@@ -795,8 +840,10 @@ function saveProgress(b) {
 }
 
 function getStats() {
-  const learners = S.statsByLearner.all().map((r) => ({
-    learner: r.learner,
+  const learners = S.statsAllByLearnerId.all().map((r) => ({
+    // learner_id is null only for rows written before device tokens existed.
+    learner_id: r.learner_id == null ? null : Number(r.learner_id),
+    learner: r.learner || 'Learner',
     attempts: r.attempts,
     completedAttempts: r.completedAttempts,
     partialAttempts: r.partialAttempts,
@@ -804,11 +851,17 @@ function getStats() {
     totalMax: r.totalMax || 0,
     byLevel: {},
   }));
-  const index = new Map(learners.map((l) => [l.learner, l]));
-  for (const r of S.statsByLearnerLevel.all()) {
-    const l = index.get(r.learner);
+
+  // Key the level rows exactly the way the query grouped them, or the per-level
+  // breakdown lands on the wrong person. Two learners sharing a name must not
+  // collide here — that is the whole point of keying on the id.
+  const key = (r) => (r.learner_id == null ? `name:${r.learner}` : `id:${Number(r.learner_id)}`);
+  const index = new Map(learners.map((l) => [key(l), l]));
+  for (const r of S.statsAllByLearnerIdLevel.all()) {
+    const l = index.get(key(r));
     if (l) l.byLevel[r.level] = { attempts: r.attempts, score: r.score || 0, max: r.max || 0 };
   }
+
   return {
     totalVocabulary: S.countVocabulary.get().n,
     totalCategories: S.countCategories.get().n,
@@ -1217,6 +1270,89 @@ function getLearnerReport(learnerId) {
   };
 }
 
+/**
+ * Progress totals for one learner, in the shape the admin view displays.
+ * Kept separate from getLearnerReport so the overview does not pay for the
+ * recent-attempts query it never shows.
+ */
+function learnerSummary(learnerId) {
+  const t = S.statsByLearnerId.get(learnerId) || {};
+  const byLevel = {};
+  for (const r of S.statsByLearnerIdLevel.all(learnerId)) {
+    byLevel[r.level] = { attempts: r.attempts, score: r.score || 0, max: r.max || 0 };
+  }
+  return {
+    attempts: t.attempts || 0,
+    completedAttempts: t.completedAttempts || 0,
+    partialAttempts: t.partialAttempts || 0,
+    totalScore: t.totalScore || 0,
+    totalMax: t.totalMax || 0,
+    lastActive: t.lastActive || null,
+    byLevel,
+  };
+}
+
+/**
+ * The operator's view: every employer, the helpers connected to them, and the
+ * learners who are connected to nobody.
+ *
+ * Read-only on purpose. The operator runs the service but is not a party to the
+ * consent relationship, so nothing here can create, alter or revoke a link.
+ * Only *active* links are listed — a helper who withdrew access is counted, not
+ * exposed.
+ */
+function getPeopleOverview() {
+  const employers = S.listEmployers.all().map((u) => {
+    const active = S.listLinksByEmployer.all(u.id);
+    const all = S.listAllLinksByEmployer.all(u.id);
+    return {
+      id: u.id,
+      username: u.username,
+      name: u.name || u.username,
+      email: u.email,
+      status: u.status,
+      created_at: u.created_at,
+      last_login_at: u.last_login_at,
+      helper_count: active.length,
+      disconnected_count: all.filter((l) => l.revoked_at).length,
+      invitations_sent: S.countInvitationsByEmployer.get(u.id).n,
+      invitations_pending: S.countPendingInvitationsByEmployer.get(u.id).n,
+      helpers: active.map((l) => ({
+        link_id: l.id,
+        learner_id: l.learner_id,
+        display_name: l.display_name,
+        connected_at: l.connected_at,
+        last_seen_at: l.last_seen_at,
+        summary: learnerSummary(l.learner_id),
+      })),
+    };
+  });
+
+  const unconnected = S.listLearnersWithoutEmployer.all().map((l) => ({
+    learner_id: l.id,
+    display_name: l.display_name,
+    created_at: l.created_at,
+    last_seen_at: l.last_seen_at,
+    summary: learnerSummary(l.id),
+  }));
+
+  // A helper working for two families is still one person, so count distinct
+  // learners rather than summing the per-employer counts.
+  const distinctHelpers = new Set();
+  for (const e of employers) for (const h of e.helpers) distinctHelpers.add(h.learner_id);
+
+  return {
+    employers,
+    unconnected,
+    totals: {
+      employers: employers.length,
+      employersWithHelpers: employers.filter((e) => e.helper_count > 0).length,
+      helpers: distinctHelpers.size,
+      unconnected: unconnected.length,
+    },
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Sessions
 // ---------------------------------------------------------------------------
@@ -1293,6 +1429,7 @@ module.exports = {
   listLearnersForEmployer,
   revokeLink,
   getLearnerReport,
+  getPeopleOverview,
 
   createResetToken,
   peekResetToken,

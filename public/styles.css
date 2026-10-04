@@ -1431,6 +1431,7 @@ body {
 /* ---- Admin tabs ---- */
 .admin-tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
   background: var(--c-surface);
   border-radius: var(--radius);
@@ -1440,7 +1441,9 @@ body {
 }
 
 .admin-tab {
-  flex: 1;
+  /* Four tabs no longer fit on one row on a phone. They wrap to two rows of
+     two rather than shrinking until the labels are unreadable. */
+  flex: 1 1 calc(50% - 2px);
   padding: 10px 8px;
   border: none;
   background: none;
@@ -1450,6 +1453,7 @@ body {
   color: var(--c-text-soft);
   cursor: pointer;
   transition: all 0.15s;
+  white-space: nowrap;
 }
 
 .admin-tab.active {
@@ -1670,6 +1674,65 @@ body {
   padding: 4px 10px;
   border-radius: 12px;
   background: var(--c-bg);
+}
+
+/* ---- People: employers, their helpers, learners with no employer ---- */
+.admin-subhead {
+  margin: 26px 0 6px;
+  font-size: 1rem;
+}
+
+.employer-card {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.employer-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.employer-name { font-size: 1.05rem; font-weight: 700; }
+
+.employer-email {
+  font-size: 0.82rem;
+  color: var(--c-text-soft);
+  word-break: break-all;
+}
+
+.employer-count {
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: var(--c-bg);
+  color: var(--c-text-soft);
+  white-space: nowrap;
+}
+
+.employer-meta {
+  font-size: 0.78rem;
+  color: var(--c-text-soft);
+  margin: 8px 0 10px;
+}
+
+.helper-row { border-top: 1px solid var(--c-border); padding: 12px 0 2px; }
+.helper-name { font-weight: 600; font-size: 0.95rem; }
+.helper-meta { font-size: 0.78rem; color: var(--c-text-soft); margin-top: 2px; }
+.helper-stats { font-size: 0.85rem; color: #6c757d; margin-top: 6px; }
+.helper-none { font-size: 0.85rem; color: var(--c-text-soft); font-style: italic; padding-top: 4px; }
+.learner-stat-sub { font-size: 0.85rem; color: #6c757d; }
+.stat-warn { color: #8a5a00; font-weight: 600; }
+
+/* Four tabs share one row again once there is room for them. */
+@media (min-width: 620px) {
+  .admin-tab { flex: 1 1 0; }
 }
 
 /* ---- Modal form ---- */

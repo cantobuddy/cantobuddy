@@ -717,6 +717,24 @@ app.get('/api/admin/reset-requests', requireAdmin, (req, res) => {
   res.json(rows.map((r) => ({ ...r, link: '/reset?token=' + r.token })));
 });
 
+/**
+ * GET /api/admin/people — the whole platform in one read.
+ *
+ * Every employer with the helpers connected to them, plus the learners who are
+ * connected to nobody. Read-only: an operator can see who is connected to whom,
+ * but cannot create or break a consent link from here.
+ */
+app.get('/api/admin/people', requireAdmin, (req, res) => {
+  res.json(store.getPeopleOverview());
+});
+
+/** GET /api/admin/learners/:id — full report for one learner, for drill-down. */
+app.get('/api/admin/learners/:id', requireAdmin, (req, res) => {
+  const report = store.getLearnerReport(req.params.id);
+  if (!report) return res.status(404).json({ error: 'No such learner.' });
+  res.json(report);
+});
+
 // ---------------------------------------------------------------------------
 // Deep links
 //

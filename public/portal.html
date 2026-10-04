@@ -39,6 +39,15 @@
       <h2 id="auth-title">Employer Sign In</h2>
       <p class="login-hint" id="auth-hint">See how your helper's Cantonese is coming along.</p>
 
+      <!-- Shown only when the visitor already holds an operator (admin) session.
+           That session lives on this origin, so without this the page used to
+           let them straight into an employer dashboard that was not theirs. -->
+      <p class="portal-notice" id="operator-note" style="display:none">
+        You are signed in as the <strong>operator</strong>. This page is for employer
+        accounts — sign in with one below, or manage the whole platform in the
+        <a href="/admin.html" class="portal-link">admin dashboard</a>.
+      </p>
+
       <div class="portal-auth-tabs">
         <button type="button" class="portal-auth-tab active" data-mode="login" onclick="setAuthMode('login')">Sign In</button>
         <button type="button" class="portal-auth-tab" data-mode="register" onclick="setAuthMode('register')">Create Account</button>

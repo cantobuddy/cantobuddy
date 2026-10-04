@@ -1851,6 +1851,20 @@ body {
   line-height: 1.55;
 }
 
+/* Shown on the employer sign-in card when the visitor holds an operator
+   (admin) session. Explains why they are not simply let in, and where to go.
+   Amber matches the other "worth knowing, not an error" notes in the app. */
+.portal-notice {
+  background: #fff3cd;
+  border: 1px solid #ffe08a;
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin: 0 0 16px;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: #856404;
+}
+
 /* The shared .form-field rule covers input + select; textarea is portal-only. */
 .form-field textarea {
   width: 100%;

@@ -144,7 +144,12 @@ async function submitAuth(e) {
       await apiPost('/api/auth/login', { username: email, password });
     }
     document.getElementById('auth-form').reset();
-    await showDashboard();
+    // Route through checkSession() rather than calling showDashboard()
+    // directly: the form can be used to sign in as ANY role, and an operator
+    // who types their admin credentials here must get the same treatment as
+    // one who arrives already signed in — otherwise this is a second door
+    // into the same confusing page.
+    await checkSession();
   } catch (err) {
     errEl.textContent = err.message;
   } finally {
@@ -161,22 +166,67 @@ async function portalLogout() {
   location.reload();
 }
 
-/** If the session belongs to an employer (or the operator), go straight in. */
+/**
+ * Send the visitor to the right place for whoever the session belongs to.
+ *
+ * Only role 'employer' gets the dashboard. An operator session is deliberately
+ * NOT accepted here, and that is a fix rather than a restriction:
+ *
+ *   The operator signs in at /admin.html. That is the same origin, so the same
+ *   session cookie is sent to /portal — and this function used to accept
+ *   role 'admin' as well. Clicking the employer link in the learner header while
+ *   signed in as the operator therefore dropped you into a dashboard you never
+ *   asked for: greeted with the admin account's own name, which is literally
+ *   "Operator" (a role, not a person), an empty helper list, because nothing is
+ *   linked to the operator's account, and a Log Out button for a session that
+ *   was never started on this page. It looked signed in, looked empty, and
+ *   named nobody.
+ *
+ * Nothing is lost by asking them to use an employer account here: the operator
+ * already sees every employer and every connected helper under People in
+ * /admin.html.
+ */
 async function checkSession() {
+  let me;
   try {
-    const me = await apiGet('/api/auth/me');
-    if (me.authenticated && (me.role === 'employer' || me.role === 'admin')) {
-      await showDashboard(me);
-    }
+    me = await apiGet('/api/auth/me');
   } catch {
     /* not signed in — the auth card is already showing */
+    return;
   }
+  if (!me.authenticated) return;
+
+  if (me.role === 'employer') return showDashboard(me);
+  if (me.role === 'admin') return showOperatorNotice();
+
+  // Any other role has no business in the portal. Say so, rather than
+  // resetting the form and leaving the visitor staring at a card that did
+  // nothing when they pressed the button.
+  document.getElementById('auth-error').textContent =
+    'That account cannot use the employer portal.';
+}
+
+/**
+ * The sign-in card, plus a note explaining why an operator is not let in.
+ *
+ * Deliberately does not touch the dashboard: the point is that an operator
+ * session never reaches it.
+ */
+function showOperatorNotice() {
+  document.getElementById('portal-auth').classList.add('active');
+  document.getElementById('portal-dash').classList.remove('active');
+  document.getElementById('logout-btn').style.display = 'none';
+  const note = document.getElementById('operator-note');
+  if (note) note.style.display = '';
 }
 
 async function showDashboard(me) {
   document.getElementById('portal-auth').classList.remove('active');
   document.getElementById('portal-dash').classList.add('active');
   document.getElementById('logout-btn').style.display = '';
+  // An employer may sign in on a machine where the notice was showing.
+  const note = document.getElementById('operator-note');
+  if (note) note.style.display = 'none';
 
   if (!me) me = await apiGet('/api/auth/me').catch(() => ({}));
   const who = me.name || me.email || 'there';

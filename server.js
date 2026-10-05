@@ -13,6 +13,7 @@ const crypto = require('crypto');
 
 const store = require('./db');
 const SqliteSessionStore = require('./session-store');
+const seo = require('./seo');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -338,8 +339,21 @@ app.post('/api/auth/password/reset', (req, res) => {
 // ---------------------------------------------------------------------------
 
 app.get('/api/vocabulary', (req, res) => {
-  const { level, category_id } = req.query;
-  res.json(store.listVocabulary({ level, category_id }));
+  const { level, category_id, scenario_id, type } = req.query;
+  const user = sessionUser(req);
+  const isAdmin = !!user && user.role === 'admin';
+  // Filtering the pool is what makes a switched-off category genuinely off: the
+  // quiz picks its questions from here, so hiding the category alone would leave
+  // learners still being tested on it. A switched-off scenario is filtered the
+  // same way, for the same reason.
+  const rows = store.listVocabulary({ level, category_id, scenario_id, type, enabledOnly: !isAdmin });
+
+  // Attach the same slug the server-rendered page uses, so the app can share a
+  // link to /words/<slug> — a real page the recipient can open — rather than
+  // the app root. Derived from the same index as seo.js, so the two cannot
+  // disagree about which slug belongs to which word.
+  const slugs = seo.wordSlugMap();
+  res.json(rows.map((v) => ({ ...v, slug: slugs.get(v.id) || null })));
 });
 
 app.get('/api/vocabulary/:id', (req, res) => {
@@ -372,8 +386,15 @@ app.delete('/api/vocabulary/:id', requireAdmin, (req, res) => {
 // Categories (public read, admin write)
 // ---------------------------------------------------------------------------
 
+/**
+ * A learner receives only the categories that are switched on. The operator
+ * receives every category, including the ones they have turned off — otherwise
+ * they would have no way to turn them back on.
+ */
 app.get('/api/categories', (req, res) => {
-  res.json(store.listCategories());
+  const user = sessionUser(req);
+  const isAdmin = !!user && user.role === 'admin';
+  res.json(isAdmin ? store.listCategories() : store.listEnabledCategories());
 });
 
 app.post('/api/categories', requireAdmin, (req, res) => {
@@ -400,6 +421,38 @@ app.put('/api/categories/:id', requireAdmin, (req, res) => {
 
 app.delete('/api/categories/:id', requireAdmin, (req, res) => {
   const ok = store.deleteCategory(req.params.id);
+  if (!ok) return res.status(404).json({ error: 'Not found' });
+  res.json({ ok: true });
+});
+
+// ---------------------------------------------------------------------------
+// Scenarios (public read, admin write)
+//
+// A scenario is a set of phrases for one situation — "asking for help", "at the
+// clinic". Same shape and same switch as a category, so the two are handled
+// identically: a learner sees only the enabled ones, the operator sees all.
+// ---------------------------------------------------------------------------
+
+app.get('/api/scenarios', (req, res) => {
+  const user = sessionUser(req);
+  const isAdmin = !!user && user.role === 'admin';
+  res.json(isAdmin ? store.listScenarios() : store.listEnabledScenarios());
+});
+
+app.post('/api/scenarios', requireAdmin, (req, res) => {
+  const b = req.body || {};
+  if (!b.name_en) return res.status(400).json({ error: 'English name is required.' });
+  res.status(201).json(store.createScenario(b));
+});
+
+app.put('/api/scenarios/:id', requireAdmin, (req, res) => {
+  const scen = store.updateScenario(req.params.id, req.body || {});
+  if (!scen) return res.status(404).json({ error: 'Not found' });
+  res.json(scen);
+});
+
+app.delete('/api/scenarios/:id', requireAdmin, (req, res) => {
+  const ok = store.deleteScenario(req.params.id);
   if (!ok) return res.status(404).json({ error: 'Not found' });
   res.json({ ok: true });
 });
@@ -464,10 +517,117 @@ app.get('/api/stats', requireAdmin, (req, res) => {
 app.post('/api/learners/identify', (req, res) => {
   const b = req.body || {};
   if (!b.public_id) return res.status(400).json({ error: 'Missing device id.' });
-  const learner = store.identifyLearner({ public_id: b.public_id, display_name: b.display_name || '' });
+  const learner = store.identifyLearner({
+    public_id: b.public_id,
+    display_name: b.display_name || '',
+    // ?ref= from the link that brought this device here, if any. Recorded
+    // first-touch only — see identifyLearner.
+    referrer: b.referrer || '',
+  });
+
+  // A visit is recorded HERE, on the identify call, because this route runs on
+  // every app page load. It is what makes a visitor countable even when she
+  // never opens a quiz — the case the quiz-only reports could not see at all.
+  // A failure here must not break the page load, so it is caught and ignored:
+  // a missed count is a missing statistic, not a broken lesson.
+  try {
+    store.recordVisit(learner.id);
+  } catch (err) {
+    console.warn('Could not record visit:', err.message);
+  }
+
   res.json({
     learner: { id: learner.id, display_name: learner.display_name },
+    // Her own code, so the app can put it on the links she shares. Derived from
+    // public_id and one-way, so it is safe to publish — unlike public_id, which
+    // is the token that controls her name and her employer links.
+    referral_code: learner.referral_code || null,
     employers: store.listEmployersForLearner(learner.id),
+  });
+});
+
+/**
+ * POST /api/learners/activity — practice that is not a quiz.
+ *
+ * The gap this fills: browsing the vocabulary wrote nothing at all, so a
+ * learner who studied forty cards and never opened a quiz left no trace. The
+ * app batches counts locally and flushes them here (and on pagehide), so one
+ * request covers a stretch of reading rather than one request per card.
+ *
+ * Trust model is the same as rewards and stats: the device token is resolved
+ * server-side to a learner row, so a caller can only ever add activity to the
+ * device it already holds. The counts are clamped in db.js — they come from
+ * the client and must not be able to write history backwards.
+ */
+app.post('/api/learners/activity', (req, res) => {
+  const b = req.body || {};
+  const learner = b.public_id ? store.getLearnerByPublicId(b.public_id) : null;
+  // An unknown device has nothing to attribute activity to. Answer 204 rather
+  // than 404: the client is fire-and-forget and must not retry or surface this.
+  if (!learner) return res.status(204).end();
+
+  const row = store.recordActivity(learner.id, {
+    words_viewed: b.words_viewed,
+    cards_opened: b.cards_opened,
+    quizzes_started: b.quizzes_started,
+  });
+  res.json({ ok: true, day: row ? row.day : null });
+});
+
+/**
+ * POST /api/visit — the landing-page beacon.
+ *
+ * The 159 server-rendered pages in seo.js carry no app runtime, so a visitor
+ * arriving from a search engine was invisible to every report. This is the
+ * smallest thing that fixes that: a page view, and a visit against the device.
+ *
+ * Public by necessity — these pages are read before anyone has an account —
+ * so it is deliberately narrow. It takes a path and a device token and nothing
+ * else, it ignores any client-supplied count, and it writes one page view and
+ * at most one visit. There is nothing here worth abusing: the worst case is an
+ * inflated visitor count on a free app.
+ */
+app.post('/api/visit', (req, res) => {
+  const b = req.body || {};
+
+  // Only paths this app actually serves. Anything else is a typo or a probe,
+  // and letting arbitrary strings through would let one caller fill the
+  // top-paths list with junk.
+  const path = String(b.path || '').split('?')[0].split('#')[0].trim().slice(0, 200);
+  if (!path.startsWith('/')) return res.status(400).json({ error: 'Invalid path.' });
+
+  store.recordPageView(path);
+
+  // The device token is optional: a visitor who has never loaded the app has
+  // none yet, and the page view above still counts. When it IS present, the
+  // visit is attributed so "how many people visited" has a real answer rather
+  // than a page-view proxy. Same shape the app itself uses, so a landing
+  // visitor and an app user are the same kind of identity.
+  const pid = String(b.public_id || '').trim();
+  if (/^[A-Za-z0-9_-]{8,64}$/.test(pid)) {
+    try {
+      const learner = store.identifyLearner({ public_id: pid });
+      store.recordVisit(learner.id);
+    } catch (err) {
+      console.warn('Could not record landing visit:', err.message);
+    }
+  }
+
+  res.status(204).end();
+});
+
+/**
+ * Where learners came from — the operator's view of which channel is working.
+ *
+ * Read-only, and counts only: no device ids, no names. The point is to answer
+ * "did the newspaper, the Sunday QR code, or a friend's link bring people in",
+ * not to profile anyone.
+ */
+app.get('/api/admin/referrers', requireAdmin, (req, res) => {
+  const rows = store.getReferrerCounts();
+  res.json({
+    referrers: rows,
+    total: rows.reduce((n, r) => n + r.count, 0),
   });
 });
 
@@ -828,6 +988,25 @@ const CSV_EXPORTS = {
     header: ['metric', 'value'],
     rows: () => Object.entries(store.getReportTotals()).map(([k, v]) => [k, v]),
   },
+  /* Visitors and practice. `daily` above is quiz-only — it reads `progress` —
+     so a learner who studied the vocabulary without quizzing appears nowhere
+     in it. These two are the ones that can see her. */
+  visitors: {
+    header: ['day', 'visitors', 'new_visitors', 'visits', 'words_viewed',
+      'cards_opened', 'quizzes_started'],
+    rows: () => store.getVisitorReport(90).series.map((d) => [
+      d.day, d.visitors, d.new_visitors, d.visits, d.words_viewed,
+      d.cards_opened, d.quizzes_started,
+    ]),
+  },
+  practice_only: {
+    header: ['learner_id', 'name', 'words_viewed', 'cards_opened', 'days_active',
+      'first_day', 'last_day', 'last_seen'],
+    rows: () => store.getVisitorReport(90).practiceOnly.map((p) => [
+      p.learner_id, p.display_name, p.words_viewed, p.cards_opened,
+      p.days_active, p.first_day, p.last_day, p.last_seen_at,
+    ]),
+  },
 };
 
 /**
@@ -866,6 +1045,20 @@ app.get('/api/admin/report.csv', requireAdmin, (req, res) => {
 app.get('/portal', (req, res) => res.sendFile(path.join(__dirname, 'public', 'portal.html')));
 app.get('/reset', (req, res) => res.sendFile(path.join(__dirname, 'public', 'portal.html')));
 app.get('/join/:code', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+
+// ---------------------------------------------------------------------------
+// SEO
+//
+// The learner app is a single-page app: every view renders into `/`, and the
+// vocabulary arrives from /api/vocabulary at runtime. A crawler therefore sees
+// an empty shell. seo.js server-renders the same SQLite content as plain HTML
+// at /learn, /learn/:category, /words/:word and /level/:n (plus a /fil mirror)
+// and generates sitemap.xml + robots.txt from live data.
+//
+// Mounted after express.static so real files still win, and it deliberately
+// does not touch the SPA — `/` keeps serving public/index.html.
+// ---------------------------------------------------------------------------
+seo.mount(app);
 
 // ---------------------------------------------------------------------------
 // Start

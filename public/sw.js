@@ -7,7 +7,7 @@
 // Bump this whenever index.html / app.js / i18n.js / styles.css / the icons
 // change. The app shell is cached cache-first, so without a version bump
 // installed PWAs would keep serving the previous build from cache.
-const CACHE = 'cantobuddy-v27';
+const CACHE = 'cantobuddy-v32';
 
 const APP_SHELL = [
   '/',
@@ -52,6 +52,23 @@ self.addEventListener('fetch', (event) => {
   // Admin and employer-portal pages must always be fresh — they show live
   // account and progress data, never a cached shell.
   if (url.pathname.startsWith('/admin') || url.pathname.startsWith('/portal')) {
+    event.respondWith(fetch(req).catch(() => caches.match(req)));
+    return;
+  }
+
+  // Server-rendered SEO content pages (see seo.js). These are real documents
+  // built from live vocabulary, not app-shell assets, so they take the same
+  // network-first path as the admin and portal pages. Cache-first would pin
+  // whatever a learner happened to visit first and keep serving it after the
+  // operator edited the word.
+  if (
+    url.pathname.startsWith('/learn') ||
+    url.pathname.startsWith('/words') ||
+    url.pathname.startsWith('/level') ||
+    url.pathname.startsWith('/fil') ||
+    url.pathname === '/sitemap.xml' ||
+    url.pathname === '/robots.txt'
+  ) {
     event.respondWith(fetch(req).catch(() => caches.match(req)));
     return;
   }

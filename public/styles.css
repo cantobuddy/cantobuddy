@@ -478,6 +478,30 @@ body {
 
 .share-copy-btn { margin-top: 10px; }
 
+/* ---- WhatsApp share button ----
+   WhatsApp green, and it stays its own colour rather than using the brand red:
+   the button is a destination, and people recognise the colour before they read
+   the label. This community coordinates in WhatsApp groups, so this is the
+   primary share path, not an afterthought. */
+.btn-whatsapp {
+  background: #25d366;
+  color: #fff;
+  margin-bottom: 10px;
+}
+.btn-whatsapp:hover { background: #1da851; }
+.btn-whatsapp .share-glyph { width: 20px; height: 20px; }
+
+/* Quiet note under the share buttons. Explains why the link carries a code —
+   without it the ?ref= looks like tracking junk, which is exactly the thing
+   people strip off before forwarding. */
+.share-footnote {
+  margin-top: 16px;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--c-text-soft);
+  text-align: center;
+}
+
 /* ---- Browse header ---- */
 .browse-header {
   display: flex;
@@ -760,6 +784,17 @@ body {
 }
 
 .modal-share-btn:active { transform: scale(0.98); }
+
+/* Secondary share action ("as a picture") — same shape, less weight, so the
+   plain text share stays the obvious default and the image option reads as an
+   extra rather than a competing choice. */
+.modal-share-btn--ghost {
+  margin-top: 8px;
+  border-style: dashed;
+  background: transparent;
+  color: var(--c-text-soft);
+  font-size: 0.86rem;
+}
 
 /* ---- Toast (share / copy confirmation) ---- */
 .toast {
@@ -1611,13 +1646,60 @@ body {
 
 .admin-cat-total {
   flex-shrink: 0;
-  min-width: 66px;
+  min-width: 58px;
   text-align: right;
   font-size: 0.88rem;
   font-weight: 700;
 }
 
 .admin-cat-total span { font-weight: 400; font-size: 0.75rem; color: var(--c-text-soft); }
+
+/* On/off switch for a category. Switching off is not destructive — the words
+   stay — but it does take the category out of the learner's app and out of the
+   quiz pool, so it is a real change and is styled to be noticed. */
+.cat-switch {
+  flex-shrink: 0;
+  min-width: 44px;
+  padding: 5px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--c-border);
+  background: var(--c-bg);
+  color: var(--c-text-soft);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.cat-switch.is-on {
+  background: #d4edda;
+  border-color: #a8d5b5;
+  color: #1b5e20;
+}
+
+.cat-switch:hover { border-color: var(--c-text-soft); }
+
+/* A switched-off row stays readable — the counts are still worth seeing — but
+   must not look like something a learner can currently reach. */
+.admin-cat-row.is-off .admin-cat-icon,
+.admin-cat-row.is-off .admin-cat-body,
+.admin-cat-row.is-off .admin-cat-coverage,
+.admin-cat-row.is-off .admin-cat-total { opacity: 0.55; }
+
+.cat-off-badge {
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 10px;
+  border: 1px solid var(--c-border);
+  background: var(--c-bg);
+  color: var(--c-text-soft);
+  font-size: 0.65rem;
+  font-weight: 600;
+  vertical-align: middle;
+  /* Must not break mid-phrase: without this the badge renders as "switched" on
+     one line and "off" on the next when the row is tight. */
+  white-space: nowrap;
+}
 
 .admin-cat-actions { display: flex; gap: 6px; flex-shrink: 0; }
 
@@ -2343,3 +2425,39 @@ body {
 }
 .stats-type-name { font-weight: 600; font-size: 0.86rem; }
 .stats-type-num { font-size: 0.78rem; color: var(--c-text-soft); white-space: nowrap; }
+
+/* ---- Site footer ----------------------------------------------------------
+   Holds the crawlable links into the server-rendered vocabulary pages (see
+   seo.js). Kept visually quiet — it is a real navigational aid for anyone who
+   scrolls to the bottom, and the only non-JS path into the content layer for
+   a crawler, so it must stay in the layout rather than be hidden. */
+.site-footer {
+  border-top: 1px solid var(--c-border);
+  background: var(--c-surface);
+  margin-top: 28px;
+  padding: 22px 16px 26px;
+}
+.site-footer-inner { max-width: var(--max-w); margin: 0 auto; }
+.site-footer-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--c-text-soft);
+  margin-bottom: 12px;
+}
+.site-footer-links { display: flex; flex-wrap: wrap; gap: 8px 10px; }
+.site-footer-links a {
+  font-size: 0.85rem;
+  color: var(--c-text-soft);
+  text-decoration: none;
+  border: 1px solid var(--c-border);
+  border-radius: 999px;
+  padding: 6px 13px;
+  transition: color 0.15s, border-color 0.15s;
+}
+.site-footer-links a:hover { color: var(--c-primary); border-color: var(--c-primary); }
+
+@media (min-width: 768px) {
+  .site-footer { padding: 26px 20px 30px; }
+}

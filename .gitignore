@@ -13,6 +13,10 @@ cantobuddy.db-shm
 *.db
 *.db-wal
 *.db-shm
+# Pre-migration copies, e.g. cantobuddy.db.pre-v2-backup — same contents as the
+# live database, so they must never be committed either.
+*.db.*
+*.db.backup*
 
 # WorkBuddy workspace metadata (project notes, app marker files)
 .workbuddy-ai/

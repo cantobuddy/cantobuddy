@@ -261,9 +261,13 @@ async function deleteVocab(id) {
  * this category have enough words to be usable — was nowhere on the screen, so
  * the only way to find a category a learner would bounce off was to open it.
  *
- * Each row now carries the total and the per-level split, flagged against the
- * same threshold the quiz engine uses, so a category that cannot produce a quiz
- * says so instead of waiting to be discovered.
+ * Each row now carries the total, the per-level split flagged against the same
+ * threshold the quiz engine uses, and a switch that takes the category out of the
+ * app without deleting anything.
+ *
+ * The summary counts only the categories that are switched ON, because those are
+ * the ones a learner can actually reach. A total that included hidden categories
+ * would be a number about the database rather than about the product.
  */
 function renderAdminCategories() {
   const wrap = document.getElementById('admin-cat-list');
@@ -287,10 +291,15 @@ function renderAdminCategories() {
 
   const last = ADMIN.categories.length - 1;
   let quizReady = 0;
+  let liveWords = 0;
 
   wrap.innerHTML = ADMIN.categories
     .map((c, i) => {
       const n = counts.get(c.id) || { total: 0, levels: { 1: 0, 2: 0, 3: 0 } };
+      // SQLite hands back 0/1, and a column added by migration on an existing
+      // row could in principle be null — treat anything not truthy as off.
+      const on = !!c.enabled;
+      if (on) liveWords += n.total;
 
       const chips = [1, 2, 3]
         .map((lvl) => {
@@ -298,7 +307,7 @@ function renderAdminCategories() {
           // The quiz engine returns nothing below QUIZ_MIN words, so 0 and 1-3
           // are both unusable — just differently bad.
           const state = k === 0 ? 'empty' : k < QUIZ_MIN ? 'low' : 'ok';
-          if (state === 'ok') quizReady += 1;
+          if (on && state === 'ok') quizReady += 1;
           const label = k === 0 ? 'no words' : `${k} word${k === 1 ? '' : 's'}`;
           return `<span class="cat-level lv-${state}" title="${ADMIN_LEVELS[lvl]} — ${label}">L${lvl} <b>${k}</b></span>`;
         })
@@ -307,15 +316,20 @@ function renderAdminCategories() {
       const alt = [c.name_yue, c.name_fil].filter(Boolean).map(escapeHtml).join(' · ');
 
       return `
-      <div class="admin-cat-row">
+      <div class="admin-cat-row${on ? '' : ' is-off'}">
         <div class="admin-cat-order">${i + 1}</div>
         <div class="admin-cat-icon">${escapeHtml(c.icon || '📁')}</div>
         <div class="admin-cat-body">
-          <div class="admin-cat-name">${escapeHtml(c.name_en)}</div>
+          <div class="admin-cat-name">${escapeHtml(c.name_en)}${
+            on ? '' : '<span class="cat-off-badge">switched off</span>'
+          }</div>
           <div class="admin-cat-name-yue">${alt || '<span class="admin-cat-none">no Cantonese or Filipino name</span>'}</div>
         </div>
         <div class="admin-cat-coverage">${chips}</div>
         <div class="admin-cat-total">${n.total}<span> word${n.total === 1 ? '' : 's'}</span></div>
+        <button class="cat-switch${on ? ' is-on' : ''}" role="switch" aria-checked="${on}"
+          title="${on ? 'Switched on — learners can see this and it feeds quizzes' : 'Switched off — hidden from learners and excluded from quizzes'}"
+          onclick="toggleCategory(${c.id})">${on ? 'On' : 'Off'}</button>
         <div class="admin-cat-actions">
           <button class="move-btn" title="Move up" ${i === 0 ? 'disabled' : ''} onclick="moveCategory(${c.id}, -1)">↑</button>
           <button class="move-btn" title="Move down" ${i === last ? 'disabled' : ''} onclick="moveCategory(${c.id}, 1)">↓</button>
@@ -327,11 +341,44 @@ function renderAdminCategories() {
     .join('');
 
   if (summaryEl) {
-    const cells = ADMIN.categories.length * 3;
+    const onCount = ADMIN.categories.filter((c) => c.enabled).length;
+    const offCount = ADMIN.categories.length - onCount;
     summaryEl.innerHTML =
-      `<b>${ADMIN.vocabulary.length}</b> words across <b>${ADMIN.categories.length}</b> categories · ` +
-      `<b>${quizReady}</b> of <b>${cells}</b> category-and-level combinations can produce a quiz ` +
-      `(a quiz needs ${QUIZ_MIN} words)`;
+      `<b>${liveWords}</b> words across <b>${onCount}</b> categories · ` +
+      `<b>${quizReady}</b> of <b>${onCount * 3}</b> category-and-level combinations can produce a quiz ` +
+      `(a quiz needs ${QUIZ_MIN} words)` +
+      (offCount ? ` · <b>${offCount}</b> switched off` : '');
+  }
+}
+
+/**
+ * Switch a category on or off.
+ *
+ * Switching off is not destructive — the words stay, and so does any progress
+ * already earned against them — but it does remove the category from the app and
+ * from the quiz pool, which is a real change for whoever is using it. So it asks
+ * first, and it says what will happen rather than "are you sure?".
+ */
+async function toggleCategory(id) {
+  const cat = ADMIN.categories.find((c) => c.id === id);
+  if (!cat) return;
+  const turningOff = !!cat.enabled;
+
+  if (turningOff) {
+    const n = ADMIN.vocabulary.filter((v) => v.category_id === id).length;
+    const words = n === 0
+      ? 'It has no words yet.'
+      : `Its ${n} word${n === 1 ? '' : 's'} will be hidden from learners and removed from quizzes.`;
+    if (!confirm(`Switch off "${cat.name_en}"?\n\n${words}\n\nNothing is deleted — you can switch it back on.`)) {
+      return;
+    }
+  }
+
+  try {
+    await apiPut(`/api/categories/${id}`, { enabled: turningOff ? 0 : 1 });
+    await loadAdminData();
+  } catch (err) {
+    alert('Could not change that category: ' + err.message);
   }
 }
 
@@ -623,16 +670,26 @@ async function renderAdminReport() {
   const notesEl = document.getElementById('admin-report-notes');
   const empEl = document.getElementById('admin-report-employers');
   const stampEl = document.getElementById('admin-report-stamp');
+  const vTotalsEl = document.getElementById('admin-visitor-totals');
+  const vChartEl = document.getElementById('admin-visitor-chart');
+  const vNotesEl = document.getElementById('admin-visitor-notes');
+  const practiceEl = document.getElementById('admin-practice-only');
+  const pathsEl = document.getElementById('admin-top-paths');
   if (!totalsEl) return;
 
   chartEl.innerHTML = '<div class="progress-empty">Loading…</div>';
   empEl.innerHTML = '';
   notesEl.innerHTML = '';
+  vChartEl.innerHTML = '<div class="progress-empty">Loading…</div>';
+  vNotesEl.innerHTML = '';
+  practiceEl.innerHTML = '';
+  pathsEl.innerHTML = '';
 
   try {
     const data = await apiGet(`/api/admin/report?days=${ADMIN.reportDays}`);
     ADMIN.report = data;
     const t = data.totals;
+    const v = data.visitors || {};
 
     stampEl.textContent = `Generated ${new Date(data.generated_at).toLocaleString()}`;
 
@@ -646,6 +703,30 @@ async function renderAdminReport() {
       reportCard('Stickers unlocked', t.stickersUnlocked,
         `${t.partialAttempts} quiz(zes) left unfinished`),
     ].join('');
+
+    // --- visitors and practice.
+    // Kept in their own grid rather than added to the six above, so the two
+    // sets can be read separately: the cards above are all derived from
+    // `progress`, and these are the ones that are not.
+    vTotalsEl.innerHTML = [
+      reportCard('Visitors', v.arrived, `${v.newVisitors} new in ${v.days} days`),
+      reportCard('Practised', v.practisedCards, `${v.wordsViewed} words viewed`),
+      reportCard('Quizzed', v.quizzed, `${v.quizzesStarted} started in ${v.days} days`),
+      reportCard('Visited, did nothing', v.arrivedOnly, 'arrived but recorded no practice'),
+      reportCard('Practice, no quiz', v.practiceOnlyLearners, 'invisible to the quiz reports'),
+      reportCard('Landing page views', v.pageViews, `${v.visits} app visits`),
+    ].join('');
+
+    vChartEl.innerHTML = visitorChart(v.series);
+    vNotesEl.innerHTML = visitorNotes(v);
+
+    practiceEl.innerHTML = (v.practiceOnly && v.practiceOnly.length)
+      ? v.practiceOnly.map(practiceOnlyRow).join('')
+      : '<div class="progress-empty">Nobody is practising without quizzing yet.</div>';
+
+    pathsEl.innerHTML = (v.topPaths && v.topPaths.length)
+      ? v.topPaths.map(topPathRow).join('')
+      : '<div class="progress-empty">No landing-page views recorded yet.</div>';
 
     chartEl.innerHTML = trendChart(data.trends);
     notesEl.innerHTML = trendNotes(data.trends);
@@ -668,7 +749,7 @@ function reportCard(title, value, sub) {
 }
 
 /**
- * A bar chart of daily quizzes, drawn inline as SVG.
+ * A bar chart of one value per day, drawn inline as SVG.
  *
  * No charting library: this app has no build step and no CDN dependency, and a
  * bar chart of at most 90 values does not need one. The SVG scales with its
@@ -676,12 +757,13 @@ function reportCard(title, value, sub) {
  *
  * Days with no activity get a flat stub rather than nothing, because "she did
  * not practise that day" is the finding — a gap would read as missing data.
+ *
+ * Shared by the quiz trend and the visitor trend. They differ only in which
+ * value they plot and what the tooltip says, and two copies of this geometry
+ * would drift apart the first time one of them was adjusted.
  */
-function trendChart(trends) {
-  const series = (trends && trends.series) || [];
-  if (!series.length) return '<div class="progress-empty">No activity in this period.</div>';
-
-  const max = Math.max(1, ...series.map((d) => d.attempts));
+function svgDailyBars(series, { value, title, ariaLabel, color = '#52b788' }) {
+  const max = Math.max(1, ...series.map(value));
   const W = 680;
   const H = 180;
   const padL = 8;
@@ -696,12 +778,13 @@ function trendChart(trends) {
 
   const bars = series.map((d, i) => {
     const x = padL + i * slot + (slot - barW) / 2;
-    const title = `<title>${escapeHtml(`${d.day}: ${d.attempts} quiz(zes), ${d.learners} helper(s) active`)}</title>`;
-    if (!d.attempts) {
-      return `<rect x="${x.toFixed(1)}" y="${(base - 2).toFixed(1)}" width="${barW.toFixed(1)}" height="2" rx="1" fill="#e9ecef">${title}</rect>`;
+    const tip = `<title>${escapeHtml(title(d))}</title>`;
+    const v = value(d);
+    if (!v) {
+      return `<rect x="${x.toFixed(1)}" y="${(base - 2).toFixed(1)}" width="${barW.toFixed(1)}" height="2" rx="1" fill="#e9ecef">${tip}</rect>`;
     }
-    const h = Math.max(3, Math.round((d.attempts / max) * plotH));
-    return `<rect x="${x.toFixed(1)}" y="${(base - h).toFixed(1)}" width="${barW.toFixed(1)}" height="${h}" rx="2" fill="#52b788">${title}</rect>`;
+    const h = Math.max(3, Math.round((v / max) * plotH));
+    return `<rect x="${x.toFixed(1)}" y="${(base - h).toFixed(1)}" width="${barW.toFixed(1)}" height="${h}" rx="2" fill="${color}">${tip}</rect>`;
   }).join('');
 
   // Three labels only — more would collide on a phone.
@@ -713,11 +796,82 @@ function trendChart(trends) {
     .join('');
 
   return `<svg viewBox="0 0 ${W} ${H}" class="report-svg" role="img"
-      aria-label="Daily quiz attempts over the last ${escapeHtml(String(trends.days))} days">
+      aria-label="${escapeHtml(ariaLabel)}">
     <line x1="${padL}" y1="${base}" x2="${W - padR}" y2="${base}" stroke="#dee2e6" stroke-width="1"/>
     <text x="${padL}" y="${padT - 5}" font-size="11" fill="#6c757d">peak ${max} per day</text>
     ${bars}${ticks}
   </svg>`;
+}
+
+function trendChart(trends) {
+  const series = (trends && trends.series) || [];
+  if (!series.length) return '<div class="progress-empty">No activity in this period.</div>';
+  return svgDailyBars(series, {
+    value: (d) => d.attempts,
+    title: (d) => `${d.day}: ${d.attempts} quiz(zes), ${d.learners} helper(s) active`,
+    ariaLabel: `Daily quiz attempts over the last ${trends.days} days`,
+  });
+}
+
+/**
+ * Visitors per day — a different question from quiz attempts, and a different
+ * colour so the two charts are never confused at a glance. Note this plots
+ * VISITORS (distinct devices) rather than visits: the interesting shape is how
+ * many separate people turned up, not how often one of them refreshed.
+ */
+function visitorChart(series) {
+  const s = series || [];
+  if (!s.length) return '<div class="progress-empty">No visitors in this period.</div>';
+  return svgDailyBars(s, {
+    value: (d) => d.visitors,
+    title: (d) => `${d.day}: ${d.visitors} visitor(s), ${d.visits} visit(s), ${d.new_visitors} new`,
+    ariaLabel: `Daily visitors over the last ${s.length} days`,
+    color: '#f4a261',
+  });
+}
+
+function visitorNotes(v) {
+  if (!v || !v.arrived) {
+    return '<div class="report-note">No visitors recorded yet. This fills in as soon as someone loads the app or a landing page.</div>';
+  }
+  const notes = [
+    `${v.arrived} device(s) have visited in total; ${v.newVisitors} were new in the last ${v.days} days.`,
+  ];
+  if (v.arrivedOnly) {
+    notes.push(`${v.arrivedOnly} arrived and recorded nothing further — a page load and no more.`);
+  }
+  if (v.practiceOnlyLearners) {
+    notes.push(`${v.practiceOnlyLearners} studied the vocabulary without ever starting a quiz.`);
+  } else {
+    notes.push('Everyone who has practised has also started a quiz.');
+  }
+  if (v.wordsViewed) {
+    notes.push(`${v.wordsViewed} words viewed and ${v.cardsOpened} cards opened in this period.`);
+  }
+  return notes.map((n) => `<div class="report-note">${escapeHtml(n)}</div>`).join('');
+}
+
+/** One learner who practises but has never quizzed. */
+function practiceOnlyRow(p) {
+  const name = p.display_name || `Learner #${p.learner_id}`;
+  const bits = [
+    `${p.words_viewed} word(s) viewed`,
+    `${p.cards_opened} card(s) opened`,
+    `${p.days_active} day(s) active`,
+  ];
+  return `<div class="learner-stat">
+    <div class="learner-stat-name">📖 ${escapeHtml(name)}</div>
+    <div class="learner-stat-sub">${escapeHtml(bits.join(' · '))}</div>
+    <div class="learner-stat-sub">first seen ${fmtDate(p.first_day)} · last practised ${fmtDate(p.last_day)}</div>
+  </div>`;
+}
+
+/** One landing page, by views. Path only — no visitor is attached to a path. */
+function topPathRow(p) {
+  return `<div class="learner-stat">
+    <div class="learner-stat-name">🔗 ${escapeHtml(p.path)}</div>
+    <div class="learner-stat-sub">${escapeHtml(`${p.views} view(s)`)}</div>
+  </div>`;
 }
 
 function trendNotes(trends) {

@@ -4,8 +4,67 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
   <meta name="theme-color" content="#e63946" />
-  <meta name="description" content="Learn practical Cantonese for daily life in Hong Kong — vocabulary, audio and quizzes. Free for helpers." />
-  <title>CantoBuddy – Learn Cantonese</title>
+  <meta name="description" content="Learn practical Cantonese for daily life in Hong Kong — vocabulary, audio and quizzes. Free for Filipino domestic helpers." />
+  <title>CantoBuddy – Learn Cantonese for Daily Life in Hong Kong</title>
+
+  <!-- Canonical. Absolute, and pointing at the real domain on purpose: this
+       same document is also reachable at cantobuddy.onrender.com, and without
+       this tag the two hosts compete as duplicates and split whatever ranking
+       signal the app earns. -->
+  <link rel="canonical" href="https://cantobuddy.com/" />
+
+  <!-- Social preview. The app has a Share button, so a bare link with no
+       og:image was the actual result of sharing it. -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="CantoBuddy" />
+  <meta property="og:title" content="CantoBuddy – Learn Cantonese for Daily Life in Hong Kong" />
+  <meta property="og:description" content="Practical Cantonese words and phrases with audio, pictures and quizzes. Free for Filipino domestic helpers in Hong Kong." />
+  <meta property="og:url" content="https://cantobuddy.com/" />
+  <meta property="og:image" content="https://cantobuddy.com/icons/icon-512.png" />
+  <meta property="og:locale" content="en_HK" />
+  <meta property="og:locale:alternate" content="fil_PH" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="CantoBuddy – Learn Cantonese for Daily Life in Hong Kong" />
+  <meta name="twitter:description" content="Practical Cantonese words and phrases with audio, pictures and quizzes. Free for Filipino domestic helpers in Hong Kong." />
+  <meta name="twitter:image" content="https://cantobuddy.com/icons/icon-512.png" />
+
+  <!-- Structured data: tells search engines this is a free educational app
+       aimed at a specific audience, which is the one thing the page copy
+       cannot say in a machine-readable way. -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "EducationalOrganization",
+        "name": "CantoBuddy",
+        "url": "https://cantobuddy.com",
+        "logo": "https://cantobuddy.com/icons/icon-512.png",
+        "description": "A free Cantonese learning app for Filipino domestic helpers in Hong Kong: practical vocabulary with audio, pictures and quizzes.",
+        "areaServed": { "@type": "Place", "name": "Hong Kong" },
+        "audience": { "@type": "Audience", "audienceType": "Filipino domestic helpers" }
+      },
+      {
+        "@type": "WebApplication",
+        "name": "CantoBuddy",
+        "url": "https://cantobuddy.com/",
+        "applicationCategory": "EducationalApplication",
+        "operatingSystem": "Any (web browser)",
+        "inLanguage": ["en", "fil"],
+        "isAccessibleForFree": true,
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "HKD" },
+        "description": "Learn practical Cantonese for daily life in Hong Kong with vocabulary, Jyutping romanisation, audio and quizzes.",
+        "featureList": [
+          "Cantonese vocabulary with Jyutping romanisation",
+          "English and Filipino translations",
+          "Audio pronunciation",
+          "Quizzes and progress tracking"
+        ]
+      }
+    ]
+  }
+  </script>
+
   <link rel="manifest" href="/manifest.json" />
   <link rel="icon" href="/favicon.ico" sizes="any" />
   <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
@@ -203,13 +262,44 @@
       </div>
     </div>
 
+    <!-- WhatsApp first. It is where this community actually talks — helpers are
+         in group chats with each other — and one tap beats digging through the
+         OS share sheet, which is the difference between a share happening and
+         not happening. The generic share button below stays for everything
+         else (Viber, Messenger, SMS, email). -->
+    <button class="btn btn-whatsapp btn-lg btn-block" onclick="shareAppWhatsApp()">
+      <span data-whatsapp-icon></span><span data-i18n="sharePage.whatsappBtn">Send on WhatsApp</span>
+    </button>
+
     <!-- The icon is injected by mountShareIcons() so the glyph lives in exactly
          one place (SHARE_ICON_SVG in app.js). -->
-    <button class="btn btn-primary btn-lg btn-block" onclick="shareApp()"><span data-share-icon></span><span data-i18n="sharePage.shareBtn">Share CantoBuddy</span></button>
+    <button class="btn btn-primary btn-block" onclick="shareApp()"><span data-share-icon></span><span data-i18n="sharePage.shareBtn">Share CantoBuddy</span></button>
     <button class="btn btn-outline btn-block share-copy-btn" onclick="copyShareLink()" data-i18n="sharePage.copyBtn">🔗 Copy link</button>
+
+    <p class="share-footnote" data-i18n="sharePage.footnote">Every link you share carries your own code, so we can see how CantoBuddy is spreading through the community. No names, no personal details.</p>
   </section>
 
 </main>
+
+<!-- ============================ FOOTER ============================ -->
+<!-- Real, crawlable links into the server-rendered vocabulary pages (see
+     seo.js). Every view in this app renders into `/`, so without these the
+     whole content layer is unreachable: a crawler would have exactly one URL
+     to work with and no path to the 64 words behind it. These are ordinary
+     anchors, not JS navigation, precisely so they can be followed. -->
+<footer class="site-footer">
+  <div class="site-footer-inner">
+    <p class="site-footer-title" data-i18n="footer.title">Browse Cantonese vocabulary</p>
+    <nav class="site-footer-links" aria-label="Vocabulary">
+      <a href="/learn" data-i18n="footer.allWords">All words &amp; categories</a>
+      <a href="/level/1" data-i18n="home.beginner">Beginner</a>
+      <a href="/level/2" data-i18n="home.intermediate">Intermediate</a>
+      <a href="/level/3" data-i18n="home.advanced">Advanced</a>
+      <a href="/fil/learn" data-i18n="footer.filipino">Filipino</a>
+      <a href="/portal" data-i18n="header.employerSite">For employers</a>
+    </nav>
+  </div>
+</footer>
 
 <!-- ============================ BOTTOM NAV ============================ -->
 <nav class="bottom-nav">

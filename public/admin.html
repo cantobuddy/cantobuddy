@@ -124,6 +124,16 @@
       <h4 class="admin-subhead">Platform totals</h4>
       <div id="admin-report-totals" class="stats-grid"></div>
 
+      <h4 class="admin-subhead">Visitors &amp; practice</h4>
+      <p class="admin-hint">
+        Everyone who arrived — counted the moment the app or a landing page loads,
+        whether or not they ever opened a quiz. Until now only quiz activity was
+        visible, so a visitor who studied and never tested herself left no trace.
+      </p>
+      <div id="admin-visitor-totals" class="stats-grid"></div>
+      <div id="admin-visitor-chart" class="report-chart"></div>
+      <div id="admin-visitor-notes" class="report-notes"></div>
+
       <h4 class="admin-subhead">Activity</h4>
       <div class="chip-group" id="admin-report-range">
         <button class="chip" data-days="7" onclick="setReportDays(7)">7 days</button>
@@ -140,6 +150,21 @@
       </p>
       <div id="admin-report-employers" class="admin-list"></div>
 
+      <h4 class="admin-subhead">Practising without quizzing</h4>
+      <p class="admin-hint">
+        Learners who have studied the vocabulary but never started a quiz. These
+        are the people the quiz-only reports could not see at all — often the
+        ones most likely to need encouragement rather than more content.
+      </p>
+      <div id="admin-practice-only" class="admin-list"></div>
+
+      <h4 class="admin-subhead">Top landing pages</h4>
+      <p class="admin-hint">
+        Where visitors arrive from search. Page views are counted anonymously —
+        which page was read, never who read it.
+      </p>
+      <div id="admin-top-paths" class="admin-list"></div>
+
       <h4 class="admin-subhead">Export</h4>
       <p class="admin-hint">Download as CSV — opens in Excel or Google Sheets.</p>
       <div class="report-export">
@@ -147,6 +172,8 @@
         <a class="btn btn-outline btn-sm" href="/api/admin/report.csv?type=employers">Employers</a>
         <a class="btn btn-outline btn-sm" href="/api/admin/report.csv?type=helpers">Helpers</a>
         <a class="btn btn-outline btn-sm" href="/api/admin/report.csv?type=daily">Daily activity</a>
+        <a class="btn btn-outline btn-sm" href="/api/admin/report.csv?type=visitors">Visitors</a>
+        <a class="btn btn-outline btn-sm" href="/api/admin/report.csv?type=practice_only">Practice only</a>
       </div>
     </div>
 

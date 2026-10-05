@@ -452,6 +452,11 @@ function goBrowse(level) {
 // ---- Init ------------------------------------------------------------------
 
 async function init() {
+  // Before anything else, and before the identify call below can send it: record
+  // the ?ref= this device arrived with. Attribution is first-touch, so missing
+  // it here would lose the referrer permanently.
+  captureReferrer();
+
   try {
     const [vocab, cats] = await Promise.all([
       apiGet('/api/vocabulary'),
@@ -588,6 +593,10 @@ function renderVocabList() {
     return;
   }
 
+  // "Words viewed" is words put in front of her by a browse list — the honest
+  // reading of this screen. It is a count, never a record of which words.
+  bumpActivity('words_viewed', items.length);
+
   wrap.innerHTML = items
     .map(
       (v) => `
@@ -610,6 +619,10 @@ function renderVocabList() {
 function openVocabModal(id) {
   const v = STATE.vocabulary.find((x) => x.id === id);
   if (!v) return;
+  // Tapping a card open is the clearest deliberate study action there is —
+  // far more meaningful than a page view, and the signal that tells the
+  // operator someone is practising without ever taking a quiz.
+  bumpActivity('cards_opened');
   const cat = STATE.categories.find((c) => c.id === v.category_id);
   const modal = document.getElementById('vocab-modal');
   modal.querySelector('.modal-card').innerHTML = `
@@ -622,6 +635,7 @@ function openVocabModal(id) {
     <button class="modal-audio-btn" onclick="speak('${v.cantonese.replace(/'/g, "\\'")}', this)">🔊</button>
     <div style="font-size:0.75rem;color:#6c757d;margin-top:6px">${t('browse.tapToHear')}</div>
     <button class="modal-share-btn" onclick="shareWord(${v.id})">${SHARE_ICON_SVG}${t('misc.shareWord')}</button>
+    <button class="modal-share-btn modal-share-btn--ghost" onclick="shareWordCard(${v.id})">🖼️ ${t('misc.shareCard')}</button>
     <button class="modal-close" onclick="closeModal()">${t('misc.close')}</button>
   `;
   modal.classList.add('show');
@@ -744,8 +758,18 @@ function shuffle(arr) {
 
 // ---- Generate quiz questions ----
 function generateQuestions(type, level) {
-  const pool = STATE.vocabulary.filter((v) => v.level === level);
+  let pool = STATE.vocabulary.filter((v) => v.level === level);
   if (pool.length < 4) return [];
+
+  // A picture question only means something for a single word. Asking a learner
+  // to match an emoji to 「唔好起身太快」 is not a question — and now that entries
+  // carry a `type`, the engine can simply decline to. Falls back to the whole
+  // level when there are too few single words to build a quiz from, so this can
+  // never turn a working quiz into an empty one.
+  if (type === 'match_picture') {
+    const words = pool.filter((v) => (v.type || 'word') === 'word');
+    if (words.length >= 4) pool = words;
+  }
 
   const questions = [];
   const numQ = Math.min(10, pool.length);
@@ -913,6 +937,82 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') flushProgressBeacon();
 });
 
+// ===========================================================================
+// Practice tracking
+//
+// What she READS is counted, not what she read about: three counters, not a
+// browsing log. That is the whole distinction between "did she practise?",
+// which the operator genuinely needs, and a record of everything a helper
+// looked at, which this app has no business keeping.
+//
+// Batched, because twenty minutes of study should cost one request rather
+// than forty. Flushed on the way out as well as on a timer, because closing
+// the tab mid-session is the normal case here, not the exception.
+//
+// Nothing in here may ever break a lesson: every failure is swallowed, and a
+// lost count is treated as a missing statistic rather than an error.
+// ===========================================================================
+
+const pendingActivity = { words_viewed: 0, cards_opened: 0, quizzes_started: 0 };
+
+function bumpActivity(kind, n = 1) {
+  if (!(kind in pendingActivity)) return;
+  const add = Math.floor(Number(n));
+  if (!Number.isFinite(add) || add <= 0) return;
+  pendingActivity[kind] += add;
+  scheduleActivityFlush();
+}
+
+let activityTimer = null;
+
+function scheduleActivityFlush() {
+  if (activityTimer) return;
+  activityTimer = setTimeout(() => { activityTimer = null; flushActivity(); }, 20000);
+}
+
+/** Take the pending counts, resetting the buffer in the same step. */
+function takeActivity() {
+  const payload = { ...pendingActivity };
+  pendingActivity.words_viewed = 0;
+  pendingActivity.cards_opened = 0;
+  pendingActivity.quizzes_started = 0;
+  return payload;
+}
+
+const hasActivity = (a) => Boolean(a.words_viewed || a.cards_opened || a.quizzes_started);
+
+async function flushActivity() {
+  if (!STATE.deviceId) return;
+  const payload = takeActivity();
+  if (!hasActivity(payload)) return;
+  try {
+    await apiPost('/api/learners/activity', { public_id: STATE.deviceId, ...payload });
+  } catch (err) {
+    console.warn('Could not record practice:', err);
+  }
+}
+
+/** The unload path: a normal fetch would be cancelled as the page goes away. */
+function flushActivityBeacon() {
+  if (!STATE.deviceId) return;
+  const payload = takeActivity();
+  if (!hasActivity(payload)) return;
+  try {
+    navigator.sendBeacon(
+      '/api/learners/activity',
+      new Blob(
+        [JSON.stringify({ public_id: STATE.deviceId, ...payload })],
+        { type: 'application/json' }
+      )
+    );
+  } catch { /* nothing further is possible on the way out */ }
+}
+
+window.addEventListener('pagehide', flushActivityBeacon);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') flushActivityBeacon();
+});
+
 // ---- Start quiz ----
 function startQuiz(type) {
   const level = getQuizLevel();
@@ -930,6 +1030,12 @@ function startQuiz(type) {
     window._pendingQuiz = { type, level };
     return;
   }
+
+  // Counted after the name gate on purpose: a quiz that never began because
+  // she was still being asked her name is not a start. Note this is a START —
+  // finishing is what `progress` records, and the two are deliberately
+  // different claims (see getVisitorReport).
+  bumpActivity('quizzes_started');
 
   STATE.quiz = {
     type,
@@ -1650,6 +1756,74 @@ function showToast(msg) {
   el._timer = setTimeout(() => el.classList.remove('show'), 2200);
 }
 
+// ---- Referral attribution --------------------------------------------------
+//
+// CantoBuddy grows the way this community actually passes things on: one helper
+// tells another, in a group chat or on a Sunday. That works without any code —
+// but it cannot be *seen* without one, and a channel you cannot measure is a
+// channel you cannot double down on.
+//
+// Two halves:
+//   cb_ref      where SHE arrived from — the ?ref= on the link that created this
+//               device. First touch, written once, never overwritten.
+//   cb_my_code  her own code, issued by the server, put on every link she shares.
+//
+// Together those make the chain of introductions readable: a link she sends
+// carries her code, and whoever opens it records her as their referrer.
+
+const REF_STORAGE_KEY = 'cb_ref';
+const REF_CODE_KEY = 'cb_my_code';
+
+/**
+ * Record where this device first arrived from.
+ *
+ * First touch only: once a referrer is stored it is never replaced, so a helper
+ * who later opens a different link does not silently reassign credit away from
+ * whoever actually brought her in.
+ */
+function captureReferrer() {
+  try {
+    if (localStorage.getItem(REF_STORAGE_KEY)) return;
+    const params = new URLSearchParams(location.search);
+    const ref = (params.get('ref') || params.get('utm_source') || '').trim();
+    if (ref) localStorage.setItem(REF_STORAGE_KEY, ref.slice(0, 64));
+  } catch {
+    // Private browsing can refuse localStorage. Attribution is not worth
+    // breaking the app over.
+  }
+}
+
+/** Where this device came from, or '' if it was a direct visit. */
+function myReferrer() {
+  try { return localStorage.getItem(REF_STORAGE_KEY) || ''; } catch { return ''; }
+}
+
+/** This device's own referral code, or '' before the server has issued one. */
+function myReferralCode() {
+  try { return localStorage.getItem(REF_CODE_KEY) || ''; } catch { return ''; }
+}
+
+/**
+ * Build the URL to put in a share.
+ *
+ * Always based on `location.origin`, never on the current path. If she happens
+ * to be sitting on a /join/<code> page the path holds a private invitation code,
+ * and forwarding it would hand a stranger access to her practice.
+ *
+ * Her referral code rides along as ?ref=. It is a one-way derivative of her
+ * device id (see db.js), so it is safe to publish — unlike the device id itself,
+ * which is the token that controls her name and her employer links.
+ *
+ * @param {string|null} path  e.g. '/words/thank-you' to deep-link a page.
+ */
+function shareUrl(path) {
+  const url = new URL(location.origin);
+  if (path) url.pathname = path;
+  const code = myReferralCode();
+  if (code) url.searchParams.set('ref', code);
+  return url.toString();
+}
+
 /**
  * Share via the native share sheet when available (mobile), otherwise copy
  * to the clipboard. Handles the user cancelling the share sheet gracefully.
@@ -1673,13 +1847,36 @@ async function shareOrCopy({ title, text, url }) {
   }
 }
 
+/**
+ * Share straight to WhatsApp.
+ *
+ * WhatsApp gets its own button rather than relying on the OS share sheet,
+ * because that is where this community actually talks — helpers are in group
+ * chats with each other, and a link that lands in one is seen by dozens of
+ * people who have the same job and the same problem. On many Android builds the
+ * share sheet buries WhatsApp several taps deep; one tap is the difference
+ * between a share happening and not.
+ */
+function shareToWhatsApp(text, url) {
+  const msg = `${text}\n${url}`;
+  window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank', 'noopener');
+}
+
 /** Share a single vocabulary word. */
 function shareWord(id) {
   const v = STATE.vocabulary.find((x) => x.id === id);
   if (!v) return;
   const meaning = v.tagalog ? `${v.english} / ${v.tagalog}` : v.english;
   const text = `${v.emoji || ''} ${v.cantonese} (${v.jyutping}) = ${meaning}\n${t('share.wordText')}`;
-  shareOrCopy({ title: 'CantoBuddy', text: text.trim(), url: location.origin });
+  // Deep-link to the word's own page when the server gave us a slug. That page
+  // shows the same word with its meaning, pronunciation and related words, and
+  // links back into the app — so the recipient lands somewhere useful instead
+  // of on the home screen having to find it again.
+  shareOrCopy({
+    title: 'CantoBuddy',
+    text: text.trim(),
+    url: shareUrl(v.slug ? `/words/${v.slug}` : null),
+  });
 }
 
 /**
@@ -1698,11 +1895,155 @@ const SHARE_ICON_SVG = `
     <path d="M17.1 6.1 22.6 9.5 17.1 12.9z" fill="currentColor"/>
   </svg>`;
 
+/** WhatsApp glyph, same treatment as the share glyph. */
+const WHATSAPP_ICON_SVG = `
+  <svg class="share-glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Z" fill="none" stroke="currentColor" stroke-width="2"/>
+    <path d="M8.6 7.6c.3-.1.6 0 .8.3l.8 1.3c.1.3.1.6-.1.8l-.5.5c-.2.2-.2.4-.1.6.5.9 1.3 1.7 2.2 2.2.2.1.4.1.6-.1l.5-.5c.2-.2.5-.3.8-.1l1.3.8c.3.2.4.5.3.8-.3 1-1.3 1.7-2.4 1.6-2.8-.3-5.2-2.7-5.5-5.5-.1-1.1.6-2.1 1.6-2.4Z" fill="currentColor"/>
+  </svg>`;
+
 /** Fill every `data-share-icon` placeholder with the share glyph. */
 function mountShareIcons() {
   document.querySelectorAll('[data-share-icon]').forEach((el) => {
     el.innerHTML = SHARE_ICON_SVG;
   });
+  document.querySelectorAll('[data-whatsapp-icon]').forEach((el) => {
+    el.innerHTML = WHATSAPP_ICON_SVG;
+  });
+}
+
+// ---- Shareable card --------------------------------------------------------
+//
+// Text-only shares die in a busy group chat. A picture survives: it is readable
+// without a tap, it carries the branding, and it is the thing people forward on
+// to somebody else. Drawn with canvas so there is no server round-trip, no new
+// dependency, and it works offline.
+
+const CARD_SIZE = 1080;
+
+/** Draw text centred on one line, shrinking until it fits `maxWidth`. */
+function cardFitText(ctx, text, maxWidth, startSize, family) {
+  let size = startSize;
+  do {
+    ctx.font = `700 ${size}px ${family}`;
+    if (ctx.measureText(text).width <= maxWidth) break;
+    size -= 4;
+  } while (size > 28);
+  return size;
+}
+
+/**
+ * Render a word as a square PNG.
+ * @returns {Promise<Blob|null>} null if canvas is unavailable.
+ */
+function wordCardBlob(v) {
+  return new Promise((resolve) => {
+    try {
+      const cv = document.createElement('canvas');
+      cv.width = CARD_SIZE;
+      cv.height = CARD_SIZE;
+      const ctx = cv.getContext('2d');
+      if (!ctx) return resolve(null);
+
+      const HAN = '"Noto Sans SC","PingFang HK","Microsoft JhengHei",sans-serif';
+      const UI = 'Inter,-apple-system,"Segoe UI",Roboto,sans-serif';
+
+      // Background
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, CARD_SIZE, CARD_SIZE);
+
+      // Brand bar
+      ctx.fillStyle = '#e63946';
+      ctx.fillRect(0, 0, CARD_SIZE, 14);
+
+      // Wordmark
+      ctx.fillStyle = '#1a1a2e';
+      ctx.font = `700 44px ${UI}`;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('🦜 CantoBuddy', 72, 96);
+
+      // The Cantonese, the whole point of the card
+      const han = v.cantonese || '';
+      const hanSize = cardFitText(ctx, han, CARD_SIZE - 160, 300, HAN);
+      ctx.font = `500 ${hanSize}px ${HAN}`;
+      ctx.fillStyle = '#1a1a2e';
+      ctx.textAlign = 'center';
+      ctx.fillText(han, CARD_SIZE / 2, 430);
+
+      // Jyutping
+      ctx.font = `400 52px ui-monospace,Menlo,monospace`;
+      ctx.fillStyle = '#e63946';
+      ctx.fillText(v.jyutping || '', CARD_SIZE / 2, 600);
+
+      // Meaning, English then Filipino
+      const enSize = cardFitText(ctx, v.english || '', CARD_SIZE - 200, 68, UI);
+      ctx.font = `700 ${enSize}px ${UI}`;
+      ctx.fillStyle = '#1a1a2e';
+      ctx.fillText(v.english || '', CARD_SIZE / 2, 720);
+
+      if (v.tagalog) {
+        const filSize = cardFitText(ctx, v.tagalog, CARD_SIZE - 200, 52, UI);
+        ctx.font = `400 ${filSize}px ${UI}`;
+        ctx.fillStyle = '#6c757d';
+        ctx.fillText(v.tagalog, CARD_SIZE / 2, 800);
+      }
+
+      // Footer: what the app is, and where to get it
+      ctx.font = `400 38px ${UI}`;
+      ctx.fillStyle = '#6c757d';
+      ctx.fillText(t('share.cardFooter'), CARD_SIZE / 2, 950);
+
+      ctx.font = `700 42px ${UI}`;
+      ctx.fillStyle = '#e63946';
+      ctx.fillText('cantobuddy.com', CARD_SIZE / 2, 1010);
+
+      cv.toBlob((blob) => resolve(blob), 'image/png');
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
+/**
+ * Share a word as a picture.
+ *
+ * Falls back to the plain text share whenever the platform cannot send files —
+ * desktop browsers mostly cannot — and downloads the card instead, so the
+ * helper can still post it by hand.
+ */
+async function shareWordCard(id) {
+  const v = STATE.vocabulary.find((x) => x.id === id);
+  if (!v) return;
+  const url = shareUrl(v.slug ? `/words/${v.slug}` : null);
+  const text = `${v.emoji || ''} ${v.cantonese} (${v.jyutping}) = ${v.english}\n${t('share.wordText')}`;
+
+  const blob = await wordCardBlob(v);
+  if (!blob) return shareOrCopy({ title: 'CantoBuddy', text: text.trim(), url });
+
+  const file = new File([blob], `cantobuddy-${v.slug || v.id}.png`, { type: 'image/png' });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], text: text.trim(), url });
+      return;
+    } catch (err) {
+      if (err && err.name === 'AbortError') return;
+    }
+  }
+
+  // No file sharing here. Save the image and put the text on the clipboard, so
+  // she has both halves of the post in hand.
+  try {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = file.name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+    await navigator.clipboard.writeText(`${text}\n${url}`);
+    showToast(t('share.cardSaved'));
+  } catch {
+    showToast(t('share.failed'));
+  }
 }
 
 /** Share the most recent quiz score. */
@@ -1710,29 +2051,33 @@ function shareResult() {
   const r = window._lastResult;
   if (!r) return;
   const text = t('share.scoreText').replace('{score}', r.score).replace('{total}', r.total);
-  shareOrCopy({ title: 'CantoBuddy', text, url: location.origin });
+  shareOrCopy({ title: 'CantoBuddy', text, url: shareUrl(null) });
 }
 
 /**
  * Share the app itself, so a helper can tell a friend about CantoBuddy.
  *
- * The URL is deliberately `location.origin` and never the current path. If she
- * is sitting on a /join/<code> page, the path holds a private invitation code,
- * and forwarding it would hand a stranger access to her practice. The origin
- * is always just the site itself.
+ * The URL is deliberately the origin and never the current path. If she is
+ * sitting on a /join/<code> page, the path holds a private invitation code, and
+ * forwarding it would hand a stranger access to her practice.
  */
 function shareApp() {
   shareOrCopy({
     title: 'CantoBuddy',
     text: t('sharePage.message'),
-    url: location.origin,
+    url: shareUrl(null),
   });
+}
+
+/** Send the app straight to a WhatsApp chat. */
+function shareAppWhatsApp() {
+  shareToWhatsApp(t('sharePage.message'), shareUrl(null));
 }
 
 /** Copy just the site link, for pasting somewhere by hand. */
 async function copyShareLink() {
   try {
-    await navigator.clipboard.writeText(location.origin);
+    await navigator.clipboard.writeText(shareUrl(null));
     showToast(t('sharePage.copied'));
   } catch {
     showToast(t('sharePage.copyFailed'));
@@ -1744,7 +2089,10 @@ async function copyShareLink() {
  * link. Re-run on language change so the preview matches what would be sent.
  */
 function renderSharePage() {
-  const url = location.origin;
+  // The real link, referral code and all — the preview's whole job is to show
+  // her exactly what her friend will receive, so it must not be a prettified
+  // version of it.
+  const url = shareUrl(null);
   const previewText = document.getElementById('share-preview-text');
   const previewLink = document.getElementById('share-preview-link');
   if (previewText) previewText.textContent = t('sharePage.message');
@@ -1762,8 +2110,17 @@ async function identifySelf() {
     const res = await apiPost('/api/learners/identify', {
       public_id: STATE.deviceId,
       display_name: STATE.learner,
+      // Where this device first arrived from. The server records it once and
+      // never overwrites, so opening a different link later cannot reassign
+      // credit away from whoever actually brought her in.
+      referrer: myReferrer(),
     });
     STATE.employers = res.employers || [];
+    // Her own code, to put on the links she shares. Stored so shareUrl() can
+    // attach it without a round-trip, and so it survives offline.
+    if (res.referral_code) {
+      try { localStorage.setItem(REF_CODE_KEY, res.referral_code); } catch { /* private mode */ }
+    }
   } catch (err) {
     console.warn('Could not identify this device:', err);
   }

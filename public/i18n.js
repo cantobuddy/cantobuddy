@@ -155,6 +155,8 @@ const I18N = {
     'share.scoreText': 'I scored {score}/{total} on CantoBuddy! 🇭🇰',
     'share.copied': 'Copied to clipboard!',
     'share.failed': 'Could not share.',
+    'share.cardSaved': 'Image saved — paste it anywhere!',
+    'share.cardFooter': 'Free Cantonese practice for helpers in Hong Kong',
 
     // share page — inviting a friend to the app
     'sharePage.title': 'Share CantoBuddy',
@@ -163,6 +165,8 @@ const I18N = {
     'sharePage.previewLabel': 'What your friend will see',
     'sharePage.shareBtn': 'Share CantoBuddy',
     'sharePage.copyBtn': '🔗 Copy link',
+    'sharePage.whatsappBtn': 'Send on WhatsApp',
+    'sharePage.footnote': 'Every link you share carries your own code, so we can see how CantoBuddy is spreading through the community. No names, no personal details.',
     'sharePage.copied': 'Link copied!',
     'sharePage.copyFailed': 'Could not copy the link.',
     'sharePage.message': "I'm learning Cantonese with CantoBuddy — free, and made for helpers in Hong Kong. Try it!",
@@ -220,6 +224,14 @@ const I18N = {
     'misc.close': 'Close',
     'misc.loadFailed': 'Could not load data. Is the server running?',
     'misc.shareWord': 'Share this word',
+    'misc.shareCard': 'Share as a picture',
+
+    // footer — the crawlable links to the server-rendered vocabulary pages
+    // (see seo.js). Real anchors, not JS navigation, so a crawler can follow
+    // them into the content layer.
+    'footer.title': 'Browse Cantonese vocabulary',
+    'footer.allWords': 'All words & categories',
+    'footer.filipino': 'Filipino',
   },
 
   fil: {
@@ -369,6 +381,8 @@ const I18N = {
     'share.scoreText': 'Nakakuha ako ng {score}/{total} sa CantoBuddy! 🇭🇰',
     'share.copied': 'Nakopya sa clipboard!',
     'share.failed': 'Hindi maibahagi.',
+    'share.cardSaved': 'Nai-save ang larawan — i-paste kahit saan!',
+    'share.cardFooter': 'Libreng Cantonese practice para sa mga helper sa Hong Kong',
 
     // share page — inviting a friend to the app
     'sharePage.title': 'Ibahagi ang CantoBuddy',
@@ -377,6 +391,8 @@ const I18N = {
     'sharePage.previewLabel': 'Ang makikita ng kaibigan mo',
     'sharePage.shareBtn': 'Ibahagi ang CantoBuddy',
     'sharePage.copyBtn': '🔗 Kopyahin ang link',
+    'sharePage.whatsappBtn': 'Ipadala sa WhatsApp',
+    'sharePage.footnote': 'Ang bawat link na ibinabahagi mo ay may sarili mong code, para makita namin kung paano kumakalat ang CantoBuddy sa komunidad. Walang pangalan, walang personal na detalye.',
     'sharePage.copied': 'Nakopya ang link!',
     'sharePage.copyFailed': 'Hindi makopya ang link.',
     'sharePage.message': 'Nag-aaral ako ng Cantonese sa CantoBuddy — libre, at para sa mga katulong sa Hong Kong. Subukan mo!',
@@ -434,6 +450,13 @@ const I18N = {
     'misc.close': 'Isara',
     'misc.loadFailed': 'Hindi ma-load ang data. Gumagana ba ang server?',
     'misc.shareWord': 'Ibahagi ang salitang ito',
+    'misc.shareCard': 'Ibahagi bilang larawan',
+
+    // footer — the crawlable links to the server-rendered vocabulary pages
+    // (see seo.js).
+    'footer.title': 'Tingnan ang bokabularyong Cantonese',
+    'footer.allWords': 'Lahat ng salita at kategorya',
+    'footer.filipino': 'Filipino',
   },
 };
 

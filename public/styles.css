@@ -156,6 +156,78 @@ body {
 
 .lang-btn:active { transform: scale(0.92); }
 
+/* ---- Language picker rows ----
+   Each row is set in the language it selects. The Chinese row needs a CJK
+   stack of its own — Noto Sans SC is already loaded for the vocabulary, and
+   the Latin stack would fall back to a system font with inconsistent glyph
+   widths at this size. */
+.lang-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 16px 0 20px;
+}
+
+.lang-row {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  width: 100%;
+  padding: 13px 44px 13px 16px;
+  border-radius: 12px;
+  border: 2px solid var(--c-border);
+  background: var(--c-surface);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.lang-row:hover { border-color: var(--c-primary); background: var(--c-primary-light); }
+
+.lang-row.is-active {
+  border-color: var(--c-primary);
+  background: var(--c-primary-light);
+}
+
+/* Label and name share the first line; the coverage note (if any) wraps to a
+   second line rather than squeezing the name into a mid-character break. */
+.lang-row-label {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--c-primary);
+  min-width: 42px;
+  white-space: nowrap;
+}
+
+.lang-row-name {
+  font-size: 0.9rem;
+  color: var(--c-text);
+  white-space: nowrap;
+}
+
+.lang-row[lang="zh-Hans"] .lang-row-name,
+.lang-row[lang="zh-Hans"] .lang-row-label {
+  font-family: var(--font-cn);
+}
+
+.lang-row-note {
+  flex-basis: 100%;
+  font-size: 0.72rem;
+  color: var(--c-text-soft);
+}
+
+.lang-row.is-active .lang-row-note { color: var(--c-primary); }
+
+.lang-row-tick {
+  position: absolute;
+  right: 16px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--c-primary);
+}
+
 /* ---- Cross-site icon button (learner header → employer portal) ----
    Both public sites link to each other: the learner app carries a 👩‍💼 icon
    into /portal, and the portal carries a 📚 link back to /. The admin area

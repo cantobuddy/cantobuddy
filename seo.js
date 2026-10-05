@@ -82,15 +82,17 @@ function buildWordIndex() {
 }
 
 const LEVELS = {
-  1: { en: 'Beginner', yue: '初級', fil: 'Baguhan', blurb: 'Basic greetings and the everyday words you need in the first week.' },
-  2: { en: 'Intermediate', yue: '中級', fil: 'Katamtaman', blurb: 'Daily routines and household activities — cooking, cleaning, shopping, weather.' },
-  3: { en: 'Advanced', yue: '高級', fil: 'Mahusay', blurb: 'Full sentences and phrases, including elder care and asking questions.' },
+  1: { en: 'Beginner', yue: '初級', fil: 'Baguhan', zh: '入门', blurb: 'Basic greetings and the everyday words you need in the first week.' },
+  2: { en: 'Intermediate', yue: '中級', fil: 'Katamtaman', zh: '中级', blurb: 'Daily routines and household activities — cooking, cleaning, shopping, weather.' },
+  3: { en: 'Advanced', yue: '高級', fil: 'Mahusay', zh: '进阶', blurb: 'Full sentences and phrases, including elder care and asking questions.' },
 };
 
 function levelName(n, lang) {
   const l = LEVELS[n];
   if (!l) return `Level ${n}`;
-  return lang === 'fil' ? l.fil : l.en;
+  if (lang === 'fil') return l.fil;
+  if (lang === 'zh') return l.zh;
+  return l.en;
 }
 
 /** Localised UI strings for the content pages. Deliberately separate from
@@ -109,6 +111,7 @@ const L = {
     cantonese: 'Cantonese',
     english: 'English',
     filipino: 'Filipino',
+    chinese: '中文',
     categories: 'Categories',
     levels: 'Levels',
     allWords: (n) => `All ${n} words`,
@@ -147,6 +150,7 @@ const L = {
     cantonese: 'Cantonese',
     english: 'Ingles',
     filipino: 'Filipino',
+    chinese: '中文',
     categories: 'Mga kategorya',
     levels: 'Mga antas',
     allWords: (n) => `Lahat ng ${n} salita`,
@@ -174,18 +178,71 @@ const L = {
     notFoundBody: 'Wala ang pahinang ito. Tingnan na lang ang bokabularyo.',
     footerNote: 'CantoBuddy — libreng Cantonese practice para sa mga helper sa Hong Kong.',
   },
+
+  /* Simplified Chinese, for the mainland-born audience in Hong Kong.
+     Search intent differs sharply from the other two trees: an English or
+     Filipino speaker searches "learn Cantonese for helpers"; this reader
+     searches 粤语学习 / 广东话日常用语 / 香港 粤语 入门. The copy is written to those
+     phrases rather than translated from the English. */
+  zh: {
+    htmlLang: 'zh-Hans',
+    brand: 'CantoBuddy',
+    tagline: '学香港日常生活粤语',
+    learn: '学习',
+    browse: '浏览粤语词汇',
+    openApp: '打开应用',
+    openAppDesc: '配发音、图片和测验来练习这些词 — 免费。',
+    jyutping: '粤拼',
+    cantonese: '粤语',
+    english: '英文',
+    filipino: '菲律宾语',
+    chinese: '中文',
+    categories: '分类',
+    levels: '水平',
+    allWords: (n) => `全部 ${n} 个词`,
+    wordsIn: (c) => `${c}类词汇`,
+    relatedIn: (c) => `更多${c}类词汇`,
+    home: '首页',
+    pronunciation: '发音',
+    meaning: '意思',
+    alsoSaid: '英文',
+    levelLabel: '水平',
+    categoryLabel: '分类',
+    aboutTitle: (c) => `关于这些${c}类的词`,
+    aboutBody: (c, n) =>
+      `这里有 ${n} 个实用的${c}类词汇和短句，用于香港日常生活。每条都给出粤语字、` +
+      `粤拼（Jyutping）读音，以及中文意思。`,
+    hubLede: (total, cats) =>
+      `CantoBuddy 里的全部粤语词汇：${total} 个实用词，分为 ${cats} 个日常分类，` +
+      `每个都有粤拼读音和中文意思。`,
+    wordIntro: (w) => `${w} 粤语怎么说`,
+    wordBody: (w, j, e, c) =>
+      `${e} 的粤语是 ${w}，读作 ${j}。它属于${c}类，是香港日常生活中常用的词。`,
+    notFound: '找不到页面',
+    notFoundBody: '这个页面不存在。试试浏览词汇表。',
+    footerNote: 'CantoBuddy — 香港免费粤语学习工具。',
+  },
 };
 
 /** Category display name in the requested language, falling back sensibly. */
 function catName(cat, lang) {
   if (!cat) return '';
   if (lang === 'fil') return cat.name_fil || cat.name_en;
+  // No Chinese category names in the schema yet, so the zh tree shows English.
+  // Not ideal, but an English category name is still readable to this audience
+  // and an empty label would not be.
   return cat.name_en || cat.name_fil;
 }
 
+/** The URL prefix for a language tree. English is the root, deliberately. */
+const LANG_PREFIX = { en: '', fil: '/fil', zh: '/zh' };
+
+/** Every language tree this module serves, in the order links should list them. */
+const LANGS = ['en', 'fil', 'zh'];
+
 /** Where a category page lives, in the right language tree. */
 function catHref(cat, lang) {
-  const prefix = lang === 'fil' ? '/fil' : '';
+  const prefix = LANG_PREFIX[lang] || '';
   return `${prefix}/learn/${slugify(cat.name_en)}`;
 }
 
@@ -316,21 +373,43 @@ const VISIT_BEACON = `<script>
 </script>`;
 
 /**
+ * Every language tree's copy of one page, as hreflang alternates.
+ *
+ * `pathFor(lang)` returns the path of this page in that language, or null when
+ * the page has no counterpart there — a self-referential pair with no real
+ * counterpart would be a lie, so those are simply left out.
+ */
+function hreflangLinks(pathFor) {
+  const out = [];
+  for (const lang of LANGS) {
+    const p = pathFor(lang);
+    if (p) out.push({ lang: L[lang].htmlLang, path: p });
+  }
+  // x-default tells a search engine which tree to serve when it cannot match
+  // the searcher's language. English, because it is the one that is complete.
+  const def = pathFor('en');
+  if (def) out.push({ lang: 'x-default', path: def });
+  return out;
+}
+
+/**
  * Build a full HTML document.
  * @param {object} o  {lang,title,description,path,jsonLd,body,noindex,alternates}
  */
 function page(o) {
-  const lang = o.lang === 'fil' ? 'fil' : 'en';
+  const lang = LANGS.includes(o.lang) ? o.lang : 'en';
   const canonical = `${SITE_ORIGIN}${o.path}`;
 
-  // hreflang alternates. Emitted only when the caller supplies both trees —
+  // hreflang alternates. Emitted only when the caller supplies a real set —
   // a self-referential pair with no real counterpart would be a lie.
   const alt = (o.alternates || [])
     .map((a) => `<link rel="alternate" hreflang="${esc(a.lang)}" href="${esc(SITE_ORIGIN + a.path)}" />`)
     .join('\n  ');
 
+  const OG_LOCALE = { en: 'en_HK', fil: 'fil_PH', zh: 'zh_CN' };
+
   return `<!DOCTYPE html>
-<html lang="${lang}">
+<html lang="${esc(L[lang].htmlLang)}">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -345,7 +424,7 @@ function page(o) {
   <meta property="og:description" content="${esc(o.description)}" />
   <meta property="og:url" content="${esc(canonical)}" />
   <meta property="og:image" content="${SITE_ORIGIN}/icons/icon-512.png" />
-  <meta property="og:locale" content="${lang === 'fil' ? 'fil_PH' : 'en_HK'}" />
+  <meta property="og:locale" content="${OG_LOCALE[lang]}" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${esc(o.title)}" />
   <meta name="twitter:description" content="${esc(o.description)}" />
@@ -362,7 +441,7 @@ function page(o) {
 <body>
 <header class="site">
   <div class="wrap">
-    <a class="brand" href="${lang === 'fil' ? '/fil' : '/'}"><span class="em">🦜</span>CantoBuddy</a>
+    <a class="brand" href="${LANG_PREFIX[lang] || '/'}"><span class="em">🦜</span>CantoBuddy</a>
     <a class="cta" href="/">${esc(L[lang].openApp)}</a>
   </div>
 </header>
@@ -374,13 +453,26 @@ ${o.body}
 <footer class="site">
   <div class="wrap">
     <p>${esc(L[lang].footerNote)}</p>
-    <p><a href="${lang === 'fil' ? '/' : '/fil'}">${lang === 'fil' ? 'English' : 'Filipino'}</a>
-       &nbsp;·&nbsp; <a href="${lang === 'fil' ? '/fil/learn' : '/learn'}">${esc(L[lang].browse)}</a></p>
+    <p>${languageLinks(lang)}
+       &nbsp;·&nbsp; <a href="${LANG_PREFIX[lang]}/learn">${esc(L[lang].browse)}</a></p>
   </div>
 </footer>
 ${VISIT_BEACON}
 </body>
 </html>`;
+}
+
+/**
+ * The language switcher in the footer, listing every tree BUT the current one.
+ *
+ * Written in each target language's own name, so a reader who has landed in a
+ * language she cannot read can still find her way out — "中文" is recognisable
+ * to a Mandarin speaker in a way that "Chinese" is not.
+ */
+function languageLinks(current) {
+  return LANGS.filter((l) => l !== current)
+    .map((l) => `<a href="${LANG_PREFIX[l]}/learn" hreflang="${L[l].htmlLang}">${esc(L[l].chinese || L[l].filipino || l)}</a>`)
+    .join(' &nbsp;·&nbsp; ');
 }
 
 /** Shared CTA block linking back into the SPA. */
@@ -394,39 +486,66 @@ function ctaCard(lang, extra) {
 
 function crumbs(lang, trail) {
   const t = L[lang];
-  const parts = [`<a href="${lang === 'fil' ? '/fil/learn' : '/learn'}">${esc(t.learn)}</a>`];
+  const parts = [`<a href="${LANG_PREFIX[lang]}/learn">${esc(t.learn)}</a>`];
   for (const c of trail) {
     parts.push(c.href ? `<a href="${esc(c.href)}">${esc(c.label)}</a>` : `<span>${esc(c.label)}</span>`);
   }
   return `<nav class="crumbs" aria-label="Breadcrumb">${parts.join('<span class="sep">›</span>')}</nav>`;
 }
 
-/** Vocabulary table. `linkWords` turns the English column into internal links. */
+/** The word "words" in the page's language, for the count labels. */
+function wordUnit(lang) {
+  if (lang === 'fil') return 'salita';
+  if (lang === 'zh') return '个词';
+  return 'words';
+}
+
+/** The meaning of an entry in the page's language, for tables and cards. */
+function glossOf(w, lang) {
+  if (lang === 'zh') return w.mandarin || w.english || '';
+  if (lang === 'fil') return w.tagalog || w.english || '';
+  return w.english || '';
+}
+
+/**
+ * Vocabulary table. `linkWords` turns the meaning column into internal links.
+ *
+ * The columns are the same in every language tree — Cantonese, Jyutping, then
+ * the meaning — because the meaning column is the only thing that changes. A
+ * language-specific column layout would mean three separate tables to keep in
+ * sync, and the hreflang work assumes the pages are the same document in
+ * different languages.
+ */
 function vocabTable(rows, lang, linkWords) {
   const t = L[lang];
   const trs = rows
     .map((w) => {
-      const en = linkWords && w.slug
-        ? `<a href="${lang === 'fil' ? '/fil' : ''}/words/${esc(w.slug)}">${esc(w.english)}</a>`
-        : esc(w.english);
-      const fil = lang === 'fil' ? '' : `<br /><span style="color:var(--muted);font-size:13.5px">${esc(w.tagalog)}</span>`;
+      // The linking language is always English, so the target page is the
+      // English tree's — a zh reader following the link gets the word page
+      // rather than a fourth tree that does not exist.
+      const primary = linkWords && w.slug
+        ? `<a href="/words/${esc(w.slug)}">${esc(glossOf(w, lang))}</a>`
+        : esc(glossOf(w, lang));
+      // The English meaning underneath, except on the English tree where it
+      // would just be the same string twice.
+      const second = lang === 'en'
+        ? (w.tagalog ? `<br /><span style="color:var(--muted);font-size:13.5px">${esc(w.tagalog)}</span>` : '')
+        : `<br /><span style="color:var(--muted);font-size:13.5px">${esc(w.english)}</span>`;
       return `<tr>
       <td class="em">${esc(w.emoji || '')}</td>
       <td class="han">${esc(w.cantonese)}</td>
       <td class="jy">${esc(w.jyutping)}</td>
-      <td>${en}${fil}</td>
+      <td>${primary}${second}</td>
     </tr>`;
     })
     .join('\n');
 
-  const filHead = lang === 'fil' ? '' : `<th>${esc(t.filipino)}</th>`;
   return `<table>
   <thead><tr>
     <th aria-label="Icon"></th>
     <th>${esc(t.cantonese)}</th>
     <th>${esc(t.jyutping)}</th>
-    <th>${esc(t.english)}${lang === 'fil' ? ` / ${esc(t.filipino)}` : ''}</th>
-    ${filHead}
+    <th>${esc(t.meaning)}</th>
   </tr></thead>
   <tbody>
 ${trs}
@@ -490,14 +609,14 @@ function renderLearnHub(lang) {
   const t = L[lang];
   const cats = store.listEnabledCategories();
   const total = store.listVocabulary({ enabledOnly: true }).length;
-  const prefix = lang === 'fil' ? '/fil' : '';
+  const prefix = LANG_PREFIX[lang] || '';
 
   const catItems = cats
     .map((c) => {
       const n = store.listVocabulary({ category_id: c.id, enabledOnly: true }).length;
       return `<li><a href="${catHref(c, lang)}">
         <span class="em">${esc(c.icon || '📘')}</span>
-        <span>${esc(catName(c, lang))}<span class="n">${n} ${lang === 'fil' ? 'salita' : 'words'}</span></span>
+        <span>${esc(catName(c, lang))}<span class="n">${n} ${wordUnit(lang)}</span></span>
       </a></li>`;
     })
     .join('\n');
@@ -507,7 +626,7 @@ function renderLearnHub(lang) {
       const count = store.listVocabulary({ level: Number(n), enabledOnly: true }).length;
       return `<li><a href="${prefix}/level/${n}">
         <span class="em">${n === '1' ? '🌱' : n === '2' ? '🌿' : '🌳'}</span>
-        <span>${esc(levelName(Number(n), lang))}<span class="n">${count} ${lang === 'fil' ? 'salita' : 'words'}</span></span>
+        <span>${esc(levelName(Number(n), lang))}<span class="n">${count} ${wordUnit(lang)}</span></span>
       </a></li>`;
     })
     .join('\n');
@@ -529,12 +648,18 @@ ${levelItems}
 ${ctaCard(lang)}
 `;
 
-  const title = lang === 'fil'
-    ? `Bokabularyong Cantonese — ${total} salita para sa mga helper sa Hong Kong | CantoBuddy`
-    : `Cantonese Vocabulary — ${total} Words for Helpers in Hong Kong | CantoBuddy`;
-  const description = lang === 'fil'
-    ? `Tingnan ang ${total} praktikal na salitang Cantonese sa ${cats.length} kategorya, may Jyutping at kahulugan sa Filipino at Ingles.`
-    : `Browse ${total} practical Cantonese words across ${cats.length} categories, with Jyutping romanisation and English and Filipino meanings.`;
+  const TITLE = {
+    en: `Cantonese Vocabulary — ${total} Words for Helpers in Hong Kong | CantoBuddy`,
+    fil: `Bokabularyong Cantonese — ${total} salita para sa mga helper sa Hong Kong | CantoBuddy`,
+    zh: `${total} 个香港粤语常用词 — 粤语学习词汇表 | CantoBuddy`,
+  };
+  const DESC = {
+    en: `Browse ${total} practical Cantonese words across ${cats.length} categories, with Jyutping romanisation and English and Filipino meanings.`,
+    fil: `Tingnan ang ${total} praktikal na salitang Cantonese sa ${cats.length} kategorya, may Jyutping at kahulugan sa Filipino at Ingles.`,
+    zh: `浏览 ${total} 个实用粤语词汇，分为 ${cats.length} 个日常分类，配有粤拼读音和中文意思。适合在香港生活、想学广东话的普通话使用者。`,
+  };
+  const title = TITLE[lang];
+  const description = DESC[lang];
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -546,7 +671,7 @@ ${ctaCard(lang)}
         name: title,
         description,
         url: `${SITE_ORIGIN}${prefix}/learn`,
-        inLanguage: lang === 'fil' ? 'fil' : 'en',
+        inLanguage: L[lang].htmlLang,
         about: { '@type': 'Thing', name: 'Cantonese language' },
       },
     ],
@@ -559,11 +684,7 @@ ${ctaCard(lang)}
     path: `${prefix}/learn`,
     jsonLd,
     body,
-    alternates: [
-      { lang: 'en', path: '/learn' },
-      { lang: 'fil', path: '/fil/learn' },
-      { lang: 'x-default', path: '/learn' },
-    ],
+    alternates: hreflangLinks((l) => `${LANG_PREFIX[l]}/learn`),
   });
 }
 
@@ -575,9 +696,7 @@ function renderCategory(lang, slug) {
 
   const rows = withSlugs(store.listVocabulary({ category_id: cat.id, enabledOnly: true }));
   const name = catName(cat, lang);
-  const other = lang === 'fil' ? 'en' : 'fil';
-  const prefix = lang === 'fil' ? '/fil' : '';
-  const otherPrefix = lang === 'fil' ? '' : '/fil';
+  const prefix = LANG_PREFIX[lang] || '';
 
   const byLevel = Object.keys(LEVELS)
     .map((n) => rows.filter((w) => w.level === Number(n)))
@@ -600,12 +719,18 @@ ${byLevel}
 ${ctaCard(lang)}
 `;
 
-  const title = lang === 'fil'
-    ? `${name} sa Cantonese — ${rows.length} salita (${cat.name_yue || ''}) | CantoBuddy`
-    : `${name} in Cantonese — ${rows.length} Words (${cat.name_yue || ''}) | CantoBuddy`;
-  const description = lang === 'fil'
-    ? `${rows.length} praktikal na salitang Cantonese para sa ${name.toLowerCase()}, may Jyutping at kahulugan sa Filipino at Ingles.`
-    : `Learn ${rows.length} practical Cantonese ${name.toLowerCase()} words with Jyutping romanisation and English and Filipino meanings — free.`;
+  const TITLE = {
+    en: `${name} in Cantonese — ${rows.length} Words (${cat.name_yue || ''}) | CantoBuddy`,
+    fil: `${name} sa Cantonese — ${rows.length} salita (${cat.name_yue || ''}) | CantoBuddy`,
+    zh: `${name}粤语怎么说 — ${rows.length} 个常用词 (${cat.name_yue || ''}) | CantoBuddy`,
+  };
+  const DESC = {
+    en: `Learn ${rows.length} practical Cantonese ${name.toLowerCase()} words with Jyutping romanisation and English and Filipino meanings — free.`,
+    fil: `${rows.length} praktikal na salitang Cantonese para sa ${name.toLowerCase()}, may Jyutping at kahulugan sa Filipino at Ingles.`,
+    zh: `${rows.length} 个实用的${name}粤语词汇，配粤拼读音和中文意思。香港日常生活常用的广东话，免费学习。`,
+  };
+  const title = TITLE[lang];
+  const description = DESC[lang];
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -620,7 +745,7 @@ ${ctaCard(lang)}
         name: title,
         description,
         url: `${SITE_ORIGIN}${prefix}/learn/${slug}`,
-        inLanguage: lang === 'fil' ? 'fil' : 'en',
+        inLanguage: L[lang].htmlLang,
         learningResourceType: 'Vocabulary list',
         educationalLevel: 'Beginner to advanced',
         teaches: `${name} vocabulary in Cantonese`,
@@ -638,11 +763,7 @@ ${ctaCard(lang)}
     path: `${prefix}/learn/${slug}`,
     jsonLd,
     body,
-    alternates: [
-      { lang: 'en', path: `/learn/${slug}` },
-      { lang: 'fil', path: `/fil/learn/${slug}` },
-      { lang: 'x-default', path: `/learn/${slug}` },
-    ],
+    alternates: hreflangLinks((l) => `${LANG_PREFIX[l]}/learn/${slug}`),
   });
 }
 
@@ -655,7 +776,7 @@ function renderWord(lang, slug) {
 
   const cat = store.getCategory(w.category_id);
   const name = catName(cat, lang);
-  const prefix = lang === 'fil' ? '/fil' : '';
+  const prefix = LANG_PREFIX[lang] || '';
   const catUrl = cat ? catHref(cat, lang) : `${prefix}/learn`;
 
   const related = withSlugs(
@@ -669,31 +790,36 @@ ${related
   .map(
     (r) => `<li><a href="${prefix}/words/${esc(r.slug)}">
     <span class="em">${esc(r.emoji || '')}</span>
-    <span class="han" style="font-family:'Noto Sans SC',sans-serif">${esc(r.cantonese)}<span class="n">${esc(r.english)}</span></span>
+    <span class="han" style="font-family:'Noto Sans SC',sans-serif">${esc(r.cantonese)}<span class="n">${esc(glossOf(r, lang))}</span></span>
   </a></li>`
   )
   .join('\n')}
 </ul>`
     : '';
 
+  const gloss = glossOf(w, lang);
+
   const body = `
 ${crumbs(lang, [
     { label: t.categories, href: `${prefix}/learn` },
     { label: name, href: catUrl },
-    { label: w.english },
+    { label: gloss },
   ])}
 <h1 class="word-hero">
   <span class="han">${esc(w.cantonese)}</span>
   <span class="jy">${esc(w.jyutping)}</span>
-  <span class="gloss">${esc(w.english)}</span>
-  <span class="fil">${lang === 'fil' ? esc(w.english) : esc(w.tagalog)}</span>
+  <span class="gloss">${esc(gloss)}</span>
+  ${lang === 'en'
+      ? (w.tagalog ? `<span class="fil">${esc(w.tagalog)}</span>` : '')
+      : `<span class="fil">${esc(w.english)}</span>`}
 </h1>
-<p class="lede">${esc(t.wordBody(w.cantonese, w.jyutping, w.english, name))}</p>
+<p class="lede">${esc(t.wordBody(w.cantonese, w.jyutping, gloss, name))}</p>
 <dl class="meta">
   <dt>${esc(t.cantonese)}</dt><dd>${esc(w.cantonese)}</dd>
   <dt>${esc(t.pronunciation)}</dt><dd>${esc(w.jyutping)}</dd>
-  <dt>${esc(t.meaning)}</dt><dd>${esc(w.english)}</dd>
-  <dt>${esc(t.alsoSaid)}</dt><dd>${esc(w.tagalog)}</dd>
+  <dt>${esc(t.meaning)}</dt><dd>${esc(gloss)}</dd>
+  <dt>${esc(t.alsoSaid)}</dt><dd>${esc(w.english)}</dd>
+  ${w.mandarin && lang !== 'zh' ? `<dt>${esc(t.chinese || '中文')}</dt><dd lang="zh-Hans">${esc(w.mandarin)}</dd>` : ''}
   <dt>${esc(t.levelLabel)}</dt><dd><a href="${prefix}/level/${w.level}">${esc(levelName(w.level, lang))}</a></dd>
   <dt>${esc(t.categoryLabel)}</dt><dd><a href="${esc(catUrl)}">${esc(name)}</a></dd>
 </dl>
@@ -701,12 +827,18 @@ ${ctaCard(lang)}
 ${relatedBlock}
 `;
 
-  const title = lang === 'fil'
-    ? `${w.english} sa Cantonese — ${w.cantonese} (${w.jyutping}) | CantoBuddy`
-    : `${w.english} in Cantonese — ${w.cantonese} (${w.jyutping}) | CantoBuddy`;
-  const description = lang === 'fil'
-    ? `${w.english} sa Cantonese ay ${w.cantonese}, binibigkas na ${w.jyutping}. Kasama sa ${name.toLowerCase()}.`
-    : `${w.english} in Cantonese is ${w.cantonese} (${w.jyutping}). Learn this ${name.toLowerCase()} word with audio and quizzes — free for helpers in Hong Kong.`;
+  const TITLE = {
+    en: `${w.english} in Cantonese — ${w.cantonese} (${w.jyutping}) | CantoBuddy`,
+    fil: `${w.english} sa Cantonese — ${w.cantonese} (${w.jyutping}) | CantoBuddy`,
+    zh: `${w.cantonese} 粤语怎么说 — ${gloss} (${w.jyutping}) | CantoBuddy`,
+  };
+  const DESC = {
+    en: `${w.english} in Cantonese is ${w.cantonese} (${w.jyutping}). Learn this ${name.toLowerCase()} word with audio and quizzes — free for helpers in Hong Kong.`,
+    fil: `${w.english} sa Cantonese ay ${w.cantonese}, binibigkas na ${w.jyutping}. Kasama sa ${name.toLowerCase()}.`,
+    zh: `${gloss}的粤语是${w.cantonese}，读作 ${w.jyutping}。属于${name}类，附发音和测验，免费学习。`,
+  };
+  const title = TITLE[lang];
+  const description = DESC[lang];
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -715,13 +847,13 @@ ${relatedBlock}
       breadcrumbLd([
         { name: t.learn, path: `${prefix}/learn` },
         { name, path: cat ? `${prefix}/learn/${slugify(cat.name_en)}` : `${prefix}/learn` },
-        { name: w.english, path: `${prefix}/words/${slug}` },
+        { name: gloss, path: `${prefix}/words/${slug}` },
       ]),
       {
         '@type': 'DefinedTerm',
-        name: w.english,
+        name: gloss,
         alternateName: w.cantonese,
-        description: `${w.english} in Cantonese is ${w.cantonese}, pronounced ${w.jyutping}.`,
+        description: `${gloss} in Cantonese is ${w.cantonese}, pronounced ${w.jyutping}.`,
         inLanguage: 'yue',
         url: `${SITE_ORIGIN}${prefix}/words/${slug}`,
         inDefinedTermSet: { '@type': 'DefinedTermSet', name: `CantoBuddy ${name} vocabulary` },
@@ -736,11 +868,7 @@ ${relatedBlock}
     path: `${prefix}/words/${slug}`,
     jsonLd,
     body,
-    alternates: [
-      { lang: 'en', path: `/words/${slug}` },
-      { lang: 'fil', path: `/fil/words/${slug}` },
-      { lang: 'x-default', path: `/words/${slug}` },
-    ],
+    alternates: hreflangLinks((l) => `${LANG_PREFIX[l]}/words/${slug}`),
   });
 }
 
@@ -752,7 +880,7 @@ function renderLevel(lang, level) {
 
   const rows = withSlugs(store.listVocabulary({ level: n, enabledOnly: true }));
   const name = levelName(n, lang);
-  const prefix = lang === 'fil' ? '/fil' : '';
+  const prefix = LANG_PREFIX[lang] || '';
 
   const cats = store.listEnabledCategories();
   const present = cats.filter((c) => rows.some((w) => w.category_id === c.id));
@@ -771,12 +899,18 @@ ${vocabTable(rows, lang, true)}
 ${ctaCard(lang)}
 `;
 
-  const title = lang === 'fil'
-    ? `${name} Cantonese — ${rows.length} salita | CantoBuddy`
-    : `${name} Cantonese — ${rows.length} Words | CantoBuddy`;
-  const description = lang === 'fil'
-    ? `${LEVELS[n].blurb} ${rows.length} salitang Cantonese na may Jyutping at kahulugan sa Filipino.`
-    : `${LEVELS[n].blurb} ${rows.length} Cantonese words with Jyutping and English and Filipino meanings.`;
+  const TITLE = {
+    en: `${name} Cantonese — ${rows.length} Words | CantoBuddy`,
+    fil: `${name} Cantonese — ${rows.length} salita | CantoBuddy`,
+    zh: `${name}粤语 — ${rows.length} 个常用词 | CantoBuddy`,
+  };
+  const DESC = {
+    en: `${LEVELS[n].blurb} ${rows.length} Cantonese words with Jyutping and English and Filipino meanings.`,
+    fil: `${LEVELS[n].blurb} ${rows.length} salitang Cantonese na may Jyutping at kahulugan sa Filipino.`,
+    zh: `${LEVELS[n].blurb} 共 ${rows.length} 个粤语词，配粤拼读音和中文意思。`,
+  };
+  const title = TITLE[lang];
+  const description = DESC[lang];
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -791,7 +925,7 @@ ${ctaCard(lang)}
         name: title,
         description,
         url: `${SITE_ORIGIN}${prefix}/level/${n}`,
-        inLanguage: lang === 'fil' ? 'fil' : 'en',
+        inLanguage: L[lang].htmlLang,
         learningResourceType: 'Vocabulary list',
         educationalLevel: name,
         isAccessibleForFree: true,
@@ -808,18 +942,14 @@ ${ctaCard(lang)}
     path: `${prefix}/level/${n}`,
     jsonLd,
     body,
-    alternates: [
-      { lang: 'en', path: `/level/${n}` },
-      { lang: 'fil', path: `/fil/level/${n}` },
-      { lang: 'x-default', path: `/level/${n}` },
-    ],
+    alternates: hreflangLinks((l) => `${LANG_PREFIX[l]}/level/${n}`),
   });
 }
 
 /** 404 body for an unknown content slug, so a bad URL stays useful. */
 function renderNotFound(lang) {
   const t = L[lang];
-  const prefix = lang === 'fil' ? '/fil' : '';
+  const prefix = LANG_PREFIX[lang] || '';
   const body = `
 ${crumbs(lang, [{ label: t.browse, href: `${prefix}/learn` }])}
 <h1>${esc(t.notFound)}</h1>
@@ -868,47 +998,34 @@ ${alts}
   </url>`);
   };
 
-  // The SPA itself.
+  // The SPA itself. Its alternates point at each tree's hub, because "/" is
+  // only the app in English — the other two languages enter through /fil/learn
+  // and /zh/learn.
   add('/', '1.0', 'weekly', [
     { lang: 'en', path: '/' },
     { lang: 'fil', path: '/fil/learn' },
+    { lang: 'zh-Hans', path: '/zh/learn' },
     { lang: 'x-default', path: '/' },
   ]);
 
   // Hubs.
-  for (const [lang, prefix] of [['en', ''], ['fil', '/fil']]) {
-    add(`${prefix}/learn`, '0.9', 'weekly', [
-      { lang: 'en', path: '/learn' },
-      { lang: 'fil', path: '/fil/learn' },
-      { lang: 'x-default', path: '/learn' },
-    ]);
+  for (const prefix of Object.values(LANG_PREFIX)) {
+    add(`${prefix}/learn`, '0.9', 'weekly', hreflangLinks((l) => `${LANG_PREFIX[l]}/learn`));
   }
 
-  // Categories, levels, words — in both language trees.
+  // Categories, levels, words — in every language tree.
   const cats = store.listEnabledCategories();
-  for (const [lang, prefix] of [['en', ''], ['fil', '/fil']]) {
+  const { bySlug } = buildWordIndex();
+  for (const prefix of Object.values(LANG_PREFIX)) {
     for (const c of cats) {
       const s = slugify(c.name_en);
-      add(`${prefix}/learn/${s}`, '0.8', 'monthly', [
-        { lang: 'en', path: `/learn/${s}` },
-        { lang: 'fil', path: `/fil/learn/${s}` },
-        { lang: 'x-default', path: `/learn/${s}` },
-      ]);
+      add(`${prefix}/learn/${s}`, '0.8', 'monthly', hreflangLinks((l) => `${LANG_PREFIX[l]}/learn/${s}`));
     }
     for (const n of Object.keys(LEVELS)) {
-      add(`${prefix}/level/${n}`, '0.7', 'monthly', [
-        { lang: 'en', path: `/level/${n}` },
-        { lang: 'fil', path: `/fil/level/${n}` },
-        { lang: 'x-default', path: `/level/${n}` },
-      ]);
+      add(`${prefix}/level/${n}`, '0.7', 'monthly', hreflangLinks((l) => `${LANG_PREFIX[l]}/level/${n}`));
     }
-    const { bySlug } = buildWordIndex();
     for (const s of bySlug.keys()) {
-      add(`${prefix}/words/${s}`, '0.6', 'monthly', [
-        { lang: 'en', path: `/words/${s}` },
-        { lang: 'fil', path: `/fil/words/${s}` },
-        { lang: 'x-default', path: `/words/${s}` },
-      ]);
+      add(`${prefix}/words/${s}`, '0.6', 'monthly', hreflangLinks((l) => `${LANG_PREFIX[l]}/words/${s}`));
     }
   }
 
@@ -935,6 +1052,7 @@ Allow: /learn
 Allow: /words
 Allow: /level
 Allow: /fil
+Allow: /zh
 
 # The JSON API is not a page — it is the SPA's data feed. Crawling it just
 # duplicates the server-rendered pages below.
@@ -983,7 +1101,7 @@ function mount(app) {
     res.send(renderRobots());
   });
 
-  // English tree.
+  // English tree lives at the root; the other trees mirror it under a prefix.
   const routes = [
     ['/learn', (lang) => renderLearnHub(lang)],
     ['/learn/:slug', (lang, p) => renderCategory(lang, p.slug)],
@@ -992,9 +1110,8 @@ function mount(app) {
   ];
 
   for (const [route, build] of routes) {
-    for (const lang of ['en', 'fil']) {
-      const prefix = lang === 'fil' ? '/fil' : '';
-      app.get(prefix + route, (req, res) => {
+    for (const lang of LANGS) {
+      app.get(LANG_PREFIX[lang] + route, (req, res) => {
         let body;
         try {
           body = build(lang, req.params);
@@ -1010,10 +1127,11 @@ function mount(app) {
     }
   }
 
-  // /fil on its own goes to the Filipino hub.
+  // A bare prefix goes to that language's hub.
   app.get('/fil', (req, res) => res.redirect(301, '/fil/learn'));
+  app.get('/zh', (req, res) => res.redirect(301, '/zh/learn'));
 
-  console.log(`  SEO:          ${SITE_ORIGIN}/sitemap.xml  (${store.listVocabulary({ enabledOnly: true }).length} words, ${store.listEnabledCategories().length} categories)`);
+  console.log(`  SEO:          ${SITE_ORIGIN}/sitemap.xml  (${store.listVocabulary({ enabledOnly: true }).length} words, ${store.listEnabledCategories().length} categories, ${LANGS.length} languages)`);
 }
 
 module.exports = { mount, SITE_ORIGIN, slugify, buildWordIndex, wordSlugMap };

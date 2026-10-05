@@ -199,6 +199,7 @@ function openVocabForm(id) {
     document.getElementById('vf-jyutping').value = v.jyutping;
     document.getElementById('vf-english').value = v.english;
     document.getElementById('vf-tagalog').value = v.tagalog || '';
+    document.getElementById('vf-mandarin').value = v.mandarin || '';
     document.getElementById('vf-emoji').value = v.emoji || '';
     document.getElementById('vf-level').value = v.level;
     document.getElementById('vf-category').value = v.category_id;
@@ -223,6 +224,7 @@ async function submitVocabForm(e) {
     jyutping: document.getElementById('vf-jyutping').value.trim(),
     english: document.getElementById('vf-english').value.trim(),
     tagalog: document.getElementById('vf-tagalog').value.trim(),
+    mandarin: document.getElementById('vf-mandarin').value.trim(),
     emoji: document.getElementById('vf-emoji').value.trim() || '📝',
     level: document.getElementById('vf-level').value,
     category_id: document.getElementById('vf-category').value,

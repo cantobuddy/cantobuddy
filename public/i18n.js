@@ -1,9 +1,27 @@
 /* =============================================================================
-   CantoBuddy — Internationalisation (English / Filipino)
+   CantoBuddy — Internationalisation (English / Filipino / Simplified Chinese)
    Loaded before app.js. Exposes t(), setLang(), toggleLang(), applyTranslations().
    ============================================================================= */
 
 const LANG_STORAGE_KEY = 'cb_lang';
+
+/* The three languages the app can be read in.
+
+   `zh` is written 中文 on the control and means Simplified Chinese. The name
+   matters: this is not a translation of the interface for Chinese speakers, it
+   is a second audience — people who came to Hong Kong from the mainland and
+   already speak Mandarin. They are learning Cantonese for a different reason
+   than the Filipino helpers the app was built for: the helper needs to
+   understand her employer, the new arrival needs to be understood at the market
+   and the clinic. The words overlap; the priorities do not.
+
+   `html` is what goes in the document's lang attribute. */
+const LANGS = [
+  { code: 'en', label: 'EN',  name: 'English',  html: 'en' },
+  { code: 'fil', label: 'FIL', name: 'Filipino', html: 'tl' },
+  { code: 'zh', label: '中文', name: '简体中文', html: 'zh-Hans' },
+];
+const LANG_CODES = LANGS.map((l) => l.code);
 
 const I18N = {
   en: {
@@ -458,9 +476,249 @@ const I18N = {
     'footer.allWords': 'Lahat ng salita at kategorya',
     'footer.filipino': 'Filipino',
   },
+
+  /* Simplified Chinese, for learners who arrived from the mainland and already
+     speak Mandarin.
+
+     Written as a functional translation with a few deliberate choices:
+       - 「粤语」 for Cantonese, not 「广东话」. Both are understood, but 粤语 is the
+         term used in language-learning contexts, which is where this reader is.
+       - 「菲佣」 is avoided entirely despite being the common Hong Kong shorthand;
+         it is dismissive, and this screen is also read by the helpers themselves
+         when they switch language. 「外佣」/「家庭助理」 is used instead.
+       - Short, verb-first labels, matching the terse English rather than
+         translating its politeness. Chinese UI text that mirrors English
+         sentence structure reads as machine-translated. */
+  zh: {
+    // nav / header
+    'nav.home': '首页',
+    'nav.learn': '学习',
+    'nav.quiz': '测验',
+    'nav.progress': '进度',
+    'nav.share': '分享',
+    'header.setName': '设置姓名',
+    'header.voiceTitle': '选择练习语音',
+    'header.langTitle': '切换语言',
+    'header.langSwitchEn': '切换到英文',
+    'header.langSwitchFil': '切换到菲律宾语',
+    'header.langSwitchZh': '切换到简体中文',
+    'header.employerSite': '雇主入口',
+    'header.learnerSite': '学习版',
+    'header.shareSite': '分享 CantoBuddy',
+
+    // home
+    'home.title': '学粤语',
+    'home.subtitle': '香港日常生活用语',
+    'home.desc': '实用的词和句子，配有发音、图片和测验。从你的水平开始！',
+    'home.beginner': '入门',
+    'home.intermediate': '中级',
+    'home.advanced': '进阶',
+    'home.beginnerDesc': '基本问候和常用词',
+    'home.intermediateDesc': '日常活动和习惯',
+    'home.advancedDesc': '完整句子和短语',
+    'home.startQuiz': '📝 开始测验',
+    'home.myProgress': '📊 我的进度',
+    'home.browseByCategory': '按类别浏览',
+
+    // browse
+    'browse.backHome': '← 首页',
+    'browse.title': '词汇',
+    'browse.level': '水平：',
+    'browse.category': '类别：',
+    'browse.all': '全部',
+    'browse.allLevels': '全部水平',
+    'browse.empty': '这个筛选条件下没有找到词。',
+    'browse.tapToHear': '点按听发音',
+
+    // quiz setup
+    'quiz.title': '开始测验！',
+    'quiz.chooseLevel': '选择水平',
+    'quiz.chooseType': '选择测验类型',
+    'quiz.tMultipleChoice': '选择题',
+    'quiz.dMultipleChoice': '看粤语，选中文意思',
+    'quiz.tListenChoose': '听音选择',
+    'quiz.dListenChoose': '听发音，选正确的意思',
+    'quiz.tMatchPicture': '看图配对',
+    'quiz.dMatchPicture': '看图片，选出对应的粤语词',
+    'quiz.tFillBlank': '填空',
+    'quiz.dFillBlank': '用正确的词补全句子',
+
+    // quiz play
+    'quiz.quit': '← 退出',
+    'quiz.questionOf': '第',
+    'quiz.score': '得分：',
+    'quiz.tapSpeaker': '点喇叭听发音',
+    'quiz.promptMeaning': '这是什么意思？',
+    'quiz.promptListen': '听录音，选出正确的意思',
+    'quiz.promptMatch': '哪个粤语词对应这张图片？',
+    'quiz.promptFill': '用正确的词填空',
+    'quiz.correct': '✅ 答对了！',
+    'quiz.answerIs': '❌ 答案：',
+    'quiz.next': '下一题 →',
+    'quiz.seeResults': '查看结果 🎉',
+    'quiz.notEnough': '这个水平的词不够做测验，换一个水平试试。',
+
+    // results
+    'result.complete': '测验完成！',
+    'result.percentCorrect': '% 正确',
+    'result.tryAgain': '再试一次',
+    'result.done': '完成',
+    'result.share': '分享我的成绩',
+
+    // progress
+    'progress.title': '我的进度',
+    'progress.setNameFirst': '先设置姓名才能记录进度！点顶部的「设置姓名」。',
+    'progress.none': '还没有测验记录。开始第一次测验吧！📝',
+    'progress.overall': '总得分',
+    'progress.byLevel': '按水平',
+    'progress.recent': '最近的测验',
+    'progress.correctOutOf': '正确，共',
+    'progress.attempts': '次测验',
+    'progress.couldNotLoad': '无法加载进度。',
+    'progress.partial': '未完成',
+    'progress.stoppedAt': '中止于',
+
+    // statistics — her own numbers, shown inside My Progress
+    'stats.title': '我的统计',
+    'stats.none': '完成一次测验后，这里会显示你的统计。',
+    'stats.streak': '连续练习',
+    'stats.streakNone': '还没开始',
+    'stats.dayOne': '天',
+    'stats.days': '天',
+    'stats.inARow': '连续',
+    'stats.practisedToday': '今天练习了 — 继续保持！',
+    'stats.practiseToday': '今天练一练，别断了连续记录',
+    'stats.best': '最长',
+    'stats.daysPractised': '练习天数',
+    'stats.thisWeek': '本周',
+    'stats.lastWeek': '上周',
+    'stats.attemptOne': '次',
+    'stats.attempts': '次',
+    'stats.correctPct': '{n}% 正确',
+    'stats.nothingLastWeek': '上周没有练习',
+    'stats.overTime': '练习趋势',
+    'stats.range7': '7 天',
+    'stats.range30': '30 天',
+    'stats.range90': '90 天',
+    'stats.byQuizType': '你的练习方式',
+    'stats.chartHint': '每根柱子代表一天',
+
+    // name modal
+    'name.title': '你的姓名',
+    'name.hint': '输入姓名，你的测验成绩才能保存。',
+    'name.placeholder': '例如：小明',
+    'name.cancel': '取消',
+    'name.save': '保存',
+    'name.notSaved': '浏览器阻止了本地存储，姓名可能无法记住。请用普通窗口，不要用无痕浏览。',
+
+    // voice modal
+    'voice.title': '🎙️ 选择练习语音',
+    'voice.hint': '点一个语音听 你好 — 可选女声或男声，慢速或自然。',
+    'voice.woman': '女声',
+    'voice.man': '男声',
+    'voice.slow': '慢速清晰',
+    'voice.natural': '自然',
+    'voice.realVoice': '真实语音',
+    'voice.allOnDevice': '本设备上的所有语音',
+    'voice.female': '女声',
+    'voice.male': '男声',
+    'voice.unknown': '未知',
+    'voice.done': '完成',
+    'voice.loading': '正在加载语音…',
+    'voice.noChinese': '⚠️ 本设备没有中文语音。请在手机或电脑设置里安装。',
+    'voice.bothFound': '✓ 找到真实的男女中文语音 — 直接使用。',
+    'voice.maleOnly': 'ℹ️ 找到真实男声，但没有女声 — 女声使用变调处理。',
+    'voice.femaleOnly': '⚠️ 只安装了女声，男声可能听起来还是女声。请在下面选一个男声，或用 Microsoft Edge。',
+    'voice.noGender': 'ℹ️ 找到语音，但无法判断性别 — 男声/女声由变调生成。如果哪个人声更合适，请在下面选择。',
+    'voice.noAudio': '⚠️ 这个浏览器无法播放音频。请用 Chrome、Edge 或 Safari。',
+
+    // share
+    'share.wordText': '用 CantoBuddy 学粤语',
+    'share.scoreText': '我在 CantoBuddy 拿了 {score}/{total} 分！🇭🇰',
+    'share.copied': '已复制到剪贴板！',
+    'share.failed': '分享失败。',
+    'share.cardSaved': '图片已保存 — 可粘贴到任何地方！',
+    'share.cardFooter': '香港外佣和外籍家庭助理的免费粤语练习',
+
+    // share page — inviting a friend to the app
+    'sharePage.title': '分享 CantoBuddy',
+    'sharePage.hero': '告诉朋友',
+    'sharePage.body': '有人一起学更容易坚持。把 CantoBuddy 发给朋友 — 对所有学习者永久免费。',
+    'sharePage.previewLabel': '你朋友会看到',
+    'sharePage.shareBtn': '分享 CantoBuddy',
+    'sharePage.copyBtn': '🔗 复制链接',
+    'sharePage.whatsappBtn': '用 WhatsApp 发送',
+    'sharePage.footnote': '你分享的每个链接都带着你自己的代码，这样我们可以看到 CantoBuddy 怎样在社区里传播。不记录姓名，不记录个人信息。',
+    'sharePage.copied': '链接已复制！',
+    'sharePage.copyFailed': '无法复制链接。',
+    'sharePage.message': '我在用 CantoBuddy 学粤语 — 免费，专门为在香港生活的人做的。你也试试！',
+
+    // connecting to an employer (invitation link)
+    'connect.title': '连接到 {name}？',
+    'connect.see': '{name} 可以看到你在 CantoBuddy 的练习 — 你的测验成绩和进度，仅此而已。',
+    'connect.yourName': '你的姓名',
+    'connect.nameHint': '雇主会看到的姓名。',
+    'connect.notNow': '以后再说',
+    'connect.connect': '连接',
+    'connect.connecting': '正在连接…',
+    'connect.doneTitle': '已连接 🎉',
+    'connect.doneBody': '{name} 现在可以看到你的练习了。你随时可以停止分享。',
+    'connect.doneBtn': '开始学习',
+    'connect.invalid': '这个邀请链接无效或已过期。',
+    'connect.failed': '连接失败，请重试。',
+
+    // who can see my progress
+    'sharing.title': '谁能看到我的进度',
+    'sharing.hint': '这些人可以看到你的测验成绩。你随时可以停止分享 — 你的进度始终属于你。',
+    'sharing.none': '没有人能看到你的进度，只有你自己。',
+    'sharing.since': '已连接',
+    'sharing.stop': '停止分享',
+    'sharing.stopped': '已停止分享',
+    'sharing.failed': '更新失败，请重试。',
+    'sharing.enterCode': '有雇主给你的代码吗？',
+
+    // rewards: credits and the sticker album
+    'rewards.title': '我的贴纸',
+    'rewards.hint': '每答对一题得 1 分。攒到贴纸所需的分数，它就是你的了。',
+    'rewards.credits': '分',
+    'rewards.creditOne': '分',
+    'rewards.next': '下一张贴纸',
+    'rewards.toGo': '还差',
+    'rewards.locked': '未解锁',
+    'rewards.complete': '你集齐了整本贴纸！🏆',
+    'rewards.newTitle': '新贴纸！',
+    'rewards.newBody': '你获得了 {name}',
+    'rewards.newBodyMany': '你获得了 {n} 张新贴纸！',
+    'rewards.viewAlbum': '看我的贴纸册',
+    'rewards.notYet': '还没收集',
+
+    // connecting with a code instead of a link
+    'connect.enterCode': '输入代码',
+    'connect.codeTitle': '连接到你的雇主',
+    'connect.codeHint': '输入雇主给你的代码。',
+    'connect.codeLabel': '雇主代码',
+    'connect.codePlaceholder': '例如：4GTBVT6R',
+    'connect.codeSubmit': '连接',
+    'connect.codeChecking': '正在检查…',
+    'connect.codeNotFound': '找不到这个代码，请检查后重试。',
+
+    // misc
+    'misc.close': '关闭',
+    'misc.loadFailed': '无法加载数据。服务器在运行吗？',
+    'misc.shareWord': '分享这个词',
+    'misc.shareCard': '存成图片分享',
+
+    // footer — the crawlable links to the server-rendered vocabulary pages
+    // (see seo.js).
+    'footer.title': '浏览粤语词汇',
+    'footer.allWords': '所有词和类别',
+    'footer.filipino': '菲律宾语',
+    'footer.mandarin': '中文版',
+  },
 };
 
 let _lang = localStorage.getItem(LANG_STORAGE_KEY) || 'en';
+if (!LANG_CODES.includes(_lang)) _lang = 'en';
 
 /** Translate a key. Falls back to English, then to the key itself. */
 function t(key) {
@@ -473,13 +731,27 @@ function currentLang() {
   return _lang;
 }
 
+/** The <html lang> value for the language being read. */
+function currentHtmlLang() {
+  const l = LANGS.find((x) => x.code === _lang);
+  return l ? l.html : 'en';
+}
+
 /** Label for a difficulty level (1-3) or 0 for "all". */
 function levelLabel(level) {
   if (level === 0) return t('browse.allLevels');
   return [null, t('home.beginner'), t('home.intermediate'), t('home.advanced')][level] || '';
 }
 
-/** Category display name in the current language (falls back to English). */
+/**
+ * Category display name in the current language.
+ *
+ * Falls back to English rather than showing nothing, which is the same rule the
+ * vocabulary meanings follow — an untranslated category must still render a
+ * word the learner can recognise, and English is the one she is most likely to
+ * have some of. There is no `name_zh` column yet; when the content work reaches
+ * the categories this is the one place that needs to learn about it.
+ */
 function categoryLabel(cat) {
   if (!cat) return '';
   if (_lang === 'fil' && cat.name_fil) return cat.name_fil;
@@ -497,29 +769,50 @@ function applyTranslations() {
     // aria-label — otherwise screen readers announce a bare emoji.
     if (el.dataset.i18nAria) el.setAttribute('aria-label', t(key));
   });
-  document.documentElement.lang = _lang === 'fil' ? 'tl' : 'en';
+  document.documentElement.lang = currentHtmlLang();
   updateLangButton();
 }
 
+/**
+ * The language control.
+ *
+ * It CYCLEs rather than toggles now that there are three languages. A toggle
+ * only works for two: with three you would need two buttons, or a button whose
+ * meaning depends on where you happen to be in the cycle. One button that
+ * advances is the smallest control that stays honest.
+ *
+ * The label shows the language being READ (not the next one). With two
+ * languages the switch-to convention was fine; with three it is genuinely
+ * confusing, because "中文" on an English screen could mean either "you are
+ * reading Chinese" or "press for Chinese". Showing the current state and
+ * letting the control advance is unambiguous.
+ */
 function updateLangButton() {
   const btn = document.getElementById('lang-btn');
   if (!btn) return;
-  // The button shows the language you would switch TO, not the one you are
-  // reading: while the app is in English it reads "FIL", and while it is in
-  // Filipino it reads "EN". So it is a label for the *action*, not the state.
-  const next = _lang === 'fil' ? 'en' : 'fil';
-  btn.textContent = next === 'fil' ? 'FIL' : 'EN';
-  btn.title = t(next === 'fil' ? 'header.langSwitchFil' : 'header.langSwitchEn');
+  const cur = LANGS.find((l) => l.code === _lang) || LANGS[0];
+  btn.textContent = cur.label;
+  btn.title = `${t('header.langTitle')} — ${cur.name}`;
   btn.setAttribute('aria-label', btn.title);
+  // One button, three languages: a MENU is the honest control, and the app
+  // already has a modal pattern for this. Long-press / right-click opens it.
+  btn.dataset.menu = '1';
 }
 
 function setLang(lang) {
-  _lang = lang === 'fil' ? 'fil' : 'en';
+  _lang = LANG_CODES.includes(lang) ? lang : 'en';
   localStorage.setItem(LANG_STORAGE_KEY, _lang);
   applyTranslations();
   if (typeof rerenderForLanguage === 'function') rerenderForLanguage();
 }
 
+/** Advance to the next language in the cycle. */
 function toggleLang() {
-  setLang(_lang === 'en' ? 'fil' : 'en');
+  const i = LANG_CODES.indexOf(_lang);
+  setLang(LANG_CODES[(i + 1) % LANG_CODES.length]);
+}
+
+/** Every language, for the picker. */
+function allLangs() {
+  return LANGS.slice();
 }

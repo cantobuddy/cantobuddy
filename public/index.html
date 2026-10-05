@@ -103,7 +103,7 @@
          data-i18n="header.employerSite" data-i18n-attr="title" data-i18n-aria="1"><svg class="site-glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7.6" r="3.6"/><path d="M5.1 20.4c0-3.6 3.1-5.9 6.9-5.9s6.9 2.3 6.9 5.9"/><path d="M9.5 14.9 12 18.3l2.5-3.4"/></svg></a>
       <!-- Shows the language you would switch TO: "FIL" while reading English,
            "EN" while reading Filipino. i18n.js keeps this in sync. -->
-      <button id="lang-btn" class="lang-btn" onclick="toggleLang()" title="Switch to Filipino" aria-label="Switch to Filipino">FIL</button>
+      <button id="lang-btn" class="lang-btn" onclick="openLangModal()" title="Change language" aria-label="Change language" aria-haspopup="dialog">EN</button>
       <button id="voice-btn" class="voice-btn" onclick="openVoiceModal()" title="Choose practice voice" aria-label="Choose practice voice">👩</button>
       <!-- Deliberately NOT data-i18n: this label is dynamic (the helper's name,
            or "Set your name" when she has none), and updateLearnerBadge() in
@@ -358,6 +358,20 @@
 <div id="join-modal" class="modal-overlay" onclick="closeJoinModal(event)">
   <div class="modal-box" onclick="event.stopPropagation()">
     <div id="join-body"></div>
+  </div>
+</div>
+
+<!-- ============================ LANGUAGE PICKER ============================ -->
+<!-- Three languages, so the header control is a picker rather than a toggle.
+     A two-way toggle cannot express a choice of three without either a second
+     button or a button whose meaning depends on where you are in the cycle.
+     The rows are rendered by openLangModal() in app.js. -->
+<div id="lang-modal" class="modal-overlay" onclick="closeLangModal(event)">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="join-icon">🌏</div>
+    <h3 data-i18n="header.langTitle">Change language</h3>
+    <div id="lang-options" class="lang-options"></div>
+    <button class="btn btn-outline btn-block" onclick="closeLangModal()" data-i18n="misc.close">Close</button>
   </div>
 </div>
 

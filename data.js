@@ -68,8 +68,7 @@ const SEED_SCENARIOS = [
 ];
 
 // level: 1 = Beginner, 2 = Intermediate, 3 = Advanced
-const SEED_VOCABULARY = [
-  // ---- Beginner ----
+const SEED_VOCABULARY = [  // ---- Beginner ----
   { id: 1,  cantonese: '你好',         jyutping: 'nei5 hou2',               english: 'Hello',                      tagalog: 'Kumusta',          emoji: '👋', level: 1, category_id: 1 },
   { id: 2,  cantonese: '多謝',         jyutping: 'do1 ze6',                 english: 'Thank you',                  tagalog: 'Salamat',          emoji: '🙏', level: 1, category_id: 1 },
   { id: 3,  cantonese: '唔該',         jyutping: 'm4 goi1',                 english: 'Please / Excuse me',         tagalog: 'Pakiusap',         emoji: '🤲', level: 1, category_id: 1 },
@@ -266,6 +265,216 @@ SEED_VOCABULARY.forEach((v) => {
   if (v.id >= 65 && v.status === undefined) v.status = 'draft';
 });
 
+/* ---------------------------------------------------------------------------
+   Mandarin glosses — the meaning in Simplified Chinese.
+
+   WHO THIS IS FOR. Not the Filipino helpers the app was built for. Hongkong
+   has a second, much larger, and much newer group learning Cantonese: people
+   who arrived from the mainland and already speak Mandarin. They are not
+   served by an English gloss (`english`) or a Filipino one (`tagalog`), and
+   the quiz engine draws its multiple-choice options from `english` — so
+   without this column a Mandarin speaker would be asked to prove she
+   understood a Cantonese word by picking between English words.
+
+   WHY SIMPLIFIED. The audience reads 简体. Giving them 繁體 would recreate the
+   exact reading barrier this column exists to remove.
+
+   WHY AN OVERLAY AND NOT INLINE FIELDS. Two reasons, both practical:
+     1. The translation is a separate job from the authoring. Keeping it in one
+        block makes "what still needs translating" a single readable list
+        instead of 132 scattered lines.
+     2. `SEED_VOCABULARY` is already the canonical record; merging here means
+        one source of truth for the entry and its glosses, with no ordering
+        requirement between this table and the array above.
+   Keyed by entry id. Every id that appears here must exist in
+   SEED_VOCABULARY — asserted by tools/mandarin-sample-test.js.
+
+   COVERAGE: all 132 entries. Ships as a complete first pass, not a sample.
+
+   STATUS: drafted, not native-verified — the same caveat the Tier A entries
+   carry. No Chinese-speaking reviewer has read these yet, so the Cantonese and
+   the gloss both carry the usual draft risk. Kept as one overlay (below) so a
+   reviewer has a single block to read rather than 132 scattered fields.
+
+   The gloss is deliberately NOT a character-for-character rendering of the
+   Cantonese. 「唔該」 is not "not should" — it is 请/劳驾, and the gloss gives the
+   meaning a Mandarin speaker would actually use in that situation.
+
+   Two rules the wording follows, because this audience already speaks Mandarin
+   and does not need to be taught what a phrase means so much as what the
+   Cantonese IS:
+     - Prefer the natural Mandarin equivalent (「唔該」→ 请/劳驾, 「叻」→ 厉害),
+       not a literal gloss of the Cantonese characters.
+     - Where Cantonese and Mandarin genuinely differ, the gloss is still the
+       Mandarin word for the same thing (「食藥」→ 吃药, not 食药) — so a reader
+       can map what she already knows onto what she is hearing.
+   --------------------------------------------------------------------------- */
+const MANDARIN_GLOSSES = {
+  // --- ids 1-30: the first pass (week-one words) ---
+  1:  '你好',
+  2:  '谢谢',
+  3:  '请 / 劳驾',
+  4:  '再见',
+  5:  '是',
+  6:  '不是',
+  7:  '好',
+  8:  '不好 / 不要',
+  9:  '水',
+  10: '饭 / 一餐',
+  11: '吃',
+  12: '喝',
+  13: '厨房',
+  14: '大',
+  15: '小',
+  16: '洗衣服',
+  17: '做饭',
+  18: '拖地',
+  19: '小孩',
+  20: '睡觉',
+  21: '起床',
+  22: '洗澡',
+  23: '菜市场',
+  24: '买东西',
+  25: '上学',
+  26: '做功课',
+  27: '开灯',
+  28: '关灯',
+  29: '下雨',
+  30: '小心',
+
+  // --- ids 31-45: level 3 sentences and phrases (daily life, kitchen,
+  //     shopping, children, weather) ---
+  31: '请帮我买些菜',
+  32: '孩子该睡觉了',
+  33: '今天下了很大的雨',
+  34: '请你拿些碗来',
+  35: '我们去菜市场买东西',
+  36: '孩子做完功课了吗',
+  37: '厨房的碗洗了吗',
+  38: '不要碰那个东西',
+  39: '快点回来',
+  40: '帮忙打扫客厅',
+  41: '吃早饭',
+  42: '喝水',
+  43: '请开空调',
+  44: '关门',
+  45: '有什么吃的吗',
+
+  // --- ids 46-50: elder care, level 1-2 (standing, sitting, eating, walking) ---
+  46: '坐下',
+  47: '吃药',
+  48: '慢慢走',
+  49: '今天好吗',
+  50: '吃饱了吗',
+
+  // --- ids 51-64: elder care, level 2-3 (bathing, combing, napping,
+  //     reassurance, standing steady) ---
+  51: '走路小心',
+  52: '睡午觉',
+  53: '不要起得太快',
+  54: '帮你洗澡',
+  55: '帮你梳头',
+  56: '痛不痛',
+  57: '不舒服',
+  58: '等一会儿',
+  59: '别担心',
+  60: '别着急，慢慢来',
+  61: '今天煮什么吃',
+  62: '请慢慢吃',
+  63: '去过洗手间了吗',
+  64: '先站稳',
+
+  // --- ids 65-72: health & symptoms ---
+  65: '痛',
+  66: '头痛',
+  67: '咳嗽',
+  68: '发烧',
+  69: '头晕',
+  70: '肚子痛',
+  71: '哪里痛',
+  72: '我很不舒服',
+
+  // --- ids 73-80: medicine & appointments ---
+  73: '药',
+  74: '药丸',
+  75: '药水',
+  76: '诊所',
+  77: '医生',
+  78: '吃过药了吗',
+  79: '去诊所',
+  80: '什么时候复诊',
+
+  // --- ids 81-88: mobility & walking ---
+  81: '走',
+  82: '站',
+  83: '扶手',
+  84: '轮椅',
+  85: '扶着我',
+  86: '慢慢来',
+  87: '不要摔倒',
+  88: '我扶你起来',
+
+  // --- ids 89-96: toilet & personal care ---
+  89: '洗手间',
+  90: '牙刷',
+  91: '毛巾',
+  92: '洗脸',
+  93: '换衣服',
+  94: '去洗手间',
+  95: '我帮你换衣服',
+  96: '要不要去洗手间',
+
+  // --- ids 97-104: meals & feeding ---
+  97: '肚子饿',
+  98: '饱',
+  99: '胃口',
+  100: '热',
+  101: '冷',
+  102: '多吃一点',
+  103: '太热了',
+  104: '没胃口',
+
+  // --- ids 105-112: comfort & reassurance ---
+  105: '别怕',
+  106: '没事',
+  107: '我在这儿',
+  108: '乖',
+  109: '没关系',
+  110: '你真棒',
+  111: '你女儿打来了',
+  112: '她很快就回来',
+
+  // --- ids 113-120: safety & emergencies ---
+  113: '救命',
+  114: '叫救护车',
+  115: '打电话',
+  116: '摔倒了',
+  117: '不要动',
+  118: '火警',
+  119: '婆婆摔倒了',
+  120: '她不能呼吸',
+
+  // --- ids 121-132: the v3 coverage top-up (greetings, cleaning, shopping,
+  //     weather, home) ---
+  121: '早上好',
+  122: '晚安',
+  123: '擦桌子',
+  124: '倒垃圾',
+  125: '多少钱',
+  126: '便宜点行吗',
+  127: '很热',
+  128: '很冷',
+  129: '要打台风了',
+  130: '带伞',
+  131: '开门',
+  132: '开窗',
+};
+
+SEED_VOCABULARY.forEach((v) => {
+  const gloss = MANDARIN_GLOSSES[v.id];
+  if (gloss && !v.mandarin) v.mandarin = gloss;
+});
+
 // No password is stored here, deliberately. This repository is public, so a
 // committed default would be a published credential — anyone could read it and
 // sign in as the operator. The password comes from the ADMIN_USER /
@@ -328,4 +537,5 @@ module.exports = {
   SEED_VOCABULARY,
   SEED_SCENARIOS,
   SEED_USERS,
+  MANDARIN_GLOSSES,
 };

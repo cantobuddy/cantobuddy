@@ -605,8 +605,7 @@ function renderVocabList() {
       <div class="vocab-body">
         <div class="vocab-cantonese">${v.cantonese}</div>
         <div class="vocab-jyutping">${v.jyutping}</div>
-        <div class="vocab-english">${v.english}</div>
-        ${v.tagalog ? `<div class="vocab-tagalog">${v.tagalog}</div>` : ''}
+        ${meaningRows(v)}
       </div>
       <button class="vocab-audio-btn" onclick="event.stopPropagation(); speak('${v.cantonese.replace(/'/g, "\\'")}', this)">🔊</button>
     </div>`
@@ -614,8 +613,106 @@ function renderVocabList() {
     .join('');
 }
 
-// ---- Vocab modal (detailed card) ------------------------------------------
+/**
+ * The meaning side of a vocabulary card, in the reader's own language.
+ *
+ * The rule is the same one the stickers and the categories already follow: show
+ * the language being read FIRST, keep English underneath as the fallback,
+ * because an entry with no gloss in her language must still say something
+ * rather than render an empty box.
+ *
+ * `mandarin` is a MEANING, not a translation of the Cantonese — which is why a
+ * zh reader sees 谢谢 for 多謝 rather than a romanisation she cannot use.
+ */
+function meaningRows(v) {
+  const lang = currentLang();
+  if (lang === 'zh') {
+    return (
+      (v.mandarin ? `<div class="vocab-english">${escapeHtml(v.mandarin)}</div>` : '') +
+      (v.english ? `<div class="vocab-tagalog">${escapeHtml(v.english)}</div>` : '')
+    );
+  }
+  if (lang === 'fil') {
+    return (
+      (v.tagalog ? `<div class="vocab-english">${escapeHtml(v.tagalog)}</div>` : '') +
+      (v.english ? `<div class="vocab-tagalog">${escapeHtml(v.english)}</div>` : '')
+    );
+  }
+  return (
+    `<div class="vocab-english">${escapeHtml(v.english)}</div>` +
+    (v.tagalog ? `<div class="vocab-tagalog">${escapeHtml(v.tagalog)}</div>` : '')
+  );
+}
 
+/**
+ * One short string for the meaning, for places that cannot render two lines —
+ * quiz options, the share text, the fill-blank prompt.
+ *
+ * English is the safe fallback rather than a specific language, because that is
+ * the one column every entry is guaranteed to have.
+ */
+function meaning(v) {
+  if (!v) return '';
+  const lang = currentLang();
+  if (lang === 'zh') return v.mandarin || v.english || '';
+  if (lang === 'fil') return v.tagalog || v.english || '';
+  return v.english || '';
+}
+
+// ---- Language picker -------------------------------------------------------
+
+/**
+ * The language picker.
+ *
+ * Each row is written in the language it selects, not in the language you are
+ * currently reading. That is the one rule that makes a language menu usable by
+ * someone who has accidentally landed in a language she cannot read: she needs
+ * to recognise her own language's name, and "English" is no help to a Mandarin
+ * speaker who cannot read English.
+ *
+ * The count of entries translated so far is shown against Chinese, because the
+ * glossary is partial and a learner deserves to know that before she switches —
+ * finding out by hitting English words mid-quiz is worse.
+ */
+function openLangModal() {
+  const wrap = document.getElementById('lang-options');
+  if (wrap) {
+    const zhWords = STATE.vocabulary.filter((v) => v.mandarin).length;
+    const total = STATE.vocabulary.length;
+    wrap.innerHTML = allLangs()
+      .map((l) => {
+        const active = l.code === currentLang();
+        const note =
+          l.code === 'zh' && zhWords && zhWords < total
+            ? `<span class="lang-row-note">${zhWords} / ${total} 词已有中文释义</span>`
+            : '';
+        return `
+          <button class="lang-row${active ? ' is-active' : ''}" onclick="chooseLang('${l.code}')"
+                  lang="${l.html}"${active ? ' aria-current="true"' : ''}>
+            <span class="lang-row-label">${l.label}</span>
+            <span class="lang-row-name">${l.name}</span>
+            ${note}
+            ${active ? '<span class="lang-row-tick">✓</span>' : ''}
+          </button>`;
+      })
+      .join('');
+  }
+  const m = document.getElementById('lang-modal');
+  if (m) m.classList.add('show');
+}
+
+function closeLangModal(e) {
+  if (e && e.target !== e.currentTarget) return;
+  const m = document.getElementById('lang-modal');
+  if (m) m.classList.remove('show');
+}
+
+function chooseLang(code) {
+  setLang(code);
+  closeLangModal();
+}
+
+// ---- Vocab modal (detailed card) ------------------------------------------
 function openVocabModal(id) {
   const v = STATE.vocabulary.find((x) => x.id === id);
   if (!v) return;
@@ -629,8 +726,7 @@ function openVocabModal(id) {
     <div class="modal-emoji">${v.emoji || '📝'}</div>
     <div class="modal-cantonese">${v.cantonese}</div>
     <div class="modal-jyutping">${v.jyutping}</div>
-    <div class="modal-english">${v.english}</div>
-    ${v.tagalog ? `<div class="modal-tagalog">${v.tagalog}</div>` : ''}
+    ${meaningRows(v)}
     ${cat ? `<div style="margin-top:8px;font-size:0.8rem;color:#6c757d">${cat.icon} ${categoryLabel(cat)}</div>` : ''}
     <button class="modal-audio-btn" onclick="speak('${v.cantonese.replace(/'/g, "\\'")}', this)">🔊</button>
     <div style="font-size:0.75rem;color:#6c757d;margin-top:6px">${t('browse.tapToHear')}</div>
@@ -790,8 +886,8 @@ function generateQuestions(type, level) {
             jyutping: item.jyutping,
             emoji: null,
           },
-          options: shuffle([item, ...distract]).map((v) => v.english),
-          answer: item.english,
+          options: shuffle([item, ...distract]).map((v) => meaning(v)),
+          answer: meaning(item),
         });
         break;
 
@@ -801,8 +897,8 @@ function generateQuestions(type, level) {
           item,
           prompt: t('quiz.promptListen'),
           display: { cantonese: item.cantonese, jyutping: null, emoji: null, listen: true },
-          options: shuffle([item, ...distract]).map((v) => v.english),
-          answer: item.english,
+          options: shuffle([item, ...distract]).map((v) => meaning(v)),
+          answer: meaning(item),
         });
         break;
 
@@ -823,23 +919,21 @@ function generateQuestions(type, level) {
         let sentence, blankAnswer, options;
 
         if (level === 3 && item.cantonese.length > 4) {
-          // It's already a sentence; split a key word out as the blank
-          // For phrases we'll make the whole phrase the "answer" and
-          // ask which phrase fills the context.
-          sentence = item.english.replace(
-            new RegExp(item.english.split(' ')[0], 'i'),
-            '______'
-          );
-          blankAnswer = item.english.split(' ')[0];
+          // It's already a sentence; split a key word out as the blank.
+          // Operates on the meaning in the current language, so a zh reader
+          // gets a Chinese sentence with a Chinese blank in it.
+          const line = meaning(item);
+          sentence = line.replace(new RegExp(line.split(' ')[0], 'i'), '______');
+          blankAnswer = line.split(' ')[0];
           options = shuffle([
             blankAnswer,
-            ...distract.map((v) => v.english.split(' ')[0]),
+            ...distract.map((v) => meaning(v).split(' ')[0]),
           ]);
         } else {
           // Simple template: "I want to ______."  etc.
           const templates = [
             `______ — ${item.jyutping}`,
-            `Fill: ${item.english}`,
+            `Fill: ${meaning(item)}`,
           ];
           sentence = `______  (${item.jyutping})`;
           blankAnswer = item.cantonese;
@@ -1866,8 +1960,11 @@ function shareToWhatsApp(text, url) {
 function shareWord(id) {
   const v = STATE.vocabulary.find((x) => x.id === id);
   if (!v) return;
-  const meaning = v.tagalog ? `${v.english} / ${v.tagalog}` : v.english;
-  const text = `${v.emoji || ''} ${v.cantonese} (${v.jyutping}) = ${meaning}\n${t('share.wordText')}`;
+  // Deliberately bilingual rather than current-language-only: a shared link is
+  // read by whoever it is forwarded to, and the whole point of the referral
+  // code is that it travels beyond the language the sender was using.
+  const gloss = [meaning(v), v.english].filter(Boolean).filter((s, i, a) => a.indexOf(s) === i).join(' / ');
+  const text = `${v.emoji || ''} ${v.cantonese} (${v.jyutping}) = ${gloss}\n${t('share.wordText')}`;
   // Deep-link to the word's own page when the server gave us a slug. That page
   // shows the same word with its meaning, pronunciation and related words, and
   // links back into the app — so the recipient lands somewhere useful instead
@@ -1976,17 +2073,24 @@ function wordCardBlob(v) {
       ctx.fillStyle = '#e63946';
       ctx.fillText(v.jyutping || '', CARD_SIZE / 2, 600);
 
-      // Meaning, English then Filipino
-      const enSize = cardFitText(ctx, v.english || '', CARD_SIZE - 200, 68, UI);
-      ctx.font = `700 ${enSize}px ${UI}`;
-      ctx.fillStyle = '#1a1a2e';
-      ctx.fillText(v.english || '', CARD_SIZE / 2, 720);
+      // Meaning. The reader's own language is promoted to the top line and
+      // English sits underneath as the fallback — the same order as the browse
+      // card, so a shared picture reads the same way the sender saw it.
+      const primary = meaning(v) || v.english || '';
+      const secondary = currentLang() === 'en' ? v.tagalog || '' : v.english || '';
 
-      if (v.tagalog) {
-        const filSize = cardFitText(ctx, v.tagalog, CARD_SIZE - 200, 52, UI);
-        ctx.font = `400 ${filSize}px ${UI}`;
+      if (primary) {
+        const pSize = cardFitText(ctx, primary, CARD_SIZE - 200, 68, primary === (v.mandarin || '') ? HAN : UI);
+        ctx.font = `700 ${pSize}px ${primary === (v.mandarin || '') ? HAN : UI}`;
+        ctx.fillStyle = '#1a1a2e';
+        ctx.fillText(primary, CARD_SIZE / 2, 720);
+      }
+
+      if (secondary && secondary !== primary) {
+        const sSize = cardFitText(ctx, secondary, CARD_SIZE - 200, 52, UI);
+        ctx.font = `400 ${sSize}px ${UI}`;
         ctx.fillStyle = '#6c757d';
-        ctx.fillText(v.tagalog, CARD_SIZE / 2, 800);
+        ctx.fillText(secondary, CARD_SIZE / 2, 800);
       }
 
       // Footer: what the app is, and where to get it

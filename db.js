@@ -17,7 +17,7 @@ const fs = require('fs');
 const os = require('os');
 const crypto = require('crypto');
 const { DatabaseSync } = require('node:sqlite');
-const { SEED_CATEGORIES, SEED_VOCABULARY, SEED_SCENARIOS, SEED_USERS } = require('./data');
+const { SEED_CATEGORIES, SEED_VOCABULARY, SEED_SCENARIOS, SEED_USERS, MANDARIN_GLOSSES } = require('./data');
 const { SEED_STICKERS } = require('./stickers');
 
 // ---------------------------------------------------------------------------
@@ -145,6 +145,7 @@ db.exec(`
     jyutping    TEXT NOT NULL,
     english     TEXT NOT NULL,
     tagalog     TEXT NOT NULL DEFAULT '',
+    mandarin    TEXT NOT NULL DEFAULT '',
     emoji       TEXT NOT NULL DEFAULT '📝',
     level       INTEGER NOT NULL DEFAULT 1,
     category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
@@ -453,6 +454,22 @@ function migrateSchema() {
     changes.push('vocabulary.tags');
   }
 
+  /* The meaning in Simplified Chinese, for learners who arrived in Hong Kong
+     speaking Mandarin rather than English or Filipino.
+
+     This is a MEANING column, not a translation of the Cantonese — the same
+     slot `english` and `tagalog` occupy. It exists because the quiz engine
+     draws its multiple-choice options from `english`, so a Mandarin speaker
+     without this column would be choosing between English words to prove she
+     understood a Cantonese one.
+
+     Simplified, deliberately: the audience is people who came from the
+     mainland, and 繁体 would recreate the reading barrier this column is
+     meant to remove. */
+  if (addColumnIfMissing('vocabulary', 'mandarin', "TEXT NOT NULL DEFAULT ''")) {
+    changes.push('vocabulary.mandarin');
+  }
+
   /* Review state. Content that reaches a carer of a frail elderly person and is
      WRONG is a safety problem, not a typo — so entries need somewhere to record
      whether a human has checked them. Defaults to 'published' so every existing
@@ -492,6 +509,41 @@ function migrateSchema() {
       INSERT OR REPLACE INTO meta (key, value) VALUES ('vocab_type_backfilled', '1');
     `);
     changes.push('vocabulary.type backfilled from entry length');
+  }
+
+  /* Fill in the Simplified Chinese gloss for entries that do not have one yet.
+
+     This cannot ride along with migrateContent(), and the reason is worth
+     recording: migrateContent() only ever INSERTs (INSERT OR IGNORE on the
+     primary id), which is exactly right for ADDING entries and exactly wrong
+     for ENRICHING them — every one of these 132 rows already exists, so an
+     INSERT OR IGNORE is a no-op and the column would stay empty forever.
+
+     Guarded by a meta flag rather than by "is mandarin empty", for the same
+     reason as the `type` backfill above: once the operator has typed her own
+     gloss into the admin form, a boot-time UPDATE keyed on emptiness would
+     silently overwrite it on every restart.
+
+     The flag stores the SIZE of the gloss overlay rather than '1'. A plain
+     boolean guard would mean the very first boot that ran it bricked every
+     later gloss addition — the 30-entry sample would have permanently blocked
+     the remaining 102, with the only fix being a manual SQL edit in production.
+     Keying on the count makes "the overlay grew" the trigger, so adding glosses
+     to data.js keeps working forever while a boot with nothing new still does
+     no writes at all. `made` also reports the delta, so the boot log says how
+     many entries a content drop actually reached. */
+  const glossCount = String(Object.keys(MANDARIN_GLOSSES).length);
+  const glossState = db.prepare("SELECT value FROM meta WHERE key = 'vocab_mandarin_backfilled'").get();
+  if (!glossState || Number(glossState.value) < Number(glossCount)) {
+    const upd = db.prepare("UPDATE vocabulary SET mandarin = ?, updated_at = ? WHERE id = ? AND mandarin = ''");
+    const now = new Date().toISOString();
+    let filled = 0;
+    for (const [id, gloss] of Object.entries(MANDARIN_GLOSSES)) {
+      filled += upd.run(gloss, now, Number(id)).changes;
+    }
+    db.prepare("INSERT OR REPLACE INTO meta (key, value) VALUES ('vocab_mandarin_backfilled', ?)")
+      .run(glossCount);
+    if (filled) changes.push(`vocabulary.mandarin filled for ${filled} entr${filled === 1 ? 'y' : 'ies'}`);
   }
 
   // progress.learner_id used to reference users(id), which could never be
@@ -619,10 +671,10 @@ function inferType(cantonese) {
 // Every column a vocabulary row can carry, in insert order. One list, so the
 // initial seed and every later content migration write identical shapes.
 const VOCAB_COLUMNS =
-  'id, cantonese, jyutping, english, tagalog, emoji, level, category_id, ' +
+  'id, cantonese, jyutping, english, tagalog, mandarin, emoji, level, category_id, ' +
   'type, speaker, scenario_id, example_yue, example_jyutping, example_en, ' +
   'usage_note, tags, status, sort_order';
-const VOCAB_PLACEHOLDERS = '?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?';
+const VOCAB_PLACEHOLDERS = '?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?';
 
 function vocabValues(v) {
   return [
@@ -631,6 +683,7 @@ function vocabValues(v) {
     v.jyutping,
     v.english,
     v.tagalog || '',
+    v.mandarin || '',
     v.emoji || '📝',
     v.level || 1,
     v.category_id ?? null,
@@ -649,7 +702,7 @@ function vocabValues(v) {
 
 /* Bumped whenever the SEED_* content changes in a way an EXISTING database
    needs to pick up. See migrateContent() below. */
-const CONTENT_VERSION = 3; // v1 = the original 64 entries · v2 = Tier A expansion · v3 = coverage top-up (every category ≥5)
+const CONTENT_VERSION = 4; // v1 = the original 64 · v2 = Tier A expansion · v3 = coverage top-up (every category ≥5) · v4 = Simplified Chinese glosses (first 30)
 
 function seedIfEmpty() {
   const { n } = db.prepare('SELECT COUNT(*) AS n FROM categories').get();
@@ -836,7 +889,7 @@ const S = {
      VALUES (${VOCAB_PLACEHOLDERS}, ?, ?)`
   ),
   updateVocabulary: db.prepare(
-    `UPDATE vocabulary SET cantonese = ?, jyutping = ?, english = ?, tagalog = ?, emoji = ?, level = ?,
+    `UPDATE vocabulary SET cantonese = ?, jyutping = ?, english = ?, tagalog = ?, mandarin = ?, emoji = ?, level = ?,
        category_id = ?, type = ?, speaker = ?, scenario_id = ?, example_yue = ?, example_jyutping = ?,
        example_en = ?, usage_note = ?, tags = ?, status = ?, sort_order = ?, updated_at = ?
      WHERE id = ?`
@@ -1395,7 +1448,7 @@ function createVocabulary(b) {
   const info = S.insertVocabulary.run(
     null,
     b.cantonese, b.jyutping, b.english,
-    b.tagalog || '', b.emoji || '📝',
+    b.tagalog || '', b.mandarin || '', b.emoji || '📝',
     Number(b.level) || 1, refOrNull(b.category_id),
     b.type || inferType(b.cantonese),
     b.speaker || 'either',
@@ -1417,6 +1470,7 @@ function updateVocabulary(id, b) {
     b.jyutping ?? cur.jyutping,
     b.english ?? cur.english,
     b.tagalog ?? cur.tagalog,
+    b.mandarin ?? cur.mandarin,
     b.emoji ?? cur.emoji,
     b.level != null && b.level !== '' ? Number(b.level) : cur.level,
     b.category_id !== undefined ? refOrNull(b.category_id) : cur.category_id,

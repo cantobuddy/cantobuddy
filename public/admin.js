@@ -315,7 +315,7 @@ function renderAdminCategories() {
         })
         .join('');
 
-      const alt = [c.name_yue, c.name_fil].filter(Boolean).map(escapeHtml).join(' · ');
+      const alt = [c.name_yue, c.name_fil, c.name_zh].filter(Boolean).map(escapeHtml).join(' · ');
 
       return `
       <div class="admin-cat-row${on ? '' : ' is-off'}">
@@ -325,7 +325,7 @@ function renderAdminCategories() {
           <div class="admin-cat-name">${escapeHtml(c.name_en)}${
             on ? '' : '<span class="cat-off-badge">switched off</span>'
           }</div>
-          <div class="admin-cat-name-yue">${alt || '<span class="admin-cat-none">no Cantonese or Filipino name</span>'}</div>
+          <div class="admin-cat-name-yue">${alt || '<span class="admin-cat-none">no Cantonese, Filipino or Chinese name</span>'}</div>
         </div>
         <div class="admin-cat-coverage">${chips}</div>
         <div class="admin-cat-total">${n.total}<span> word${n.total === 1 ? '' : 's'}</span></div>
@@ -420,6 +420,7 @@ function openCategoryForm(id) {
     document.getElementById('cf-name-en').value = c.name_en;
     document.getElementById('cf-name-yue').value = c.name_yue || '';
     document.getElementById('cf-name-fil').value = c.name_fil || '';
+    document.getElementById('cf-name-zh').value = c.name_zh || '';
     document.getElementById('cf-icon').value = c.icon || '';
   } else {
     title.textContent = 'Add Category';
@@ -440,6 +441,7 @@ async function submitCatForm(e) {
     name_en: document.getElementById('cf-name-en').value.trim(),
     name_yue: document.getElementById('cf-name-yue').value.trim(),
     name_fil: document.getElementById('cf-name-fil').value.trim(),
+    name_zh: document.getElementById('cf-name-zh').value.trim(),
     icon: document.getElementById('cf-icon').value.trim() || '📁',
   };
 

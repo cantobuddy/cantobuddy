@@ -749,12 +749,17 @@ function levelLabel(level) {
  * Falls back to English rather than showing nothing, which is the same rule the
  * vocabulary meanings follow — an untranslated category must still render a
  * word the learner can recognise, and English is the one she is most likely to
- * have some of. There is no `name_zh` column yet; when the content work reaches
- * the categories this is the one place that needs to learn about it.
+ * have some of.
+ *
+ * `name_yue` is deliberately NEVER used as the zh label. It holds the Cantonese
+ * name in Traditional characters (長者照顧, 食藥覆診) — parseable by a Mandarin
+ * reader but the wrong register and the wrong script for this audience. The zh
+ * label comes from `name_zh`, which is Simplified Mandarin (照顾老人, 吃药复诊).
  */
 function categoryLabel(cat) {
   if (!cat) return '';
   if (_lang === 'fil' && cat.name_fil) return cat.name_fil;
+  if (_lang === 'zh' && cat.name_zh) return cat.name_zh;
   return cat.name_en;
 }
 

@@ -224,13 +224,15 @@ const L = {
   },
 };
 
-/** Category display name in the requested language, falling back sensibly. */
+/** Category display name in the requested language, falling back sensibly.
+ *
+ * `name_zh` is a genuine Simplified Mandarin name, NOT `name_yue` — the latter
+ * is the Cantonese name in Traditional characters, which is the wrong register
+ * and the wrong script for the zh tree. */
 function catName(cat, lang) {
   if (!cat) return '';
   if (lang === 'fil') return cat.name_fil || cat.name_en;
-  // No Chinese category names in the schema yet, so the zh tree shows English.
-  // Not ideal, but an English category name is still readable to this audience
-  // and an empty label would not be.
+  if (lang === 'zh') return cat.name_zh || cat.name_en;
   return cat.name_en || cat.name_fil;
 }
 
@@ -708,21 +710,27 @@ function renderCategory(lang, slug) {
     .filter(Boolean)
     .join('\n');
 
+  // The sub-line and the title parenthetical show the name in the OTHER script:
+  // the Cantonese name for en/fil readers, and the Simplified Mandarin name for
+  // a zh reader. Showing 長者照顧 in Traditional on the /zh/ page would be the
+  // wrong script for the audience the page is written for.
+  const altName = lang === 'zh' ? (cat.name_zh || '') : (cat.name_yue || '');
+
   const body = `
 ${crumbs(lang, [
     { label: t.categories, href: `${prefix}/learn` },
     { label: name },
   ])}
-<h1>${esc(name)}<span class="sub">${esc(cat.name_yue || '')} · ${esc(t.tagline)}</span></h1>
+<h1>${esc(name)}<span class="sub">${esc(altName)} · ${esc(t.tagline)}</span></h1>
 <p class="lede">${esc(t.aboutBody(name, rows.length))}</p>
 ${byLevel}
 ${ctaCard(lang)}
 `;
 
   const TITLE = {
-    en: `${name} in Cantonese — ${rows.length} Words (${cat.name_yue || ''}) | CantoBuddy`,
-    fil: `${name} sa Cantonese — ${rows.length} salita (${cat.name_yue || ''}) | CantoBuddy`,
-    zh: `${name}粤语怎么说 — ${rows.length} 个常用词 (${cat.name_yue || ''}) | CantoBuddy`,
+    en: `${name} in Cantonese — ${rows.length} Words (${altName}) | CantoBuddy`,
+    fil: `${name} sa Cantonese — ${rows.length} salita (${altName}) | CantoBuddy`,
+    zh: `${name}粤语怎么说 — ${rows.length} 个常用词 (${altName}) | CantoBuddy`,
   };
   const DESC = {
     en: `Learn ${rows.length} practical Cantonese ${name.toLowerCase()} words with Jyutping romanisation and English and Filipino meanings — free.`,

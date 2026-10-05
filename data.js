@@ -475,6 +475,44 @@ SEED_VOCABULARY.forEach((v) => {
   if (gloss && !v.mandarin) v.mandarin = gloss;
 });
 
+/* ---------------------------------------------------------------------------
+   Category names in Simplified Mandarin, keyed by category id.
+
+   Why this is a separate overlay and not `name_yue`: `name_yue` holds the
+   CANTONESE name in Traditional characters — 長者照顧, 食藥覆診, 行路扶助. A
+   Mandarin reader can parse those, but they are the wrong register (Cantonese
+   phrasing) and in the wrong script for this audience. These are the names a
+   mainland reader would actually use — 长者照顾, 吃药复诊, 走路辅助.
+
+   Kept out of SEED_CATEGORIES* so the whole translation is one reviewable
+   block, exactly like MANDARIN_GLOSSES above. Applied by a guarded UPDATE in
+   db.js (categories_zh_backfilled) because the 17 rows already exist in every
+   live database and migrateContent() only INSERTs.
+   --------------------------------------------------------------------------- */
+const CATEGORY_ZH_NAMES = {
+  1:  '问候',
+  2:  '常用',
+  3:  '厨房',
+  4:  '清洁',
+  5:  '孩子',
+  6:  '日常生活',
+  7:  '购物',
+  8:  '天气',
+  9:  '家里',
+  10: '安全',
+  11: '照顾老人',
+  12: '症状',
+  13: '吃药复诊',
+  14: '走路辅助',
+  15: '洗漱如厕',
+  16: '吃饭喂食',
+  17: '安慰与鼓励',
+};
+
+SEED_CATEGORIES.forEach((c) => {
+  const zh = CATEGORY_ZH_NAMES[c.id];
+  if (zh && !c.name_zh) c.name_zh = zh;
+});
 // No password is stored here, deliberately. This repository is public, so a
 // committed default would be a published credential — anyone could read it and
 // sign in as the operator. The password comes from the ADMIN_USER /
@@ -538,4 +576,5 @@ module.exports = {
   SEED_SCENARIOS,
   SEED_USERS,
   MANDARIN_GLOSSES,
+  CATEGORY_ZH_NAMES,
 };

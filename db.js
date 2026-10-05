@@ -17,7 +17,10 @@ const fs = require('fs');
 const os = require('os');
 const crypto = require('crypto');
 const { DatabaseSync } = require('node:sqlite');
-const { SEED_CATEGORIES, SEED_VOCABULARY, SEED_SCENARIOS, SEED_USERS, MANDARIN_GLOSSES } = require('./data');
+const {
+  SEED_CATEGORIES, SEED_VOCABULARY, SEED_SCENARIOS, SEED_USERS,
+  MANDARIN_GLOSSES, CATEGORY_ZH_NAMES,
+} = require('./data');
 const { SEED_STICKERS } = require('./stickers');
 
 // ---------------------------------------------------------------------------
@@ -135,6 +138,7 @@ db.exec(`
     name_en    TEXT NOT NULL,
     name_yue   TEXT NOT NULL DEFAULT '',
     name_fil   TEXT NOT NULL DEFAULT '',
+    name_zh    TEXT NOT NULL DEFAULT '',
     icon       TEXT NOT NULL DEFAULT '📁',
     sort_order INTEGER NOT NULL DEFAULT 0
   );
@@ -397,6 +401,32 @@ function migrateSchema() {
      survive, and switching it back on restores it exactly as it was. */
   if (addColumnIfMissing('categories', 'enabled', 'INTEGER NOT NULL DEFAULT 1')) {
     changes.push('categories.enabled');
+  }
+
+  /* The Chinese display name for a category.
+     
+     `name_yue` is NOT a substitute. It holds the CANTONESE name in Traditional
+     characters (長者照顧, 食藥覆診) — readable to a Mandarin reader but the wrong
+     register, and Traditional rather than Simplified. A zh learner needs a
+     genuine Simplified Mandarin name (长者照顾, 吃药复诊).
+     
+     Backfilled from CATEGORY_ZH_NAMES in data.js by the same guarded-UPDATE
+     pattern the vocabulary glosses use, and for the same reason: these 17 rows
+     already exist, so migrateContent()'s INSERT OR IGNORE would be a no-op. */
+  if (addColumnIfMissing('categories', 'name_zh', "TEXT NOT NULL DEFAULT ''")) {
+    changes.push('categories.name_zh');
+  }
+  const catZhCount = String(Object.keys(CATEGORY_ZH_NAMES).length);
+  const catZhState = db.prepare("SELECT value FROM meta WHERE key = 'categories_zh_backfilled'").get();
+  if (!catZhState || Number(catZhState.value) < Number(catZhCount)) {
+    const upd = db.prepare("UPDATE categories SET name_zh = ? WHERE id = ? AND name_zh = ''");
+    let filled = 0;
+    for (const [id, name] of Object.entries(CATEGORY_ZH_NAMES)) {
+      filled += upd.run(name, Number(id)).changes;
+    }
+    db.prepare("INSERT OR REPLACE INTO meta (key, value) VALUES ('categories_zh_backfilled', ?)")
+      .run(catZhCount);
+    if (filled) changes.push(`categories.name_zh filled for ${filled} categor${filled === 1 ? 'y' : 'ies'}`);
   }
 
   /* -------------------------------------------------------------------------
@@ -702,7 +732,13 @@ function vocabValues(v) {
 
 /* Bumped whenever the SEED_* content changes in a way an EXISTING database
    needs to pick up. See migrateContent() below. */
-const CONTENT_VERSION = 4; // v1 = the original 64 · v2 = Tier A expansion · v3 = coverage top-up (every category ≥5) · v4 = Simplified Chinese glosses (first 30)
+const CONTENT_VERSION = 4; // v1 = the original 64 · v2 = Tier A expansion · v3 = coverage top-up (every category ≥5) · v4 = Simplified Chinese glosses (all 132)
+// NOTE: the Simplified glosses (vocabulary.mandarin) and the Chinese category
+// names (categories.name_zh) are NOT applied by migrateContent() — it only ever
+// INSERTs, so it cannot enrich a row that already exists. Both travel through
+// guarded UPDATEs in migrateSchema() instead, keyed on meta flags
+// (vocab_mandarin_backfilled, categories_zh_backfilled) that store the overlay
+// SIZE. Bumping CONTENT_VERSION would do nothing for them.
 
 function seedIfEmpty() {
   const { n } = db.prepare('SELECT COUNT(*) AS n FROM categories').get();
@@ -710,7 +746,7 @@ function seedIfEmpty() {
 
   const now = new Date().toISOString();
   const insCat = db.prepare(
-    'INSERT INTO categories (id, name_en, name_yue, name_fil, icon, sort_order) VALUES (?, ?, ?, ?, ?, ?)'
+    'INSERT INTO categories (id, name_en, name_yue, name_fil, name_zh, icon, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)'
   );
   const insScenario = db.prepare(
     `INSERT INTO scenarios (id, name_en, name_yue, name_fil, icon, description, sort_order, enabled)
@@ -727,7 +763,7 @@ function seedIfEmpty() {
 
   db.exec('BEGIN');
   try {
-    SEED_CATEGORIES.forEach((c, i) => insCat.run(c.id, c.name_en, c.name_yue || '', c.name_fil || '', c.icon || '📁', i));
+    SEED_CATEGORIES.forEach((c, i) => insCat.run(c.id, c.name_en, c.name_yue || '', c.name_fil || '', c.name_zh || '', c.icon || '📁', i));
     SEED_SCENARIOS.forEach((s, i) =>
       insScenario.run(s.id, s.name_en, s.name_yue || '', s.name_fil || '', s.icon || '💬', s.description || '', s.sort_order ?? i, s.enabled ?? 1)
     );
@@ -795,8 +831,8 @@ function migrateContent() {
   const changes = [];
   const now = new Date().toISOString();
   const insCat = db.prepare(
-    `INSERT OR IGNORE INTO categories (id, name_en, name_yue, name_fil, icon, sort_order)
-     VALUES (?, ?, ?, ?, ?, ?)`
+    `INSERT OR IGNORE INTO categories (id, name_en, name_yue, name_fil, name_zh, icon, sort_order)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`
   );
   const insScenario = db.prepare(
     `INSERT OR IGNORE INTO scenarios (id, name_en, name_yue, name_fil, icon, description, sort_order, enabled)
@@ -811,7 +847,7 @@ function migrateContent() {
   try {
     let cats = 0;
     SEED_CATEGORIES.forEach((c, i) => {
-      cats += insCat.run(c.id, c.name_en, c.name_yue || '', c.name_fil || '', c.icon || '📁', c.sort_order ?? i).changes;
+      cats += insCat.run(c.id, c.name_en, c.name_yue || '', c.name_fil || '', c.name_zh || '', c.icon || '📁', c.sort_order ?? i).changes;
     });
     let scens = 0;
     SEED_SCENARIOS.forEach((s, i) => {
@@ -853,10 +889,10 @@ const S = {
   listDisabledCategoryIds: db.prepare('SELECT id FROM categories WHERE enabled = 0'),
   getCategory: db.prepare('SELECT * FROM categories WHERE id = ?'),
   insertCategory: db.prepare(
-    'INSERT INTO categories (name_en, name_yue, name_fil, icon, sort_order) VALUES (?, ?, ?, ?, ?)'
+    'INSERT INTO categories (name_en, name_yue, name_fil, name_zh, icon, sort_order) VALUES (?, ?, ?, ?, ?, ?)'
   ),
   updateCategory: db.prepare(
-    'UPDATE categories SET name_en = ?, name_yue = ?, name_fil = ?, icon = ?, enabled = ? WHERE id = ?'
+    'UPDATE categories SET name_en = ?, name_yue = ?, name_fil = ?, name_zh = ?, icon = ?, enabled = ? WHERE id = ?'
   ),
   deleteCategory: db.prepare('DELETE FROM categories WHERE id = ?'),
   setCategoryOrder: db.prepare('UPDATE categories SET sort_order = ? WHERE id = ?'),
@@ -1292,9 +1328,9 @@ const listCategories = () => S.listCategories.all();
 const listEnabledCategories = () => S.listEnabledCategories.all();
 const getCategory = (id) => S.getCategory.get(Number(id));
 
-function createCategory({ name_en, name_yue = '', name_fil = '', icon = '📁' }) {
+function createCategory({ name_en, name_yue = '', name_fil = '', name_zh = '', icon = '📁' }) {
   const { m } = S.maxCategoryOrder.get();
-  const info = S.insertCategory.run(name_en, name_yue, name_fil, icon, m + 1);
+  const info = S.insertCategory.run(name_en, name_yue, name_fil, name_zh, icon, m + 1);
   return getCategory(Number(info.lastInsertRowid));
 }
 
@@ -1310,6 +1346,7 @@ function updateCategory(id, patch) {
     patch.name_en ?? current.name_en,
     patch.name_yue ?? current.name_yue,
     patch.name_fil ?? current.name_fil,
+    patch.name_zh ?? current.name_zh,
     patch.icon ?? current.icon,
     enabled,
     Number(id)

@@ -10,7 +10,6 @@
 const PORTAL = {
   helpers: [],
   invites: [],
-  authMode: 'login',
   created: null, // { link, code } for the "invitation ready" modal
 };
 
@@ -108,21 +107,29 @@ const apiDelete = (url) => apiSend('DELETE', url);
 
 // ---- Auth ------------------------------------------------------------------
 
-function setAuthMode(mode) {
-  PORTAL.authMode = mode;
-  const isRegister = mode === 'register';
-
-  document.querySelectorAll('.portal-auth-tab').forEach((t) => {
-    t.classList.toggle('active', t.dataset.mode === mode);
-  });
-  document.getElementById('field-name').style.display = isRegister ? '' : 'none';
-  document.getElementById('pass-hint').style.display = isRegister ? '' : 'none';
-  document.getElementById('auth-title').textContent = isRegister ? 'Create Employer Account' : 'Employer Sign In';
-  document.getElementById('auth-hint').textContent = isRegister
-    ? 'Set up an account to invite your helper and follow her progress.'
-    : "See how your helper's Cantonese is coming along.";
-  document.getElementById('auth-submit').textContent = isRegister ? 'Create Account' : 'Sign In';
-  document.getElementById('auth-pass').setAttribute('autocomplete', isRegister ? 'new-password' : 'current-password');
+/**
+ * Employers give a NAME, not an email and password.
+ *
+ * The reason this is safe enough: the thing that actually protects a helper's
+ * data is not this form. It is the invitation. An employer only ever sees a
+ * helper who accepted a code the employer generated, and the helper can revoke
+ * that in one tap from her own screen. A password on top of that bought very
+ * little and cost a lot — it is one more thing for a busy person to lose, and
+ * the reset flow needed the operator anyway.
+ *
+ * So the flow is: type your name → the session is remembered on this device →
+ * invite your helper. On a new phone, type the same name.
+ *
+ * `setAuthMode` used to switch between Sign In and Create Account tabs. There is
+ * only one path now, kept as a function because it still owns the copy on the
+ * card and other callers reset the error through it.
+ */
+function setAuthMode() {
+  document.getElementById('auth-title').textContent = 'Employer Sign In';
+  document.getElementById('auth-hint').textContent =
+    'Enter your name to see how your helper is getting on.';
+  document.getElementById('auth-submit').textContent = 'Continue';
+  document.getElementById('auth-name').setAttribute('autocomplete', 'name');
   document.getElementById('auth-error').textContent = '';
 }
 
@@ -131,24 +138,21 @@ async function submitAuth(e) {
   const errEl = document.getElementById('auth-error');
   errEl.textContent = '';
 
-  const email = document.getElementById('auth-email').value.trim();
-  const password = document.getElementById('auth-pass').value;
   const name = document.getElementById('auth-name').value.trim();
+  if (!name) {
+    errEl.textContent = 'Please enter your name.';
+    return;
+  }
+
   const submit = document.getElementById('auth-submit');
   submit.disabled = true;
 
   try {
-    if (PORTAL.authMode === 'register') {
-      await apiPost('/api/auth/register', { email, name, password });
-    } else {
-      await apiPost('/api/auth/login', { username: email, password });
-    }
+    await apiPost('/api/auth/employer', { name });
     document.getElementById('auth-form').reset();
     // Route through checkSession() rather than calling showDashboard()
-    // directly: the form can be used to sign in as ANY role, and an operator
-    // who types their admin credentials here must get the same treatment as
-    // one who arrives already signed in — otherwise this is a second door
-    // into the same confusing page.
+    // directly, so an operator session on this machine still gets the notice
+    // instead of a dashboard that was not theirs.
     await checkSession();
   } catch (err) {
     errEl.textContent = err.message;
@@ -591,7 +595,7 @@ async function submitReset(e) {
 
 // ---- Init ------------------------------------------------------------------
 
-setAuthMode('login');
+setAuthMode();
 if (RESET_TOKEN) {
   showResetCard();
 } else {

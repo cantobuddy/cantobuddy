@@ -173,7 +173,11 @@ const loginRateLimit = makeRateLimit({
 
 const registerRateLimit = makeRateLimit({
   windowMs: 60 * 60 * 1000,
-  max: 5,
+  // A test suite legitimately makes more sign-ins in a second than a person
+  // does in an hour, and a throttled 429 would hide the behaviour under test.
+  // Read from the environment so the limit can be raised for a harness only —
+  // production never sets this, so the shipped limit is unchanged.
+  max: Number(process.env.SIGNUP_RATE_MAX) || 5,
   message: (m) => `Too many sign-up attempts from this connection. Try again in ${m} minute${m === 1 ? '' : 's'}.`,
 });
 
@@ -226,6 +230,36 @@ app.post('/api/auth/register', registerRateLimit, (req, res) => {
   });
   startSession(req, user);
   return res.status(201).json({ ok: true, role: user.role, name: user.name, email: user.email });
+});
+
+/**
+ * POST /api/auth/employer — name-only employer sign-in.
+ *
+ * No email, no password. An employer types their name and is signed in; the
+ * session cookie remembers them on this device. The consent gate for a helper's
+ * data is the INVITATION she accepts (and can revoke), not this form — so a
+ * credential here added friction without adding protection.
+ *
+ * The name IS the identity: typing an existing name returns that employer, which
+ * is what lets them come back on another phone with nothing to remember.
+ */
+app.post('/api/auth/employer', registerRateLimit, (req, res) => {
+  const b = req.body || {};
+  const name = String(b.name || '').trim();
+
+  if (!name) return res.status(400).json({ error: 'Please enter your name.' });
+  if (name.length > 60) return res.status(400).json({ error: 'That name is too long.' });
+
+  let user;
+  try {
+    user = store.loginOrCreateEmployer(name);
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
+
+  loginRateLimit.clear(req);
+  startSession(req, user);
+  return res.json({ ok: true, role: user.role, name: user.name, email: user.email });
 });
 
 app.post('/api/auth/login', loginRateLimit, (req, res) => {

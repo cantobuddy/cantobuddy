@@ -146,6 +146,8 @@ const I18N = {
     'name.cancel': 'Cancel',
     'name.save': 'Save',
     'name.notSaved': 'Your browser is blocking saved data, so your name may not be remembered. Try a normal window, not private browsing.',
+    'name.requiredHint': 'Please enter your name first — your scores cannot be saved without it.',
+    'name.saveAndStart': 'Save & continue',
 
     // voice modal
     'voice.title': '🎙️ Choose a Practice Voice',
@@ -372,6 +374,8 @@ const I18N = {
     'name.cancel': 'Kanselahin',
     'name.save': 'I-save',
     'name.notSaved': 'Hinaharang ng browser mo ang pag-save ng data, kaya maaaring hindi maalala ang pangalan mo. Subukan ang normal na window, hindi private browsing.',
+    'name.requiredHint': 'Pakilagay muna ang iyong pangalan — hindi mai-save ang mga puntos mo kung wala ito.',
+    'name.saveAndStart': 'I-save at magpatuloy',
 
     // voice modal
     'voice.title': '🎙️ Pumili ng Boses',
@@ -610,6 +614,8 @@ const I18N = {
     'name.cancel': '取消',
     'name.save': '保存',
     'name.notSaved': '浏览器阻止了本地存储，姓名可能无法记住。请用普通窗口，不要用无痕浏览。',
+    'name.requiredHint': '请先输入你的姓名——没有姓名，测验成绩无法保存。',
+    'name.saveAndStart': '保存并继续',
 
     // voice modal
     'voice.title': '🎙️ 选择练习语音',

@@ -908,6 +908,14 @@ body {
 .modal-box h3 { font-size: 1.2rem; margin-bottom: 6px; }
 .modal-hint { font-size: 0.85rem; color: var(--c-text-soft); margin-bottom: 14px; }
 
+/* The name gate. A required hint is a direction, not a note, so it reads as
+   emphasis rather than the grey aside the optional edit form uses. */
+.name-hint--required { color: #c0392b; font-weight: 600; }
+
+/* An empty required field used to do nothing at all when Save was tapped —
+   silently. Colour the input so the refusal is visible rather than inferred. */
+.input-error { border-color: #e74c3c !important; box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.15); }
+
 #name-input {
   width: 100%;
   padding: 12px 14px;

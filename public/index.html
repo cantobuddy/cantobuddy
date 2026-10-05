@@ -326,11 +326,11 @@
 <div id="name-modal" class="modal-overlay" onclick="closeNameModal(event)">
   <div class="modal-box" onclick="event.stopPropagation()">
     <h3 data-i18n="name.title">Your Name</h3>
-    <p class="modal-hint" data-i18n="name.hint">Enter your name so your quiz scores are saved.</p>
-    <input type="text" id="name-input" placeholder="e.g. Maria" maxlength="30" data-i18n="name.placeholder" data-i18n-attr="placeholder" />
+    <p class="modal-hint" id="name-hint" data-i18n="name.hint">Enter your name so your quiz scores are saved.</p>
+    <input type="text" id="name-input" placeholder="e.g. Maria" maxlength="30" data-i18n="name.placeholder" data-i18n-attr="placeholder" onkeydown="if(event.key==='Enter'){event.preventDefault();saveLearnerName();}" />
     <div class="modal-actions">
-      <button class="btn btn-outline" onclick="closeNameModal()" data-i18n="name.cancel">Cancel</button>
-      <button class="btn btn-primary" onclick="saveLearnerName()" data-i18n="name.save">Save</button>
+      <button class="btn btn-outline" id="name-cancel" onclick="closeNameModal()" data-i18n="name.cancel">Cancel</button>
+      <button class="btn btn-primary" id="name-save" onclick="saveLearnerName()" data-i18n="name.save">Save</button>
     </div>
   </div>
 </div>

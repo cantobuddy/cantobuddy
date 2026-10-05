@@ -31,6 +31,7 @@ const STATE = {
   vocabulary: [],
   categories: [],
   learner: localStorage.getItem('cb_learner') || '',
+  nameRequired: false,   // true while the name dialog is a gate, not an edit
   deviceId: loadDeviceId(),   // this device's identity — never shown to the user
   employers: [],              // who is allowed to see this learner's progress
   currentLevel: 0,      // 0 = all, 1-3 = specific
@@ -424,6 +425,15 @@ function escapeHtml(s) {
 // ---- Navigation ------------------------------------------------------------
 
 function navigate(view) {
+  // My Progress is read by device token but *displayed* by name, and an unnamed
+  // learner sees a board with nothing to attribute. Ask for the name before
+  // showing it rather than after she has already been disappointed by it.
+  if (view === 'progress' && !STATE.learner) {
+    window._pendingView = 'progress';
+    editLearnerName(true);
+    return;
+  }
+
   document.querySelectorAll('.view').forEach((v) => v.classList.remove('active'));
   document.getElementById('view-' + view).classList.add('active');
 
@@ -753,13 +763,48 @@ function updateLearnerBadge() {
   }
 }
 
-function editLearnerName() {
-  document.getElementById('name-input').value = STATE.learner;
-  document.getElementById('name-modal').classList.add('show');
-  setTimeout(() => document.getElementById('name-input').focus(), 100);
+/**
+ * Open the name dialog.
+ *
+ * `required` is the difference between "she tapped her name to fix a typo" and
+ * "she cannot go any further without one". Without a name a learner is invisible
+ * to every report — no attribution on a quiz, no row under People, and no way for
+ * a connected employer to tell which result is hers. Unnamed learners are a real
+ * and current problem (two of them in the dev database), and Cancel was the way
+ * past the prompt. So the required form has no Cancel, ignores Escape, and
+ * ignores a click on the backdrop.
+ */
+function editLearnerName(required = false) {
+  STATE.nameRequired = !!required;
+  const modal = document.getElementById('name-modal');
+  const input = document.getElementById('name-input');
+  const hint = document.getElementById('name-hint');
+  const cancel = document.getElementById('name-cancel');
+
+  input.value = STATE.learner;
+  input.classList.remove('input-error');
+  // Only nag when she has no name yet; an edit is a deliberate act.
+  hint.textContent = t(required && !STATE.learner ? 'name.requiredHint' : 'name.hint');
+  hint.classList.toggle('name-hint--required', required && !STATE.learner);
+  cancel.style.display = required ? 'none' : '';
+  document.getElementById('name-save').textContent = t(
+    required && !STATE.learner ? 'name.saveAndStart' : 'name.save'
+  );
+
+  modal.classList.add('show');
+  setTimeout(() => input.focus(), 100);
+}
+
+/** True while the modal is a gate rather than an edit. */
+function nameIsRequired() {
+  const modal = document.getElementById('name-modal');
+  return !!STATE.nameRequired && modal.classList.contains('show');
 }
 
 function closeNameModal(e) {
+  // Dismissing the gate is the bug this whole flow exists to prevent: a backdrop
+  // tap, an Escape, or a stray click must not hand her back an unnamed session.
+  if (nameIsRequired()) return;
   if (e && e.target !== e.currentTarget) return;
   document.getElementById('name-modal').classList.remove('show');
 }
@@ -784,13 +829,39 @@ function persistLearnerName(name) {
 
 function saveLearnerName() {
   const name = document.getElementById('name-input').value.trim();
-  if (!name) return;
+  const input = document.getElementById('name-input');
+  if (!name) {
+    // Say why the button appears to do nothing, rather than staying silent.
+    input.classList.add('input-error');
+    input.focus();
+    return;
+  }
+  input.classList.remove('input-error');
   STATE.learner = name;
+  STATE.nameRequired = false;
   updateLearnerBadge();
-  closeNameModal();
+  document.getElementById('name-modal').classList.remove('show');
   if (!persistLearnerName(name)) showToast(t('name.notSaved'));
   // Push the new label to the server so any connected employer sees it too.
   identifySelf();
+  resumeAfterName();
+}
+
+/**
+ * If she was stopped mid-task by the name gate, finish what she started now
+ * that she has a name. Runs only on a successful save, so cancelling — which is
+ * only possible for an edit, not the gate — cleanly does nothing.
+ */
+function resumeAfterName() {
+  const view = window._pendingView;
+  if (view) {
+    window._pendingView = null;
+    navigate(view);
+  }
+  const pending = window._pendingQuiz;
+  if (!pending) return;
+  window._pendingQuiz = null;
+  startQuiz(pending.type);
 }
 
 // ===========================================================================
@@ -1118,10 +1189,11 @@ function startQuiz(type) {
   }
 
   if (!STATE.learner) {
-    // Prompt for name first
-    editLearnerName();
-    // Store pending quiz and retry after name is saved
+    // Required, not optional: an unnamed quiz cannot be attributed to anyone.
+    // Remember the quiz so saving the name resumes it instead of dropping her
+    // back on the screen she was on.
     window._pendingQuiz = { type, level };
+    editLearnerName(true);
     return;
   }
 

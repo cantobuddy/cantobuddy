@@ -48,31 +48,25 @@
         <a href="/admin.html" class="portal-link">admin dashboard</a>.
       </p>
 
-      <div class="portal-auth-tabs">
-        <button type="button" class="portal-auth-tab active" data-mode="login" onclick="setAuthMode('login')">Sign In</button>
-        <button type="button" class="portal-auth-tab" data-mode="register" onclick="setAuthMode('register')">Create Account</button>
-      </div>
-
+      <!-- No email and no password. An employer types their name and is in; the
+           machine remembers them next time. Sending a helper an invitation link
+           and connecting through it is what establishes the consent
+           relationship — that one-time code is the real gate, so requiring a
+           password here only lost people before they ever saw the dashboard. -->
       <form id="auth-form" onsubmit="submitAuth(event)">
-        <div class="form-field" id="field-name" style="display:none">
+        <div class="form-field">
           <label for="auth-name">Your Name</label>
-          <input type="text" id="auth-name" placeholder="e.g. Mrs Chan" autocomplete="name" />
-        </div>
-        <div class="form-field">
-          <label for="auth-email">Email</label>
-          <input type="email" id="auth-email" placeholder="you@example.com" required autocomplete="username" />
-        </div>
-        <div class="form-field">
-          <label for="auth-pass">Password</label>
-          <input type="password" id="auth-pass" placeholder="••••••••" required autocomplete="current-password" />
-          <p class="form-hint" id="pass-hint" style="display:none">At least 8 characters.</p>
+          <input type="text" id="auth-name" placeholder="e.g. Mrs Chan" required
+                 autocomplete="name" maxlength="60" />
+          <p class="form-hint">This is how your helper will see you on her screen.</p>
         </div>
         <div id="auth-error" class="form-error"></div>
-        <button type="submit" id="auth-submit" class="btn btn-primary btn-lg btn-block">Sign In</button>
+        <button type="submit" id="auth-submit" class="btn btn-primary btn-lg btn-block">Continue</button>
       </form>
 
       <p class="portal-fineprint">
-        Forgot your password? Ask the CantoBuddy operator to send you a reset link.
+        No password needed. You connect to your helper by sending her the invite
+        link from your dashboard.
       </p>
     </div>
   </section>

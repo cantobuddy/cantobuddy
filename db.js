@@ -1131,6 +1131,12 @@ const S = {
 
   getUserByUsername: db.prepare('SELECT * FROM users WHERE username = ?'),
   getUserById: db.prepare('SELECT * FROM users WHERE id = ?'),
+  // An employer is identified by the NAME they typed, not a login id. The name
+  // is stored on `users.name`; `username` holds a synthetic key derived from it
+  // so the UNIQUE constraint still does the deduplication.
+  getEmployerByName: db.prepare(
+    "SELECT * FROM users WHERE role = 'employer' AND name = ? COLLATE NOCASE ORDER BY id LIMIT 1"
+  ),
   setUserPassword: db.prepare('UPDATE users SET password_hash = ? WHERE id = ?'),
 
   getSession: db.prepare('SELECT * FROM sessions WHERE sid = ?'),
@@ -1723,6 +1729,61 @@ function createUser({ username, password, role = 'learner', name = '', email = n
   const now = new Date().toISOString();
   const info = S.insertUser.run(id, hashPassword(password), role, name || '', email || id, status, now);
   return S.getUserById.get(Number(info.lastInsertRowid));
+}
+
+/**
+ * Find or create the employer account for a name, and sign them in.
+ *
+ * There is no password. The consent gate in this product is the INVITATION, not
+ * a credential: an employer sees a helper only after she accepts a code the
+ * employer generated, and she can revoke it in one tap. A password added
+ * friction without adding protection, and the people it locked out were the
+ * ones we most wanted to reach.
+ *
+ * The name is the identity, so typing an existing name returns that employer —
+ * which is what makes "sign in on a new phone" work with nothing to remember.
+ * `username` is derived from the name so the UNIQUE constraint still applies;
+ * the stored hash is an unguessable random value that is never checked against
+ * anything, because nothing ever logs in with a password again. It is random
+ * rather than empty so that a stray row can never be authenticated by guessing
+ * an empty password.
+ */
+function loginOrCreateEmployer(rawName) {
+  const name = String(rawName || '').trim().replace(/\s+/g, ' ').slice(0, 60);
+  if (!name) throw new Error('A name is required.');
+
+  const existing = S.getEmployerByName.get(name);
+  if (existing) {
+    if (existing.status && existing.status !== 'active') {
+      throw new Error('That account is not active.');
+    }
+    S.touchUserLogin.run(new Date().toISOString(), existing.id);
+    return getUserById(existing.id);
+  }
+
+  const now = new Date().toISOString();
+  // A stable, URL-safe key from the name. Two different names can slug to the
+  // same string (Mrs Chan / Mrs  Chan), so a numeric suffix disambiguates
+  // without ever colliding.
+  const base = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'employer';
+  let username = `emp:${base}`;
+  let n = 1;
+  while (S.getUserByUsername.get(username)) {
+    username = `emp:${base}-${++n}`;
+  }
+
+  const info = S.insertUser.run(
+    username,
+    // Never used to authenticate; kept non-empty and unguessable so the column
+    // cannot be satisfied by an empty string.
+    hashPassword(crypto.randomBytes(32).toString('base64url')),
+    'employer',
+    name,
+    null,
+    'active',
+    now
+  );
+  return getUserById(Number(info.lastInsertRowid));
 }
 
 function updateUser(id, patch) {
@@ -2812,6 +2873,7 @@ module.exports = {
   listUsers,
   countActiveAdmins,
   createUser,
+  loginOrCreateEmployer,
   updateUser,
   deleteUser,
   syncEnvAdmin,

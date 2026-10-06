@@ -558,6 +558,258 @@ SEED_CATEGORIES.forEach((c) => {
   const zh = CATEGORY_ZH_NAMES[c.id];
   if (zh && !c.name_zh) c.name_zh = zh;
 });
+
+/* ---------------------------------------------------------------------------
+   Indonesian glosses, keyed by vocabulary id.
+
+   The third audience. Roughly 150,000 Indonesian domestic helpers work in Hong
+   Kong — comparable to the Filipino community the app was built for — and they
+   arrive with the same problem: the person they care for cannot meet them in
+   English, so the Cantonese has to be understood, not produced.
+
+   TWO RULES THE WORDING FOLLOWS
+
+     1. This is BAHASA INDONESIA, not Malay and not Tagalog. The three are
+        related, and the temptation to reuse a Tagalog gloss is real, but
+        「街市」 is pasar in Indonesian and palengke in Tagalog; 「藥」 is obat, not
+        gamot. A Tagalog gloss on an Indonesian screen is the bug this file
+        exists to prevent, and tools/content-migration-test.js asserts the two
+        columns are never identical.
+     2. Everyday spoken Indonesian, not formal baku. A helper says "Hati-hati"
+        and "Sudah kenyang?", not "Berhati-hatilah Anda" and "Apakah Anda sudah
+        merasa kenyang". Where a formal and a colloquial form both exist, the
+        gloss is the one she would actually say in the kitchen.
+
+   MACHINE-DRAFTED — NOT YET NATIVE-REVIEWED.
+
+   This is the same honesty the Tier A elder-care drafts and the Mandarin
+   glosses shipped with: every entry has a gloss rather than a blank, and the
+   whole set is flagged in `meta` (vocab_indonesian_backfilled) so it can be
+   reviewed in one pass. The Cantonese itself is already verified; only the
+   gloss column is new, and a wrong gloss is a correction rather than a
+   correctness risk to the lessons.
+
+   Kept out of SEED_VOCABULARY so the whole translation is one reviewable block.
+   Applied by a guarded UPDATE in db.js, because the 142 rows already exist in
+   every live database and migrateContent() only INSERTs.
+   --------------------------------------------------------------------------- */
+const INDONESIAN_GLOSSES = {
+  // --- ids 1-15: the words a helper needs in her first week ---
+  1:  'Halo',
+  2:  'Terima kasih',
+  3:  'Tolong / Permisi',
+  4:  'Selamat tinggal',
+  5:  'Ya',
+  6:  'Tidak',
+  7:  'Bagus',
+  8:  'Tidak bagus / Jangan',
+  9:  'Air',
+  10: 'Nasi / Makanan',
+  11: 'Makan',
+  12: 'Minum',
+  13: 'Dapur',
+  14: 'Besar',
+  15: 'Kecil',
+
+  // --- ids 16-45: daily routine, the market, the weather ---
+  16: 'Mencuci baju',
+  17: 'Memasak',
+  18: 'Mengepel lantai',
+  19: 'Anak',
+  20: 'Tidur',
+  21: 'Bangun',
+  22: 'Mandi',
+  23: 'Pasar',
+  24: 'Belanja',
+  25: 'Pergi ke sekolah',
+  26: 'Mengerjakan PR',
+  27: 'Menyalakan lampu',
+  28: 'Mematikan lampu',
+  29: 'Hujan',
+  30: 'Hati-hati',
+  31: 'Tolong bantu saya beli sayur',
+  32: 'Anak harus tidur sekarang',
+  33: 'Hari ini hujan deras',
+  34: 'Tolong bawakan mangkuk',
+  35: 'Ayo pergi ke pasar belanja',
+  36: 'Anak sudah selesai PR belum?',
+  37: 'Mangkuk di dapur sudah dicuci belum?',
+  38: 'Jangan sentuh barang itu',
+  39: 'Cepat kembali',
+  40: 'Bantu bersihkan ruang tamu',
+  41: 'Sarapan',
+  42: 'Minum air',
+  43: 'Tolong nyalakan AC',
+  44: 'Tutup pintu',
+  45: 'Ada makanan?',
+
+  // --- ids 46-64: elder care. The register matters most here: 「慢慢行」 is
+  // encouragement to someone unsteady, so it is "Jalan pelan-pelan", not an
+  // instruction. 「乖」 has no single Indonesian word — it is praise for being
+  // good, given to a child or an old person, so the gloss carries both. ---
+  46: 'Duduk',
+  47: 'Minum obat',
+  48: 'Jalan pelan-pelan',
+  49: 'Bagaimana kabar Anda hari ini?',
+  50: 'Sudah kenyang?',
+  51: 'Hati-hati jalan',
+  52: 'Tidur siang',
+  53: 'Jangan bangun terlalu cepat',
+  54: 'Bantu Anda mandi',
+  55: 'Bantu Anda menyisir rambut',
+  56: 'Sakit tidak?',
+  57: 'Badan tidak enak',
+  58: 'Tunggu sebentar',
+  59: 'Jangan khawatir',
+  60: 'Jangan buru-buru, pelan-pelan saja',
+  61: 'Hari ini masak apa?',
+  62: 'Tolong makan pelan-pelan',
+  63: 'Sudah ke toilet belum?',
+  64: 'Berdiri tegak dulu',
+
+  // --- ids 65-80: symptoms, medicine, appointments ---
+  65: 'Sakit',
+  66: 'Sakit kepala',
+  67: 'Batuk',
+  68: 'Demam',
+  69: 'Pusing',
+  70: 'Sakit perut',
+  71: 'Sakit di mana?',
+  72: 'Badan saya sangat tidak enak',
+  73: 'Obat',
+  74: 'Pil',
+  75: 'Obat cair',
+  76: 'Klinik',
+  77: 'Dokter',
+  78: 'Sudah minum obat belum?',
+  79: 'Pergi ke klinik',
+  // "kontrol" is the ordinary Indonesian word for a follow-up medical visit;
+  // "tindak lanjut" is a translation, not something anyone says.
+  80: 'Kapan kontrol lagi?',
+
+  // --- ids 81-88: mobility ---
+  81: 'Jalan',
+  82: 'Berdiri',
+  83: 'Pegangan',
+  84: 'Kursi roda',
+  85: 'Pegang saya',
+  86: 'Pelan-pelan saja',
+  87: 'Jangan sampai jatuh',
+  88: 'Saya bantu Anda bangun',
+
+  // --- ids 89-96: toilet and personal care ---
+  89: 'Toilet',
+  90: 'Sikat gigi',
+  91: 'Handuk',
+  92: 'Cuci muka',
+  93: 'Ganti baju',
+  94: 'Ke toilet',
+  95: 'Saya bantu Anda ganti baju',
+  96: 'Mau ke toilet?',
+
+  // --- ids 97-104: meals ---
+  97: 'Lapar',
+  98: 'Kenyang',
+  99: 'Nafsu makan',
+  100: 'Panas',
+  101: 'Dingin',
+  102: 'Makan lagi sedikit',
+  103: 'Terlalu panas',
+  104: 'Tidak ada nafsu makan',
+
+  // --- ids 105-112: reassurance. 「冇事」 and 「唔緊要」 both land near
+  // "never mind" in English; Indonesian separates them, so they are split
+  // rather than duplicated. ---
+  105: 'Jangan takut',
+  106: 'Tidak apa-apa',
+  107: 'Saya di sini',
+  108: 'Baik / Penurut',
+  109: 'Tidak masalah',
+  110: 'Kamu hebat',
+  111: 'Anak perempuan Anda menelepon',
+  112: 'Dia sebentar lagi pulang',
+
+  // --- ids 113-120: emergencies. Kept short on purpose: these are the words
+  // that have to come out fast, so no gloss here is a full sentence. ---
+  113: 'Tolong!',
+  114: 'Panggil ambulans',
+  115: 'Menelepon',
+  116: 'Jatuh',
+  117: 'Jangan bergerak',
+  118: 'Kebakaran',
+  119: 'Nenek jatuh',
+  120: 'Dia tidak bisa bernapas',
+
+  // --- ids 121-132: the coverage top-up ---
+  121: 'Selamat pagi',
+  // 「早唞」 is said when someone goes to bed, so it is "Selamat tidur" (sleep
+  // well), not "Selamat malam" (good evening).
+  122: 'Selamat tidur',
+  123: 'Lap meja',
+  124: 'Buang sampah',
+  125: 'Berapa harganya?',
+  126: 'Bisa lebih murah?',
+  127: 'Panas sekali',
+  128: 'Dingin sekali',
+  129: 'Akan ada topan',
+  130: 'Bawa payung',
+  131: 'Buka pintu',
+  132: 'Buka jendela',
+
+  // --- ids 133-142: the Restaurant set ---
+  133: 'Dim sum',
+  134: 'Makan dim sum',
+  135: 'Teh',
+  136: 'Pedas',
+  137: 'Tidak pedas',
+  138: 'Tanpa daun bawang',
+  139: 'Minta bon',
+  140: 'Bayar bon',
+  141: 'Mau teh?',
+  142: 'Mau apa?',
+};
+
+SEED_VOCABULARY.forEach((v) => {
+  const gloss = INDONESIAN_GLOSSES[v.id];
+  if (gloss && !v.indonesian) v.indonesian = gloss;
+});
+
+/* ---------------------------------------------------------------------------
+   Category names in Bahasa Indonesia, keyed by category id.
+
+   Same reason as CATEGORY_ZH_NAMES above: kept out of SEED_CATEGORIES so the
+   translation is one reviewable block, and applied by a guarded UPDATE in db.js
+   (categories_id_backfilled) because the rows already exist in every live
+   database.
+
+   「照顧老人」 is MERAWAT LANSIA — lansia (lanjut usia) is the ordinary word for an
+   elderly person, and it is what an Indonesian carer would call the job. --- */
+const CATEGORY_ID_NAMES = {
+  1:  'Salam',
+  2:  'Umum',
+  3:  'Dapur',
+  4:  'Kebersihan',
+  5:  'Anak-anak',
+  6:  'Kehidupan Sehari-hari',
+  7:  'Belanja',
+  8:  'Cuaca',
+  9:  'Rumah',
+  10: 'Keselamatan',
+  11: 'Merawat Lansia',
+  12: 'Kesehatan & Gejala',
+  13: 'Obat & Kontrol',
+  14: 'Mobilitas & Berjalan',
+  15: 'Toilet & Kebersihan Diri',
+  16: 'Makan & Menyuapi',
+  17: 'Menenangkan & Menyemangati',
+  18: 'Restoran',
+};
+
+SEED_CATEGORIES.forEach((c) => {
+  const id = CATEGORY_ID_NAMES[c.id];
+  if (id && !c.name_id) c.name_id = id;
+});
+
 // No password is stored here, deliberately. This repository is public, so a
 // committed default would be a published credential — anyone could read it and
 // sign in as the operator. The password comes from the ADMIN_USER /
@@ -622,4 +874,6 @@ module.exports = {
   SEED_USERS,
   MANDARIN_GLOSSES,
   CATEGORY_ZH_NAMES,
+  INDONESIAN_GLOSSES,
+  CATEGORY_ID_NAMES,
 };

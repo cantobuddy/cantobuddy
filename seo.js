@@ -102,9 +102,9 @@ function buildWordIndex() {
 }
 
 const LEVELS = {
-  1: { en: 'Beginner', yue: '初級', fil: 'Baguhan', zh: '入门', blurb: 'Basic greetings and the everyday words you need in the first week.' },
-  2: { en: 'Intermediate', yue: '中級', fil: 'Katamtaman', zh: '中级', blurb: 'Daily routines and household activities — cooking, cleaning, shopping, weather.' },
-  3: { en: 'Advanced', yue: '高級', fil: 'Mahusay', zh: '进阶', blurb: 'Full sentences and phrases, including elder care and asking questions.' },
+  1: { en: 'Beginner', yue: '初級', fil: 'Baguhan', zh: '入门', id: 'Pemula', blurb: 'Basic greetings and the everyday words you need in the first week.' },
+  2: { en: 'Intermediate', yue: '中級', fil: 'Katamtaman', zh: '中级', id: 'Menengah', blurb: 'Daily routines and household activities — cooking, cleaning, shopping, weather.' },
+  3: { en: 'Advanced', yue: '高級', fil: 'Mahusay', zh: '进阶', id: 'Mahir', blurb: 'Full sentences and phrases, including elder care and asking questions.' },
 };
 
 function levelName(n, lang) {
@@ -112,6 +112,7 @@ function levelName(n, lang) {
   if (!l) return `Level ${n}`;
   if (lang === 'fil') return l.fil;
   if (lang === 'zh') return l.zh;
+  if (lang === 'id') return l.id;
   return l.en;
 }
 
@@ -242,25 +243,77 @@ const L = {
     notFoundBody: '这个页面不存在。试试浏览词汇表。',
     footerNote: 'CantoBuddy — 香港免费粤语学习工具。',
   },
+
+  /* Bahasa Indonesia, for the Indonesian domestic-helper audience.
+     Indonesia is the second-largest source of foreign domestic helpers in Hong
+     Kong, and this reader searches in her own language: "belajar bahasa Kanton",
+     "kosakata Kanton sehari-hari", "bahasa Kanton untuk ART". The copy is
+     written to those phrases, not translated from the English tree.
+
+     Deliberately NOT Malay: the two are close, but "asisten rumah tangga"
+     (not "pembantu rumah"), "gratis" (not "percuma") and "beranda" (not
+     "laman utama") are Indonesian choices. */
+  id: {
+    htmlLang: 'id',
+    brand: 'CantoBuddy',
+    tagline: 'Belajar bahasa Kanton untuk kehidupan sehari-hari di Hong Kong',
+    learn: 'Belajar',
+    browse: 'Jelajahi kosakata',
+    openApp: 'Buka aplikasi',
+    openAppDesc: 'Latih kata-kata ini dengan audio, gambar, dan kuis — gratis.',
+    jyutping: 'Jyutping',
+    cantonese: 'Kanton',
+    english: 'Inggris',
+    filipino: 'Filipino',
+    chinese: '中文',
+    categories: 'Kategori',
+    levels: 'Tingkat',
+    allWords: (n) => `Semua ${n} kata`,
+    wordsIn: (c) => `Kata dalam ${c}`,
+    relatedIn: (c) => `Kata ${c} lainnya`,
+    home: 'Beranda',
+    pronunciation: 'Pelafalan',
+    meaning: 'Arti',
+    alsoSaid: 'Dalam bahasa Inggris',
+    levelLabel: 'Tingkat',
+    categoryLabel: 'Kategori',
+    aboutTitle: (c) => `Tentang kata ${c} ini`,
+    aboutBody: (c, n) =>
+      `Ini ${n} kata dan frasa ${c.toLowerCase()} praktis untuk kehidupan sehari-hari di Hong Kong, ` +
+      `ditulis untuk asisten rumah tangga dari Indonesia. Setiap entri memuat aksara Kanton, romanisasi ` +
+      `Jyutping supaya bisa diucapkan, serta artinya dalam bahasa Indonesia dan Inggris.`,
+    hubLede: (total, cats) =>
+      `Semua kosakata Kanton di CantoBuddy: ${total} kata praktis dalam ${cats} kategori sehari-hari, ` +
+      `masing-masing dengan romanisasi Jyutping dan artinya dalam bahasa Indonesia.`,
+    wordIntro: (w) => `${w} dalam bahasa Kanton`,
+    wordBody: (w, j, e, c) =>
+      `${e} dalam bahasa Kanton adalah ${w}, diucapkan ${j}. Kata ini termasuk kelompok ${c} dan ` +
+      `dipakai setiap hari oleh asisten rumah tangga di Hong Kong.`,
+    notFound: 'Halaman tidak ditemukan',
+    notFoundBody: 'Halaman itu tidak ada. Coba jelajahi kosakatanya.',
+    footerNote: 'CantoBuddy — latihan bahasa Kanton gratis untuk asisten rumah tangga di Hong Kong.',
+  },
 };
 
 /** Category display name in the requested language, falling back sensibly.
  *
  * `name_zh` is a genuine Simplified Mandarin name, NOT `name_yue` — the latter
  * is the Cantonese name in Traditional characters, which is the wrong register
- * and the wrong script for the zh tree. */
+ * and the wrong script for the zh tree. `name_id` is likewise a real Indonesian
+ * name, not a variant of the Filipino one (Kebersihan ≠ Paglilinis). */
 function catName(cat, lang) {
   if (!cat) return '';
   if (lang === 'fil') return cat.name_fil || cat.name_en;
   if (lang === 'zh') return cat.name_zh || cat.name_en;
+  if (lang === 'id') return cat.name_id || cat.name_en;
   return cat.name_en || cat.name_fil;
 }
 
 /** The URL prefix for a language tree. English is the root, deliberately. */
-const LANG_PREFIX = { en: '', fil: '/fil', zh: '/zh' };
+const LANG_PREFIX = { en: '', fil: '/fil', zh: '/zh', id: '/id' };
 
 /** Every language tree this module serves, in the order links should list them. */
-const LANGS = ['en', 'fil', 'zh'];
+const LANGS = ['en', 'fil', 'zh', 'id'];
 
 /** Where a category page lives, in the right language tree. */
 function catHref(cat, lang) {
@@ -455,7 +508,7 @@ function page(o) {
     .map((a) => `<link rel="alternate" hreflang="${esc(a.lang)}" href="${esc(SITE_ORIGIN + a.path)}" />`)
     .join('\n  ');
 
-  const OG_LOCALE = { en: 'en_HK', fil: 'fil_PH', zh: 'zh_CN' };
+  const OG_LOCALE = { en: 'en_HK', fil: 'fil_PH', zh: 'zh_CN', id: 'id_ID' };
 
   return `<!DOCTYPE html>
 <html lang="${esc(L[lang].htmlLang)}">
@@ -524,9 +577,9 @@ ${VISIT_BEACON}
  * `chinese` is '中文' in EVERY dictionary, so an English page rendered
  * "中文 · 中文" — two identical links, one of them pointing at Filipino and
  * labelled Chinese. A language switcher whose labels are wrong is worse than
- * no switcher, and it is also a crawl path between the three trees.
+ * no switcher, and it is also a crawl path between the language trees.
  */
-const LANG_ENDONYM = { en: 'English', fil: 'Filipino', zh: '中文' };
+const LANG_ENDONYM = { en: 'English', fil: 'Filipino', zh: '中文', id: 'Bahasa Indonesia' };
 
 function languageLinks(current) {
   return LANGS.filter((l) => l !== current)
@@ -556,6 +609,7 @@ function crumbs(lang, trail) {
 function wordUnit(lang) {
   if (lang === 'fil') return 'salita';
   if (lang === 'zh') return '个词';
+  if (lang === 'id') return 'kata';
   return 'words';
 }
 
@@ -563,6 +617,7 @@ function wordUnit(lang) {
 function glossOf(w, lang) {
   if (lang === 'zh') return w.mandarin || w.english || '';
   if (lang === 'fil') return w.tagalog || w.english || '';
+  if (lang === 'id') return w.indonesian || w.english || '';
   return w.english || '';
 }
 
@@ -622,9 +677,9 @@ const ORG_LD = {
   url: SITE_ORIGIN,
   logo: `${SITE_ORIGIN}/icons/icon-512.png`,
   description:
-    'A free Cantonese learning app for Filipino domestic helpers in Hong Kong: practical vocabulary with audio, pictures and quizzes.',
+    'A free Cantonese learning app for Filipino and Indonesian domestic helpers in Hong Kong: practical vocabulary with audio, pictures and quizzes.',
   areaServed: { '@type': 'Place', name: 'Hong Kong' },
-  audience: { '@type': 'Audience', audienceType: 'Filipino domestic helpers' },
+  audience: { '@type': 'Audience', audienceType: 'Filipino and Indonesian domestic helpers' },
 };
 
 function breadcrumbLd(trail) {
@@ -723,11 +778,13 @@ ${ctaCard(lang)}
     en: `Cantonese Vocabulary — ${total} Words for Helpers in Hong Kong | CantoBuddy`,
     fil: `Bokabularyong Cantonese — ${total} salita para sa mga helper sa Hong Kong | CantoBuddy`,
     zh: `${total} 个香港粤语常用词 — 粤语学习词汇表 | CantoBuddy`,
+    id: `Kosakata Bahasa Kanton — ${total} Kata untuk Asisten Rumah Tangga di Hong Kong | CantoBuddy`,
   };
   const DESC = {
     en: `Browse ${total} practical Cantonese words across ${cats.length} categories, with Jyutping romanisation and English and Filipino meanings.`,
     fil: `Tingnan ang ${total} praktikal na salitang Cantonese sa ${cats.length} kategorya, may Jyutping at kahulugan sa Filipino at Ingles.`,
     zh: `浏览 ${total} 个实用粤语词汇，分为 ${cats.length} 个日常分类，配有粤拼读音和中文意思。适合在香港生活、想学广东话的普通话使用者。`,
+    id: `Jelajahi ${total} kata Kanton praktis dalam ${cats.length} kategori, lengkap dengan romanisasi Jyutping dan arti dalam bahasa Indonesia dan Inggris.`,
   };
   const title = TITLE[lang];
   const description = DESC[lang];
@@ -800,11 +857,13 @@ ${ctaCard(lang)}
     en: `${name} in Cantonese — ${rows.length} Words (${altName}) | CantoBuddy`,
     fil: `${name} sa Cantonese — ${rows.length} salita (${altName}) | CantoBuddy`,
     zh: `${name}粤语怎么说 — ${rows.length} 个常用词 (${altName}) | CantoBuddy`,
+    id: `${name} dalam Bahasa Kanton — ${rows.length} Kata (${altName}) | CantoBuddy`,
   };
   const DESC = {
     en: `Learn ${rows.length} practical Cantonese ${name.toLowerCase()} words with Jyutping romanisation and English and Filipino meanings — free.`,
     fil: `${rows.length} praktikal na salitang Cantonese para sa ${name.toLowerCase()}, may Jyutping at kahulugan sa Filipino at Ingles.`,
     zh: `${rows.length} 个实用的${name}粤语词汇，配粤拼读音和中文意思。香港日常生活常用的广东话，免费学习。`,
+    id: `Pelajari ${rows.length} kata Kanton praktis untuk ${name.toLowerCase()}, lengkap dengan romanisasi Jyutping dan arti dalam bahasa Indonesia dan Inggris — gratis.`,
   };
   const title = TITLE[lang];
   const description = DESC[lang];
@@ -908,11 +967,13 @@ ${relatedBlock}
     en: `${w.english} in Cantonese — ${w.cantonese} (${w.jyutping}) | CantoBuddy`,
     fil: `${w.english} sa Cantonese — ${w.cantonese} (${w.jyutping}) | CantoBuddy`,
     zh: `${w.cantonese} 粤语怎么说 — ${gloss} (${w.jyutping}) | CantoBuddy`,
+    id: `${gloss} dalam Bahasa Kanton — ${w.cantonese} (${w.jyutping}) | CantoBuddy`,
   };
   const DESC = {
     en: `${w.english} in Cantonese is ${w.cantonese} (${w.jyutping}). Learn this ${name.toLowerCase()} word with audio and quizzes — free for helpers in Hong Kong.`,
     fil: `${w.english} sa Cantonese ay ${w.cantonese}, binibigkas na ${w.jyutping}. Kasama sa ${name.toLowerCase()}.`,
     zh: `${gloss}的粤语是${w.cantonese}，读作 ${w.jyutping}。属于${name}类，附发音和测验，免费学习。`,
+    id: `${gloss} dalam bahasa Kanton adalah ${w.cantonese}, diucapkan ${w.jyutping}. Termasuk kelompok ${name.toLowerCase()} — belajar gratis dengan audio dan kuis.`,
   };
   const title = TITLE[lang];
   const description = DESC[lang];
@@ -980,11 +1041,13 @@ ${ctaCard(lang)}
     en: `${name} Cantonese — ${rows.length} Words | CantoBuddy`,
     fil: `${name} Cantonese — ${rows.length} salita | CantoBuddy`,
     zh: `${name}粤语 — ${rows.length} 个常用词 | CantoBuddy`,
+    id: `Bahasa Kanton ${name} — ${rows.length} Kata | CantoBuddy`,
   };
   const DESC = {
     en: `${LEVELS[n].blurb} ${rows.length} Cantonese words with Jyutping and English and Filipino meanings.`,
     fil: `${LEVELS[n].blurb} ${rows.length} salitang Cantonese na may Jyutping at kahulugan sa Filipino.`,
     zh: `${LEVELS[n].blurb} 共 ${rows.length} 个粤语词，配粤拼读音和中文意思。`,
+    id: `${LEVELS[n].blurb} ${rows.length} kata Kanton dengan Jyutping dan arti dalam bahasa Indonesia.`,
   };
   const title = TITLE[lang];
   const description = DESC[lang];
@@ -1039,6 +1102,7 @@ const GUIDE_UI = {
   en: { guides: 'Guides', faq: 'Frequently asked questions', updated: 'Updated', seeAlso: 'See also' },
   fil: { guides: 'Mga gabay', faq: 'Mga madalas itanong', updated: 'Na-update', seeAlso: 'Tingnan din' },
   zh: { guides: '学习指南', faq: '常见问题', updated: '更新于', seeAlso: '相关' },
+  id: { guides: 'Panduan', faq: 'Pertanyaan yang sering diajukan', updated: 'Diperbarui', seeAlso: 'Lihat juga' },
 };
 
 /** Pick a per-language field off a guide, falling back to English. */
@@ -1070,6 +1134,7 @@ ${crumbs(lang, [{ label: ui.guides }])}
     en: 'Practical guides for learning Cantonese in Hong Kong — what to study first, how to care for an elderly person in Cantonese, and how Cantonese differs from Mandarin.',
     fil: 'Mga praktikal na gabay sa pag-aaral ng Cantonese sa Hong Kong — ano ang unahin, paano mag-alaga ng matanda sa Cantonese, at ang pagkakaiba ng Cantonese at Mandarin.',
     zh: '在香港学粤语的实用指南——先学什么、怎么用粤语照顾老人，以及粤语和普通话到底差在哪里。',
+    id: 'Panduan praktis belajar bahasa Kanton di Hong Kong — apa yang dipelajari lebih dulu, cara merawat lansia dengan bahasa Kanton, dan bedanya bahasa Kanton dengan Mandarin.',
   }, lang))}</p>
 <ul class="guide-list">
 ${cards}
@@ -1081,12 +1146,14 @@ ${ctaCard(lang)}
     en: 'Cantonese Guides for Helpers in Hong Kong | CantoBuddy',
     fil: 'Mga Gabay sa Cantonese para sa Helper sa Hong Kong | CantoBuddy',
     zh: '香港粤语学习指南 | CantoBuddy',
+    id: 'Panduan Bahasa Kanton untuk Asisten Rumah Tangga di Hong Kong | CantoBuddy',
   }[lang];
 
   const description = {
     en: 'Practical guides to learning Cantonese for domestic work in Hong Kong — study plans, elder care vocabulary, and Cantonese vs Mandarin.',
     fil: 'Mga praktikal na gabay sa Cantonese para sa trabaho sa Hong Kong — study plan, bokabularyo sa pag-aalaga, at Cantonese vs Mandarin.',
     zh: '在香港做家佣学粤语的实用指南：先学什么、每天十分钟怎么安排、怎么用粤语照顾老人，以及粤语和普通话的区别。全部免费。',
+    id: 'Panduan praktis belajar bahasa Kanton untuk bekerja di Hong Kong — rencana belajar, kosakata merawat lansia, dan perbedaan bahasa Kanton dengan Mandarin. Semuanya gratis.',
   }[lang];
 
   const jsonLd = {
@@ -1343,6 +1410,7 @@ Allow: /level
 Allow: /guide
 Allow: /fil
 Allow: /zh
+Allow: /id
 
 # The JSON API is not a page — it is the SPA's data feed. Crawling it just
 # duplicates the server-rendered pages below.
@@ -1440,9 +1508,12 @@ function mount(app) {
     }
   }
 
-  // A bare prefix goes to that language's hub.
-  app.get('/fil', (req, res) => res.redirect(301, '/fil/learn'));
-  app.get('/zh', (req, res) => res.redirect(301, '/zh/learn'));
+  // A bare prefix goes to that language's hub. Derived from LANGS so a new
+  // tree cannot be added and then forgotten here.
+  for (const lang of LANGS) {
+    if (!LANG_PREFIX[lang]) continue;
+    app.get(LANG_PREFIX[lang], (req, res) => res.redirect(301, `${LANG_PREFIX[lang]}/learn`));
+  }
 
   console.log(`  SEO:          ${SITE_ORIGIN}/sitemap.xml  (${store.listVocabulary({ enabledOnly: true }).length} words, ${store.listEnabledCategories().length} categories, ${LANGS.length} languages)`);
 }

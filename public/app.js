@@ -658,6 +658,12 @@ function meaningRows(v) {
       (v.english ? `<div class="vocab-tagalog">${escapeHtml(v.english)}</div>` : '')
     );
   }
+  if (lang === 'id') {
+    return (
+      (v.indonesian ? `<div class="vocab-english">${escapeHtml(v.indonesian)}</div>` : '') +
+      (v.english ? `<div class="vocab-tagalog">${escapeHtml(v.english)}</div>` : '')
+    );
+  }
   return (
     `<div class="vocab-english">${escapeHtml(v.english)}</div>` +
     (v.tagalog ? `<div class="vocab-tagalog">${escapeHtml(v.tagalog)}</div>` : '')
@@ -676,6 +682,17 @@ function meaning(v) {
   const lang = currentLang();
   if (lang === 'zh') return v.mandarin || v.english || '';
   if (lang === 'fil') return v.tagalog || v.english || '';
+  if (lang === 'id') return v.indonesian || v.english || '';
+  return v.english || '';
+}
+
+/** The meaning column for a language, or '' when it has none. Used where a
+ *  caller needs the column itself rather than the fallback string. */
+function meaningColumn(v, code) {
+  if (!v) return '';
+  if (code === 'zh') return v.mandarin || '';
+  if (code === 'fil') return v.tagalog || '';
+  if (code === 'id') return v.indonesian || '';
   return v.english || '';
 }
 
@@ -697,15 +714,21 @@ function meaning(v) {
 function openLangModal() {
   const wrap = document.getElementById('lang-options');
   if (wrap) {
-    const zhWords = STATE.vocabulary.filter((v) => v.mandarin).length;
     const total = STATE.vocabulary.length;
+    // A partial glossary is worth warning about BEFORE she switches — finding
+    // out by hitting English words mid-quiz is worse. Each note is written in
+    // the language it describes.
+    const NOTE = {
+      zh: (n) => `${n} / ${total} 词已有中文释义`,
+      id: (n) => `${n} / ${total} kata sudah ada artinya`,
+    };
+    const COLUMN = { zh: 'mandarin', id: 'indonesian' };
     wrap.innerHTML = allLangs()
       .map((l) => {
         const active = l.code === currentLang();
-        const note =
-          l.code === 'zh' && zhWords && zhWords < total
-            ? `<span class="lang-row-note">${zhWords} / ${total} 词已有中文释义</span>`
-            : '';
+        const col = COLUMN[l.code];
+        const n = col ? STATE.vocabulary.filter((v) => v[col]).length : 0;
+        const note = col && n && n < total ? `<span class="lang-row-note">${NOTE[l.code](n)}</span>` : '';
         return `
           <button class="lang-row${active ? ' is-active' : ''}" onclick="chooseLang('${l.code}')"
                   lang="${l.html}"${active ? ' aria-current="true"' : ''}>

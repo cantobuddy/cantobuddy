@@ -216,6 +216,7 @@ function openVocabForm(id) {
     document.getElementById('vf-english').value = v.english;
     document.getElementById('vf-tagalog').value = v.tagalog || '';
     document.getElementById('vf-mandarin').value = v.mandarin || '';
+    document.getElementById('vf-indonesian').value = v.indonesian || '';
     document.getElementById('vf-emoji').value = v.emoji || '';
     document.getElementById('vf-level').value = v.level;
     document.getElementById('vf-category').value = v.category_id;
@@ -241,6 +242,7 @@ async function submitVocabForm(e) {
     english: document.getElementById('vf-english').value.trim(),
     tagalog: document.getElementById('vf-tagalog').value.trim(),
     mandarin: document.getElementById('vf-mandarin').value.trim(),
+    indonesian: document.getElementById('vf-indonesian').value.trim(),
     emoji: document.getElementById('vf-emoji').value.trim() || '📝',
     level: document.getElementById('vf-level').value,
     category_id: document.getElementById('vf-category').value,
@@ -437,6 +439,7 @@ function openCategoryForm(id) {
     document.getElementById('cf-name-yue').value = c.name_yue || '';
     document.getElementById('cf-name-fil').value = c.name_fil || '';
     document.getElementById('cf-name-zh').value = c.name_zh || '';
+    document.getElementById('cf-name-id').value = c.name_id || '';
     document.getElementById('cf-icon').value = c.icon || '';
   } else {
     title.textContent = 'Add Category';
@@ -458,6 +461,7 @@ async function submitCatForm(e) {
     name_yue: document.getElementById('cf-name-yue').value.trim(),
     name_fil: document.getElementById('cf-name-fil').value.trim(),
     name_zh: document.getElementById('cf-name-zh').value.trim(),
+    name_id: document.getElementById('cf-name-id').value.trim(),
     icon: document.getElementById('cf-icon').value.trim() || '📁',
   };
 

@@ -52,11 +52,13 @@ const GUIDES = [
       en: 'How to Learn Cantonese as a Domestic Helper in Hong Kong',
       fil: 'Paano Mag-aral ng Cantonese bilang Domestic Helper sa Hong Kong',
       zh: '香港家佣如何学粤语：从零开始的实用路线',
+      id: 'Cara Belajar Bahasa Kanton sebagai Asisten Rumah Tangga di Hong Kong',
     },
     description: {
       en: 'A practical guide to learning Cantonese for domestic work in Hong Kong — what to learn first, how Jyutping helps, and a realistic daily routine.',
       fil: 'Praktikal na gabay sa pag-aaral ng Cantonese para sa trabahong domestic helper sa Hong Kong — ano ang unahin, paano nakakatulong ang Jyutping, at seryosong routine.',
       zh: '在香港做家佣，粤语要从哪里学起？先学什么、粤拼怎么用、每天十分钟怎么安排，一份务实的入门指南。',
+      id: 'Panduan praktis belajar bahasa Kanton untuk bekerja sebagai asisten rumah tangga di Hong Kong — apa yang dipelajari lebih dulu, bagaimana Jyutping membantu, dan rutinitas harian yang masuk akal.',
     },
     body: {
       en: `
@@ -161,6 +163,41 @@ const GUIDES = [
 <h2>实话实说</h2>
 <p>粤语要说得地道，确实很难，也没人指望家佣一年就学会。真正做得到的是：听懂你照顾的老人需要什么，并且让她安心。这个应用就是为这件事做的。</p>
 `,
+      id: `
+<p>Sebagian besar asisten rumah tangga di Hong Kong datang sudah bisa bahasa Inggris, lalu belajar bahasa Kanton sambil bekerja — lambat, dan sering kali melelahkan. Panduan ini adalah jalan pintasnya: apa yang benar-benar penting, apa yang boleh Anda abaikan, dan bagaimana membuat kemajuan dalam sepuluh menit sehari.</p>
+
+<h2>Anda tidak perlu fasih</h2>
+<p>Ini hal pertama yang perlu dipahami, karena mengubah apa yang Anda pelajari. Keluarga majikan Anda biasanya bisa sedikit bahasa Inggris. Yang <strong>tidak</strong> bisa justru sering orang yang paling lama bersama Anda: orang tua lanjut usia, atau anak kecil. Dengan yang lain Anda bisa berunding dalam bahasa Inggris. Dengan mereka, bahasa Kanton satu-satunya pilihan.</p>
+<p>Jadi targetnya bukan kefasihan. Targetnya adalah <strong>memahami apa yang dikatakan kepada Anda</strong>, dan mengucapkan sedikit hal dengan jelas.</p>
+
+<h2>Pahami dulu, bicara kemudian</h2>
+<p>Mereka yang belajar dengan menghafal kalimat untuk diucapkan sering mandek, karena momen tersulitnya bukan saat bicara — melainkan saat seseorang berbicara cepat kepada Anda dan Anda tidak mengerti apa pun. Mendengar harus lebih dulu. Belajar <em>mengenali</em> kata-kata yang dipakai orang lanjut usia atau anak kecil, baru belajar menjawab.</p>
+<p>Kosakata kami disusun persis menurut pembagian itu. Setiap kata ditandai sebagai sesuatu yang <em>Anda ucapkan</em> atau sesuatu yang <em>Anda dengar</em>.</p>
+
+<h2>Mulai dari lima kelompok ini</h2>
+<ol>
+  <li><a href="/id/learn/greetings">Sapaan</a> — 你好, 多謝, 唔該. Anda akan memakainya setiap hari, dan 唔該 saja sudah mencakup banyak hal.</li>
+  <li><a href="/id/learn/elder-care">Merawat Lansia</a> — alasan banyak asisten rumah tangga dipekerjakan. Ini kosakata paling bernilai di seluruh aplikasi.</li>
+  <li><a href="/id/learn/safety">Keselamatan</a> — 救命 ("tolong!"), 叫白車 ("panggil ambulans"). Pelajari sebelum dibutuhkan, bukan sesudahnya.</li>
+  <li><a href="/id/learn/kitchen">Dapur</a> dan <a href="/id/learn/meals-feeding">Makan</a> — makanan adalah sebagian besar pekerjaannya.</li>
+  <li><a href="/id/learn/cleaning">Membersihkan</a> — perintah yang paling sering Anda dengar.</li>
+</ol>
+
+<h2>Belajar membaca Jyutping, jangan menebak</h2>
+<p>Bahasa Kanton punya enam nada. Kalau Anda belajar sebuah kata hanya dari mendengar, nadanya biasanya sedikit keliru, dan nada yang salah bisa mengubah satu kata menjadi kata lain. <a href="/words/hello">Jyutping</a> adalah sistem romanisasi yang kami pakai — ia menuliskan bunyi <em>dan</em> nadanya sebagai angka, jadi 唔該 ditulis <strong>m4 goi1</strong>. Angka itu adalah nadanya. Begitu bisa membacanya, Anda bisa mempelajari kata baru dengan benar pada percobaan pertama, bukan yang kesepuluh.</p>
+
+<h2>Rutinitas yang masuk akal</h2>
+<p>Sepuluh menit sehari lebih baik daripada dua jam sekali seminggu. Rutinitas yang berhasil:</p>
+<ul>
+  <li><strong>5 menit</strong> — buka satu kategori dan baca kata-katanya dengan suara keras, mengikuti Jyutping.</li>
+  <li><strong>3 menit</strong> — kerjakan kuis untuk kata-kata itu. Salah satu itu berguna; itu memberi tahu apa yang perlu diulang.</li>
+  <li><strong>2 menit</strong> — pilih satu kata yang akan Anda coba pakai hari ini dengan orang yang Anda rawat.</li>
+</ul>
+<p>Lakukan itu selama sebulan dan Anda akan tahu sekitar 60 kata — cukup untuk memahami permintaan sehari-hari di rumah tangga Hong Kong.</p>
+
+<h2>Kenyataannya</h2>
+<p>Bahasa Kanton memang sulit diucapkan dengan baik, dan tidak ada yang mengharapkan asisten rumah tangga menguasainya dalam setahun. Yang sangat mungkin dicapai adalah ini: memahami apa yang dibutuhkan orang lanjut usia yang Anda rawat, dan membuatnya merasa tenang. Untuk itulah aplikasi ini dibuat, dan itu sudah cukup mengubah suasana hari kerja Anda.</p>
+`,
     },
     faq: [
       {
@@ -168,11 +205,13 @@ const GUIDES = [
           en: 'How long does it take to learn enough Cantonese to work in Hong Kong?',
           fil: 'Gaano katagal bago matuto ng sapat na Cantonese para magtrabaho sa Hong Kong?',
           zh: '在香港工作，粤语要学多久才够用？',
+          id: 'Berapa lama untuk belajar bahasa Kanton secukupnya agar bisa bekerja di Hong Kong?',
         },
         a: {
           en: 'For everyday comprehension, most helpers need three to six months of consistent short practice. Ten minutes a day is enough to learn about 60 words a month, which covers the routine requests in a Hong Kong household. Speaking fluently takes years, but understanding the person you care for does not.',
           fil: 'Para sa pang-araw-araw na pag-intindi, kailangan ng tatlo hanggang anim na buwan ng tuloy-tuloy na maikling pag-aaral. Ang sampung minuto kada araw ay sapat para sa mga 60 salita kada buwan — sakop na nito ang karaniwang utos sa isang bahay sa Hong Kong.',
           zh: '就日常听懂来说，多数人需要三到六个月的持续短练。每天十分钟，一个月大约能掌握 60 个词，香港家庭里的日常吩咐基本就听得懂了。说流利要好几年，但听懂你照顾的人，用不了那么久。',
+          id: 'Untuk pemahaman sehari-hari, sebagian besar asisten rumah tangga butuh tiga sampai enam bulan latihan singkat yang konsisten. Sepuluh menit sehari cukup untuk mempelajari sekitar 60 kata per bulan, dan itu sudah mencakup permintaan rutin di rumah tangga Hong Kong. Berbicara fasih butuh bertahun-tahun, tetapi memahami orang yang Anda rawat tidak selama itu.',
         },
       },
       {
@@ -180,11 +219,13 @@ const GUIDES = [
           en: 'Do I need to learn to read Chinese characters?',
           fil: 'Kailangan ko bang matutong bumasa ng Chinese characters?',
           zh: '一定要学会认汉字吗？',
+          id: 'Apakah saya harus belajar membaca aksara Tionghoa?',
         },
         a: {
           en: 'No. You can learn to speak and understand entirely through Jyutping romanisation. Reading characters helps — labels, menus, signs — but it is not required to do the job, and it is a much bigger task than learning to speak.',
           fil: 'Hindi. Puwede kang matutong magsalita at umintindi gamit lang ang Jyutping. Nakakatulong ang pagbasa ng karakter — sa mga label at menu — pero hindi ito kailangan para sa trabaho.',
           zh: '不必。你完全可以只靠粤拼来学说话和听懂。认字有好处——看标签、菜单、路牌——但不是做这份工作的前提，而且比学说话要难得多。',
+          id: 'Tidak. Anda bisa belajar berbicara dan memahami sepenuhnya lewat romanisasi Jyutping. Membaca aksara membantu — label, menu, papan tanda — tetapi tidak wajib untuk pekerjaan ini, dan jauh lebih berat daripada belajar berbicara.',
         },
       },
       {
@@ -192,17 +233,19 @@ const GUIDES = [
           en: 'Should I learn Mandarin instead of Cantonese?',
           fil: 'Mas mabuti bang Mandarin ang pag-aralan kaysa Cantonese?',
           zh: '我该学普通话还是粤语？',
+          id: 'Sebaiknya saya belajar Mandarin saja, bukan bahasa Kanton?',
         },
         a: {
           en: 'If you live and work in Hong Kong, learn Cantonese. Mandarin is not widely spoken in Hong Kong households, and it will not help you understand an elderly Cantonese speaker. If you already speak Mandarin, you have a head start — see our guide on the differences.',
           fil: 'Kung sa Hong Kong ka nakatira at nagtatrabaho, Cantonese ang pag-aralan. Hindi laganap ang Mandarin sa mga bahay sa Hong Kong. Kung marunong ka na ng Mandarin, may kalamangan ka na.',
           zh: '如果你在香港生活和工作，就学粤语。香港家庭里普通话并不通用，它帮不了你听懂说粤语的老人。如果你本来就会普通话，那是你的优势——可以看我们那篇讲两者区别的文章。',
+          id: 'Kalau Anda tinggal dan bekerja di Hong Kong, pelajarilah bahasa Kanton. Mandarin tidak umum dipakai di rumah tangga Hong Kong, dan tidak akan membantu Anda memahami orang lanjut usia yang berbicara Kanton. Kalau Anda sudah bisa Mandarin, Anda punya keunggulan — lihat panduan kami tentang perbedaannya.',
         },
       },
     ],
     related: [
-      { href: '/learn/elder-care', label: { en: 'Elder Care vocabulary', fil: 'Bokabularyo sa pag-aalaga', zh: '照顾老人词汇' } },
-      { href: '/guide/cantonese-for-elderly-care', label: { en: 'Caring for an elderly person', fil: 'Pag-aalaga sa matanda', zh: '照顾老人的粤语' } },
+      { href: '/learn/elder-care', label: { en: 'Elder Care vocabulary', fil: 'Bokabularyo sa pag-aalaga', zh: '照顾老人词汇', id: 'Kosakata merawat lansia' } },
+      { href: '/guide/cantonese-for-elderly-care', label: { en: 'Caring for an elderly person', fil: 'Pag-aalaga sa matanda', zh: '照顾老人的粤语', id: 'Merawat orang lanjut usia' } },
     ],
   },
 
@@ -215,11 +258,13 @@ const GUIDES = [
       en: 'Cantonese Phrases for Caring for an Elderly Person',
       fil: 'Mga Cantonese na Parirala sa Pag-aalaga ng Matanda',
       zh: '照顾老人的粤语：老人会对你说什么，你该怎么说',
+      id: 'Frasa Bahasa Kanton untuk Merawat Orang Lanjut Usia',
     },
     description: {
       en: 'The Cantonese an elderly person will say to you, and the phrases you need to answer — for helpers caring for an elderly parent in Hong Kong.',
       fil: 'Ang Cantonese na sasabihin sa iyo ng matanda, at ang mga pariralang kailangan mong isagot — para sa mga helper na nag-aalaga ng matanda sa Hong Kong.',
       zh: '在香港照顾老人，老人常对你说的粤语，以及你必须会回应的那些话。按听和说分开整理。',
+      id: 'Bahasa Kanton yang akan diucapkan orang lanjut usia kepada Anda, dan frasa yang perlu Anda ucapkan untuk menjawabnya — untuk asisten rumah tangga yang merawat orang tua lanjut usia di Hong Kong.',
     },
     body: {
       en: `
@@ -350,6 +395,50 @@ const GUIDES = [
 <h2>比词汇更重要的一个习惯</h2>
 <p>开口之前先叫她的名字，或者叫 婆婆 / 公公。这能让她注意到你在跟她说话，而不是在说她。在有人听不清或者容易糊涂的家里，这一个习惯能避免的误会，比这一页上的任何词都多。</p>
 `,
+      id: `
+<p>Merawat orang lanjut usia adalah bagian pekerjaan di mana bahasa Kanton paling penting, karena di sinilah bahasa Inggris sering sama sekali tidak bisa dipakai. Panduan ini memisahkan dua arah — apa yang dia katakan kepada Anda, dan apa yang perlu Anda katakan kembali.</p>
+
+<h2>Mengapa ini bagian tersulit</h2>
+<p>Orang lanjut usia bisa berbicara cepat, dengan logat yang kuat, dan mengulang kata yang sama alih-alih menjelaskannya. Pendengarannya mungkin juga kurang, atau dia sedang bingung. Anda tidak bisa berunding dalam bahasa Inggris untuk hal ini, dan tidak ada rekan kerja yang menerjemahkan. Itulah sebabnya kosakata ini paling layak dipelajari lebih dulu.</p>
+
+<h2>Yang akan dia katakan kepada Anda</h2>
+<p>Ini permintaan dan keluhan yang paling sering Anda dengar. Belajar <em>mengenali</em> dulu sebelum belajar menjawab:</p>
+<ul>
+  <li><strong>幫我攞杯水</strong> — "Ambilkan saya segelas air." Salah satu permintaan paling umum.</li>
+  <li><strong>太熱呀 / 好凍</strong> — "Terlalu panas" / "Sangat dingin." Dia mungkin tidak bisa mengatur AC sendiri.</li>
+  <li><strong>我唔舒服</strong> — "Saya tidak enak badan." Anggap ini penting setiap kali.</li>
+  <li><strong>冇胃口</strong> — "Saya tidak ada selera makan." Perubahan pola makan itu tanda, bukan sekadar selera.</li>
+  <li><strong>帶遮</strong> — "Bawa payung." Perintah sebelum Anda keluar rumah.</li>
+</ul>
+<p>Lihat kategori lengkap <a href="/id/learn/elder-care">Merawat Lansia</a> dan <a href="/id/learn/health-symptoms">Kesehatan &amp; Gejala</a>.</p>
+
+<h2>Yang perlu Anda katakan kembali</h2>
+<p>Anda tidak perlu kalimat panjang. Frasa pendek dan tenang sudah cukup:</p>
+<ul>
+  <li><strong>唔怕</strong> — "Jangan takut."</li>
+  <li><strong>我喺度</strong> — "Saya ada di sini." Sering kali ini hal paling berguna yang bisa Anda ucapkan.</li>
+  <li><strong>唔緊要</strong> — "Tidak apa-apa."</li>
+  <li><strong>食多啲</strong> — "Makan sedikit lagi."</li>
+  <li><strong>慢慢嚟</strong> — "Pelan-pelan saja."</li>
+</ul>
+<p>Lihat <a href="/id/learn/comfort-reassurance">Menghibur &amp; Menenangkan</a> dan <a href="/id/learn/meals-feeding">Makan &amp; Menyuapi</a>.</p>
+
+<h2>Obat dan jadwal kontrol</h2>
+<p>Obat adalah hal di mana salah paham punya akibat nyata. Pelajari kata untuk obatnya sendiri, waktu meminumnya, dan kunjungan ke klinik — dan kalau Anda tidak yakin dengan apa yang didengar, ulangi dulu untuk memastikan, jangan menebak. Lihat <a href="/id/learn/medicine-appointments">Obat &amp; Jadwal Kontrol</a>.</p>
+
+<h2>Keadaan darurat: pelajari sebelum dibutuhkan</h2>
+<p>Empat frasa, layak dihafal hari ini:</p>
+<ul>
+  <li><strong>救命</strong> — "Tolong!" Teriakkan.</li>
+  <li><strong>叫白車</strong> — "Panggil ambulans." 白車 ("mobil putih") adalah sebutan sehari-hari di Hong Kong untuk ambulans.</li>
+  <li><strong>婆婆跌親</strong> — "Nenek jatuh." 婆婆 adalah sebutan hormat untuk perempuan lanjut usia.</li>
+  <li><strong>佢呼吸唔到</strong> — "Dia tidak bisa bernapas."</li>
+</ul>
+<p>Set lengkapnya di <a href="/id/learn/safety">Keselamatan</a>.</p>
+
+<h2>Satu kebiasaan yang lebih penting daripada kosakata</h2>
+<p>Sebut namanya, atau 婆婆 / 公公, sebelum Anda berbicara. Itu menarik perhatiannya, dan menunjukkan bahwa Anda berbicara kepadanya, bukan tentang dia. Di rumah yang penghuninya kurang pendengaran atau mudah bingung, satu kebiasaan ini mencegah lebih banyak salah paham daripada kata mana pun di halaman ini.</p>
+`,
     },
     faq: [
       {
@@ -357,11 +446,13 @@ const GUIDES = [
           en: 'What is the most important Cantonese phrase for a carer?',
           fil: 'Ano ang pinakamahalagang Cantonese phrase para sa nag-aalaga?',
           zh: '照顾老人最该先学哪一句？',
+          id: 'Frasa bahasa Kanton apa yang paling penting bagi seorang perawat?',
         },
         a: {
           en: '我喺度 — "I\'m here". It is short, calm, and answers the fear an elderly person feels most often: that she has been left alone. In an emergency, learn 救命 ("help!") and 叫白車 ("call an ambulance") first.',
           fil: '我喺度 — "Nandito ako". Maikli, kalmado, at sinasagot nito ang pinakamadalas na takot ng matanda: na naiwan siyang mag-isa.',
           zh: '我喺度——"我在。"短、稳，正好回应老人最常见的那份不安：怕自己一个人。如果只学一句应急的，先学 救命 和 叫白車。',
+          id: '我喺度 — "Saya ada di sini". Singkat, tenang, dan menjawab ketakutan yang paling sering dirasakan orang lanjut usia: rasa ditinggal sendirian. Untuk keadaan darurat, pelajari 救命 ("tolong!") dan 叫白車 ("panggil ambulans") lebih dulu.',
         },
       },
       {
@@ -369,17 +460,19 @@ const GUIDES = [
           en: 'What does 婆婆 (po4 po2) mean?',
           fil: 'Ano ang ibig sabihin ng 婆婆 (po4 po2)?',
           zh: '婆婆 是什么意思？',
+          id: 'Apa arti 婆婆 (po4 po2)?',
         },
         a: {
           en: '婆婆 is a respectful way to address an elderly woman — close to "grandma", but polite rather than familiar. Helpers commonly use it for the elderly person they care for. For an elderly man, 公公 (gung1 gung1) is the matching word.',
           fil: 'Ang 婆婆 ay magalang na tawag sa matandang babae — parang "Lola", pero magalang. Para sa matandang lalaki, 公公 (gung1 gung1).',
           zh: '婆婆是对老年女性的尊称，接近"奶奶/姥姥"，但更客气。很多家佣就用它称呼自己照顾的老人。老年男性对应的称呼是 公公（gung1 gung1）。',
+          id: '婆婆 adalah sebutan hormat untuk perempuan lanjut usia — mirip "nenek", tetapi sopan, bukan akrab. Asisten rumah tangga biasa memakainya untuk orang lanjut usia yang mereka rawat. Untuk laki-laki lanjut usia, padanannya 公公 (gung1 gung1).',
         },
       },
     ],
     related: [
-      { href: '/guide/learn-cantonese-for-domestic-helpers', label: { en: 'How to learn Cantonese', fil: 'Paano mag-aral ng Cantonese', zh: '家佣如何学粤语' } },
-      { href: '/learn/safety', label: { en: 'Safety vocabulary', fil: 'Bokabularyo sa kaligtasan', zh: '安全词汇' } },
+      { href: '/guide/learn-cantonese-for-domestic-helpers', label: { en: 'How to learn Cantonese', fil: 'Paano mag-aral ng Cantonese', zh: '家佣如何学粤语', id: 'Cara belajar bahasa Kanton' } },
+      { href: '/learn/safety', label: { en: 'Safety vocabulary', fil: 'Bokabularyo sa kaligtasan', zh: '安全词汇', id: 'Kosakata keselamatan' } },
     ],
   },
 
@@ -392,11 +485,13 @@ const GUIDES = [
       en: 'Cantonese vs Mandarin: What Is the Difference?',
       fil: 'Cantonese vs Mandarin: Ano ang Pagkakaiba?',
       zh: '粤语和普通话的区别：一篇讲清楚',
+      id: 'Bahasa Kanton vs Mandarin: Apa Bedanya?',
     },
     description: {
       en: 'Cantonese and Mandarin share a writing system but are not mutually intelligible. Here is what is actually different — and which one a helper in Hong Kong needs.',
       fil: 'Pareho ang sistema ng pagsulat ng Cantonese at Mandarin, pero hindi sila nagkakaintindihan. Ito ang tunay na pagkakaiba — at alin ang kailangan ng helper sa Hong Kong.',
       zh: '粤语和普通话共用一套书写系统，但彼此听不懂。真正的差别在哪里，在香港做家佣又该学哪一种。',
+      id: 'Bahasa Kanton dan Mandarin memakai sistem tulisan yang sama, tetapi tidak saling dimengerti. Inilah bedanya yang sebenarnya — dan mana yang dibutuhkan asisten rumah tangga di Hong Kong.',
     },
     body: {
       en: `
@@ -484,6 +579,35 @@ const GUIDES = [
 <p>如果你在香港生活和工作：<strong>粤语</strong>。它是家里的语言、街上的语言，也是你照顾的那位老人的语言。普通话对去内地出差、旅行有用，但在家里帮不上忙。</p>
 <p>如果你本来就会普通话，那你不是从零开始：你懂声调是怎么回事，认得很多字，也有不少词是重叠的。我们的<a href="/zh/learn">中文版应用</a>就是为你写的——每个粤语词旁边都给出普通话意思，方便你把已经会的，对应到正在听的。</p>
 `,
+      id: `
+<p>Pertanyaan ini sering muncul, dan jawabannya mengejutkan banyak orang: bahasa Kanton dan Mandarin biasanya ditulis dengan cara yang sama, tetapi penutur Kanton dan penutur Mandarin sama sekali tidak saling memahami ucapan. Secara praktis, keduanya bukan dialek dari satu bahasa.</p>
+
+<h2>Tulisan sama, ucapan berbeda</h2>
+<p>Keduanya memakai aksara Tionghoa, dan satu kalimat resmi yang ditulis dalam salah satunya sebagian besar bisa dibaca oleh yang lain. Itulah sebabnya orang mengira keduanya dekat. Tetapi bentuk tulis adalah standar bersama; bentuk ucap adalah bahasa yang benar-benar berbeda — sejauh bahasa Spanyol dan Italia, bahkan bisa lebih.</p>
+
+<h2>Tidak saling dimengerti</h2>
+<p>Orang yang hanya bisa Mandarin tidak akan bisa mengikuti percakapan dalam bahasa Kanton. Inilah fakta yang paling penting bagi asisten rumah tangga di Hong Kong: kalau Anda belajar Mandarin, Anda tetap tidak akan paham orang lanjut usia berbahasa Kanton di rumah Anda. Lihat <a href="/id/learn/elder-care">Merawat Lansia</a>.</p>
+
+<h2>Nada</h2>
+<p>Keduanya bahasa bernada, tetapi bahasa Kanton punya lebih banyak nada. Jyutping menandai enam nada berbeda; Mandarin empat. Semakin banyak nada, semakin banyak cara sebuah kata bisa salah dengar — itulah sebabnya belajar dari romanisasi, bukan dari pendengaran saja, begitu penting.</p>
+
+<h2>Kata sehari-hari berbeda</h2>
+<p>Banyak kata yang paling sering Anda pakai memang tidak sama:</p>
+<ul>
+  <li>"Terima kasih" (untuk hadiah) — Kanton <strong>多謝</strong> (do1 ze6), Mandarin 谢谢 (xièxie).</li>
+  <li>"Permisi / tolong" — Kanton <strong>唔該</strong> (m4 goi1), Mandarin 请 (qǐng). Tidak ada satu kata Mandarin pun yang bisa menggantikan seluruh fungsi 唔該 dalam bahasa Kanton.</li>
+  <li>"Makan" — Kanton <strong>食</strong> (sik6), Mandarin 吃 (chī).</li>
+  <li>"Dia" — Kanton <strong>佢</strong> (keoi5), Mandarin 他 / 她 (tā).</li>
+</ul>
+<p>Bahkan ketika artinya sama, katanya sering tidak sama. Karena itu penutur Mandarin tidak bisa sekadar "menerjemahkan di kepalanya" lalu dimengerti di Hong Kong.</p>
+
+<h2>Tulisan: Tradisional di Hong Kong</h2>
+<p>Hong Kong memakai aksara Tradisional (廣東話, 廁所); Tiongkok daratan memakai Sederhana (广东话, 厕所). Kalau Anda bisa membaca yang Sederhana, Anda akan mengenali banyak aksara Tradisional di sekitar Anda, tetapi tidak semuanya.</p>
+
+<h2>Jadi, mana yang harus dipelajari?</h2>
+<p>Kalau Anda tinggal dan bekerja di Hong Kong: <strong>bahasa Kanton</strong>. Itu bahasa rumah tangga, bahasa jalanan, dan bahasa orang lanjut usia yang Anda rawat. Mandarin berguna untuk perjalanan dan bisnis di Tiongkok daratan, tetapi tidak akan membantu Anda di rumah.</p>
+<p>Kalau Anda sudah bisa Mandarin, Anda tidak mulai dari nol. Anda tahu cara kerja nada, Anda mengenali banyak aksara, dan cukup banyak kata yang tumpang tindih. <a href="/zh/learn">Versi aplikasi dalam bahasa Mandarin</a> kami ditulis khusus untuk Anda — setiap kata Kanton disertai arti Mandarinnya, supaya Anda bisa memetakan yang sudah Anda tahu ke yang sedang Anda dengar.</p>
+`,
     },
     faq: [
       {
@@ -491,11 +615,13 @@ const GUIDES = [
           en: 'Can a Mandarin speaker understand Cantonese?',
           fil: 'Naiintindihan ba ng marunong ng Mandarin ang Cantonese?',
           zh: '会普通话能听懂粤语吗？',
+          id: 'Bisakah penutur Mandarin memahami bahasa Kanton?',
         },
         a: {
           en: 'Not in speech. The two are not mutually intelligible, even though they share a writing system. A Mandarin speaker will recognise many characters in Hong Kong, but will not follow a spoken Cantonese conversation without learning it.',
           fil: 'Hindi, sa pagsasalita. Hindi sila nagkakaintindihan kahit pareho ang sistema ng pagsulat. Makikilala ng marunong ng Mandarin ang maraming karakter sa Hong Kong, pero hindi makakasunod sa usapan.',
           zh: '口语上听不懂。两者共用书写系统，但口语不能互通。会说普通话的人在香港能认出很多字，但如果不专门学，跟不上粤语对话。',
+          id: 'Tidak, dalam ucapan. Keduanya tidak saling dimengerti, meskipun sistem tulisannya sama. Penutur Mandarin akan mengenali banyak aksara di Hong Kong, tetapi tidak akan bisa mengikuti percakapan bahasa Kanton tanpa mempelajarinya.',
         },
       },
       {
@@ -503,17 +629,19 @@ const GUIDES = [
           en: 'Is Cantonese harder than Mandarin?',
           fil: 'Mas mahirap ba ang Cantonese kaysa Mandarin?',
           zh: '粤语比普通话难吗？',
+          id: 'Apakah bahasa Kanton lebih sulit daripada Mandarin?',
         },
         a: {
           en: 'Mostly yes, for two reasons: it has more tones (six versus four), and there is less standardised learning material. It is not dramatically harder, but it rewards structured study more than Mandarin does.',
           fil: 'Sa karamihan, oo — dahil mas maraming tono (anim kumpara sa apat) at mas kaunti ang maayos na materyal sa pag-aaral.',
           zh: '大体上更难，原因有两个：声调更多（六个对四个），而且标准化的学习材料更少。倒不是难得多，但它比普通话更依赖有结构的学习。',
+          id: 'Umumnya ya, karena dua hal: nadanya lebih banyak (enam berbanding empat), dan materi belajarnya lebih sedikit yang terstandardisasi. Tidak jauh lebih sulit, tetapi lebih menuntut belajar yang terstruktur dibandingkan Mandarin.',
         },
       },
     ],
     related: [
-      { href: '/zh/learn', label: { en: 'The Chinese-language version', fil: 'Ang bersyon sa Chinese', zh: '中文版应用' } },
-      { href: '/guide/learn-cantonese-for-domestic-helpers', label: { en: 'How to learn Cantonese', fil: 'Paano mag-aral ng Cantonese', zh: '家佣如何学粤语' } },
+      { href: '/zh/learn', label: { en: 'The Chinese-language version', fil: 'Ang bersyon sa Chinese', zh: '中文版应用', id: 'Versi bahasa Mandarin' } },
+      { href: '/guide/learn-cantonese-for-domestic-helpers', label: { en: 'How to learn Cantonese', fil: 'Paano mag-aral ng Cantonese', zh: '家佣如何学粤语', id: 'Cara belajar bahasa Kanton' } },
     ],
   },
 ];

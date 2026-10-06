@@ -1,11 +1,11 @@
 /* =============================================================================
-   CantoBuddy — Internationalisation (English / Filipino / Simplified Chinese)
+   CantoBuddy — Internationalisation (English / Filipino / 简体中文 / Bahasa Indonesia)
    Loaded before app.js. Exposes t(), setLang(), toggleLang(), applyTranslations().
    ============================================================================= */
 
 const LANG_STORAGE_KEY = 'cb_lang';
 
-/* The three languages the app can be read in.
+/* The four languages the app can be read in.
 
    `zh` is written 中文 on the control and means Simplified Chinese. The name
    matters: this is not a translation of the interface for Chinese speakers, it
@@ -15,11 +15,16 @@ const LANG_STORAGE_KEY = 'cb_lang';
    understand her employer, the new arrival needs to be understood at the market
    and the clinic. The words overlap; the priorities do not.
 
+   `id` is Bahasa Indonesia, for the Indonesian domestic-helper audience — the
+   other large group in Hong Kong, and the reason this app is not only for
+   Filipino helpers.
+
    `html` is what goes in the document's lang attribute. */
 const LANGS = [
   { code: 'en', label: 'EN',  name: 'English',  html: 'en' },
   { code: 'fil', label: 'FIL', name: 'Filipino', html: 'tl' },
   { code: 'zh', label: '中文', name: '简体中文', html: 'zh-Hans' },
+  { code: 'id', label: 'ID',  name: 'Bahasa Indonesia', html: 'id' },
 ];
 const LANG_CODES = LANGS.map((l) => l.code);
 
@@ -292,6 +297,7 @@ const I18N = {
     'footer.title': 'Browse Cantonese vocabulary',
     'footer.allWords': 'All words & categories',
     'footer.filipino': 'Filipino',
+    'footer.indonesian': 'Bahasa Indonesia',
   },
 
   fil: {
@@ -555,6 +561,7 @@ const I18N = {
     'footer.title': 'Tingnan ang bokabularyong Cantonese',
     'footer.allWords': 'Lahat ng salita at kategorya',
     'footer.filipino': 'Filipino',
+    'footer.indonesian': 'Bahasa Indonesia',
   },
 
   /* Simplified Chinese, for learners who arrived from the mainland and already
@@ -832,6 +839,280 @@ const I18N = {
     'footer.allWords': '所有词和类别',
     'footer.filipino': '菲律宾语',
     'footer.mandarin': '中文版',
+    'footer.indonesian': '印尼语版',
+  },
+
+  /* Bahasa Indonesia — the fourth audience.
+
+     Indonesian domestic helpers are the other large group in Hong Kong, and
+     they need the same thing the Filipino audience needs (understand the
+     person you care for), in a language neither of the other two trees
+     provides. This is NOT Malay: `asisten rumah tangga` rather than `pembantu
+     rumah`, `gratis` rather than `percuma`, `beranda` rather than `laman
+     utama`, `unduh`/`pasang` rather than `muat turun`. A Malaysian reader would
+     understand nearly all of it, but an Indonesian reader must never feel the
+     app was written for someone else. */
+  id: {
+    // nav / header
+    'nav.home': 'Beranda',
+    'nav.learn': 'Belajar',
+    'nav.quiz': 'Kuis',
+    'nav.progress': 'Kemajuan',
+    'nav.share': 'Bagikan',
+    'header.setName': 'Atur nama Anda',
+    'header.voiceTitle': 'Pilih suara latihan',
+    'header.langTitle': 'Ganti bahasa',
+    'header.langSwitchEn': 'Ganti ke bahasa Inggris',
+    'header.langSwitchFil': 'Ganti ke bahasa Filipino',
+    'header.employerSite': 'Untuk majikan',
+    'header.learnerSite': 'Aplikasi belajar',
+    'header.shareSite': 'Bagikan CantoBuddy',
+
+    // home
+    'home.title': 'Belajar bahasa Kanton',
+    'home.subtitle': 'untuk kehidupan sehari-hari di Hong Kong',
+    'home.desc': 'Kata dan frasa praktis dengan audio, gambar, dan kuis. Mulai dari tingkat Anda!',
+    'home.beginner': 'Pemula',
+    'home.intermediate': 'Menengah',
+    'home.advanced': 'Mahir',
+    'home.beginnerDesc': 'Sapaan dasar & kata umum',
+    'home.intermediateDesc': 'Kegiatan & rutinitas harian',
+    'home.advancedDesc': 'Kalimat & frasa lengkap',
+    'home.startQuiz': '📝 Mulai Kuis',
+    'home.myProgress': '📊 Kemajuan Saya',
+    'home.browseByCategory': 'Jelajahi per Kategori',
+
+    // browse
+    'browse.backHome': '← Beranda',
+    'browse.title': 'Kosakata',
+    'browse.level': 'Tingkat:',
+    'browse.category': 'Kategori:',
+    'browse.all': 'Semua',
+    'browse.allLevels': 'Semua Tingkat',
+    'browse.empty': 'Tidak ada kata untuk filter ini.',
+    'browse.tapToHear': 'Ketuk untuk mendengar pelafalan',
+
+    // quiz setup
+    'quiz.title': 'Waktunya Kuis!',
+    'quiz.chooseLevel': 'Pilih Tingkat',
+    'quiz.chooseType': 'Pilih Jenis Kuis',
+    'quiz.tMultipleChoice': 'Pilihan Ganda',
+    'quiz.dMultipleChoice': 'Lihat bahasa Kanton, pilih arti bahasa Inggrisnya',
+    'quiz.tListenChoose': 'Dengar & Pilih',
+    'quiz.dListenChoose': 'Dengar audionya, pilih arti yang benar',
+    'quiz.tMatchPicture': 'Cocokkan Gambar',
+    'quiz.dMatchPicture': 'Lihat gambar, cocokkan dengan kata Kantonnya',
+    'quiz.tFillBlank': 'Isi Bagian Kosong',
+    'quiz.dFillBlank': 'Lengkapi kalimat dengan kata yang tepat',
+
+    // quiz play
+    'quiz.quit': '← Keluar',
+    'quiz.questionOf': 'Soal',
+    'quiz.score': 'Skor:',
+    'quiz.tapSpeaker': 'Ketuk pengeras suara untuk mendengar',
+    'quiz.promptMeaning': 'Apa artinya ini?',
+    'quiz.promptListen': 'Dengar lalu pilih arti yang benar',
+    'quiz.promptMatch': 'Kata Kanton mana yang cocok dengan gambar ini?',
+    'quiz.promptFill': 'Isi bagian kosong dengan kata yang benar',
+    'quiz.correct': '✅ Benar!',
+    'quiz.answerIs': '❌ Jawaban:',
+    'quiz.next': 'Berikutnya →',
+    'quiz.seeResults': 'Lihat Hasil 🎉',
+    'quiz.notEnough': 'Kata di tingkat ini belum cukup untuk kuis. Coba tingkat lain.',
+
+    // results
+    'result.complete': 'Kuis Selesai!',
+    'result.percentCorrect': '% benar',
+    'result.tryAgain': 'Coba Lagi',
+    'result.done': 'Selesai',
+    'result.share': 'Bagikan skor saya',
+
+    // progress
+    'progress.title': 'Kemajuan Saya',
+    'progress.setNameFirst': 'Atur nama Anda dulu supaya kemajuan tercatat! Ketuk "Atur nama Anda" di bagian atas.',
+    'progress.none': 'Belum ada kuis yang dikerjakan. Coba kuis pertama Anda! 📝',
+    'progress.overall': 'Skor Keseluruhan',
+    'progress.byLevel': 'per Tingkat',
+    'progress.recent': 'Percobaan Terakhir',
+    'progress.correctOutOf': 'benar dari',
+    'progress.attempts': 'percobaan kuis',
+    'progress.couldNotLoad': 'Tidak bisa memuat kemajuan.',
+    'progress.partial': 'Belum selesai',
+    'progress.stoppedAt': 'Berhenti di',
+
+    // statistics
+    'stats.title': 'Statistik Anda',
+    'stats.none': 'Selesaikan satu kuis dan statistik Anda akan muncul di sini.',
+    'stats.streak': 'Rentetan latihan',
+    'stats.streakNone': 'Belum dimulai',
+    'stats.dayOne': 'hari',
+    'stats.days': 'hari',
+    'stats.inARow': 'berturut-turut',
+    'stats.practisedToday': 'Anda sudah berlatih hari ini — lanjutkan!',
+    'stats.practiseToday': 'Berlatihlah hari ini supaya rentetan Anda tidak putus',
+    'stats.best': 'Terbaik',
+    'stats.daysPractised': 'Hari berlatih',
+    'stats.thisWeek': 'Minggu ini',
+    'stats.lastWeek': 'Minggu lalu',
+    'stats.attemptOne': 'percobaan',
+    'stats.attempts': 'percobaan',
+    'stats.correctPct': '{n}% benar',
+    'stats.nothingLastWeek': 'Tidak ada minggu lalu',
+    'stats.overTime': 'Latihan dari waktu ke waktu',
+    'stats.range7': '7 hari',
+    'stats.range30': '30 hari',
+    'stats.range90': '90 hari',
+    'stats.byQuizType': 'Cara Anda berlatih',
+    'stats.chartHint': 'Setiap batang adalah satu hari',
+
+    // name modal
+    'name.title': 'Nama Anda',
+    'name.hint': 'Masukkan nama Anda supaya skor kuis tersimpan.',
+    'name.placeholder': 'mis. Siti',
+    'name.cancel': 'Batal',
+    'name.save': 'Simpan',
+    'name.notSaved': 'Browser Anda memblokir data tersimpan, jadi nama Anda mungkin tidak diingat. Coba jendela biasa, bukan mode penjelajahan pribadi.',
+    'name.requiredHint': 'Masukkan nama Anda dulu — tanpa itu skor Anda tidak bisa disimpan.',
+    'name.saveAndStart': 'Simpan & lanjutkan',
+
+    // voice modal
+    'voice.title': '🎙️ Pilih Suara Latihan',
+    'voice.hint': 'Ketuk suara untuk mendengar 你好 — pilih suara perempuan atau laki-laki, lambat atau alami.',
+    'voice.woman': 'Perempuan',
+    'voice.man': 'Laki-laki',
+    'voice.slow': 'Lambat & Jelas',
+    'voice.natural': 'Alami',
+    'voice.realVoice': 'suara asli',
+    'voice.allOnDevice': 'Semua suara di perangkat ini',
+    'voice.female': 'Perempuan',
+    'voice.male': 'Laki-laki',
+    'voice.unknown': 'Tidak diketahui',
+    'voice.done': 'Selesai',
+    'voice.loading': 'Memuat suara…',
+    'voice.noChinese': '⚠️ Tidak ada suara Tionghoa di perangkat ini. Pasang satu di pengaturan ponsel atau PC Anda.',
+    'voice.bothFound': '✓ Suara Tionghoa laki-laki dan perempuan asli ditemukan — ubin ini memakainya langsung.',
+    'voice.maleOnly': 'ℹ️ Suara laki-laki asli ditemukan, tetapi tidak ada yang perempuan — ubin Perempuan memakai penyesuaian nada.',
+    'voice.femaleOnly': '⚠️ Hanya suara Tionghoa perempuan yang terpasang, jadi ubin Laki-laki mungkin masih terdengar perempuan. Pilih suara laki-laki di bawah, atau pakai Microsoft Edge (punya suara Kanton laki-laki asli).',
+    'voice.noGender': 'ℹ️ Suara ditemukan, tetapi jenis kelaminnya tidak bisa dideteksi — Laki-laki/Perempuan dibuat lewat nada. Pilih suara tertentu di bawah kalau ada yang terdengar pas.',
+    'voice.noAudio': '⚠️ Browser ini tidak bisa memutar audio. Coba Chrome, Edge, atau Safari.',
+
+    // share
+    'share.wordText': 'Belajar bahasa Kanton dengan CantoBuddy',
+    'share.scoreText': 'Saya dapat {score}/{total} di CantoBuddy! 🇭🇰',
+    'share.copied': 'Tersalin ke papan klip!',
+    'share.failed': 'Tidak bisa membagikan.',
+    'share.cardSaved': 'Gambar tersimpan — tempel di mana saja!',
+    'share.cardFooter': 'Latihan bahasa Kanton gratis untuk asisten rumah tangga di Hong Kong',
+
+    // share page
+    'sharePage.title': 'Bagikan CantoBuddy',
+    'sharePage.hero': 'Beri tahu teman',
+    'sharePage.body': 'Belajar lebih mudah kalau ada teman. Kirim CantoBuddy ke teman — gratis untuk asisten rumah tangga, selamanya.',
+    'sharePage.previewLabel': 'Yang akan dilihat teman Anda',
+    'sharePage.shareBtn': 'Bagikan CantoBuddy',
+    'sharePage.copyBtn': '🔗 Salin tautan',
+    'sharePage.whatsappBtn': 'Kirim lewat WhatsApp',
+    'sharePage.footnote': 'Setiap tautan yang Anda bagikan membawa kode Anda sendiri, supaya kami bisa melihat bagaimana CantoBuddy menyebar di komunitas. Tanpa nama, tanpa data pribadi.',
+    'sharePage.copied': 'Tautan tersalin!',
+    'sharePage.copyFailed': 'Tidak bisa menyalin tautan.',
+    'sharePage.message': 'Saya belajar bahasa Kanton dengan CantoBuddy — gratis, dan dibuat untuk asisten rumah tangga di Hong Kong. Coba!',
+
+    // connecting to an employer
+    'connect.title': 'Hubungkan ke {name}?',
+    'connect.see': '{name} akan bisa melihat latihan CantoBuddy Anda — skor kuis dan kemajuan Anda. Tidak yang lain.',
+    'connect.yourName': 'Nama Anda',
+    'connect.nameHint': 'Nama yang akan dilihat majikan Anda.',
+    'connect.notNow': 'Nanti saja',
+    'connect.connect': 'Hubungkan',
+    'connect.connecting': 'Menghubungkan…',
+    'connect.doneTitle': 'Anda sudah terhubung 🎉',
+    'connect.doneBody': '{name} sekarang bisa melihat latihan Anda. Anda bisa berhenti berbagi kapan saja.',
+    'connect.doneBtn': 'Mulai belajar',
+    'connect.invalid': 'Tautan undangan ini tidak berlaku atau sudah kedaluwarsa.',
+    'connect.failed': 'Tidak bisa menghubungkan. Coba lagi.',
+
+    // who can see my progress
+    'sharing.title': 'Siapa yang bisa melihat kemajuan saya',
+    'sharing.hint': 'Orang-orang ini bisa melihat skor kuis Anda. Anda bisa berhenti berbagi kapan saja — kemajuan Anda selalu tetap pada Anda.',
+    'sharing.none': 'Tidak ada yang bisa melihat kemajuan Anda. Hanya Anda.',
+    'sharing.since': 'Terhubung',
+    'sharing.stop': 'Berhenti berbagi',
+    'sharing.stopped': 'Berhenti berbagi',
+    'sharing.failed': 'Tidak bisa memperbarui. Coba lagi.',
+    'sharing.enterCode': 'Punya kode dari majikan Anda?',
+
+    // rewards
+    'rewards.title': 'Stiker Saya',
+    'rewards.hint': 'Anda mendapat 1 kredit untuk setiap jawaban benar. Capai angka sebuah stiker dan stiker itu jadi milik Anda.',
+    'rewards.credits': 'kredit',
+    'rewards.creditOne': 'kredit',
+    'rewards.next': 'Stiker berikutnya',
+    'rewards.toGo': 'lagi',
+    'rewards.locked': 'Terkunci',
+    'rewards.complete': 'Anda mengumpulkan seluruh album! 🏆',
+    'rewards.newTitle': 'Stiker baru!',
+    'rewards.newBody': 'Anda mendapat {name}',
+    'rewards.newBodyMany': 'Anda mendapat {n} stiker baru!',
+    'rewards.viewAlbum': 'Lihat album saya',
+    'rewards.notYet': 'Belum dikumpulkan',
+
+    // connecting with a code
+    'connect.enterCode': 'Masukkan kode',
+    'connect.codeTitle': 'Hubungkan ke majikan Anda',
+    'connect.codeHint': 'Ketik kode yang diberikan majikan Anda.',
+    'connect.codeLabel': 'Kode majikan',
+    'connect.codePlaceholder': 'mis. 4GTBVT6R',
+    'connect.codeSubmit': 'Hubungkan',
+    'connect.codeChecking': 'Memeriksa…',
+    'connect.codeNotFound': 'Kode itu tidak ditemukan. Periksa lagi dan coba ulang.',
+
+    // misc
+    'misc.close': 'Tutup',
+    'misc.loadFailed': 'Tidak bisa memuat data. Apakah server berjalan?',
+    'misc.shareWord': 'Bagikan kata ini',
+    'misc.shareCard': 'Bagikan sebagai gambar',
+
+    // install
+    'install.title': 'Simpan CantoBuddy di ponsel Anda',
+    'install.lead': 'Tambahkan ke layar utama dan aplikasinya terbuka seperti aplikasi biasa — sekali ketuk, dan tetap jalan tanpa internet.',
+    'install.add': '📲 Tambahkan ke layar utama',
+    'install.notNow': 'Nanti saja',
+    'install.gotIt': 'Mengerti',
+    'install.iosTitle': 'Di iPhone / iPad',
+    'install.ios1': 'Ketuk tombol Bagikan di bagian bawah Safari',
+    'install.ios2': 'Gulir ke bawah dan ketuk "Tambahkan ke Layar Utama"',
+    'install.ios3': 'Ketuk "Tambah" di sudut atas',
+    'install.androidTitle': 'Di Android',
+    'install.android1': 'Ketuk menu ⋮ di kanan atas Chrome',
+    'install.android2': 'Ketuk "Tambahkan ke layar utama" atau "Pasang aplikasi"',
+    'install.inappTitle': 'Buka CantoBuddy di browser dulu',
+    'install.inappBody': 'Anda sedang melihat ini di dalam aplikasi lain. Ketuk menu ⋯ atau ⋮ dan pilih "Buka di Safari" atau "Buka di Chrome" — lalu tambahkan CantoBuddy ke layar utama di sana.',
+    'install.done': 'CantoBuddy sudah ditambahkan ke layar utama 🎉',
+
+    // feedback
+    'feedback.title': 'Ceritakan pendapat Anda',
+    'feedback.lead': 'Menemukan masalah, atau punya ide? Tulis di sini.',
+    'feedback.placeholder': 'Apa yang ingin Anda sampaikan?',
+    'feedback.contactLabel': 'Mau dibalas? Tinggalkan kontak (opsional)',
+    'feedback.contactPlaceholder': 'Email atau telepon (opsional)',
+    'feedback.anon': 'Nama Anda tidak dikirim bersama pesan ini.',
+    'feedback.cancel': 'Batal',
+    'feedback.send': 'Kirim',
+    'feedback.sending': 'Mengirim…',
+    'feedback.empty': 'Tulis dulu sesuatu.',
+    'feedback.thanks': 'Terima kasih — kami membaca setiap pesan 💛',
+    'feedback.tooMany': 'Anda sudah mengirim banyak pesan. Coba lagi nanti.',
+    'feedback.failed': 'Tidak bisa mengirim. Coba lagi.',
+    'feedback.cardTitle': 'Kirim masukan',
+    'feedback.cardHint': 'Ada yang rusak, atau ada yang kurang? Beri tahu kami — tetap anonim.',
+    'feedback.cardBtn': '💬 Tulis ke kami',
+    'feedback.footerLink': '💬 Kirim masukan',
+
+    // footer
+    'footer.title': 'Jelajahi kosakata bahasa Kanton',
+    'footer.allWords': 'Semua kata & kategori',
+    'footer.filipino': 'Filipino',
+    'footer.indonesian': 'Bahasa Indonesia',
   },
 };
 
@@ -878,6 +1159,7 @@ function categoryLabel(cat) {
   if (!cat) return '';
   if (_lang === 'fil' && cat.name_fil) return cat.name_fil;
   if (_lang === 'zh' && cat.name_zh) return cat.name_zh;
+  if (_lang === 'id' && cat.name_id) return cat.name_id;
   return cat.name_en;
 }
 

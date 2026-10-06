@@ -20,6 +20,7 @@ const { DatabaseSync } = require('node:sqlite');
 const {
   SEED_CATEGORIES, SEED_VOCABULARY, SEED_SCENARIOS, SEED_USERS,
   MANDARIN_GLOSSES, CATEGORY_ZH_NAMES,
+  INDONESIAN_GLOSSES, CATEGORY_ID_NAMES,
 } = require('./data');
 const { SEED_STICKERS } = require('./stickers');
 
@@ -139,6 +140,7 @@ db.exec(`
     name_yue   TEXT NOT NULL DEFAULT '',
     name_fil   TEXT NOT NULL DEFAULT '',
     name_zh    TEXT NOT NULL DEFAULT '',
+    name_id    TEXT NOT NULL DEFAULT '',
     icon       TEXT NOT NULL DEFAULT '📁',
     sort_order INTEGER NOT NULL DEFAULT 0
   );
@@ -150,6 +152,7 @@ db.exec(`
     english     TEXT NOT NULL,
     tagalog     TEXT NOT NULL DEFAULT '',
     mandarin    TEXT NOT NULL DEFAULT '',
+    indonesian  TEXT NOT NULL DEFAULT '',
     emoji       TEXT NOT NULL DEFAULT '📝',
     level       INTEGER NOT NULL DEFAULT 1,
     category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
@@ -460,6 +463,28 @@ function migrateSchema() {
     if (filled) changes.push(`categories.name_zh filled for ${filled} categor${filled === 1 ? 'y' : 'ies'}`);
   }
 
+  /* The category name in Bahasa Indonesia, for the third audience.
+
+     Same column, same reason, same guarded pattern as name_zh immediately above
+     — and it is a genuinely separate name, not a variant of the Filipino one:
+     「清潔」 is Kebersihan, not Paglilinis; 「照顧老人」 is Merawat Lansia, not
+     Pag-aalaga sa nakatatanda. */
+  if (addColumnIfMissing('categories', 'name_id', "TEXT NOT NULL DEFAULT ''")) {
+    changes.push('categories.name_id');
+  }
+  const catIdCount = String(Object.keys(CATEGORY_ID_NAMES).length);
+  const catIdState = db.prepare("SELECT value FROM meta WHERE key = 'categories_id_backfilled'").get();
+  if (!catIdState || Number(catIdState.value) < Number(catIdCount)) {
+    const upd = db.prepare("UPDATE categories SET name_id = ? WHERE id = ? AND name_id = ''");
+    let filled = 0;
+    for (const [id, name] of Object.entries(CATEGORY_ID_NAMES)) {
+      filled += upd.run(name, Number(id)).changes;
+    }
+    db.prepare("INSERT OR REPLACE INTO meta (key, value) VALUES ('categories_id_backfilled', ?)")
+      .run(catIdCount);
+    if (filled) changes.push(`categories.name_id filled for ${filled} categor${filled === 1 ? 'y' : 'ies'}`);
+  }
+
   /* -------------------------------------------------------------------------
      Vocabulary entry types — the schema gap that blocked "scenario phrases".
 
@@ -529,6 +554,24 @@ function migrateSchema() {
      meant to remove. */
   if (addColumnIfMissing('vocabulary', 'mandarin', "TEXT NOT NULL DEFAULT ''")) {
     changes.push('vocabulary.mandarin');
+  }
+
+  /* The meaning in Bahasa Indonesia — the third audience, and the second-largest
+     group of domestic helpers in Hong Kong after the Filipino community.
+
+     A MEANING column like `english` and `tagalog`, not a translation of the
+     Cantonese. It has to exist for the same reason `mandarin` does: the quiz
+     draws its multiple-choice options from `english`, so an Indonesian speaker
+     without this column would be picking between English words to prove she
+     understood a Cantonese one.
+
+     Deliberately NOT derived from `tagalog`. The two languages are related
+     enough that a Tagalog gloss reads as *nearly* right to an Indonesian
+     speaker, which is worse than obviously wrong — 「藥」 is obat, not gamot, and
+     a near-miss here would teach the wrong word. tools/content-migration-test.js
+     asserts the two columns are never silently identical. */
+  if (addColumnIfMissing('vocabulary', 'indonesian', "TEXT NOT NULL DEFAULT ''")) {
+    changes.push('vocabulary.indonesian');
   }
 
   /* Review state. Content that reaches a carer of a frail elderly person and is
@@ -605,6 +648,31 @@ function migrateSchema() {
     db.prepare("INSERT OR REPLACE INTO meta (key, value) VALUES ('vocab_mandarin_backfilled', ?)")
       .run(glossCount);
     if (filled) changes.push(`vocabulary.mandarin filled for ${filled} entr${filled === 1 ? 'y' : 'ies'}`);
+  }
+
+  /* The same backfill for the Indonesian glosses, on the same terms: guarded by
+     a meta flag that stores the SIZE of the overlay rather than a boolean, so a
+     later content drop keeps working while a boot with nothing new writes
+     nothing. See the long note above — every word of it applies here.
+
+     The flag also carries the review state. These glosses are machine-drafted
+     and have NOT been checked by a native speaker, which is exactly the honesty
+     the Tier A elder-care drafts and the Mandarin glosses shipped with: a gloss
+     for every entry, and a marker so the whole set can be reviewed in one pass.
+     A wrong gloss is a correction; it is not a correctness risk to the Cantonese,
+     which is already verified. */
+  const idGlossCount = String(Object.keys(INDONESIAN_GLOSSES).length);
+  const idGlossState = db.prepare("SELECT value FROM meta WHERE key = 'vocab_indonesian_backfilled'").get();
+  if (!idGlossState || Number(idGlossState.value) < Number(idGlossCount)) {
+    const upd = db.prepare("UPDATE vocabulary SET indonesian = ?, updated_at = ? WHERE id = ? AND indonesian = ''");
+    const now = new Date().toISOString();
+    let filled = 0;
+    for (const [id, gloss] of Object.entries(INDONESIAN_GLOSSES)) {
+      filled += upd.run(gloss, now, Number(id)).changes;
+    }
+    db.prepare("INSERT OR REPLACE INTO meta (key, value) VALUES ('vocab_indonesian_backfilled', ?)")
+      .run(idGlossCount);
+    if (filled) changes.push(`vocabulary.indonesian filled for ${filled} entr${filled === 1 ? 'y' : 'ies'}`);
   }
 
   // progress.learner_id used to reference users(id), which could never be
@@ -732,10 +800,10 @@ function inferType(cantonese) {
 // Every column a vocabulary row can carry, in insert order. One list, so the
 // initial seed and every later content migration write identical shapes.
 const VOCAB_COLUMNS =
-  'id, cantonese, jyutping, english, tagalog, mandarin, emoji, level, category_id, ' +
+  'id, cantonese, jyutping, english, tagalog, mandarin, indonesian, emoji, level, category_id, ' +
   'type, speaker, scenario_id, example_yue, example_jyutping, example_en, ' +
   'usage_note, tags, status, sort_order';
-const VOCAB_PLACEHOLDERS = '?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?';
+const VOCAB_PLACEHOLDERS = '?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?';
 
 function vocabValues(v) {
   return [
@@ -745,6 +813,7 @@ function vocabValues(v) {
     v.english,
     v.tagalog || '',
     v.mandarin || '',
+    v.indonesian || '',
     v.emoji || '📝',
     v.level || 1,
     v.category_id ?? null,
@@ -764,21 +833,24 @@ function vocabValues(v) {
 /* Bumped whenever the SEED_* content changes in a way an EXISTING database
    needs to pick up. See migrateContent() below. */
 const CONTENT_VERSION = 5; // v1 = the original 64 · v2 = Tier A expansion · v3 = coverage top-up (every category ≥5) · v4 = Simplified Chinese glosses (all 132) · v5 = Restaurant category + 10 entries (all 142 glossed)
-// NOTE: the Simplified glosses (vocabulary.mandarin) and the Chinese category
-// names (categories.name_zh) are NOT applied by migrateContent() — it only ever
-// INSERTs, so it cannot enrich a row that already exists. Both travel through
-// guarded UPDATEs in migrateSchema() instead, keyed on meta flags
-// (vocab_mandarin_backfilled, categories_zh_backfilled) that store the overlay
-// SIZE. Bumping CONTENT_VERSION would do nothing for them.
+// NOTE: the Simplified glosses (vocabulary.mandarin), the Indonesian glosses
+// (vocabulary.indonesian) and BOTH per-language category name sets
+// (categories.name_zh, categories.name_id) are NOT applied by migrateContent() —
+// it only ever INSERTs, so it cannot enrich a row that already exists. All four
+// travel through guarded UPDATEs in migrateSchema() instead, keyed on meta flags
+// (vocab_mandarin_backfilled, vocab_indonesian_backfilled, categories_zh_backfilled,
+// categories_id_backfilled) that store the overlay SIZE. Bumping CONTENT_VERSION
+// would do nothing for them.
 //
-// ORDERING NOTE for v5 (and for any future category drop): the guarded UPDATE
-// for categories.name_zh runs inside migrateSchema(), which runs BEFORE
+// ORDERING NOTE for v5 (and for any future category drop): the guarded UPDATEs
+// for categories.name_zh / name_id run inside migrateSchema(), which runs BEFORE
 // migrateContent() inserts the new category row. That is fine here only because
-// migrateContent() inserts the category WITH its name_zh already merged (see
-// insCat below: `c.name_zh || ''`, and data.js merges CATEGORY_ZH_NAMES into
-// SEED_CATEGORIES at load). A new category therefore never relies on the
-// backfill UPDATE — it arrives complete. If that ever stops being true, the
-// name_zh UPDATE must move to AFTER the category insert.
+// migrateContent() inserts the category WITH both names already merged (see
+// insCat below: `c.name_zh || ''`, `c.name_id || ''`, and data.js merges
+// CATEGORY_ZH_NAMES / CATEGORY_ID_NAMES into SEED_CATEGORIES at load). A new
+// category therefore never relies on the backfill UPDATE — it arrives complete.
+// If that ever stops being true, those UPDATEs must move to AFTER the category
+// insert.
 
 function seedIfEmpty() {
   const { n } = db.prepare('SELECT COUNT(*) AS n FROM categories').get();
@@ -786,7 +858,7 @@ function seedIfEmpty() {
 
   const now = new Date().toISOString();
   const insCat = db.prepare(
-    'INSERT INTO categories (id, name_en, name_yue, name_fil, name_zh, icon, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    'INSERT INTO categories (id, name_en, name_yue, name_fil, name_zh, name_id, icon, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
   );
   const insScenario = db.prepare(
     `INSERT INTO scenarios (id, name_en, name_yue, name_fil, icon, description, sort_order, enabled)
@@ -803,7 +875,7 @@ function seedIfEmpty() {
 
   db.exec('BEGIN');
   try {
-    SEED_CATEGORIES.forEach((c, i) => insCat.run(c.id, c.name_en, c.name_yue || '', c.name_fil || '', c.name_zh || '', c.icon || '📁', i));
+    SEED_CATEGORIES.forEach((c, i) => insCat.run(c.id, c.name_en, c.name_yue || '', c.name_fil || '', c.name_zh || '', c.name_id || '', c.icon || '📁', i));
     SEED_SCENARIOS.forEach((s, i) =>
       insScenario.run(s.id, s.name_en, s.name_yue || '', s.name_fil || '', s.icon || '💬', s.description || '', s.sort_order ?? i, s.enabled ?? 1)
     );
@@ -871,8 +943,8 @@ function migrateContent() {
   const changes = [];
   const now = new Date().toISOString();
   const insCat = db.prepare(
-    `INSERT OR IGNORE INTO categories (id, name_en, name_yue, name_fil, name_zh, icon, sort_order)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
+    `INSERT OR IGNORE INTO categories (id, name_en, name_yue, name_fil, name_zh, name_id, icon, sort_order)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
   );
   const insScenario = db.prepare(
     `INSERT OR IGNORE INTO scenarios (id, name_en, name_yue, name_fil, icon, description, sort_order, enabled)
@@ -887,7 +959,7 @@ function migrateContent() {
   try {
     let cats = 0;
     SEED_CATEGORIES.forEach((c, i) => {
-      cats += insCat.run(c.id, c.name_en, c.name_yue || '', c.name_fil || '', c.name_zh || '', c.icon || '📁', c.sort_order ?? i).changes;
+      cats += insCat.run(c.id, c.name_en, c.name_yue || '', c.name_fil || '', c.name_zh || '', c.name_id || '', c.icon || '📁', c.sort_order ?? i).changes;
     });
     let scens = 0;
     SEED_SCENARIOS.forEach((s, i) => {
@@ -929,10 +1001,10 @@ const S = {
   listDisabledCategoryIds: db.prepare('SELECT id FROM categories WHERE enabled = 0'),
   getCategory: db.prepare('SELECT * FROM categories WHERE id = ?'),
   insertCategory: db.prepare(
-    'INSERT INTO categories (name_en, name_yue, name_fil, name_zh, icon, sort_order) VALUES (?, ?, ?, ?, ?, ?)'
+    'INSERT INTO categories (name_en, name_yue, name_fil, name_zh, name_id, icon, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)'
   ),
   updateCategory: db.prepare(
-    'UPDATE categories SET name_en = ?, name_yue = ?, name_fil = ?, name_zh = ?, icon = ?, enabled = ? WHERE id = ?'
+    'UPDATE categories SET name_en = ?, name_yue = ?, name_fil = ?, name_zh = ?, name_id = ?, icon = ?, enabled = ? WHERE id = ?'
   ),
   deleteCategory: db.prepare('DELETE FROM categories WHERE id = ?'),
   setCategoryOrder: db.prepare('UPDATE categories SET sort_order = ? WHERE id = ?'),
@@ -965,7 +1037,7 @@ const S = {
      VALUES (${VOCAB_PLACEHOLDERS}, ?, ?)`
   ),
   updateVocabulary: db.prepare(
-    `UPDATE vocabulary SET cantonese = ?, jyutping = ?, english = ?, tagalog = ?, mandarin = ?, emoji = ?, level = ?,
+    `UPDATE vocabulary SET cantonese = ?, jyutping = ?, english = ?, tagalog = ?, mandarin = ?, indonesian = ?, emoji = ?, level = ?,
        category_id = ?, type = ?, speaker = ?, scenario_id = ?, example_yue = ?, example_jyutping = ?,
        example_en = ?, usage_note = ?, tags = ?, status = ?, sort_order = ?, updated_at = ?
      WHERE id = ?`
@@ -1412,9 +1484,9 @@ const listCategories = () => S.listCategories.all();
 const listEnabledCategories = () => S.listEnabledCategories.all();
 const getCategory = (id) => S.getCategory.get(Number(id));
 
-function createCategory({ name_en, name_yue = '', name_fil = '', name_zh = '', icon = '📁' }) {
+function createCategory({ name_en, name_yue = '', name_fil = '', name_zh = '', name_id = '', icon = '📁' }) {
   const { m } = S.maxCategoryOrder.get();
-  const info = S.insertCategory.run(name_en, name_yue, name_fil, name_zh, icon, m + 1);
+  const info = S.insertCategory.run(name_en, name_yue, name_fil, name_zh, name_id, icon, m + 1);
   return getCategory(Number(info.lastInsertRowid));
 }
 
@@ -1431,6 +1503,7 @@ function updateCategory(id, patch) {
     patch.name_yue ?? current.name_yue,
     patch.name_fil ?? current.name_fil,
     patch.name_zh ?? current.name_zh,
+    patch.name_id ?? current.name_id,
     patch.icon ?? current.icon,
     enabled,
     Number(id)
@@ -1569,7 +1642,7 @@ function createVocabulary(b) {
   const info = S.insertVocabulary.run(
     null,
     b.cantonese, b.jyutping, b.english,
-    b.tagalog || '', b.mandarin || '', b.emoji || '📝',
+    b.tagalog || '', b.mandarin || '', b.indonesian || '', b.emoji || '📝',
     Number(b.level) || 1, refOrNull(b.category_id),
     b.type || inferType(b.cantonese),
     b.speaker || 'either',
@@ -1592,6 +1665,7 @@ function updateVocabulary(id, b) {
     b.english ?? cur.english,
     b.tagalog ?? cur.tagalog,
     b.mandarin ?? cur.mandarin,
+    b.indonesian ?? cur.indonesian,
     b.emoji ?? cur.emoji,
     b.level != null && b.level !== '' ? Number(b.level) : cur.level,
     b.category_id !== undefined ? refOrNull(b.category_id) : cur.category_id,

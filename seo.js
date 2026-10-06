@@ -28,6 +28,7 @@
 const path = require('path');
 
 const store = require('./db');
+const { GUIDES, GUIDE_BY_SLUG } = require('./content');
 
 /**
  * Canonical origin. Overridable so a preview deployment can canonicalise to
@@ -35,6 +36,25 @@ const store = require('./db');
  * because a wrong-but-absolute canonical is far safer than a missing one.
  */
 const SITE_ORIGIN = (process.env.SITE_ORIGIN || 'https://cantobuddy.com').replace(/\/+$/, '');
+
+/**
+ * Google Search Console ownership token.
+ *
+ * The single highest-value SEO action is not on this site at all — it is
+ * verifying the domain in Search Console and submitting the sitemap, because
+ * until that happens Google has no reliable signal that the content exists.
+ * There are four ways to verify; this supports two of them so the operator has
+ * a choice:
+ *
+ *   1. Meta tag — set GOOGLE_SITE_VERIFICATION to the token Google shows you
+ *      (the `content` value). It is emitted on every server-rendered page.
+ *   2. HTML file — no configuration at all. See the /google*.html route in
+ *      mount(); it answers any token Google asks for. This is the one to use if
+ *      you would rather not redeploy, because it needs no env change.
+ *
+ * DNS TXT verification also works and needs no code — it is done in Cloudflare.
+ */
+const GOOGLE_VERIFICATION = (process.env.GOOGLE_SITE_VERIFICATION || '').trim();
 
 // ---------------------------------------------------------------------------
 // Small helpers
@@ -319,6 +339,33 @@ dl.meta dd{margin:0;font-weight:600}
 footer.site{border-top:1px solid var(--line);margin-top:44px;padding:24px 0 40px;
   color:var(--muted);font-size:14px}
 footer.site a{color:var(--muted)}
+/* Guides — long-form prose. The vocabulary pages are tables; these are articles,
+   so they need real reading rhythm rather than the tight table spacing. */
+article{max-width:70ch}
+article p{margin:0 0 16px;line-height:1.7;font-size:16.5px}
+article ul,article ol{margin:0 0 16px;padding-left:22px;line-height:1.7;font-size:16.5px}
+article li{margin:0 0 8px}
+article h2{font-size:21px;margin:34px 0 12px}
+article a{color:var(--red);text-decoration:none;border-bottom:1px solid rgba(230,57,70,.3)}
+article a:hover{border-bottom-color:var(--red)}
+.guide-list{list-style:none;padding:0;margin:0;display:grid;gap:12px}
+.guide-card a{display:block;background:#fff;border:1px solid var(--line);border-radius:14px;
+  padding:18px 20px;text-decoration:none;color:var(--ink)}
+.guide-card a:hover{border-color:var(--red)}
+.guide-card .em{font-size:24px;display:block;margin-bottom:8px}
+.guide-card .gt{display:block;font-weight:700;font-size:17px;margin-bottom:5px;line-height:1.35}
+.guide-card .gd{display:block;color:var(--muted);font-size:14.5px;line-height:1.55}
+.faq{margin:0 0 16px}
+.faq details{background:#fff;border:1px solid var(--line);border-radius:12px;
+  padding:13px 16px;margin-bottom:9px}
+.faq summary{font-weight:600;cursor:pointer;font-size:16px}
+.faq summary::marker{color:var(--red)}
+.faq p{margin:11px 0 0;color:var(--muted);font-size:15.5px;line-height:1.65}
+p.updated{color:var(--muted);font-size:13.5px;margin-top:30px}
+ul.links{list-style:none;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:9px}
+ul.links li a{display:inline-block;background:#fff;border:1px solid var(--line);border-radius:999px;
+  padding:7px 15px;font-size:14.5px;text-decoration:none;color:var(--ink)}
+ul.links li a:hover{border-color:var(--red);color:var(--red)}
 @media(max-width:560px){
   td.jy{display:none}
   .cta-card{flex-direction:column;align-items:flex-start}
@@ -419,6 +466,7 @@ function page(o) {
   <meta name="description" content="${esc(o.description)}" />
   <link rel="canonical" href="${esc(canonical)}" />
   ${o.noindex ? '<meta name="robots" content="noindex, follow" />' : '<meta name="robots" content="index, follow" />'}
+  ${GOOGLE_VERIFICATION ? `<meta name="google-site-verification" content="${esc(GOOGLE_VERIFICATION)}" />` : ''}
   ${alt}
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="CantoBuddy" />
@@ -456,7 +504,8 @@ ${o.body}
   <div class="wrap">
     <p>${esc(L[lang].footerNote)}</p>
     <p>${languageLinks(lang)}
-       &nbsp;·&nbsp; <a href="${LANG_PREFIX[lang]}/learn">${esc(L[lang].browse)}</a></p>
+       &nbsp;·&nbsp; <a href="${LANG_PREFIX[lang]}/learn">${esc(L[lang].browse)}</a>
+       &nbsp;·&nbsp; <a href="${LANG_PREFIX[lang]}/guide">${esc((GUIDE_UI[lang] || GUIDE_UI.en).guides)}</a></p>
   </div>
 </footer>
 ${VISIT_BEACON}
@@ -467,13 +516,21 @@ ${VISIT_BEACON}
 /**
  * The language switcher in the footer, listing every tree BUT the current one.
  *
- * Written in each target language's own name, so a reader who has landed in a
- * language she cannot read can still find her way out — "中文" is recognisable
- * to a Mandarin speaker in a way that "Chinese" is not.
+ * Written in each target language's OWN name (endonym), so a reader who has
+ * landed in a language she cannot read can still find her way out — "中文" is
+ * recognisable to a Mandarin speaker in a way that "Chinese" is not.
+ *
+ * This used to read `L[l].chinese || L[l].filipino || l`, which was a real bug:
+ * `chinese` is '中文' in EVERY dictionary, so an English page rendered
+ * "中文 · 中文" — two identical links, one of them pointing at Filipino and
+ * labelled Chinese. A language switcher whose labels are wrong is worse than
+ * no switcher, and it is also a crawl path between the three trees.
  */
+const LANG_ENDONYM = { en: 'English', fil: 'Filipino', zh: '中文' };
+
 function languageLinks(current) {
   return LANGS.filter((l) => l !== current)
-    .map((l) => `<a href="${LANG_PREFIX[l]}/learn" hreflang="${L[l].htmlLang}">${esc(L[l].chinese || L[l].filipino || l)}</a>`)
+    .map((l) => `<a href="${LANG_PREFIX[l]}/learn" hreflang="${L[l].htmlLang}">${esc(LANG_ENDONYM[l] || l)}</a>`)
     .join(' &nbsp;·&nbsp; ');
 }
 
@@ -633,6 +690,13 @@ function renderLearnHub(lang) {
     })
     .join('\n');
 
+  const guideItems = GUIDES.map(
+    (g) => `<li><a href="${prefix}/guide/${esc(g.slug)}">
+        <span class="em">${esc(g.icon)}</span>
+        <span>${esc(guideText(g.title, lang))}<span class="n">${esc(guideText(g.description, lang))}</span></span>
+      </a></li>`
+  ).join('\n');
+
   const body = `
 ${crumbs(lang, [{ label: t.browse }])}
 <h1>${esc(t.browse)}<span class="sub">${esc(t.tagline)}</span></h1>
@@ -646,6 +710,11 @@ ${catItems}
 <h2>${esc(t.levels)}</h2>
 <ul class="grid">
 ${levelItems}
+</ul>
+
+<h2>${esc((GUIDE_UI[lang] || GUIDE_UI.en).guides)}</h2>
+<ul class="grid">
+${guideItems}
 </ul>
 ${ctaCard(lang)}
 `;
@@ -954,10 +1023,213 @@ ${ctaCard(lang)}
   });
 }
 
+/* ---------------------------------------------------------------------------
+   Guides — the long-form content layer.
+
+   The vocabulary pages answer "how do you say X in Cantonese". These answer
+   the question behind it: "how do I actually learn this for my job". That is
+   the query this audience types, and it is the one the ranking pages on live
+   search are written for. See content.js for why.
+
+   Kept in a separate module so seo.js stays about rendering.
+   --------------------------------------------------------------------------- */
+
+/** UI strings for the guide pages, in the reader's language. */
+const GUIDE_UI = {
+  en: { guides: 'Guides', faq: 'Frequently asked questions', updated: 'Updated', seeAlso: 'See also' },
+  fil: { guides: 'Mga gabay', faq: 'Mga madalas itanong', updated: 'Na-update', seeAlso: 'Tingnan din' },
+  zh: { guides: '学习指南', faq: '常见问题', updated: '更新于', seeAlso: '相关' },
+};
+
+/** Pick a per-language field off a guide, falling back to English. */
+function guideText(obj, lang) {
+  if (!obj) return '';
+  return obj[lang] || obj.en || '';
+}
+
+/** The guide hub: every guide, listed. */
+function renderGuideHub(lang) {
+  const t = L[lang];
+  const ui = GUIDE_UI[lang] || GUIDE_UI.en;
+  const prefix = LANG_PREFIX[lang] || '';
+
+  const cards = GUIDES.map(
+    (g) => `<li class="guide-card">
+  <a href="${prefix}/guide/${esc(g.slug)}">
+    <span class="em">${esc(g.icon)}</span>
+    <span class="gt">${esc(guideText(g.title, lang))}</span>
+    <span class="gd">${esc(guideText(g.description, lang))}</span>
+  </a>
+</li>`
+  ).join('\n');
+
+  const body = `
+${crumbs(lang, [{ label: ui.guides }])}
+<h1>${esc(ui.guides)}</h1>
+<p class="lede">${esc(guideText({
+    en: 'Practical guides for learning Cantonese in Hong Kong — what to study first, how to care for an elderly person in Cantonese, and how Cantonese differs from Mandarin.',
+    fil: 'Mga praktikal na gabay sa pag-aaral ng Cantonese sa Hong Kong — ano ang unahin, paano mag-alaga ng matanda sa Cantonese, at ang pagkakaiba ng Cantonese at Mandarin.',
+    zh: '在香港学粤语的实用指南——先学什么、怎么用粤语照顾老人，以及粤语和普通话到底差在哪里。',
+  }, lang))}</p>
+<ul class="guide-list">
+${cards}
+</ul>
+${ctaCard(lang)}
+`;
+
+  const title = {
+    en: 'Cantonese Guides for Helpers in Hong Kong | CantoBuddy',
+    fil: 'Mga Gabay sa Cantonese para sa Helper sa Hong Kong | CantoBuddy',
+    zh: '香港粤语学习指南 | CantoBuddy',
+  }[lang];
+
+  const description = {
+    en: 'Practical guides to learning Cantonese for domestic work in Hong Kong — study plans, elder care vocabulary, and Cantonese vs Mandarin.',
+    fil: 'Mga praktikal na gabay sa Cantonese para sa trabaho sa Hong Kong — study plan, bokabularyo sa pag-aalaga, at Cantonese vs Mandarin.',
+    zh: '在香港做家佣学粤语的实用指南：先学什么、每天十分钟怎么安排、怎么用粤语照顾老人，以及粤语和普通话的区别。全部免费。',
+  }[lang];
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      ORG_LD,
+      breadcrumbLd([
+        { name: t.learn, path: `${prefix}/learn` },
+        { name: ui.guides, path: `${prefix}/guide` },
+      ]),
+      {
+        '@type': 'CollectionPage',
+        name: title,
+        description,
+        url: `${SITE_ORIGIN}${prefix}/guide`,
+        inLanguage: L[lang].htmlLang,
+        hasPart: GUIDES.map((g) => ({
+          '@type': 'Article',
+          headline: guideText(g.title, lang),
+          url: `${SITE_ORIGIN}${prefix}/guide/${g.slug}`,
+        })),
+      },
+    ],
+  };
+
+  return page({
+    lang,
+    title,
+    description,
+    path: `${prefix}/guide`,
+    jsonLd,
+    body,
+    alternates: hreflangLinks((l) => `${LANG_PREFIX[l]}/guide`),
+  });
+}
+
+/** One guide, with its FAQ rendered visibly and as structured data. */
+function renderGuide(lang, slug) {
+  const t = L[lang];
+  const ui = GUIDE_UI[lang] || GUIDE_UI.en;
+  const g = GUIDE_BY_SLUG.get(slug);
+  if (!g) return null;
+
+  const prefix = LANG_PREFIX[lang] || '';
+  const title = guideText(g.title, lang);
+  const description = guideText(g.description, lang);
+
+  // FAQ: rendered once for the reader, and once as FAQPage data. Same text, so
+  // the structured data can never drift from what the page actually says —
+  // Google penalises markup that does not match the visible content.
+  const faqBlock = (g.faq || []).length
+    ? `<h2>${esc(ui.faq)}</h2>
+<div class="faq">
+${g.faq
+  .map(
+    (f) => `<details>
+  <summary>${esc(guideText(f.q, lang))}</summary>
+  <p>${esc(guideText(f.a, lang))}</p>
+</details>`
+  )
+  .join('\n')}
+</div>`
+    : '';
+
+  const relatedBlock = (g.related || []).length
+    ? `<h2>${esc(ui.seeAlso)}</h2>
+<ul class="links">
+${g.related
+  .map((r) => {
+    // Guide-to-guide links need the language prefix; vocabulary links in the
+    // copy are already written absolute and are left as they are.
+    const href = r.href.startsWith('/guide/') ? `${prefix}${r.href}` : r.href;
+    return `<li><a href="${esc(href)}">${esc(guideText(r.label, lang))}</a></li>`;
+  })
+  .join('\n')}
+</ul>`
+    : '';
+
+  const body = `
+${crumbs(lang, [
+    { label: ui.guides, href: `${prefix}/guide` },
+    { label: title },
+  ])}
+<article>
+<h1>${esc(title)}</h1>
+<p class="lede">${esc(description)}</p>
+${guideText(g.body, lang)}
+${faqBlock}
+${relatedBlock}
+<p class="updated">${esc(ui.updated)} ${esc(g.updated)}</p>
+</article>
+${ctaCard(lang)}
+`;
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      ORG_LD,
+      breadcrumbLd([
+        { name: t.learn, path: `${prefix}/learn` },
+        { name: ui.guides, path: `${prefix}/guide` },
+        { name: title, path: `${prefix}/guide/${slug}` },
+      ]),
+      {
+        '@type': 'Article',
+        headline: title,
+        description,
+        inLanguage: L[lang].htmlLang,
+        datePublished: g.updated,
+        dateModified: g.updated,
+        mainEntityOfPage: `${SITE_ORIGIN}${prefix}/guide/${slug}`,
+        author: { '@type': 'Organization', name: 'CantoBuddy' },
+        publisher: { '@type': 'Organization', name: 'CantoBuddy', logo: { '@type': 'ImageObject', url: `${SITE_ORIGIN}/icons/icon-512.png` } },
+      },
+      ...(g.faq || []).length
+        ? [{
+            '@type': 'FAQPage',
+            mainEntity: g.faq.map((f) => ({
+              '@type': 'Question',
+              name: guideText(f.q, lang),
+              acceptedAnswer: { '@type': 'Answer', text: guideText(f.a, lang) },
+            })),
+          }]
+        : [],
+    ],
+  };
+
+  return page({
+    lang,
+    title: `${title} | CantoBuddy`,
+    description,
+    path: `${prefix}/guide/${slug}`,
+    jsonLd,
+    body,
+    alternates: hreflangLinks((l) => `${LANG_PREFIX[l]}/guide/${slug}`),
+  });
+}
+
 /** 404 body for an unknown content slug, so a bad URL stays useful. */
 function renderNotFound(lang) {
   const t = L[lang];
   const prefix = LANG_PREFIX[lang] || '';
+
   const body = `
 ${crumbs(lang, [{ label: t.browse, href: `${prefix}/learn` }])}
 <h1>${esc(t.notFound)}</h1>
@@ -1021,6 +1293,15 @@ ${alts}
     add(`${prefix}/learn`, '0.9', 'weekly', hreflangLinks((l) => `${LANG_PREFIX[l]}/learn`));
   }
 
+  // Guides. High priority relative to the word pages: they are the pages most
+  // likely to rank for a query, and the ones a crawler should read first.
+  for (const prefix of Object.values(LANG_PREFIX)) {
+    add(`${prefix}/guide`, '0.8', 'monthly', hreflangLinks((l) => `${LANG_PREFIX[l]}/guide`));
+    for (const g of GUIDES) {
+      add(`${prefix}/guide/${g.slug}`, '0.8', 'monthly', hreflangLinks((l) => `${LANG_PREFIX[l]}/guide/${g.slug}`));
+    }
+  }
+
   // Categories, levels, words — in every language tree.
   const cats = store.listEnabledCategories();
   const { bySlug } = buildWordIndex();
@@ -1059,6 +1340,7 @@ Allow: /
 Allow: /learn
 Allow: /words
 Allow: /level
+Allow: /guide
 Allow: /fil
 Allow: /zh
 
@@ -1115,7 +1397,30 @@ function mount(app) {
     ['/learn/:slug', (lang, p) => renderCategory(lang, p.slug)],
     ['/words/:slug', (lang, p) => renderWord(lang, p.slug)],
     ['/level/:n', (lang, p) => renderLevel(lang, p.n)],
+    // Guides. Registered after the vocabulary routes so a guide slug can never
+    // shadow a category — the two namespaces are distinct, but the ordering
+    // makes that explicit.
+    ['/guide', (lang) => renderGuideHub(lang)],
+    ['/guide/:slug', (lang, p) => renderGuide(lang, p.slug)],
   ];
+
+  /* Google Search Console — HTML-file verification, with no configuration.
+   *
+   * Google asks you to host a file named `google<token>.html` whose entire
+   * content is `google-site-verification: google<token>.html`. Rather than
+   * require the operator to know the token in advance, this answers ANY such
+   * filename with the matching body, which is exactly what Google checks.
+   *
+   * Deliberately narrow: the token must be lowercase hex, and the route only
+   * ever echoes it back. It serves no other path and reads no other input, so
+   * it cannot be turned into an open redirect or a file read.
+   */
+  app.get(/^\/google([a-z0-9]+)\.html$/, (req, res) => {
+    const token = req.params[0];
+    res.type('text/html');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    res.send(`google-site-verification: google${token}.html`);
+  });
 
   for (const [route, build] of routes) {
     for (const lang of LANGS) {

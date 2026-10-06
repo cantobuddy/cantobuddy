@@ -2546,7 +2546,9 @@ body {
    INSTALL PROMPT — "keep CantoBuddy on your phone"
    =========================================================================== */
 
-#install-modal .modal-box { max-width: 360px; }
+/* Scoped by the id so it beats the base .modal-box (340px) on specificity, not
+   on source order. */
+#install-modal .install-box { max-width: 360px; }
 #install-modal h3,
 #install-modal .modal-hint { text-align: center; }
 

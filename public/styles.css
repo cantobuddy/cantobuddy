@@ -2541,3 +2541,69 @@ body {
 @media (min-width: 768px) {
   .site-footer { padding: 26px 20px 30px; }
 }
+
+/* ===========================================================================
+   INSTALL PROMPT — "keep CantoBuddy on your phone"
+   =========================================================================== */
+
+#install-modal .modal-box { max-width: 360px; }
+#install-modal h3,
+#install-modal .modal-hint { text-align: center; }
+
+.install-icon { font-size: 2.6rem; margin-bottom: 8px; text-align: center; }
+
+/* The per-phone branch heading, e.g. "On iPhone / iPad". */
+.install-sub {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--c-text-soft);
+  margin: 2px 0 10px;
+}
+
+/* Numbered steps. A CSS counter rather than <ol> markers so the number can be a
+   filled circle, which reads as a sequence at a glance on a small screen. */
+.install-steps { counter-reset: step; list-style: none; margin: 0 0 16px; }
+.install-steps li {
+  counter-increment: step;
+  position: relative;
+  padding-left: 32px;
+  margin-bottom: 12px;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+.install-steps li:last-child { margin-bottom: 0; }
+.install-steps li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 1px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--c-primary);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* The in-app-browser explanation. Not a procedure — a "not here, not yet" — so
+   it reads as a note rather than a numbered list. */
+.install-note {
+  margin: 0 0 16px;
+  padding: 11px 13px;
+  background: var(--c-bg);
+  border-left: 3px solid var(--c-accent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+/* Filipino labels are long ("Idagdag sa Home screen") — let the buttons wrap
+   and share the row instead of overflowing the 360px box. */
+#install-modal .modal-actions { flex-wrap: wrap; }
+#install-modal .modal-actions .btn { flex: 1 1 auto; }

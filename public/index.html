@@ -399,6 +399,33 @@
   </div>
 </div>
 
+<!-- ============================ INSTALL PROMPT ============================ -->
+<!-- "Keep CantoBuddy on your phone." Offered once, right after she finishes a
+     quiz — the moment she has just had a good experience — and never again once
+     she answers. A prompt that reappears is a nag, so the answer is remembered
+     in localStorage (see maybeOfferInstall() in app.js).
+
+     The body is deliberately EMPTY here and filled in by renderInstallModal(),
+     because "add to home screen" is a different procedure on each phone:
+     Android can be handed a real install dialog, iPhone has no install API and
+     needs the Share → Add to Home Screen steps spelled out, and an in-app
+     browser (a link opened inside WhatsApp or Facebook) cannot install at all —
+     there the only honest answer is "open this in Safari or Chrome first".
+     Nothing has data-i18n except the two fixed lines, so a language switch
+     cannot leave half-translated instructions behind. -->
+<div id="install-modal" class="modal-overlay" onclick="closeInstallModal(event)">
+  <div class="modal-box install-box" onclick="event.stopPropagation()">
+    <div class="install-icon">📲</div>
+    <h3 data-i18n="install.title">Keep CantoBuddy on your phone</h3>
+    <p class="modal-hint" data-i18n="install.lead">Add it to your home screen and it opens like a normal app.</p>
+    <div id="install-body"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="install-later" onclick="dismissInstall()"></button>
+      <button class="btn btn-primary" id="install-add" onclick="doInstall()" style="display:none"></button>
+    </div>
+  </div>
+</div>
+
 <!-- ============================ TOAST ============================ -->
 <div id="toast" class="toast"></div>
 

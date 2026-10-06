@@ -518,6 +518,11 @@ function rerenderForLanguage() {
   const active = document.querySelector('.view.active');
   if (active && active.id === 'view-progress') renderProgress();
   if (active && active.id === 'view-share') renderSharePage();
+
+  // The install dialog's instructions are built in JS, so a language switch has
+  // to rebuild them or half the text stays in the old language.
+  const installModal = document.getElementById('install-modal');
+  if (installModal && installModal.classList.contains('show')) renderInstallModal();
 }
 
 function renderHomeCategories() {
@@ -1363,6 +1368,12 @@ async function finishQuiz() {
   `;
 
   document.getElementById('view-quiz-play').innerHTML = resultHtml;
+
+  // She has just finished a quiz — the one moment the app has demonstrably been
+  // worth keeping. Offer to put it on her home screen. Delayed so she reads her
+  // score and sees any sticker first; maybeOfferInstall() decides whether to
+  // actually ask (it will not, if she has already installed or answered).
+  setTimeout(maybeOfferInstall, 1400);
 }
 
 async function quitQuiz() {
@@ -2417,6 +2428,168 @@ function closeJoinModal(e) {
   // Dismissing an invitation should also get the join URL out of the way.
   if (inviteCodeFromPath()) history.replaceState({}, '', '/');
 }
+
+// ---- Install: "keep CantoBuddy on your phone" ------------------------------
+//
+// CantoBuddy is a PWA, so it can live on her home screen and open like a native
+// app — one tap, no browser bar, and it still works offline. Nothing in the app
+// ever said so, which is why almost nobody installs it: an installable PWA is
+// invisible by default, and this audience does not go hunting through browser
+// menus. So we ask — once.
+//
+// "Add to home screen" is a genuinely different procedure on each phone, and
+// getting it wrong is worse than not asking at all (she taps, nothing happens,
+// and the app takes the blame):
+//
+//   Android / Chrome  fires `beforeinstallprompt`, which we hold and replay on
+//                     a real button — a one-tap install, no instructions.
+//   iPhone / Safari   has NO install API. Share → Add to Home Screen is the only
+//                     route, so it has to be spelled out as steps.
+//   In-app browser    a link opened inside WhatsApp / Facebook / Messenger runs
+//                     in a webview that cannot install a PWA. The only honest
+//                     answer is "open this in Safari or Chrome first".
+//
+// The offer is made at the moment she has just had a good experience — the end
+// of a quiz — and her answer is remembered, so it never becomes a nag.
+
+const INSTALL_KEY = 'cb_install';   // 'installed' | 'dismissed' — asked once, then never again
+
+/** Chrome's install event, held until she taps our button (it is one-shot). */
+let deferredInstall = null;
+
+/** Already running installed, rather than in a browser tab. */
+function isInstalled() {
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    window.navigator.standalone === true
+  );
+}
+
+/** iPhone / iPad. iPadOS 13+ claims to be a Mac; the touch points give it away. */
+function isIOS() {
+  return (
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  );
+}
+
+/** Running inside another app's webview — which cannot install a PWA. */
+function isInAppBrowser() {
+  return /FBAN|FBAV|FB_IAB|Instagram|Line\/|WhatsApp|MicroMessenger|Twitter|Viber|; wv\)/i.test(
+    navigator.userAgent
+  );
+}
+
+function installAnswered() {
+  try { return Boolean(localStorage.getItem(INSTALL_KEY)); } catch { return false; }
+}
+
+function markInstallAnswered(state) {
+  try { localStorage.setItem(INSTALL_KEY, state); } catch { /* private mode */ }
+}
+
+/** Fill the dialog for whichever phone she is on. */
+function renderInstallModal() {
+  const body = document.getElementById('install-body');
+  const add = document.getElementById('install-add');
+  const later = document.getElementById('install-later');
+  if (!body || !add || !later) return;
+
+  const steps = (lines) =>
+    `<ol class="install-steps">${lines.map((l) => `<li>${l}</li>`).join('')}</ol>`;
+
+  // In-app browser first: even if a prompt event somehow fired, installing from
+  // a webview does not work, so offering the button would be a lie.
+  if (isInAppBrowser()) {
+    add.style.display = 'none';
+    later.textContent = t('install.gotIt');
+    body.innerHTML =
+      `<div class="install-sub">${t('install.inappTitle')}</div>` +
+      `<p class="install-note">${t('install.inappBody')}</p>`;
+    return;
+  }
+
+  // Android / Chrome: a real install, one tap. No instructions needed.
+  if (deferredInstall) {
+    add.style.display = '';
+    add.textContent = t('install.add');
+    later.textContent = t('install.notNow');
+    body.innerHTML = '';
+    return;
+  }
+
+  add.style.display = 'none';
+  later.textContent = t('install.gotIt');
+
+  if (isIOS()) {
+    body.innerHTML =
+      `<div class="install-sub">${t('install.iosTitle')}</div>` +
+      steps([t('install.ios1'), t('install.ios2'), t('install.ios3')]);
+    return;
+  }
+
+  body.innerHTML =
+    `<div class="install-sub">${t('install.androidTitle')}</div>` +
+    steps([t('install.android1'), t('install.android2')]);
+}
+
+function openInstallModal() {
+  if (isInstalled()) return;      // nothing to offer — she already has it
+  renderInstallModal();
+  document.getElementById('install-modal').classList.add('show');
+}
+
+function closeInstallModal(e) {
+  if (e && e.target !== e.currentTarget) return;
+  dismissInstall();
+}
+
+/** "Not now" — an answer, and we take it. */
+function dismissInstall() {
+  markInstallAnswered('dismissed');
+  document.getElementById('install-modal').classList.remove('show');
+}
+
+/** The primary button — only ever shown while a real install prompt is held. */
+async function doInstall() {
+  const ev = deferredInstall;
+  if (!ev) return;
+  deferredInstall = null;                       // the event is single-use
+  document.getElementById('install-modal').classList.remove('show');
+  try {
+    ev.prompt();
+    const choice = await ev.userChoice;
+    // Accepting installs the app (and fires `appinstalled`). Declining the OS
+    // dialog is still an answer — either way we do not ask again.
+    markInstallAnswered(choice && choice.outcome === 'accepted' ? 'installed' : 'dismissed');
+  } catch {
+    markInstallAnswered('dismissed');
+  }
+}
+
+/**
+ * Offer the install — unless she already has it or has already answered.
+ * Called at the end of a quiz (see finishQuiz). Deliberately NOT on a timer: a
+ * prompt that appears while she is reading is an interruption, not an offer.
+ */
+function maybeOfferInstall() {
+  if (isInstalled() || installAnswered()) return;
+  openInstallModal();
+}
+
+// Chrome's own mini-infobar is suppressed: we would rather ask in her language,
+// at a moment we choose, than have the browser ask on its own schedule.
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstall = e;
+});
+
+window.addEventListener('appinstalled', () => {
+  markInstallAnswered('installed');
+  deferredInstall = null;
+  document.getElementById('install-modal').classList.remove('show');
+  showToast(t('install.done'));
+});
 
 // ---- PWA -------------------------------------------------------------------
 

@@ -246,6 +246,25 @@ const I18N = {
     'misc.shareWord': 'Share this word',
     'misc.shareCard': 'Share as a picture',
 
+    // install — "keep CantoBuddy on your phone". Offered once, right after she
+    // finishes a quiz, and never again once she answers. The instructions differ
+    // by phone, so app.js picks a branch; these are the strings for all of them.
+    'install.title': 'Keep CantoBuddy on your phone',
+    'install.lead': 'Add it to your home screen and it opens like a normal app — one tap, and it works even without internet.',
+    'install.add': '📲 Add to Home screen',
+    'install.notNow': 'Not now',
+    'install.gotIt': 'Got it',
+    'install.iosTitle': 'On iPhone / iPad',
+    'install.ios1': 'Tap the Share button at the bottom of Safari',
+    'install.ios2': 'Scroll down and tap "Add to Home Screen"',
+    'install.ios3': 'Tap "Add" in the top corner',
+    'install.androidTitle': 'On Android',
+    'install.android1': 'Tap the ⋮ menu at the top right of Chrome',
+    'install.android2': 'Tap "Add to Home screen" or "Install app"',
+    'install.inappTitle': 'Open CantoBuddy in your browser first',
+    'install.inappBody': 'You are viewing this inside another app. Tap its ⋯ or ⋮ menu and choose "Open in Safari" or "Open in Chrome" — then add CantoBuddy to your home screen there.',
+    'install.done': 'CantoBuddy was added to your home screen 🎉',
+
     // footer — the crawlable links to the server-rendered vocabulary pages
     // (see seo.js). Real anchors, not JS navigation, so a crawler can follow
     // them into the content layer.
@@ -473,6 +492,23 @@ const I18N = {
     'misc.loadFailed': 'Hindi ma-load ang data. Gumagana ba ang server?',
     'misc.shareWord': 'Ibahagi ang salitang ito',
     'misc.shareCard': 'Ibahagi bilang larawan',
+
+    // install — "keep CantoBuddy on your phone"
+    'install.title': 'Ilagay ang CantoBuddy sa telepono mo',
+    'install.lead': 'Idagdag ito sa home screen mo at bubukas ito tulad ng normal na app — isang tap lang, at gumagana kahit walang internet.',
+    'install.add': '📲 Idagdag sa Home screen',
+    'install.notNow': 'Mamaya na',
+    'install.gotIt': 'Sige, naintindihan ko',
+    'install.iosTitle': 'Sa iPhone / iPad',
+    'install.ios1': 'I-tap ang Share button sa ibaba ng Safari',
+    'install.ios2': 'Mag-scroll pababa at i-tap ang "Add to Home Screen"',
+    'install.ios3': 'I-tap ang "Add" sa kanang itaas',
+    'install.androidTitle': 'Sa Android',
+    'install.android1': 'I-tap ang ⋮ menu sa kanang itaas ng Chrome',
+    'install.android2': 'I-tap ang "Add to Home screen" o "Install app"',
+    'install.inappTitle': 'Buksan muna ang CantoBuddy sa browser mo',
+    'install.inappBody': 'Binubuksan mo ito sa loob ng ibang app. I-tap ang ⋯ o ⋮ menu nito at piliin ang "Open in Safari" o "Open in Chrome" — tapos idagdag ang CantoBuddy sa home screen doon.',
+    'install.done': 'Naidagdag na ang CantoBuddy sa home screen mo 🎉',
 
     // footer — the crawlable links to the server-rendered vocabulary pages
     // (see seo.js).
@@ -713,6 +749,23 @@ const I18N = {
     'misc.loadFailed': '无法加载数据。服务器在运行吗？',
     'misc.shareWord': '分享这个词',
     'misc.shareCard': '存成图片分享',
+
+    // install — "keep CantoBuddy on your phone"
+    'install.title': '把 CantoBuddy 留在手机上',
+    'install.lead': '添加到主屏幕后，它就能像普通应用一样打开——一点即开，没有网络也能用。',
+    'install.add': '📲 添加到主屏幕',
+    'install.notNow': '以后再说',
+    'install.gotIt': '知道了',
+    'install.iosTitle': '在 iPhone / iPad 上',
+    'install.ios1': '点一下 Safari 底部的分享按钮',
+    'install.ios2': '向下滚动，点"添加到主屏幕"',
+    'install.ios3': '点右上角的"添加"',
+    'install.androidTitle': '在安卓手机上',
+    'install.android1': '点 Chrome 右上角的 ⋮ 菜单',
+    'install.android2': '点"添加到主屏幕"或"安装应用"',
+    'install.inappTitle': '请先在浏览器中打开 CantoBuddy',
+    'install.inappBody': '你正在另一个应用里查看这个页面。点它的 ⋯ 或 ⋮ 菜单，选择"在 Safari 中打开"或"在 Chrome 中打开"，然后在浏览器里添加到主屏幕。',
+    'install.done': 'CantoBuddy 已添加到你的主屏幕 🎉',
 
     // footer — the crawlable links to the server-rendered vocabulary pages
     // (see seo.js).

@@ -51,6 +51,15 @@ const SEED_CATEGORIES = [
   { id: 15, name_en: 'Toilet & Personal Care', name_yue: '如廁清潔', name_fil: 'Banyo at Paglilinis',     icon: '🚿' },
   { id: 16, name_en: 'Meals & Feeding',        name_yue: '食飯餵食', name_fil: 'Pagkain',                 icon: '🍚' },
   { id: 17, name_en: 'Comfort & Reassurance',  name_yue: '安慰',     name_fil: 'Pagpapalakas ng Loob',    icon: '🤗' },
+
+  // ---- Everyday life outside the home ------------------------------------
+  // The helper's job does not stop at the front door. Taking the elderly
+  // person out for dim sum is one of the most ordinary — and most
+  // Cantonese-only — things she does in a week: the tea-house auntie does not
+  // speak English, the menu is in Chinese, and the elderly person she is with
+  // will ask her for things across the table. This is practical, daily, and
+  // the vocabulary is compact and high-frequency.
+  { id: 18, name_en: 'Restaurant',  name_yue: '酒樓食飯', name_fil: 'Restawran', icon: '🍽️' },
 ];
 
 // Scenario sets — a situation groups phrases that are used together, which is
@@ -249,6 +258,26 @@ const SEED_VOCABULARY = [  // ---- Beginner ----
   { id: 130, cantonese: '帶遮',       jyutping: 'daai3 ze1',              english: 'Bring an umbrella',      tagalog: 'Magdala ng payong',            emoji: '☂️', level: 2, category_id: 8,  type: 'word',   speaker: 'elderly', tags: 'weather,instruction' },
   { id: 131, cantonese: '開門',       jyutping: 'hoi1 mun4',              english: 'Open the door',          tagalog: 'Buksan ang pinto',             emoji: '🚪', level: 3, category_id: 9,  type: 'word',   speaker: 'either',  tags: 'imperative,home' },
   { id: 132, cantonese: '開窗',       jyutping: 'hoi1 coeng1',            english: 'Open the window',        tagalog: 'Buksan ang bintana',           emoji: '🪟', level: 2, category_id: 9,  type: 'word',   speaker: 'either',  tags: 'imperative,home' },
+
+  // ---- 18 · Restaurant (v4): taking the elderly person out to eat ---------
+  // Ten entries for one of the most ordinary things a carer does — dim sum,
+  // a tea house, a quick lunch. Deliberately a mix of the two directions the
+  // app cares about: what the waiter or the elderly person says TO her
+  // (comprehension), and the handful of phrases she must produce herself
+  // (ordering, asking, paying). Level 1-3 so the set works at every stage,
+  // and the type spread (word / phrase / sentence) keeps the picture quiz
+  // supplied — generateQuestions narrows match_picture to type='word', so at
+  // least four words are here on purpose (點心, 茶, 埋單, 辣).
+  { id: 133, cantonese: '點心',    jyutping: 'dim2 sam1',              english: 'Dim sum',                tagalog: 'Dim sum',                       emoji: '🥟', level: 1, category_id: 18, type: 'word',     speaker: 'either',  tags: 'food,restaurant' },
+  { id: 134, cantonese: '飲茶',    jyutping: 'jam2 caa4',              english: 'Go for dim sum (lit. drink tea)', tagalog: 'Mag-dim sum',           emoji: '🍵', level: 1, category_id: 18, type: 'word',     speaker: 'either',  tags: 'food,restaurant', usage_note: 'Not just "drink tea" — 去飲茶 is the everyday phrase for going out for dim sum.' },
+  { id: 135, cantonese: '茶',      jyutping: 'caa4',                   english: 'Tea',                    tagalog: 'Tsa',                           emoji: '🫖', level: 1, category_id: 18, type: 'word',     speaker: 'either',  tags: 'drink,restaurant' },
+  { id: 136, cantonese: '辣',      jyutping: 'laat6',                  english: 'Spicy',                  tagalog: 'Maanghang',                     emoji: '🌶️', level: 1, category_id: 18, type: 'word',     speaker: 'either',  tags: 'taste,restaurant' },
+  { id: 137, cantonese: '唔辣',    jyutping: 'm4 laat6',               english: 'Not spicy',              tagalog: 'Hindi maanghang',               emoji: '🙂', level: 2, category_id: 18, type: 'phrase',   speaker: 'helper',  tags: 'taste,restaurant,request' },
+  { id: 138, cantonese: '唔要葱',  jyutping: 'm4 jiu3 cung1',          english: 'No spring onion',        tagalog: 'Walang sibuyas na mura',        emoji: '🧅', level: 2, category_id: 18, type: 'phrase',   speaker: 'helper',  tags: 'request,restaurant' },
+  { id: 139, cantonese: '唔該埋單', jyutping: 'm4 goi1 maai4 daan1',    english: 'The bill, please',       tagalog: 'Pakisuyo, ang bayad',           emoji: '🧾', level: 2, category_id: 18, type: 'phrase',   speaker: 'helper',  tags: 'request,restaurant,payment' },
+  { id: 140, cantonese: '埋單',    jyutping: 'maai4 daan1',            english: 'Pay the bill',           tagalog: 'Magbayad ng bayarin',           emoji: '💰', level: 2, category_id: 18, type: 'word',     speaker: 'helper',  tags: 'payment,restaurant' },
+  { id: 141, cantonese: '要唔要茶', jyutping: 'jiu3 m4 jiu3 caa4',      english: 'Would you like tea?',    tagalog: 'Gusto mo ba ng tsa?',           emoji: '🫖', level: 3, category_id: 18, type: 'sentence', speaker: 'either',  scenario_id: 2, tags: 'question,restaurant' },
+  { id: 142, cantonese: '想要啲咩', jyutping: 'soeng2 jiu3 di1 me1',   english: 'What would you like?',   tagalog: 'Ano ang gusto mo?',             emoji: '🤲', level: 3, category_id: 18, type: 'sentence', speaker: 'either',  scenario_id: 2, tags: 'question,restaurant' },
 ];
 
 /* The Tier A expansion (ids 65+) was machine-drafted and has NOT been checked
@@ -289,7 +318,8 @@ SEED_VOCABULARY.forEach((v) => {
    Keyed by entry id. Every id that appears here must exist in
    SEED_VOCABULARY — asserted by tools/mandarin-sample-test.js.
 
-   COVERAGE: all 132 entries. Ships as a complete first pass, not a sample.
+   COVERAGE: every entry (142 as of v5). Ships as a complete first pass, not a
+   sample.
 
    STATUS: drafted, not native-verified — the same caveat the Tier A entries
    carry. No Chinese-speaking reviewer has read these yet, so the Cantonese and
@@ -468,6 +498,20 @@ const MANDARIN_GLOSSES = {
   130: '带伞',
   131: '开门',
   132: '开窗',
+
+  // --- ids 133-142: the v4 Restaurant set (dim sum, ordering, the bill) ---
+  // Natural Mandarin equivalents, not character-for-character renderings of
+  // the Cantonese — 埋單 is 买单, 唔要葱 is 不要葱, and 想要啲咩 is 想要什么.
+  133: '点心',
+  134: '喝茶',
+  135: '茶',
+  136: '辣',
+  137: '不辣',
+  138: '不要葱',
+  139: '麻烦买单',
+  140: '买单',
+  141: '要不要茶',
+  142: '想要什么',
 };
 
 SEED_VOCABULARY.forEach((v) => {
@@ -507,6 +551,7 @@ const CATEGORY_ZH_NAMES = {
   15: '洗漱如厕',
   16: '吃饭喂食',
   17: '安慰与鼓励',
+  18: '餐厅',
 };
 
 SEED_CATEGORIES.forEach((c) => {

@@ -732,13 +732,22 @@ function vocabValues(v) {
 
 /* Bumped whenever the SEED_* content changes in a way an EXISTING database
    needs to pick up. See migrateContent() below. */
-const CONTENT_VERSION = 4; // v1 = the original 64 · v2 = Tier A expansion · v3 = coverage top-up (every category ≥5) · v4 = Simplified Chinese glosses (all 132)
+const CONTENT_VERSION = 5; // v1 = the original 64 · v2 = Tier A expansion · v3 = coverage top-up (every category ≥5) · v4 = Simplified Chinese glosses (all 132) · v5 = Restaurant category + 10 entries (all 142 glossed)
 // NOTE: the Simplified glosses (vocabulary.mandarin) and the Chinese category
 // names (categories.name_zh) are NOT applied by migrateContent() — it only ever
 // INSERTs, so it cannot enrich a row that already exists. Both travel through
 // guarded UPDATEs in migrateSchema() instead, keyed on meta flags
 // (vocab_mandarin_backfilled, categories_zh_backfilled) that store the overlay
 // SIZE. Bumping CONTENT_VERSION would do nothing for them.
+//
+// ORDERING NOTE for v5 (and for any future category drop): the guarded UPDATE
+// for categories.name_zh runs inside migrateSchema(), which runs BEFORE
+// migrateContent() inserts the new category row. That is fine here only because
+// migrateContent() inserts the category WITH its name_zh already merged (see
+// insCat below: `c.name_zh || ''`, and data.js merges CATEGORY_ZH_NAMES into
+// SEED_CATEGORIES at load). A new category therefore never relies on the
+// backfill UPDATE — it arrives complete. If that ever stops being true, the
+// name_zh UPDATE must move to AFTER the category insert.
 
 function seedIfEmpty() {
   const { n } = db.prepare('SELECT COUNT(*) AS n FROM categories').get();

@@ -1346,14 +1346,16 @@ ${alts}
   };
 
   // The SPA itself. Its alternates point at each tree's hub, because "/" is
-  // only the app in English — the other two languages enter through /fil/learn
-  // and /zh/learn.
-  add('/', '1.0', 'weekly', [
-    { lang: 'en', path: '/' },
-    { lang: 'fil', path: '/fil/learn' },
-    { lang: 'zh-Hans', path: '/zh/learn' },
-    { lang: 'x-default', path: '/' },
-  ]);
+  // only the app in English — every other language enters through its own
+  // /<lang>/learn.
+  //
+  // Derived from LANGS rather than hand-written. This list WAS hand-written,
+  // and when the fourth tree shipped it silently lost `id` while every other
+  // entry in the sitemap gained it — a one-language hole in the alternates of
+  // the single highest-priority URL on the site. A derived list cannot drift
+  // that way: `en` has an empty prefix, so it resolves to "/" and x-default
+  // follows it, exactly as before.
+  add('/', '1.0', 'weekly', hreflangLinks((l) => (LANG_PREFIX[l] ? `${LANG_PREFIX[l]}/learn` : '/')));
 
   // Hubs.
   for (const prefix of Object.values(LANG_PREFIX)) {

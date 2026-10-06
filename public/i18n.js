@@ -297,7 +297,9 @@ const I18N = {
     'footer.title': 'Browse Cantonese vocabulary',
     'footer.allWords': 'All words & categories',
     'footer.filipino': 'Filipino',
+    'footer.mandarin': '中文',
     'footer.indonesian': 'Bahasa Indonesia',
+    'footer.guide': "Learn Cantonese: the beginner's guide",
   },
 
   fil: {
@@ -561,7 +563,9 @@ const I18N = {
     'footer.title': 'Tingnan ang bokabularyong Cantonese',
     'footer.allWords': 'Lahat ng salita at kategorya',
     'footer.filipino': 'Filipino',
+    'footer.mandarin': '中文',
     'footer.indonesian': 'Bahasa Indonesia',
+    'footer.guide': 'Mag-aral ng Cantonese: gabay para sa baguhan',
   },
 
   /* Simplified Chinese, for learners who arrived from the mainland and already
@@ -840,6 +844,7 @@ const I18N = {
     'footer.filipino': '菲律宾语',
     'footer.mandarin': '中文版',
     'footer.indonesian': '印尼语版',
+    'footer.guide': '粤语入门：初学者完整指南',
   },
 
   /* Bahasa Indonesia — the fourth audience.
@@ -1112,7 +1117,9 @@ const I18N = {
     'footer.title': 'Jelajahi kosakata bahasa Kanton',
     'footer.allWords': 'Semua kata & kategori',
     'footer.filipino': 'Filipino',
+    'footer.mandarin': '中文',
     'footer.indonesian': 'Bahasa Indonesia',
+    'footer.guide': 'Belajar bahasa Kanton: panduan untuk pemula',
   },
 };
 

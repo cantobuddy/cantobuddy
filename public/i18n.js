@@ -265,6 +265,27 @@ const I18N = {
     'install.inappBody': 'You are viewing this inside another app. Tap its ⋯ or ⋮ menu and choose "Open in Safari" or "Open in Chrome" — then add CantoBuddy to your home screen there.',
     'install.done': 'CantoBuddy was added to your home screen 🎉',
 
+    // feedback — the one place she can talk back to us. The copy promises
+    // anonymity plainly instead of burying it, because she may be reporting a
+    // problem with the family's own phone, in the family's own home.
+    'feedback.title': 'Tell us what you think',
+    'feedback.lead': 'Found a problem, or have an idea? Write it here.',
+    'feedback.placeholder': 'What would you like us to know?',
+    'feedback.contactLabel': 'Want a reply? Leave a contact (optional)',
+    'feedback.contactPlaceholder': 'Email or phone, if you want an answer',
+    'feedback.anon': 'Your name is not sent with this message.',
+    'feedback.cancel': 'Cancel',
+    'feedback.send': 'Send',
+    'feedback.sending': 'Sending…',
+    'feedback.empty': 'Please write something first.',
+    'feedback.thanks': 'Thank you — we read every message 💛',
+    'feedback.tooMany': 'You have sent a lot of messages. Please try again later.',
+    'feedback.failed': 'Could not send that. Please try again.',
+    'feedback.cardTitle': 'Send us feedback',
+    'feedback.cardHint': 'Something broken, or something missing? Tell us — it stays anonymous.',
+    'feedback.cardBtn': '💬 Write to us',
+    'feedback.footerLink': '💬 Send feedback',
+
     // footer — the crawlable links to the server-rendered vocabulary pages
     // (see seo.js). Real anchors, not JS navigation, so a crawler can follow
     // them into the content layer.
@@ -509,6 +530,25 @@ const I18N = {
     'install.inappTitle': 'Buksan muna ang CantoBuddy sa browser mo',
     'install.inappBody': 'Binubuksan mo ito sa loob ng ibang app. I-tap ang ⋯ o ⋮ menu nito at piliin ang "Open in Safari" o "Open in Chrome" — tapos idagdag ang CantoBuddy sa home screen doon.',
     'install.done': 'Naidagdag na ang CantoBuddy sa home screen mo 🎉',
+
+    // feedback — the one place she can talk back to us.
+    'feedback.title': 'Sabihin ang iniisip mo',
+    'feedback.lead': 'May problema ka bang nakita, o may ideya? Isulat dito.',
+    'feedback.placeholder': 'Ano ang gusto mong ipaalam sa amin?',
+    'feedback.contactLabel': 'Gusto mo ng sagot? Mag-iwan ng contact (opsyonal)',
+    'feedback.contactPlaceholder': 'Email o telepono, kung gusto mo ng sagot',
+    'feedback.anon': 'Hindi ipinapadala ang pangalan mo kasama ng mensaheng ito.',
+    'feedback.cancel': 'Kansel',
+    'feedback.send': 'Ipadala',
+    'feedback.sending': 'Ipinapadala…',
+    'feedback.empty': 'Mangyaring magsulat muna ng mensahe.',
+    'feedback.thanks': 'Salamat — binabasa namin ang bawat mensahe 💛',
+    'feedback.tooMany': 'Marami ka nang naipadalang mensahe. Subukan ulit mamaya.',
+    'feedback.failed': 'Hindi naipadala. Subukan ulit.',
+    'feedback.cardTitle': 'Magpadala ng puna',
+    'feedback.cardHint': 'May sira, o may kulang? Sabihin mo sa amin — hindi ito nakikilala.',
+    'feedback.cardBtn': '💬 Sumulat sa amin',
+    'feedback.footerLink': '💬 Magpadala ng puna',
 
     // footer — the crawlable links to the server-rendered vocabulary pages
     // (see seo.js).
@@ -766,6 +806,25 @@ const I18N = {
     'install.inappTitle': '请先在浏览器中打开 CantoBuddy',
     'install.inappBody': '你正在另一个应用里查看这个页面。点它的 ⋯ 或 ⋮ 菜单，选择"在 Safari 中打开"或"在 Chrome 中打开"，然后在浏览器里添加到主屏幕。',
     'install.done': 'CantoBuddy 已添加到你的主屏幕 🎉',
+
+    // feedback — the one place she can talk back to us.
+    'feedback.title': '告诉我们你的想法',
+    'feedback.lead': '发现了问题，或者有建议？写在这里。',
+    'feedback.placeholder': '你想让我们知道什么？',
+    'feedback.contactLabel': '想收到回复？留下联系方式（可选）',
+    'feedback.contactPlaceholder': '邮箱或电话（如果你想收到回复）',
+    'feedback.anon': '这条消息不会带上你的名字。',
+    'feedback.cancel': '取消',
+    'feedback.send': '发送',
+    'feedback.sending': '正在发送…',
+    'feedback.empty': '请先写点内容。',
+    'feedback.thanks': '谢谢 — 每条消息我们都会看 💛',
+    'feedback.tooMany': '你发送的消息太多了，请稍后再试。',
+    'feedback.failed': '发送失败，请再试一次。',
+    'feedback.cardTitle': '给我们反馈',
+    'feedback.cardHint': '有地方坏了，或者缺了什么？告诉我们 — 这是匿名的。',
+    'feedback.cardBtn': '💬 给我们留言',
+    'feedback.footerLink': '💬 发送反馈',
 
     // footer — the crawlable links to the server-rendered vocabulary pages
     // (see seo.js).

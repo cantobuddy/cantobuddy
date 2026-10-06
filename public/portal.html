@@ -123,6 +123,33 @@
     </p>
     <div id="invites-list" class="portal-invite-list"></div>
 
+    <!-- ---- feedback ---- -->
+    <!-- Inline rather than a modal: this is a desktop dashboard, and a form that
+         is simply there beats a button that hides one.
+         An employer is signed in and IS recorded, because a question asked from
+         her own dashboard expects an answer. A helper's message is not — see the
+         note on the learner's dialog in index.html for why that asymmetry is
+         deliberate. -->
+    <div class="admin-toolbar" style="margin-top:28px">
+      <h3>Send Us Feedback</h3>
+    </div>
+    <p class="admin-hint">
+      Something missing, or something that does not work? Tell us — we read every message.
+    </p>
+    <div class="portal-feedback">
+      <div class="form-field">
+        <label for="fb-message">Your message</label>
+        <textarea id="fb-message" rows="4" maxlength="2000" placeholder="What would you like us to know?"></textarea>
+      </div>
+      <div class="form-field">
+        <label for="fb-contact">Contact <span class="optional">(optional)</span></label>
+        <input type="text" id="fb-contact" maxlength="200" placeholder="Email or phone, if you want a reply" />
+        <p class="form-hint">Only used to answer you. It is never shown to a helper.</p>
+      </div>
+      <div id="fb-error" class="form-error"></div>
+      <button class="btn btn-primary" id="fb-send" onclick="submitPortalFeedback()">Send Feedback</button>
+    </div>
+
   </section>
 </main>
 

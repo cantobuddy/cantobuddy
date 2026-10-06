@@ -187,6 +187,21 @@ const resetRateLimit = makeRateLimit({
   message: (m) => `Too many reset requests. Try again in ${m} minute${m === 1 ? '' : 's'}.`,
 });
 
+/**
+ * Feedback is public — a helper has no account and must never need one — which
+ * makes it the one place a stranger can put text in front of the operator.
+ * A person sends a handful of messages; a spammer sends hundreds.
+ *
+ * Read from the environment for the same reason as the sign-up limit: a harness
+ * makes more calls in a second than a user does in an hour, and a throttled 429
+ * would hide the behaviour under test. Production never sets it.
+ */
+const feedbackRateLimit = makeRateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: Number(process.env.FEEDBACK_RATE_MAX) || 20,
+  message: (m) => `You have sent a lot of messages. Try again in ${m} minute${m === 1 ? '' : 's'}.`,
+});
+
 // ---------------------------------------------------------------------------
 // Auth
 // ---------------------------------------------------------------------------
@@ -651,6 +666,40 @@ app.post('/api/visit', (req, res) => {
 });
 
 /**
+ * POST /api/feedback — a helper or an employer writes to the operator.
+ *
+ * Public by necessity: a helper has no account, and asking her to make one
+ * before she can say "the audio does not work" guarantees she never says it.
+ *
+ * WHO IS ASKED, NEVER WHO IS TOLD. The role comes from the session, not from the
+ * body, so a caller cannot promote itself into an attributed submission. An
+ * employer is signed in to her own dashboard and is recorded (she expects an
+ * answer); everyone else lands anonymously and the client cannot opt out of that
+ * by lying. A learner who wants a reply must type a contact address — that is
+ * the only route back to her, and it is opt-in by construction.
+ */
+app.post('/api/feedback', feedbackRateLimit, (req, res) => {
+  const b = req.body || {};
+  const user = sessionUser(req);
+  const isEmployer = !!user && user.role === 'employer';
+
+  const row = store.createFeedback({
+    role: isEmployer ? 'employer' : 'learner',
+    message: b.message,
+    contact: b.contact,
+    user_id: isEmployer ? user.id : null,
+    lang: b.lang,
+    page: b.page,
+  });
+
+  // An empty message is a mis-tap. Answer 400 rather than a cheerful 204 so the
+  // form can say something useful instead of pretending it sent.
+  if (!row) return res.status(400).json({ error: 'Please write something first.' });
+
+  res.status(201).json({ ok: true, id: row.id });
+});
+
+/**
  * Where learners came from — the operator's view of which channel is working.
  *
  * Read-only, and counts only: no device ids, no names. The point is to answer
@@ -949,6 +998,36 @@ app.get('/api/admin/learners/:id', requireAdmin, (req, res) => {
   const report = store.getLearnerReport(req.params.id);
   if (!report) return res.status(404).json({ error: 'No such learner.' });
   res.json(report);
+});
+
+/**
+ * GET /api/admin/feedback — the inbox, with the counts the tab badge needs.
+ *
+ * `status` filters to new / reviewing / resolved. Omitted or unrecognised means
+ * everything, so a stale bookmark or a hand-typed query cannot present an empty
+ * inbox as if there were no feedback at all.
+ */
+app.get('/api/admin/feedback', requireAdmin, (req, res) => {
+  res.json({
+    items: store.listFeedback({ status: req.query.status, limit: req.query.limit }),
+    counts: store.getFeedbackCounts(),
+  });
+});
+
+/** PATCH /api/admin/feedback/:id — move one item along new → reviewing → resolved. */
+app.patch('/api/admin/feedback/:id', requireAdmin, (req, res) => {
+  const row = store.setFeedbackStatus(req.params.id, String((req.body || {}).status || ''));
+  if (!row) return res.status(400).json({ error: 'Unknown feedback, or unknown status.' });
+  res.json(row);
+});
+
+/**
+ * DELETE /api/admin/feedback/:id — for spam, which a public form will attract.
+ * Deleting is irreversible, so the admin UI confirms before it calls this.
+ */
+app.delete('/api/admin/feedback/:id', requireAdmin, (req, res) => {
+  if (!store.deleteFeedback(req.params.id)) return res.status(404).json({ error: 'No such feedback.' });
+  res.json({ ok: true });
 });
 
 // ---------------------------------------------------------------------------

@@ -61,6 +61,10 @@
       <button class="admin-tab" data-tab="progress" onclick="switchTab('progress')">📊 Progress</button>
       <button class="admin-tab" data-tab="people" onclick="switchTab('people')">👥 People</button>
       <button class="admin-tab" data-tab="reports" onclick="switchTab('reports')">📈 Reports</button>
+      <!-- The badge is the count of unanswered items, so the operator sees there
+           is something waiting without opening the tab. Hidden at zero. -->
+      <button class="admin-tab" data-tab="feedback" onclick="switchTab('feedback')">💬 Feedback<span
+        id="admin-feedback-badge" class="tab-badge" style="display:none"></span></button>
     </div>
 
     <!-- ---- vocab tab ---- -->
@@ -175,6 +179,38 @@
         <a class="btn btn-outline btn-sm" href="/api/admin/report.csv?type=visitors">Visitors</a>
         <a class="btn btn-outline btn-sm" href="/api/admin/report.csv?type=practice_only">Practice only</a>
       </div>
+    </div>
+
+    <!-- ---- feedback tab ---- -->
+    <!-- What PROPOSAL.md specifies for Phase 5 and what proposal/prototype.html
+         sketches: submissions from helpers and employers, visible only here.
+
+         A helper's message carries no identity at all (see createFeedback in
+         db.js), so the card for one can only ever say "Anonymous" — that is the
+         design, not missing data. An employer's is attributed, because she is
+         signed in and expects an answer.
+
+         Status tracking is the point of the tab: an unanswered message is how
+         you lose the trust of the person who bothered to write. -->
+    <div id="tab-feedback" class="admin-tab-content">
+      <div class="admin-toolbar">
+        <h3>Feedback</h3>
+        <button class="btn btn-outline btn-sm" onclick="renderAdminFeedback()">↻ Refresh</button>
+      </div>
+      <p class="admin-hint">
+        Submissions from helpers and employers — visible only here. Helper feedback is
+        anonymous by default, so people speak honestly.
+      </p>
+
+      <div class="chip-group" id="admin-feedback-filter">
+        <button class="chip active" data-status="" onclick="setFeedbackFilter('')">All</button>
+        <button class="chip" data-status="new" onclick="setFeedbackFilter('new')">New</button>
+        <button class="chip" data-status="reviewing" onclick="setFeedbackFilter('reviewing')">Reviewing</button>
+        <button class="chip" data-status="resolved" onclick="setFeedbackFilter('resolved')">Resolved</button>
+      </div>
+
+      <div id="admin-feedback-summary" class="stats-grid"></div>
+      <div id="admin-feedback-list" class="admin-list"></div>
     </div>
 
   </section>

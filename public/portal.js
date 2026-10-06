@@ -555,6 +555,57 @@ async function revokeInvite(id) {
   }
 }
 
+// ---- Feedback ---------------------------------------------------------------
+
+/**
+ * The employer's note to the operator.
+ *
+ * Unlike a helper's, this one is ATTRIBUTED — the server records the signed-in
+ * employer, because a question asked from her own dashboard expects an answer,
+ * and she is already identified by having signed in. The contact box is still
+ * offered for the case where the name on the account is not how she wants to be
+ * reached.
+ *
+ * The button is disabled while the request is in flight: on a slow connection a
+ * double tap would post the message twice and the operator would answer it twice.
+ */
+async function submitPortalFeedback() {
+  const msg = document.getElementById('fb-message');
+  const contact = document.getElementById('fb-contact');
+  const err = document.getElementById('fb-error');
+  const btn = document.getElementById('fb-send');
+  const text = (msg.value || '').trim();
+
+  err.textContent = '';
+  if (!text) {
+    err.textContent = 'Please write something first.';
+    msg.focus();
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+  try {
+    await apiPost('/api/feedback', {
+      message: text,
+      contact: (contact.value || '').trim(),
+      lang: 'en',
+      page: '/portal',
+    });
+    // Cleared only on success, so a failed send does not throw away what she
+    // wrote — that is the one thing that would make her give up rather than
+    // retry.
+    msg.value = '';
+    contact.value = '';
+    showToast('Thank you — we read every message');
+  } catch (e) {
+    err.textContent = e.message || 'Could not send that. Please try again.';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Send Feedback';
+  }
+}
+
 // ---- Password reset (/reset?token=…) ---------------------------------------
 //
 // The reset link is minted by the operator (there is no mail provider) and

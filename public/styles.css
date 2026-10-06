@@ -2609,3 +2609,159 @@ body {
    and share the row instead of overflowing the 360px box. */
 #install-modal .modal-actions { flex-wrap: wrap; }
 #install-modal .modal-actions .btn { flex: 1 1 auto; }
+
+/* ===========================================================================
+   FEEDBACK — "tell us what you think"
+   =========================================================================== */
+
+/* Same scoping trick as the install box: beat the base .modal-box on
+   specificity rather than on source order, so a later change to the base width
+   cannot silently widen this dialog past a phone. */
+#feedback-modal .feedback-box { max-width: 400px; }
+#feedback-modal h3,
+#feedback-modal .modal-hint { text-align: center; }
+
+.feedback-icon { font-size: 2.6rem; margin-bottom: 8px; text-align: center; }
+
+/* 16px, not the usual 0.9rem: iOS Safari zooms the whole page when a form
+   control smaller than 16px receives focus, and a zoomed-in dialog on a phone
+   is how "I typed my message and the screen jumped" happens. */
+.feedback-input {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--c-text);
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  resize: vertical;
+}
+.feedback-input:focus {
+  outline: none;
+  border-color: var(--c-primary);
+  background: var(--c-surface);
+}
+.feedback-contact { margin-bottom: 8px; }
+
+.feedback-label {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--c-text-soft);
+  margin-bottom: 6px;
+}
+
+/* The anonymity promise, given its own line rather than folded into the hint:
+   it is the reason someone will actually write the complaint. */
+.feedback-note {
+  margin: 0 0 14px;
+  padding: 9px 12px;
+  background: var(--c-bg);
+  border-left: 3px solid var(--c-secondary);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--c-text-soft);
+}
+
+/* Filipino and Chinese labels are long ("Magpadala ng puna", "给我们反馈") —
+   let the buttons wrap and share the row instead of overflowing the box. */
+#feedback-modal .modal-actions { flex-wrap: wrap; }
+#feedback-modal .modal-actions .btn { flex: 1 1 auto; }
+
+/* The card at the bottom of My Progress, and the footer link. */
+.feedback-card-hint {
+  font-size: 0.85rem;
+  color: var(--c-text-soft);
+  line-height: 1.45;
+  margin: 0 0 12px;
+}
+
+.footer-feedback {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--c-text-soft);
+  background: none;
+  border: 1px solid var(--c-border);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.footer-feedback:hover { color: var(--c-primary); border-color: var(--c-primary); }
+
+/* Employer portal: the feedback form is inline on the dashboard, so it is capped
+   rather than stretched across a desktop monitor. */
+.portal-feedback { max-width: 560px; }
+.portal-feedback .form-error:empty { display: none; }
+
+/* ===========================================================================
+   ADMIN · FEEDBACK
+   =========================================================================== */
+
+/* The unread count on the tab, so the operator can tell something is waiting
+   without opening the tab. */
+.tab-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--c-primary);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.5;
+  vertical-align: 1px;
+}
+
+.feedback-item {
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  background: var(--c-surface);
+}
+
+.feedback-item-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.fb-role { font-size: 0.82rem; font-weight: 600; }
+.fb-when { margin-left: auto; font-size: 0.78rem; color: var(--c-text-soft); }
+
+/* The status pill. Colour carries the workflow state at a glance, which is the
+   entire reason the status exists: an unanswered message is how you lose the
+   trust of the person who bothered to write. */
+.fb-status {
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.fb-status-new       { background: #fdece0; color: #a8541c; }
+.fb-status-reviewing { background: #e0f2f0; color: #1f6f66; }
+.fb-status-resolved  { background: #e3f4ea; color: #2c6e4c; }
+
+/* The message itself — the reason the operator opened the tab, so it gets the
+   most space and the darkest ink. */
+.fb-quote {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--c-text);
+  white-space: pre-wrap;      /* a line break she typed is part of what she said */
+  overflow-wrap: anywhere;    /* a pasted URL must not widen the page */
+}
+
+.fb-meta { font-size: 0.78rem; color: var(--c-text-soft); margin-bottom: 10px; }
+
+.fb-actions { display: flex; flex-wrap: wrap; gap: 8px; }

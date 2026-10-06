@@ -349,6 +349,37 @@ db.exec(`
     UNIQUE(day, path)
   );
   CREATE INDEX IF NOT EXISTS idx_visit_daily_day ON visit_daily(day);
+
+  /* Something a helper or an employer typed and sent to the operator.
+
+     ANONYMITY IS THE POINT for a helper. She is a live-in worker whose employer
+     can already see her progress, so a complaint about the app — or about the
+     family — has to be unattributable or it will not be written at all. So a
+     learner row stores NO learner_id and NO user_id: the role is kept (the
+     operator needs to know which half of the product is being talked about) but
+     the person is not. An employer row does carry user_id, because an employer
+     is already signed in to her own dashboard and expects a reply.
+
+     contact is empty unless the sender chose to type one in. That is the only
+     route back to a learner, and it is opt-in by construction — we never fill it
+     in on their behalf.
+
+     status is operator workflow, not visibility: new -> reviewing -> resolved.
+     Nothing here is ever shown to another learner or employer. */
+  CREATE TABLE IF NOT EXISTS feedback (
+    id         INTEGER PRIMARY KEY,
+    role       TEXT NOT NULL DEFAULT 'learner',
+    message    TEXT NOT NULL,
+    contact    TEXT NOT NULL DEFAULT '',
+    user_id    INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    lang       TEXT NOT NULL DEFAULT 'en',
+    page       TEXT NOT NULL DEFAULT '',
+    status     TEXT NOT NULL DEFAULT 'new',
+    created_at TEXT NOT NULL,
+    updated_at TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_feedback_status  ON feedback(status);
+  CREATE INDEX IF NOT EXISTS idx_feedback_created ON feedback(created_at);
 `);
 
 // ---------------------------------------------------------------------------
@@ -1332,6 +1363,32 @@ const S = {
      WHERE learner_id = ?
   `),
 
+  /*
+   * Feedback inbox. `user_id` is written only for an employer — see the
+   * feedback table comment for why a learner row stays unattributable.
+   *
+   * listFeedback takes the status twice because the same value is used both to
+   * decide whether the filter applies and to match it; a NULL status means
+   * "everything", which is what the operator's default view wants.
+   */
+  insertFeedback: db.prepare(`
+    INSERT INTO feedback (role, message, contact, user_id, lang, page, status, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, 'new', ?)
+  `),
+  getFeedbackById: db.prepare('SELECT * FROM feedback WHERE id = ?'),
+  listFeedback: db.prepare(`
+    SELECT * FROM feedback
+     WHERE (? IS NULL OR status = ?)
+     ORDER BY created_at DESC, id DESC
+     LIMIT ?
+  `),
+  feedbackCounts: db.prepare(`
+    SELECT status, COUNT(*) AS n FROM feedback GROUP BY status
+  `),
+  countFeedback: db.prepare('SELECT COUNT(*) AS n FROM feedback'),
+  setFeedbackStatus: db.prepare('UPDATE feedback SET status = ?, updated_at = ? WHERE id = ?'),
+  deleteFeedback: db.prepare('DELETE FROM feedback WHERE id = ?'),
+
   countUsers: db.prepare('SELECT COUNT(*) AS n FROM users'),
 };
 
@@ -2027,9 +2084,81 @@ function recordPageView(path, count = 1) {
   return { day, path: clean };
 }
 
+// ---------------------------------------------------------------------------
+// Feedback
+// ---------------------------------------------------------------------------
+
+const FEEDBACK_MAX = 2000;
+const FEEDBACK_STATUSES = ['new', 'reviewing', 'resolved'];
+
+/**
+ * Records one piece of feedback from a learner or an employer.
+ *
+ * `user_id` is deliberately dropped for a learner even when the caller passes
+ * one. The route knows who is asking — the whole point of this table is that the
+ * row does not. An employer's id is kept: her dashboard is already hers, and she
+ * expects an answer.
+ *
+ * Returns the stored row (so the caller can echo the id back) or null when the
+ * message is empty after trimming — an empty submission is a mis-tap, not
+ * feedback, and storing it would only add noise to the inbox.
+ */
+function createFeedback({ role = 'learner', message, contact = '', user_id = null, lang = 'en', page = '' } = {}) {
+  const text = String(message ?? '').trim().slice(0, FEEDBACK_MAX);
+  if (!text) return null;
+  const r = role === 'employer' ? 'employer' : 'learner';
+  // Only keep an employer id that resolves. A session can outlive the user it
+  // points at (the account was deleted mid-visit), and a foreign-key failure
+  // here would turn "thanks for your feedback" into a 500 — losing the very
+  // message we were trying to collect. An unresolvable id is stored as null.
+  let who = r === 'employer' && user_id != null ? Number(user_id) : null;
+  if (who != null && !S.getUserById.get(who)) who = null;
+  const info = S.insertFeedback.run(
+    r,
+    text,
+    String(contact ?? '').trim().slice(0, 200),
+    who,
+    String(lang || 'en').slice(0, 8),
+    String(page || '').slice(0, 120),
+    new Date().toISOString()
+  );
+  return S.getFeedbackById.get(Number(info.lastInsertRowid));
+}
+
+/** The inbox, newest first. A null/unknown status means "everything". */
+function listFeedback({ status = null, limit = 200 } = {}) {
+  const s = FEEDBACK_STATUSES.includes(status) ? status : null;
+  const n = Math.min(Math.max(Math.floor(Number(limit)) || 200, 1), 500);
+  return S.listFeedback.all(s, s, n);
+}
+
+/** Counts per status plus a total, so the tab can show a badge without a second call. */
+function getFeedbackCounts() {
+  const counts = { new: 0, reviewing: 0, resolved: 0, total: S.countFeedback.get().n };
+  for (const row of S.feedbackCounts.all()) {
+    if (row.status in counts) counts[row.status] = row.n;
+  }
+  return counts;
+}
+
+/**
+ * Moves one item along the workflow. An unknown status is refused rather than
+ * written — a typo must not create a fourth state nothing can filter on.
+ */
+function setFeedbackStatus(id, status) {
+  if (!FEEDBACK_STATUSES.includes(status)) return null;
+  const n = Number(id);
+  if (!S.getFeedbackById.get(n)) return null;
+  S.setFeedbackStatus.run(status, new Date().toISOString(), n);
+  return S.getFeedbackById.get(n);
+}
+
+function deleteFeedback(id) {
+  return S.deleteFeedback.run(Number(id)).changes > 0;
+}
+
 /** Who this learner has chosen to share their progress with. */
 const listEmployersForLearner = (learnerId) => S.listLinksByLearner.all(Number(learnerId));
-
 /** The learners an employer is allowed to see — accepted invitations only. */
 const listLearnersForEmployer = (employerId) => S.listLinksByEmployer.all(Number(employerId));
 
@@ -2908,6 +3037,15 @@ module.exports = {
   getReportHelpers,
   getVisitorReport,
   REPORT_RANGES,
+
+  // Feedback inbox — helper submissions are anonymous by design.
+  createFeedback,
+  listFeedback,
+  getFeedbackCounts,
+  setFeedbackStatus,
+  deleteFeedback,
+  FEEDBACK_STATUSES,
+  FEEDBACK_MAX,
 
   // Learner reporting — her own numbers, scoped to one device.
   getLearnerStats,

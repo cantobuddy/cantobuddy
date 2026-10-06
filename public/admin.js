@@ -9,6 +9,8 @@ const ADMIN = {
   people: null,
   report: null,
   reportDays: 30,
+  feedback: null,
+  feedbackFilter: '',
 };
 
 // ---- API helpers -----------------------------------------------------------
@@ -35,6 +37,19 @@ async function apiPost(url, body) {
 async function apiPut(url, body) {
   const r = await fetch(url, {
     method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) {
+    const e = await r.json().catch(() => ({}));
+    throw new Error(e.error || `API ${url}: ${r.status}`);
+  }
+  return r.json();
+}
+
+async function apiPatch(url, body) {
+  const r = await fetch(url, {
+    method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
@@ -122,6 +137,7 @@ async function loadAdminData() {
     renderAdminStats();
     renderAdminPeople();
     renderAdminReport();
+    renderAdminFeedback();
 
     // Populate category select in vocab form
     const sel = document.getElementById('vf-category');
@@ -903,6 +919,149 @@ function engagementRow(e) {
     <div class="learner-stat-sub">${escapeHtml(e.email)} · ${bits.join(' · ')}</div>
     <div class="learner-stat-sub">joined ${fmtDate(e.created_at)} · ${e.last_login_at ? `last login ${fmtDate(e.last_login_at)}` : 'never signed in'} · last activity ${fmtDate(e.last_activity)}</div>
   </div>`;
+}
+
+// ---- Feedback ---------------------------------------------------------------
+//
+// What PROPOSAL.md specifies for Phase 5 and what proposal/prototype.html
+// sketches: an inbox for the messages helpers and employers send from inside the
+// app, with status tracking.
+//
+// THE ASYMMETRY ON SCREEN IS THE DESIGN, not a bug to be fixed. An employer's row
+// carries her account, because she signed in to write it and expects an answer.
+// A helper's row carries NOTHING — no id, no name, not even a device token (see
+// createFeedback in db.js). She is a live-in worker whose employer can already see
+// her progress, so a complaint that could be traced back to her would simply not
+// be written; an inbox of safe, flattering messages is worse than no inbox. So
+// "Anonymous" below is a promise being kept, not a field that failed to load.
+
+/** How long ago, in words. An inbox is read fresh, so an exact date adds nothing. */
+function agoText(iso) {
+  if (!iso) return '';
+  const ms = Date.now() - new Date(iso).getTime();
+  if (!Number.isFinite(ms)) return '';
+  const mins = Math.floor(ms / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins} minute${mins === 1 ? '' : 's'} ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs} hour${hrs === 1 ? '' : 's'} ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return `${days} day${days === 1 ? '' : 's'} ago`;
+  return fmtDate(iso);
+}
+
+function setFeedbackFilter(status) {
+  ADMIN.feedbackFilter = status || '';
+  document.querySelectorAll('#admin-feedback-filter .chip').forEach((c) => {
+    c.classList.toggle('active', c.dataset.status === ADMIN.feedbackFilter);
+  });
+  renderAdminFeedback();
+}
+
+async function renderAdminFeedback() {
+  const listEl = document.getElementById('admin-feedback-list');
+  const sumEl = document.getElementById('admin-feedback-summary');
+  if (!listEl) return;
+
+  listEl.innerHTML = '<div class="progress-empty">Loading…</div>';
+
+  try {
+    const q = ADMIN.feedbackFilter ? '?status=' + encodeURIComponent(ADMIN.feedbackFilter) : '';
+    const data = await apiGet('/api/admin/feedback' + q);
+    ADMIN.feedback = data;
+
+    const c = data.counts;
+    sumEl.innerHTML = `
+      <div class="stat-card">
+        <h4>Waiting</h4>
+        <div class="stat-number">${c.new}</div>
+        <div class="stat-label">not read yet</div>
+      </div>
+      <div class="stat-card">
+        <h4>Being looked at</h4>
+        <div class="stat-number">${c.reviewing}</div>
+        <div class="stat-label">in progress</div>
+      </div>
+      <div class="stat-card">
+        <h4>Resolved</h4>
+        <div class="stat-number">${c.resolved}</div>
+        <div class="stat-label">answered or fixed</div>
+      </div>
+      <div class="stat-card">
+        <h4>All time</h4>
+        <div class="stat-number">${c.total}</div>
+        <div class="stat-label">messages received</div>
+      </div>`;
+
+    // The tab badge is the count of unread, so the operator can tell there is
+    // something waiting without opening the tab. Counts come from the unfiltered
+    // totals, so filtering the list does not make the badge lie.
+    const badge = document.getElementById('admin-feedback-badge');
+    if (badge) {
+      badge.textContent = c.new ? String(c.new) : '';
+      badge.style.display = c.new ? '' : 'none';
+    }
+
+    listEl.innerHTML = data.items.length
+      ? data.items.map(feedbackCard).join('')
+      : `<div class="progress-empty">${
+          ADMIN.feedbackFilter
+            ? 'Nothing with that status.'
+            : 'No feedback yet. It appears here the moment someone writes in.'
+        }</div>`;
+  } catch (err) {
+    listEl.innerHTML = '<div class="progress-empty">Could not load feedback.</div>';
+    sumEl.innerHTML = '';
+  }
+}
+
+function feedbackCard(f) {
+  const isEmployer = f.role === 'employer';
+  // "Anonymous" is the honest label for a helper row: there is no name to look
+  // up, by design.
+  const who = isEmployer ? '👔 Employer' : '👤 Helper · Anonymous';
+  const pill = { new: 'New', reviewing: 'Reviewing', resolved: 'Resolved' }[f.status] || f.status;
+  return `<div class="feedback-item">
+    <div class="feedback-item-head">
+      <span class="fb-role">${who}</span>
+      <span class="fb-status fb-status-${escapeHtml(f.status)}">${escapeHtml(pill)}</span>
+      <span class="fb-when">${escapeHtml(agoText(f.created_at))}</span>
+    </div>
+    <p class="fb-quote">${escapeHtml(f.message)}</p>
+    <div class="fb-meta">
+      ${f.contact ? `↩ ${escapeHtml(f.contact)}` : 'no contact left — cannot reply'}
+      ${f.lang ? ` · written in ${escapeHtml(f.lang)}` : ''}
+      ${f.page ? ` · from ${escapeHtml(f.page)}` : ''}
+    </div>
+    <div class="fb-actions">
+      ${f.status !== 'reviewing' ? `<button class="btn btn-outline btn-sm" onclick="markFeedback(${Number(f.id)}, 'reviewing')">Mark reviewing</button>` : ''}
+      ${f.status !== 'resolved' ? `<button class="btn btn-primary btn-sm" onclick="markFeedback(${Number(f.id)}, 'resolved')">Mark resolved</button>` : ''}
+      ${f.status !== 'new' ? `<button class="btn btn-outline btn-sm" onclick="markFeedback(${Number(f.id)}, 'new')">Back to new</button>` : ''}
+      <button class="btn btn-outline btn-sm" onclick="deleteFeedbackItem(${Number(f.id)})">Delete</button>
+    </div>
+  </div>`;
+}
+
+/** Move one message along. The server refuses an unknown status, so a typo here
+ *  cannot invent a fourth state nothing can filter on. */
+async function markFeedback(id, status) {
+  try {
+    await apiPatch(`/api/admin/feedback/${id}`, { status });
+    await renderAdminFeedback();
+  } catch (err) {
+    alert('Could not update: ' + err.message);
+  }
+}
+
+/** Deleting is irreversible and there is no undo, so it asks first. */
+async function deleteFeedbackItem(id) {
+  if (!confirm('Delete this message? This cannot be undone.')) return;
+  try {
+    await apiDelete(`/api/admin/feedback/${id}`);
+    await renderAdminFeedback();
+  } catch (err) {
+    alert('Could not delete: ' + err.message);
+  }
 }
 
 // ---- Init ------------------------------------------------------------------

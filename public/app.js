@@ -398,7 +398,12 @@ async function apiPost(url, body) {
   });
   if (!r.ok) {
     const e = await r.json().catch(() => ({}));
-    throw new Error(e.error || `API ${url} failed: ${r.status}`);
+    const err = new Error(e.error || `API ${url} failed: ${r.status}`);
+    // Callers that must tell one refusal from another need the code, not the
+    // sentence — a throttled 429 and a server error are both "it did not work"
+    // to a naive check, but only one of them is worth retrying.
+    err.status = r.status;
+    throw err;
   }
   return r.json();
 }
@@ -1778,7 +1783,8 @@ async function renderProgress() {
       wrap.innerHTML =
         `<div class="progress-empty">${t('progress.none')}</div>` +
         renderRewardsCard() +
-        renderSharingCard();
+        renderSharingCard() +
+        renderFeedbackCard();
       return;
     }
 
@@ -1859,6 +1865,10 @@ async function renderProgress() {
     // Who is allowed to see all of the above.
     html += renderSharingCard();
 
+    // And how to talk to us. Last card on the page: the numbers come first, the
+    // admin of "who can see this" second, and the invitation to reply last.
+    html += renderFeedbackCard();
+
     wrap.innerHTML = html;
   } catch (err) {
     wrap.innerHTML = `<div class="progress-empty">${t('progress.couldNotLoad')}</div>`;
@@ -1918,6 +1928,110 @@ async function disconnectEmployer(linkId) {
     renderProgress();
   } catch (err) {
     showToast(t('sharing.failed'));
+  }
+}
+
+// ---- Feedback: "tell us what you think" -------------------------------------
+//
+// The only place in the app where a helper can say something back. Reachable
+// from the bottom of My Progress and from the footer, because someone who has
+// just hit a problem should not have to guess where to report it.
+//
+// ANONYMOUS BY DEFAULT, and the form says so out loud. She is a live-in worker
+// whose employer can already see her scores, so a complaint that could be traced
+// back to her — about the app, or about the family she works for — would simply
+// not get written. The server enforces it: it records the role but never an
+// identity for a learner (see createFeedback in db.js). The optional contact box
+// is the only route back to her, and it is hers to fill in or leave empty.
+
+/**
+ * The feedback card at the bottom of My Progress.
+ *
+ * Sits below the sharing card deliberately: that one is about who can see her
+ * data, this one is about her talking to us. Both say "you are in charge here".
+ */
+function renderFeedbackCard() {
+  return `
+    <div class="progress-card feedback-card">
+      <h4>💬 ${t('feedback.cardTitle')}</h4>
+      <p class="feedback-card-hint">${t('feedback.cardHint')}</p>
+      <button class="btn btn-outline btn-block" onclick="openFeedbackModal()">
+        ${t('feedback.cardBtn')}
+      </button>
+    </div>`;
+}
+
+/**
+ * Which view she is looking at, as a path fragment.
+ *
+ * Recorded with the message so "the audio does not play" can be tied to the
+ * screen it happened on. Read from the DOM rather than tracked in STATE: the
+ * active class is already the single source of truth for this, and a second copy
+ * would be one more thing that can drift.
+ */
+function currentViewPath() {
+  const active = document.querySelector('.view.active');
+  return active ? '/' + active.id.replace(/^view-/, '') : location.pathname;
+}
+
+function openFeedbackModal() {
+  const msg = document.getElementById('feedback-message');
+  const contact = document.getElementById('feedback-contact');
+  const send = document.getElementById('feedback-send');
+  // Always start clean: a half-typed message left over from a cancelled attempt
+  // reappearing later reads as the app having eaten it.
+  if (msg) msg.value = '';
+  if (contact) contact.value = '';
+  if (send) { send.disabled = false; send.textContent = t('feedback.send'); }
+  document.getElementById('feedback-modal').classList.add('show');
+  // Focus after the open transition — focusing during it fights the animation
+  // and, on a phone, pops the keyboard over a dialog that is still sliding in.
+  if (msg) setTimeout(() => { try { msg.focus(); } catch { /* not focusable */ } }, 60);
+}
+
+function closeFeedbackModal(e) {
+  if (e && e.target !== e.currentTarget) return;
+  document.getElementById('feedback-modal').classList.remove('show');
+}
+
+/**
+ * Send it.
+ *
+ * The button is disabled while the request is in flight, which is the only
+ * guard that matters here: a double tap on a slow connection would otherwise
+ * post the same message twice and the operator would answer it twice.
+ */
+async function submitFeedback() {
+  const msg = document.getElementById('feedback-message');
+  const contact = document.getElementById('feedback-contact');
+  const send = document.getElementById('feedback-send');
+  const text = ((msg && msg.value) || '').trim();
+
+  // Caught here so the answer is immediate and in her own language. The server
+  // refuses an empty message as well, because this endpoint is public and a
+  // crafted request never passes through this function.
+  if (!text) {
+    showToast(t('feedback.empty'));
+    if (msg) msg.focus();
+    return;
+  }
+
+  if (send) { send.disabled = true; send.textContent = t('feedback.sending'); }
+  try {
+    await apiPost('/api/feedback', {
+      message: text,
+      contact: ((contact && contact.value) || '').trim(),
+      lang: currentLang(),
+      page: currentViewPath(),
+    });
+    closeFeedbackModal();
+    showToast(t('feedback.thanks'));
+  } catch (err) {
+    if (send) { send.disabled = false; send.textContent = t('feedback.send'); }
+    // A throttle gets its own words. "Try again later" is true and actionable;
+    // "something went wrong" would just make her tap Send again immediately and
+    // be refused again.
+    showToast(err.status === 429 ? t('feedback.tooMany') : t('feedback.failed'));
   }
 }
 

@@ -272,7 +272,7 @@ const I18N = {
     'feedback.lead': 'Found a problem, or have an idea? Write it here.',
     'feedback.placeholder': 'What would you like us to know?',
     'feedback.contactLabel': 'Want a reply? Leave a contact (optional)',
-    'feedback.contactPlaceholder': 'Email or phone, if you want an answer',
+    'feedback.contactPlaceholder': 'Email or phone (optional)',
     'feedback.anon': 'Your name is not sent with this message.',
     'feedback.cancel': 'Cancel',
     'feedback.send': 'Send',

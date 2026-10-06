@@ -1375,11 +1375,23 @@ const S = {
     INSERT INTO feedback (role, message, contact, user_id, lang, page, status, created_at)
     VALUES (?, ?, ?, ?, ?, ?, 'new', ?)
   `),
-  getFeedbackById: db.prepare('SELECT * FROM feedback WHERE id = ?'),
+  getFeedbackById: db.prepare(`
+    SELECT f.*, u.name AS employer_name
+      FROM feedback f
+      LEFT JOIN users u ON u.id = f.user_id
+     WHERE f.id = ?
+  `),
+  // The join is what makes an employer's message actionable: without a name the
+  // operator sees "Employer" and has no way to tell which one wrote in, so the
+  // message cannot be answered — which is the whole reason an employer's row is
+  // attributed in the first place. A learner's row has no user_id, so the LEFT
+  // JOIN yields NULL and nothing about her is joined in.
   listFeedback: db.prepare(`
-    SELECT * FROM feedback
-     WHERE (? IS NULL OR status = ?)
-     ORDER BY created_at DESC, id DESC
+    SELECT f.*, u.name AS employer_name
+      FROM feedback f
+      LEFT JOIN users u ON u.id = f.user_id
+     WHERE (? IS NULL OR f.status = ?)
+     ORDER BY f.created_at DESC, f.id DESC
      LIMIT ?
   `),
   feedbackCounts: db.prepare(`

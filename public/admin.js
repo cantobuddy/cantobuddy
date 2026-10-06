@@ -1018,8 +1018,17 @@ async function renderAdminFeedback() {
 function feedbackCard(f) {
   const isEmployer = f.role === 'employer';
   // "Anonymous" is the honest label for a helper row: there is no name to look
-  // up, by design.
-  const who = isEmployer ? '👔 Employer' : '👤 Helper · Anonymous';
+  // up, by design. An employer row carries her account name, because without it
+  // the operator sees "Employer" and cannot tell which one wrote in — which
+  // would make the attribution pointless.
+  const who = isEmployer
+    ? `👔 ${escapeHtml(f.employer_name || 'Employer account')}`
+    : '👤 Helper · Anonymous';
+  // "cannot reply" is only true of a helper. Saying it on an employer's card
+  // would be wrong twice over: she IS identified, and a reply is the point.
+  const reach = isEmployer
+    ? `signed in as ${escapeHtml(f.employer_name || 'an employer')}`
+    : (f.contact ? `↩ ${escapeHtml(f.contact)}` : 'no contact left — cannot reply');
   const pill = { new: 'New', reviewing: 'Reviewing', resolved: 'Resolved' }[f.status] || f.status;
   return `<div class="feedback-item">
     <div class="feedback-item-head">
@@ -1029,7 +1038,7 @@ function feedbackCard(f) {
     </div>
     <p class="fb-quote">${escapeHtml(f.message)}</p>
     <div class="fb-meta">
-      ${f.contact ? `↩ ${escapeHtml(f.contact)}` : 'no contact left — cannot reply'}
+      ${reach}
       ${f.lang ? ` · written in ${escapeHtml(f.lang)}` : ''}
       ${f.page ? ` · from ${escapeHtml(f.page)}` : ''}
     </div>

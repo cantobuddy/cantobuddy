@@ -303,10 +303,11 @@
       <a href="/id/learn" data-i18n="footer.indonesian">Bahasa Indonesia</a>
       <a href="/portal" data-i18n="header.employerSite">For employers</a>
     </nav>
-    <!-- Not a crawlable link like the ones above — this one opens a dialog, and
-         the footer is the only place reachable from every view without adding a
-         sixth icon to a header that already has five. Kept on its own line so it
-         reads as "talk to us" rather than as one more vocabulary page. -->
+    <!-- Not a crawlable link like the ones above — this one opens a dialog. Kept
+         on its own line so it reads as "talk to us" rather than as one more
+         vocabulary page. This is no longer the only route in (see the bottom nav
+         below, which is on screen from every view), but it stays because a footer
+         link is where a reader who has scrolled to the end looks for it. -->
     <button class="footer-feedback" onclick="openFeedbackModal()" data-i18n="feedback.footerLink">💬 Send feedback</button>
   </div>
 </footer>
@@ -324,6 +325,16 @@
   </button>
   <button class="nav-btn" data-view="progress" onclick="navigate('progress')">
     <span class="nav-icon">📊</span><span data-i18n="nav.progress">Progress</span>
+  </button>
+  <!-- The fifth tab is an ACTION, not a location: it opens the feedback dialog
+       instead of switching views, so it deliberately carries no data-view and
+       never lights up as active. It lives here because this bar is the only
+       surface fixed to the viewport — a helper who has just hit a problem can
+       reach us from wherever she is, without scrolling to the page footer or
+       navigating to My Progress. That was the whole complaint: the form was
+       reachable, but only by someone who already knew where to look. -->
+  <button class="nav-btn" id="nav-feedback" onclick="openFeedbackModal()">
+    <span class="nav-icon">💬</span><span data-i18n="nav.feedback">Feedback</span>
   </button>
 </nav>
 

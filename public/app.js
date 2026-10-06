@@ -1957,8 +1957,11 @@ async function disconnectEmployer(linkId) {
 // ---- Feedback: "tell us what you think" -------------------------------------
 //
 // The only place in the app where a helper can say something back. Reachable
-// from the bottom of My Progress and from the footer, because someone who has
-// just hit a problem should not have to guess where to report it.
+// from three places, because someone who has just hit a problem should not have
+// to guess where to report it: the fifth item in the bottom nav (the real one —
+// on screen from every view), the bottom of My Progress, and the page footer.
+// The nav tab was added last, after the first two proved too easy to miss: both
+// needed the learner to already suspect the feature existed.
 //
 // ANONYMOUS BY DEFAULT, and the form says so out loud. She is a live-in worker
 // whose employer can already see her scores, so a complaint that could be traced

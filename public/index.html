@@ -7,6 +7,16 @@
   <meta name="description" content="Learn practical Cantonese for daily life in Hong Kong — vocabulary, audio and quizzes. Free for Filipino and Indonesian domestic helpers." />
   <title>CantoBuddy – Learn Cantonese for Daily Life in Hong Kong</title>
 
+  <!-- Google Search Console, URL-prefix property for https://cantobuddy.com/.
+       This tag has to be written HERE, by hand, and that is the whole point.
+       seo.js emits the same tag from the GOOGLE_SITE_VERIFICATION env var, but
+       only on the pages it server-renders — and "/" is this file, which
+       express.static serves first and which therefore shadows them. So the env
+       var can never verify the homepage, no matter how it is set. Google
+       re-checks periodically; deleting this line lapses verification silently,
+       which is why seo-pillar-test asserts it is still here. -->
+  <meta name="google-site-verification" content="qrG0jeGcYgQqTjw6GqxSkJZ_u7RdvliFJmacydYG90Y" />
+
   <!-- Canonical. Absolute, and pointing at the real domain on purpose: this
        same document is also reachable at cantobuddy.onrender.com, and without
        this tag the two hosts compete as duplicates and split whatever ranking

@@ -48,11 +48,17 @@ const SITE_ORIGIN = (process.env.SITE_ORIGIN || 'https://cantobuddy.com').replac
  *
  *   1. Meta tag — set GOOGLE_SITE_VERIFICATION to the token Google shows you
  *      (the `content` value). It is emitted on every server-rendered page.
- *   2. HTML file — no configuration at all. See the /google*.html route in
- *      mount(); it answers any token Google asks for. This is the one to use if
- *      you would rather not redeploy, because it needs no env change.
+ *      NOTE: this does NOT verify a URL-prefix property on '/' — '/' is the
+ *      hand-written public/index.html and shadows the generated pages, so the
+ *      tag never appears at the one URL that property checks.
+ *   2. HTML file — drop Google's google<token>.html into public/ and add it to
+ *      FILES in tools/deploy-to-github.js. It must be a real file serving ONE
+ *      token; see the note in mount() for why a wildcard route gets the
+ *      property refused as suspected hacking.
  *
- * DNS TXT verification also works and needs no code — it is done in Cloudflare.
+ * DNS TXT verification also works and needs no code — it is done in Cloudflare,
+ * and it is the most robust of the three because it does not depend on the app
+ * being up at the moment Google looks.
  */
 const GOOGLE_VERIFICATION = (process.env.GOOGLE_SITE_VERIFICATION || '').trim();
 
@@ -1474,23 +1480,27 @@ function mount(app) {
     ['/guide/:slug', (lang, p) => renderGuide(lang, p.slug)],
   ];
 
-  /* Google Search Console — HTML-file verification, with no configuration.
+  /* Google Search Console — HTML-file verification is a REAL FILE, not a route.
    *
-   * Google asks you to host a file named `google<token>.html` whose entire
-   * content is `google-site-verification: google<token>.html`. Rather than
-   * require the operator to know the token in advance, this answers ANY such
-   * filename with the matching body, which is exactly what Google checks.
+   * This used to be a wildcard: `app.get(/^\/google([a-z0-9]+)\.html$/)` echoed
+   * the token back for ANY filename, so the operator never had to know the token
+   * in advance. It was convenient, and it was a bug.
    *
-   * Deliberately narrow: the token must be lowercase hex, and the route only
-   * ever echoes it back. It serves no other path and reads no other input, so
-   * it cannot be turned into an open redirect or a file read.
+   * Google refused the property with "verification has failed in a way that
+   * indicates that your site might have been hacked". The reason is the
+   * wildcard: a site that serves the verification body for an ARBITRARY token is
+   * indistinguishable from a compromised site rigged to claim properties, and
+   * probing for exactly that is part of how Google decides a verification file
+   * is trustworthy. Serving ONE file is the entire point of the method.
+   *
+   * So the file ships like any other asset: put Google's google<token>.html in
+   * public/ and list it in FILES in tools/deploy-to-github.js. express.static is
+   * registered before this module, so it is served directly — and every other
+   * google*.html 404s, which is the property Google is actually checking.
+   *
+   * Do not reintroduce a wildcard here to "save a deploy". The deploy is the
+   * cheap part; a refused property is not.
    */
-  app.get(/^\/google([a-z0-9]+)\.html$/, (req, res) => {
-    const token = req.params[0];
-    res.type('text/html');
-    res.setHeader('Cache-Control', 'public, max-age=3600');
-    res.send(`google-site-verification: google${token}.html`);
-  });
 
   for (const [route, build] of routes) {
     for (const lang of LANGS) {

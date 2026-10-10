@@ -832,7 +832,7 @@ function vocabValues(v) {
 
 /* Bumped whenever the SEED_* content changes in a way an EXISTING database
    needs to pick up. See migrateContent() below. */
-const CONTENT_VERSION = 5; // v1 = the original 64 · v2 = Tier A expansion · v3 = coverage top-up (every category ≥5) · v4 = Simplified Chinese glosses (all 132) · v5 = Restaurant category + 10 entries (all 142 glossed)
+const CONTENT_VERSION = 6; // v1 = the original 64 · v2 = Tier A expansion · v3 = coverage top-up (every category ≥5) · v4 = Simplified Chinese glosses (all 132) · v5 = Restaurant category + 10 entries (all 142 glossed) · v6 = the 9 empty (category x level) combinations filled, +38 entries (all 180 glossed)
 // NOTE: the Simplified glosses (vocabulary.mandarin), the Indonesian glosses
 // (vocabulary.indonesian) and BOTH per-language category name sets
 // (categories.name_zh, categories.name_id) are NOT applied by migrateContent() —

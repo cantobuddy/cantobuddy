@@ -28,7 +28,15 @@
 const path = require('path');
 
 const store = require('./db');
-const { GUIDES, GUIDE_BY_SLUG } = require('./content');
+const { GUIDES, GUIDE_BY_SLUG, UPDATED } = require('./content');
+
+/**
+ * The date the vocabulary library last changed. This is the honest `lastmod`
+ * for every /words/, /learn/ and /level/ page: they are all renderings of the
+ * same library, so they cannot be fresher (or staler) than it is. Sourced from
+ * content.js rather than typed twice, so the two can never disagree.
+ */
+const VOCAB_UPDATED = UPDATED;
 
 /**
  * Canonical origin. Overridable so a preview deployment can canonicalise to
@@ -1750,17 +1758,35 @@ function wordSlugMap() {
 // Sitemap
 // ---------------------------------------------------------------------------
 
+/**
+ * The date the site's *shell* (routes, templates, sitemap shape) last changed.
+ * Bumped by hand when that changes — it is the honest `lastmod` for the
+ * handful of URLs whose content is not a dated document (the hub pages, the
+ * privacy policy, and their language variants).
+ *
+ * It is deliberately NOT "today". See the note in renderSitemap() for why a
+ * lastmod that equals the crawl date is worse than no lastmod at all.
+ */
+const SITE_STRUCTURE_DATE = '2026-10-10';
+
 function renderSitemap() {
-  const today = new Date().toISOString().slice(0, 10);
   const urls = [];
 
-  const add = (loc, priority, changefreq, alternates) => {
+  /**
+   * @param loc         path relative to SITE_ORIGIN
+   * @param lastmod     ISO date (YYYY-MM-DD) this URL's content truly changed.
+   *                    MUST be a real date. Passing today's date for a page
+   *                    that did not change is the single most common way a
+   *                    sitemap loses Google's trust — see the block comment
+   *                    below the function.
+   */
+  const add = (loc, priority, changefreq, alternates, lastmod) => {
     const alts = (alternates || [])
       .map((a) => `    <xhtml:link rel="alternate" hreflang="${a.lang}" href="${esc(SITE_ORIGIN + a.path)}" />`)
       .join('\n');
     urls.push(`  <url>
     <loc>${esc(SITE_ORIGIN + loc)}</loc>
-    <lastmod>${today}</lastmod>
+    <lastmod>${esc(lastmod)}</lastmod>
     <changefreq>${changefreq}</changefreq>
     <priority>${priority}</priority>
 ${alts}
@@ -1777,19 +1803,25 @@ ${alts}
   // the single highest-priority URL on the site. A derived list cannot drift
   // that way: `en` has an empty prefix, so it resolves to "/" and x-default
   // follows it, exactly as before.
-  add('/', '1.0', 'weekly', hreflangLinks((l) => (LANG_PREFIX[l] ? `${LANG_PREFIX[l]}/learn` : '/')));
+  add('/', '1.0', 'weekly', hreflangLinks((l) => (LANG_PREFIX[l] ? `${LANG_PREFIX[l]}/learn` : '/')), SITE_STRUCTURE_DATE);
 
   // Hubs.
   for (const prefix of Object.values(LANG_PREFIX)) {
-    add(`${prefix}/learn`, '0.9', 'weekly', hreflangLinks((l) => `${LANG_PREFIX[l]}/learn`));
+    add(`${prefix}/learn`, '0.9', 'weekly', hreflangLinks((l) => `${LANG_PREFIX[l]}/learn`), SITE_STRUCTURE_DATE);
   }
 
   // Guides. High priority relative to the word pages: they are the pages most
   // likely to rank for a query, and the ones a crawler should read first.
+  //
+  // The hub takes the newest date among the guides it lists (it is a directory
+  // of them, so it is as fresh as its freshest entry); each guide takes its own
+  // `updated`. Both are real dates declared in content.js, not the crawl date.
+  const newestGuide = GUIDES.reduce((m, g) => (g.updated > m ? g.updated : m), UPDATED);
   for (const prefix of Object.values(LANG_PREFIX)) {
-    add(`${prefix}/guide`, '0.8', 'monthly', hreflangLinks((l) => `${LANG_PREFIX[l]}/guide`));
+    add(`${prefix}/guide`, '0.8', 'monthly', hreflangLinks((l) => `${LANG_PREFIX[l]}/guide`), newestGuide);
     for (const g of GUIDES) {
-      add(`${prefix}/guide/${g.slug}`, '0.8', 'monthly', hreflangLinks((l) => `${LANG_PREFIX[l]}/guide/${g.slug}`));
+      add(`${prefix}/guide/${g.slug}`, '0.8', 'monthly',
+        hreflangLinks((l) => `${LANG_PREFIX[l]}/guide/${g.slug}`), g.updated || UPDATED);
     }
   }
 
@@ -1797,22 +1829,25 @@ ${alts}
   // page anyone is searching for — but listed so AdSense's reviewers (and
   // anyone else looking) can find it without hunting through the footer.
   for (const prefix of Object.values(LANG_PREFIX)) {
-    add(`${prefix}/privacy`, '0.3', 'yearly', hreflangLinks((l) => `${LANG_PREFIX[l]}/privacy`));
+    add(`${prefix}/privacy`, '0.3', 'yearly', hreflangLinks((l) => `${LANG_PREFIX[l]}/privacy`), SITE_STRUCTURE_DATE);
   }
 
-  // Categories, levels, words — in every language tree.
+  // Categories, levels, words — in every language tree. All three are drawn
+  // from the vocabulary library, so their true freshness is the library's:
+  // UPDATED from content.js. A category page cannot change without the words
+  // in it changing, and a word cannot change without UPDATED moving.
   const cats = store.listEnabledCategories();
   const { bySlug } = buildWordIndex();
   for (const prefix of Object.values(LANG_PREFIX)) {
     for (const c of cats) {
       const s = slugify(c.name_en);
-      add(`${prefix}/learn/${s}`, '0.8', 'monthly', hreflangLinks((l) => `${LANG_PREFIX[l]}/learn/${s}`));
+      add(`${prefix}/learn/${s}`, '0.8', 'monthly', hreflangLinks((l) => `${LANG_PREFIX[l]}/learn/${s}`), VOCAB_UPDATED);
     }
     for (const n of Object.keys(LEVELS)) {
-      add(`${prefix}/level/${n}`, '0.7', 'monthly', hreflangLinks((l) => `${LANG_PREFIX[l]}/level/${n}`));
+      add(`${prefix}/level/${n}`, '0.7', 'monthly', hreflangLinks((l) => `${LANG_PREFIX[l]}/level/${n}`), VOCAB_UPDATED);
     }
     for (const s of bySlug.keys()) {
-      add(`${prefix}/words/${s}`, '0.6', 'monthly', hreflangLinks((l) => `${LANG_PREFIX[l]}/words/${s}`));
+      add(`${prefix}/words/${s}`, '0.6', 'monthly', hreflangLinks((l) => `${LANG_PREFIX[l]}/words/${s}`), VOCAB_UPDATED);
     }
   }
 

@@ -17,6 +17,16 @@
        which is why seo-pillar-test asserts it is still here. -->
   <meta name="google-site-verification" content="qrG0jeGcYgQqTjw6GqxSkJZ_u7RdvliFJmacydYG90Y" />
 
+  <!-- Google AdSense (Auto Ads), publisher ca-pub-6845142564408798.
+       Written here by hand for the same reason the verification tag above is:
+       this file is what express.static serves for "/", so it shadows every
+       server-rendered page, and no generator syncs it. seo.js emits the same
+       snippet into its own template, because the SEO pages never pass through
+       this file — both have to carry it or half the site would be ad-free.
+       AdSense is loaded with `async`, so it never blocks first paint. -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6845142564408798"
+          crossorigin="anonymous"></script>
+
   <!-- Canonical. Absolute, and pointing at the real domain on purpose: this
        same document is also reachable at cantobuddy.onrender.com, and without
        this tag the two hosts compete as duplicates and split whatever ranking
@@ -117,6 +127,21 @@
            "EN" while reading Filipino. i18n.js keeps this in sync. -->
       <button id="lang-btn" class="lang-btn" onclick="openLangModal()" title="Change language" aria-label="Change language" aria-haspopup="dialog">EN</button>
       <button id="voice-btn" class="voice-btn" onclick="openVoiceModal()" title="Choose practice voice" aria-label="Choose practice voice">👩</button>
+      <!-- "Add to home screen".
+           The install offer used to appear ONLY at the end of a quiz, which
+           meant a helper who never finished a quiz was never asked — and the
+           app is worth much more to her installed (one tap from her home
+           screen, no searching for the URL). This is the standing, voluntary
+           entry point; the end-of-quiz offer stays as the well-timed nudge.
+
+           Hidden by default (`hidden` attribute) and revealed by
+           syncInstallEntry() in app.js ONLY when all of these hold: the install
+           is actually possible on this device, she has not already installed
+           it, and she has not already answered. That is why it is not styled
+           like a call to action — for most visitors it does not exist. -->
+      <button id="install-btn" class="site-btn" hidden onclick="openInstallModal()"
+              title="Add to home screen" aria-label="Add to home screen"
+              data-i18n="header.install" data-i18n-attr="title" data-i18n-aria="1">⬇︎</button>
       <!-- Deliberately NOT data-i18n: this label is dynamic (the helper's name,
            or "Set your name" when she has none), and updateLearnerBadge() in
            app.js owns it. applyTranslations() overwrites every [data-i18n]
@@ -312,6 +337,10 @@
       <a href="/zh/learn" data-i18n="footer.mandarin">中文</a>
       <a href="/id/learn" data-i18n="footer.indonesian">Bahasa Indonesia</a>
       <a href="/portal" data-i18n="header.employerSite">For employers</a>
+      <!-- Required by AdSense, and genuinely useful: the three concrete things
+           this policy promises (no account, no location, no learner-linked
+           feedback) are the app's real behaviour, not boilerplate. -->
+      <a href="/privacy" data-i18n="footer.privacy">Privacy</a>
     </nav>
     <!-- Not a crawlable link like the ones above — this one opens a dialog. Kept
          on its own line so it reads as "talk to us" rather than as one more

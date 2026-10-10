@@ -47,6 +47,7 @@ const I18N = {
     'header.employerSite': 'For employers',
     'header.learnerSite': 'Learner app',
     'header.shareSite': 'Share CantoBuddy',
+    'header.install': 'Add to home screen',
 
     // home
     'home.title': 'Learn Cantonese',
@@ -301,6 +302,7 @@ const I18N = {
     'footer.mandarin': '中文',
     'footer.indonesian': 'Bahasa Indonesia',
     'footer.guide': "Learn Cantonese: the beginner's guide",
+    'footer.privacy': 'Privacy',
   },
 
   fil: {
@@ -319,6 +321,7 @@ const I18N = {
     'header.employerSite': 'Para sa employer',
     'header.learnerSite': 'App ng mag-aaral',
     'header.shareSite': 'Ibahagi ang CantoBuddy',
+    'header.install': 'Idagdag sa home screen',
 
     // home
     'home.title': 'Mag-aral ng Cantonese',
@@ -568,6 +571,7 @@ const I18N = {
     'footer.mandarin': '中文',
     'footer.indonesian': 'Bahasa Indonesia',
     'footer.guide': 'Mag-aral ng Cantonese: gabay para sa baguhan',
+    'footer.privacy': 'Privacy',
   },
 
   /* Simplified Chinese, for learners who arrived from the mainland and already
@@ -599,6 +603,7 @@ const I18N = {
     'header.employerSite': '雇主入口',
     'header.learnerSite': '学习版',
     'header.shareSite': '分享 CantoBuddy',
+    'header.install': '添加到主屏幕',
 
     // home
     'home.title': '学粤语',
@@ -848,6 +853,7 @@ const I18N = {
     'footer.mandarin': '中文版',
     'footer.indonesian': '印尼语版',
     'footer.guide': '粤语入门：初学者完整指南',
+    'footer.privacy': '隐私政策',
   },
 
   /* Bahasa Indonesia — the fourth audience.
@@ -876,6 +882,7 @@ const I18N = {
     'header.employerSite': 'Untuk majikan',
     'header.learnerSite': 'Aplikasi belajar',
     'header.shareSite': 'Bagikan CantoBuddy',
+    'header.install': 'Tambahkan ke layar utama',
 
     // home
     'home.title': 'Belajar bahasa Kanton',
@@ -1124,6 +1131,7 @@ const I18N = {
     'footer.mandarin': '中文',
     'footer.indonesian': 'Bahasa Indonesia',
     'footer.guide': 'Belajar bahasa Kanton: panduan untuk pemula',
+    'footer.privacy': 'Privasi',
   },
 };
 

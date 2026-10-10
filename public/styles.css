@@ -1952,7 +1952,38 @@ body {
    Wrapping lets the controls drop onto their own line instead of losing them.
    Because the row only breaks when the content genuinely does not fit, wide
    screens keep the single-row layout. This mirrors the fix the admin/portal
-   header already uses further down this file. */
+   header already uses further down this file.
+
+   --- Why `flex-wrap` alone was NOT enough (measured, 360px) --------------------
+   `flex-wrap` lets a CHILD move to its own line, but it does not help when a
+   single child is itself wider than the line. Measured at 360px:
+
+     .header-inner   w=360  (content box 328 after the 16px side padding)
+     .logo           w=162  min-content 162   ← will not shrink
+     .header-right   w=357  min-content 357   ← will not shrink, and 357 > 328
+
+   So `.header-right` had nowhere to wrap TO: 357px of unshrinkable row in a
+   328px content box, overflowing by 29px. `.header-inner` stayed 360 wide, but
+   the page reported `scrollWidth: 373` — the leftover 13px after `.logo` and
+   `.header-right` were laid out on one line (`16 + 357 = 373`).
+
+   The badge is what pins `.header-right`'s floor: `#learner-badge` is
+   `min-content 113px` ("Set your name" at 12.8px, `white-space: nowrap`), and
+   the five icon buttons before it add 194px + 5 gaps of 10px = 325px. Even
+   alone on its own line the group cannot fit 328px while the badge refuses to
+   shrink below its text.
+
+   Two independent fixes, both needed:
+     1. `.header-right` wraps internally, so its own min-content drops to the
+        width of its WIDEST CHILD (a single 38px button) plus the badge — small
+        enough to fit any phone. This is the load-bearing one.
+     2. `.logo` is allowed to shrink (`min-width: 0`), so the wordmark yields
+        rather than the controls. It is the only piece here with no function to
+        lose — a clipped "CantoBuddy" still reads. See `.logo-text` below,
+        which ellipsises instead of wrapping to a second line.
+
+   Both are scoped to phones; a wide screen has room for everything and keeps
+   the original single line. */
 .app-header .header-inner {
   flex-wrap: wrap;
   row-gap: 6px;
@@ -1960,6 +1991,108 @@ body {
 
 .app-header .header-right {
   margin-left: auto;
+}
+
+@media (max-width: 479px) {
+  /* (1) The control group wraps internally. `justify-content: flex-end` keeps
+     the controls right-aligned when they land on a second line, matching the
+     single-line look. `min-width: 0` removes the min-content floor on the group
+     itself so its own children (not the group) decide the wrap point. */
+  .app-header .header-right {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    min-width: 0;
+    row-gap: 6px;
+    /* The controls are the point of the header; the wordmark is decoration.
+       Let the group claim the full line before the logo takes any of it. */
+    flex: 1 1 auto;
+  }
+  /* (2) The wordmark yields first. `min-width: 0` is what actually lets it
+     shrink — a flex item defaults to min-width:auto and would otherwise hold
+     its full 162px. */
+  .app-header .logo {
+    min-width: 0;
+    flex: 0 1 auto;
+  }
+  .app-header .logo-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+/* ---- The category filter must not eat the screen ----
+   MEASURED, not guessed: at 390px the filter box was 586px tall (69% of an
+   844px screen) and the first vocab card began at y=787px; at 360px it was
+   712px (84%) and the card AND its sound button were entirely below the fold.
+   Nineteen chips, wrapping into ~13 rows, is what does it. The user tapped a
+   category to see words and was shown a wall of categories.
+
+   On a phone the chip group becomes ONE horizontally-scrolling row, so the
+   filter block is roughly one chip tall. Every category stays reachable by
+   swiping — none are removed or hidden behind a "more" menu, because a helper
+   looking for 照顧老人 should not have to discover a second interaction.
+
+   Scoped to the category row only. The level row has four chips and fits on
+   two lines without harm, so it keeps wrapping. */
+@media (max-width: 479px) {
+  .filter-row:has(#filter-cat) {
+    align-items: flex-start;
+  }
+  #filter-cat {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    /* `min-width: 0` is load-bearing, and `width:100%` is wrong here.
+       A flex item defaults to min-width:auto, which refuses to shrink below its
+       content — so the 19-chip row would force this element wider than the
+       card, and the PAGE grew a horizontal scrollbar instead of the row
+       scrolling within itself. That is a real bug (caught at 360px and 320px by
+       tools/ui-browse-fold.js after the first attempt at this fix used
+       width:100%), and min-width:0 is the fix: it lets the row be narrower than
+       its contents, which is the precondition for overflow-x to do anything. */
+    flex: 1 1 auto;
+    min-width: 0;
+    padding-bottom: 4px;
+    /* Momentum scrolling and no visible scrollbar: the row should read as a
+       row of chips, not as a widget. A fade at the right edge is the affordance
+       that more chips exist (below). */
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  #filter-cat::-webkit-scrollbar { display: none; }
+  #filter-cat .chip {
+    flex: 0 0 auto;      /* never shrink a chip to fit — that clips its label */
+    white-space: nowrap;
+  }
+  /* The right-edge fade. Drawn on the wrapper, not the scroller, so it does not
+     scroll away with the chips. */
+  .filter-row:has(#filter-cat) {
+    position: relative;
+  }
+  .filter-row:has(#filter-cat)::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 4px;
+    width: 28px;
+    pointer-events: none;
+    background: linear-gradient(to right, transparent, var(--c-surface));
+  }
+  /* NO `scroll-behavior: smooth` here, deliberately. The self-nudge in app.js
+     animates scrollLeft frame by frame over ~1.1s with an easing curve; letting
+     the browser also smooth-scroll each of those assignments would fight the
+     animation and produce a stutter. Smooth scrolling is only ever wanted for
+     a *jump*, and there is no jump here. */
+
+  /* The nudge is decorative, and for some people self-moving content is
+     genuinely unpleasant — it is one of the classic motion-sickness triggers.
+     Anyone who has asked their device for less motion gets a still row; the
+     right-edge fade and the ability to swipe are both unaffected. */
+  @media (prefers-reduced-motion: reduce) {
+    #filter-cat { scroll-behavior: auto; }
+  }
 }
 
 @media (min-width: 480px) {

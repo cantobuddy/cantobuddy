@@ -36,6 +36,7 @@ const STATE = {
   employers: [],              // who is allowed to see this learner's progress
   currentLevel: 0,      // 0 = all, 1-3 = specific
   currentCat: 0,        // 0 = all
+  catNudgeDone: false,  // set the moment she scrolls the category row herself
   quiz: null,           // active quiz object
   stats: null,          // her own statistics, from /api/learners/stats
   statsDays: 30,        // chart window only — never affects totals or streak
@@ -442,6 +443,12 @@ function navigate(view) {
   document.querySelectorAll('.view').forEach((v) => v.classList.remove('active'));
   document.getElementById('view-' + view).classList.add('active');
 
+  // The category-row hint runs only while the browse screen is on screen. Any
+  // navigation away cancels it, so it can never start moving behind a screen
+  // the learner is not looking at.
+  stopCatNudge();
+  if (view === 'browse') startCatNudge();
+
   // bottom nav
   document.querySelectorAll('.nav-btn').forEach((b) => {
     b.classList.toggle('active', b.dataset.view === view);
@@ -499,6 +506,11 @@ async function init() {
 
     // Learner badge last, for that reason — it shows her name, not a label.
     updateLearnerBadge();
+
+    // Decide whether the header's install entry point should exist at all. After
+    // applyTranslations() so its title is translated, and after the badge for the
+    // same "dynamic last" reason.
+    syncInstallEntry();
   } catch (err) {
     console.error('Init error:', err);
     document.getElementById('app').insertAdjacentHTML(
@@ -528,6 +540,10 @@ function rerenderForLanguage() {
   // to rebuild them or half the text stays in the old language.
   const installModal = document.getElementById('install-modal');
   if (installModal && installModal.classList.contains('show')) renderInstallModal();
+
+  // The header entry point is a data-i18n element, so applyTranslations() has
+  // just rewritten its content — re-evaluate whether it should be visible.
+  syncInstallEntry();
 }
 
 function renderHomeCategories() {
@@ -591,6 +607,154 @@ function setFilterCat(catId, el) {
   el.classList.add('active');
   STATE.currentCat = catId;
   renderVocabList();
+}
+
+/* ---- The category row nudges itself, so a helper knows it scrolls ----
+   The chip row is one horizontally-scrolling line on a phone (see styles.css).
+   Nothing about it *looks* scrollable: the visible chips just end, and the only
+   hint is a soft fade at the right edge. A helper who does not already know to
+   swipe sees "All, Greetings, Common Phrases…" and reasonably concludes that is
+   the whole list — the categories further along may as well not exist. This is
+   the same failure the standing install button fixed: a capability that exists
+   but is never discovered.
+
+   So the row makes a small move on its own to demonstrate that it can. The
+   rules, all deliberate:
+
+     * It waits ~1.5s after the screen appears before moving, so the row is seen
+       at rest first — otherwise the movement reads as a rendering glitch on
+       load rather than as "there is more over here".
+     * It nudges, pauses, then nudges again, up to 3 times, and then gives up.
+       Repeating is what makes it noticeable to someone who glanced away during
+       the first pass; stopping is what keeps it from becoming a thing that moves
+       under her eyes the whole time she is choosing.
+     * It stops IMMEDIATELY AND PERMANENTLY on the first real touch — a press, a
+       drag, a trackpad/touch swipe or a wheel scroll. From that moment the row
+       is hers and must never move on its own again.
+     * Once she has touched it, later visits do not nudge at all. She has
+       demonstrably learned that the row scrolls, so a repeat would only be noise.
+     * It does nothing when there is nothing to reveal — a row that fits stays
+       perfectly still, as does a wide screen where every chip is already visible.
+     * It is skipped entirely under `prefers-reduced-motion`. This is decorative
+       motion, and self-moving content is a classic motion-sickness trigger; a
+       learner who has asked for less motion gets a still row, and loses nothing,
+       because the fade and the swipe both remain.
+     * Leaving the browse screen cancels it, so it can never animate behind a
+       screen she is not looking at.
+
+   One thing that is NOT true, and cost a rewrite: a `scroll` event DOES fire
+   when we assign `scrollLeft`. The first implementation listened for `scroll`
+   to detect a touch and never checked whether it had caused the scroll itself,
+   so the very first animation frame tripped its own handler and the row stopped
+   after 1px. `catNudging` marks our own movement so the handler can ignore it;
+   see startCatNudge for the detail. */
+const CAT_NUDGE = {
+  DELAY: 1500,      // ms after the row appears before the first nudge
+  DISTANCE: 120,    // px to travel — enough to expose one more chip and a bit
+  DURATION: 1100,   // ms of travel; slow, so it reads as a glide, not a jump
+  GAP: 900,         // ms between the end of one nudge and the start of the next
+  REPEATS: 3,       // then it gives up: enough to be noticed, not nagging
+};
+let catNudgeTimer = null;
+// True only while the animation itself is writing `scrollLeft`. A `scroll` event
+// that arrives during this window is ours, not the learner's — see startCatNudge.
+let catNudging = false;
+
+/** May the row still move on its own? */
+function catNudgeAllowed() {
+  // A learner who asked her device for less motion must not get a row that
+  // slides around while she reads.
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return false;
+  // She has already scrolled it herself; the hint has done its job.
+  if (STATE.catNudgeDone) return false;
+  return true;
+}
+
+/** Cancel a pending or in-flight nudge. Does not change `catNudgeDone`. */
+function stopCatNudge() {
+  if (catNudgeTimer) { clearTimeout(catNudgeTimer); catNudgeTimer = null; }
+  // Clear the "we are moving it" flag too. If the tab was hidden mid-animation
+  // the final frame may never have run, and leaving this set would make the next
+  // visit ignore a genuine scroll event.
+  catNudging = false;
+}
+
+/** Hand the row back to the learner for good, on the first real interaction. */
+function catNudgeStopForever() {
+  STATE.catNudgeDone = true;
+  stopCatNudge();
+}
+
+function startCatNudge() {
+  if (!catNudgeAllowed()) return;
+  const row = document.getElementById('filter-cat');
+  if (!row) return;
+  // Nothing to reveal, or the whole row already fits: no hint is needed.
+  if (row.scrollWidth <= row.clientWidth + 4) return;
+
+  stopCatNudge();
+
+  /* The first genuine interaction ends the animation permanently.
+
+     The subtlety that cost a rewrite: a `scroll` event DOES fire for our own
+     `scrollLeft` writes — measured, one event per animation, which arrived the
+     moment the first frame moved the row by a pixel, tripped this handler, and
+     killed the nudge before it had travelled anywhere. (The thing that is
+     unreliable about firing a scroll event is `scrollTo({behavior:'smooth'})`,
+     not a plain property write. Those are different cases and were conflated
+     here.)
+
+     So we cannot simply listen for `scroll` and treat it as a touch. Instead
+     the animation announces itself: `catNudging` is true while we are driving
+     the row and any scroll event arriving in that window is ours. A scroll that
+     arrives while we are NOT animating is genuinely the learner's, because
+     nothing else moves this row.
+
+     A drag also fires `pointerdown`/`touchstart` before it produces a scroll,
+     so those remain the primary signals; `scroll` is the safety net for a
+     trackpad swipe or a keyboard scroll that produced no pointer event. */
+  const events = ['pointerdown', 'touchstart', 'wheel', 'scroll'];
+  const surrender = (ev) => {
+    if (ev && ev.type === 'scroll' && catNudging) return;   // our own movement
+    events.forEach((e) => row.removeEventListener(e, surrender));
+    catNudgeStopForever();
+  };
+  events.forEach((ev) => row.addEventListener(ev, surrender, { passive: true }));
+
+  let done = 0;
+  const nudge = () => {
+    if (!catNudgeAllowed()) return;
+    // Re-measure on every pass: a language switch rewrites the chip labels and
+    // so changes the row's width, and she may have scrolled it in the meantime.
+    const max = row.scrollWidth - row.clientWidth;
+    if (max <= 4) return;                      // nothing left to reveal
+    const from = row.scrollLeft;
+    // Never overshoot the end. If we are already at the end, return to the start
+    // instead, so the pass is still a visible move rather than a silent no-op.
+    const target = from >= max - 4 ? 0 : Math.min(from + CAT_NUDGE.DISTANCE, max);
+
+    const began = performance.now();
+    catNudging = true;
+    const step = (now) => {
+      if (!catNudgeAllowed()) { catNudging = false; return; }
+      const p = Math.min((now - began) / CAT_NUDGE.DURATION, 1);
+      // easeInOutQuad — a linear slide looks mechanical at this speed.
+      const e = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+      row.scrollLeft = from + (target - from) * e;
+      if (p < 1) {
+        requestAnimationFrame(step);
+      } else {
+        // Clear the flag only after the final frame, so a scroll event queued by
+        // that last write is still recognised as ours.
+        requestAnimationFrame(() => { catNudging = false; });
+        done += 1;
+        if (done < CAT_NUDGE.REPEATS) catNudgeTimer = setTimeout(nudge, CAT_NUDGE.GAP);
+      }
+    };
+    requestAnimationFrame(step);
+  };
+
+  catNudgeTimer = setTimeout(nudge, CAT_NUDGE.DELAY);
 }
 
 // ---- Vocab list ------------------------------------------------------------
@@ -2688,6 +2852,8 @@ function closeInstallModal(e) {
 function dismissInstall() {
   markInstallAnswered('dismissed');
   document.getElementById('install-modal').classList.remove('show');
+  // Her answer now stands, so the header button has nothing left to offer.
+  syncInstallEntry();
 }
 
 /** The primary button — only ever shown while a real install prompt is held. */
@@ -2717,17 +2883,59 @@ function maybeOfferInstall() {
   openInstallModal();
 }
 
+/**
+ * Show or hide the header's "Add to home screen" button.
+ *
+ * The button exists so the offer is not tied to finishing a quiz. But it must
+ * only appear when it would actually DO something, or it teaches her that
+ * tapping CantoBuddy buttons does nothing:
+ *
+ *   - already installed        → nothing to offer, hide it.
+ *   - already answered         → she said "not now"; a button that ignores that
+ *                                is a nag. Her answer is final (until she
+ *                                clears site data), and the quiz-end offer
+ *                                respects the same flag.
+ *   - iOS / in-app browser     → there is no one-tap install. The button WOULD
+ *                                still work (it opens the step-by-step dialog),
+ *                                so it is shown: on iOS it is the only way in,
+ *                                and "Add to Home Screen" is worth the steps.
+ *   - Android before the event → hidden until `beforeinstallprompt` arrives, so
+ *                                we never show a button whose tap cannot
+ *                                install anything.
+ *
+ * Called on boot, on language change (it is a data-i18n element), and from the
+ * beforeinstallprompt handler the moment Chrome is ready to install.
+ */
+function syncInstallEntry() {
+  const btn = document.getElementById('install-btn');
+  if (!btn) return;
+
+  if (isInstalled() || installAnswered()) {
+    btn.hidden = true;
+    return;
+  }
+  // iOS has no install API, so `deferredInstall` never fills — but the dialog
+  // still gives real, correct steps. Offer it.
+  const canDoSomething = isIOS() || Boolean(deferredInstall);
+  btn.hidden = !canDoSomething;
+}
+
+
 // Chrome's own mini-infobar is suppressed: we would rather ask in her language,
 // at a moment we choose, than have the browser ask on its own schedule.
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredInstall = e;
+  // Chrome is now ready to install, which is the moment the header entry point
+  // becomes truthful — before this event there is nothing for it to do.
+  syncInstallEntry();
 });
 
 window.addEventListener('appinstalled', () => {
   markInstallAnswered('installed');
   deferredInstall = null;
   document.getElementById('install-modal').classList.remove('show');
+  syncInstallEntry();
   showToast(t('install.done'));
 });
 

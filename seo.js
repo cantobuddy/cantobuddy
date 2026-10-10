@@ -62,6 +62,28 @@ const SITE_ORIGIN = (process.env.SITE_ORIGIN || 'https://cantobuddy.com').replac
  */
 const GOOGLE_VERIFICATION = (process.env.GOOGLE_SITE_VERIFICATION || '').trim();
 
+/**
+ * Google AdSense publisher id, and the Auto Ads loader snippet.
+ *
+ * Hardcoded rather than an env var, deliberately. A publisher id is public by
+ * design — it ships in the markup of every ad-serving page and anyone can read
+ * it with View Source, so there is nothing to keep out of a public repo. Making
+ * it an env var would only create a way for the tag to silently vanish on a
+ * fresh deploy.
+ *
+ * Auto Ads means Google decides placement at runtime; there is no per-slot
+ * markup to write. Loading it is the entire integration.
+ *
+ * The SAME snippet is also hand-written into public/index.html, and it has to
+ * be in both places: express.static serves that file for "/", so it shadows
+ * everything generated here, and the SEO pages never pass through it. Miss
+ * either one and half the site serves no ads.
+ */
+const ADSENSE_CLIENT = 'ca-pub-6845142564408798';
+const ADSENSE_SNIPPET =
+  `<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}" crossorigin="anonymous"></script>`;
+
+
 // ---------------------------------------------------------------------------
 // Small helpers
 // ---------------------------------------------------------------------------
@@ -321,6 +343,351 @@ const LANG_PREFIX = { en: '', fil: '/fil', zh: '/zh', id: '/id' };
 /** Every language tree this module serves, in the order links should list them. */
 const LANGS = ['en', 'fil', 'zh', 'id'];
 
+/* ===========================================================================
+   Privacy policy
+   ===========================================================================
+
+   AdSense will not approve a site without one, and Google's crawler checks it.
+   But the reason this is written carefully rather than boilerplate is that the
+   app's own design decisions ARE privacy claims, and a policy that contradicted
+   them would be worse than none:
+
+     - A learner is identified by a random device id, never an account. There is
+       no email, no phone number, no password, and no name unless she types one.
+     - Visit counting (`visit_daily`) is aggregate by day+path with no learner
+       link. Page-level, not person-level.
+     - Feedback from a learner stores no learner_id and no user_id. Anonymity is
+       the point: she is a live-in worker whose employer can see her progress, so
+       a complaint has to be unattributable or it will not be written.
+     - An employer sees only a learner's progress, and only while the helper's
+       consent link is live; she can revoke it at any time.
+
+   The one thing that genuinely CHANGES the picture is AdSense, which is what
+   made this page necessary: a third-party script that sets its own cookies and
+   sees the reader's IP and user agent. That is disclosed plainly below, named,
+   with the opt-out route. Pretending otherwise would be the dishonest version.
+
+   Kept as data, one object per language, so the four trees cannot drift and a
+   new tree cannot be added without this page appearing in it.
+   ------------------------------------------------------------------------- */
+const PRIVACY = {
+  en: {
+    title: 'Privacy Policy',
+    updated: 'Last updated: 10 October 2026',
+    lede: 'CantoBuddy is a free Cantonese practice app for domestic helpers in Hong Kong. This page explains, in plain language, what the app records, what it does not, and how to have it deleted.',
+    sections: [
+      {
+        h: 'What we record about a learner',
+        p: [
+          'You do not need an account to use CantoBuddy. There is no email address, no phone number, and no password. When you open the app for the first time, your device is given a random identifier that is stored in your own browser. That identifier is how your progress, your streak, and your saved words are remembered on your phone.',
+          'We record which words you practise, your quiz answers, your streak, and when you last opened the app. If you type a display name, we store that name. You can change it or clear it at any time from inside the app.',
+          'We do not record your location. We do not record your contacts. We do not ask for your real name, your date of birth, or any identity document.',
+        ],
+      },
+      {
+        h: 'Employers and progress sharing',
+        p: [
+          'An employer can see a helper\'s learning progress only through an invitation link that the helper accepts. Sharing is off by default. The helper can turn it off again at any time from inside the app, and when she does, the employer stops seeing her progress and any existing link stops working.',
+          'An employer never sees a helper\'s quiz answers word by word, her feedback, or anything outside the progress summary. The employer cannot see the helper\'s other activity on this site.',
+        ],
+      },
+      {
+        h: 'Feedback',
+        p: [
+          'If you send feedback through the app, the message is stored without linking it to you. We deliberately do not attach your device identifier or any account to a learner\'s feedback, so that a helper can report a problem — including one about the app or about her household — without it being traceable to her.',
+          'A contact detail is stored only if you choose to type one in. It is never filled in on your behalf.',
+        ],
+      },
+      {
+        h: 'Visit counting',
+        p: [
+          'The public guide pages count visits by day and by page. This count is stored as a total per page per day, with no link to any individual, and it is used only to see which vocabulary pages are useful.',
+        ],
+      },
+      {
+        h: 'Advertising',
+        p: [
+          'This site shows advertisements supplied by Google AdSense. To do that, Google and its partners load a script on the page and may place cookies or read device identifiers in order to select and measure advertising.',
+          'This means Google, and the advertisers it works with, can see your IP address, your browser type, and which pages you view on this site. That is a change from the rest of this app, which is built not to track you, and we would rather state it plainly than bury it.',
+          'You can control personalised advertising in your Google Ads Settings, and you can opt out of third-party advertising cookies through aboutads.info or youronlinechoices.eu. If you are in the European Economic Area, the United Kingdom, or Switzerland, a consent prompt appears before advertising cookies are used, and declining it does not stop you using the app.',
+          'If you would prefer no advertising at all, a browser extension that blocks advertising will also stop the AdSense script from loading, and the app works normally without it.',
+        ],
+      },
+      {
+        h: 'What we never do',
+        p: [
+          'We do not sell your personal information.',
+          'We do not require any payment from a helper. CantoBuddy is free for learners, and it always will be.',
+          'We do not use your learning activity to make decisions about your employment, and we do not share it with anyone except an employer you have explicitly invited.',
+        ],
+      },
+      {
+        h: 'Children',
+        p: [
+          'CantoBuddy is intended for adults working in Hong Kong. It is not directed at children, and we do not knowingly collect information from a child.',
+        ],
+      },
+      {
+        h: 'Deleting your data',
+        p: [
+          'Because your progress is tied to a random identifier stored in your own browser, clearing your browser data for this site removes it from your device. If you would like the records held on our server deleted, send us a message through the feedback button in the app and tell us your display name. We will delete the matching learner record.',
+          'An employer may ask us to delete her account at any time, and we will do so.',
+        ],
+      },
+      {
+        h: 'Changes to this policy',
+        p: [
+          'If this policy changes in a way that affects you, we will update the date at the top of this page. Continuing to use CantoBuddy after a change means you accept the updated policy.',
+        ],
+      },
+      {
+        h: 'Contact',
+        p: [
+          'For any question about this policy, or to ask for your data to be deleted, use the feedback button inside the app. We read every message.',
+        ],
+      },
+    ],
+  },
+
+  fil: {
+    title: 'Patakaran sa Privacy',
+    updated: 'Huling na-update: 10 Oktubre 2026',
+    lede: 'Ang CantoBuddy ay isang libreng app para sa pagsasanay ng Cantonese para sa mga domestic helper sa Hong Kong. Ipinaliwanag sa page na ito, sa simpleng pananalita, kung ano ang itinatala ng app, kung ano ang hindi nito itinatala, at paano ito ipapabura.',
+    sections: [
+      {
+        h: 'Ano ang itinatala namin tungkol sa isang mag-aaral',
+        p: [
+          'Hindi kailangan ng account para gamitin ang CantoBuddy. Walang email address, walang numero ng telepono, at walang password. Sa unang pagbukas mo ng app, bibigyan ang iyong device ng random na pangalan na nakaimbak sa sarili mong browser. Iyan ang paraan ng pag-alala sa iyong progreso, streak, at mga naka-save na salita sa iyong telepono.',
+          'Itinatala namin kung aling mga salita ang sinasanay mo, ang iyong mga sagot sa pagsusulit, ang iyong streak, at kung kailan ka huling nagbukas ng app. Kung mag-type ka ng pangalan, iniimbak namin iyon. Mababago o mabubura mo ito anumang oras sa loob ng app.',
+          'Hindi namin itinatala ang iyong lokasyon. Hindi namin itinatala ang iyong mga kontak. Hindi kami humihingi ng tunay na pangalan, petsa ng kapanganakan, o anumang dokumento ng pagkakakilanlan.',
+        ],
+      },
+      {
+        h: 'Mga employer at pagbabahagi ng progreso',
+        p: [
+          'Makikita ng employer ang progreso ng helper sa pag-aaral sa pamamagitan lamang ng link ng imbitasyon na tinanggap ng helper. Naka-off ang pagbabahagi sa simula. Maaari itong patayin ng helper anumang oras sa loob ng app, at kapag ginawa niya iyon, hindi na makikita ng employer ang kanyang progreso at titigil na ang anumang existing na link.',
+          'Hindi nakikita ng employer ang bawat sagot ng helper sa pagsusulit, ang kanyang feedback, o anumang bagay sa labas ng buod ng progreso. Hindi rin nakikita ng employer ang iba pang aktibidad ng helper sa site na ito.',
+        ],
+      },
+      {
+        h: 'Feedback',
+        p: [
+          'Kung magpapadala ka ng feedback sa app, iniimbak ang mensahe nang hindi ito nakaugnay sa iyo. Sadyang hindi namin ikinakabit ang identifier ng iyong device o anumang account sa feedback ng isang mag-aaral, para makapag-ulat ang isang helper ng problema — kasama na ang tungkol sa app o sa kanyang sambahayan — nang hindi ito natutunton sa kanya.',
+          'Ang contact detail ay iniimbak lamang kung pipiliin mong mag-type nito. Hindi ito kailanman pinupunan para sa iyo.',
+        ],
+      },
+      {
+        h: 'Pagbilang ng pagbisita',
+        p: [
+          'Binibilang ng mga pampublikong guide page ang pagbisita ayon sa araw at ayon sa pahina. Ang bilang na ito ay iniimbak bilang kabuuan bawat pahina bawat araw, walang koneksyon sa sinumang indibidwal, at ginagamit lamang upang makita kung aling mga page ng bokabularyo ang kapaki-pakinabang.',
+        ],
+      },
+      {
+        h: 'Advertising',
+        p: [
+          'Nagpapakita ang site na ito ng advertising mula sa Google AdSense. Para gawin iyon, naglo-load ang Google at ang mga kasosyo nito ng script sa pahina at maaaring maglagay ng cookies o magbasa ng identifier ng device upang pumili at sumukat ng advertising.',
+          'Ibig sabihin nito, nakikita ng Google, at ng mga advertiser na katrabaho nito, ang iyong IP address, uri ng browser, at kung aling mga pahina ang tinitingnan mo sa site na ito. Ito ay pagbabago mula sa iba pang bahagi ng app na ito, na ginawa para hindi ka subaybayan, at mas gusto naming sabihin ito nang tapat kaysa ilihim.',
+          'Maaari mong kontrolin ang personalised advertising sa iyong Google Ads Settings, at maaari kang mag-opt out sa third-party advertising cookies sa pamamagitan ng aboutads.info o youronlinechoices.eu. Kung nasa European Economic Area, United Kingdom, o Switzerland ka, may lalabas na consent prompt bago gamitin ang advertising cookies, at ang pagtanggi dito ay hindi humahadlang sa paggamit mo ng app.',
+          'Kung ayaw mo ng anumang advertising, mapipigilan din ng browser extension na nagba-block ng advertising ang pag-load ng AdSense script, at gumagana pa rin nang normal ang app.',
+        ],
+      },
+      {
+        h: 'Ang hindi namin ginagawa',
+        p: [
+          'Hindi namin ibinebenta ang iyong personal na impormasyon.',
+          'Hindi kami nagpapabayad sa isang helper. Libre ang CantoBuddy para sa mga mag-aaral, at mananatili itong libre.',
+          'Hindi namin ginagamit ang iyong aktibidad sa pag-aaral para gumawa ng desisyon tungkol sa iyong trabaho, at hindi namin ito ibinabahagi sa kahit sino maliban sa employer na malinaw mong iniimbitahan.',
+        ],
+      },
+      {
+        h: 'Mga bata',
+        p: [
+          'Ang CantoBuddy ay para sa mga nasa hustong gulang na nagtatrabaho sa Hong Kong. Hindi ito para sa mga bata, at hindi namin sinasadyang mangolekta ng impormasyon mula sa isang bata.',
+        ],
+      },
+      {
+        h: 'Pagbura ng iyong data',
+        p: [
+          'Dahil ang iyong progreso ay nakatali sa isang random na identifier na nakaimbak sa sarili mong browser, ang pag-clear ng browser data para sa site na ito ay nag-aalis nito sa iyong device. Kung gusto mong burahin ang mga talaan na nasa aming server, magpadala ng mensahe sa pamamagitan ng feedback button sa app at sabihin ang iyong pangalan. Buburahin namin ang katumbas na talaan ng mag-aaral.',
+          'Maaaring hilingin ng isang employer na burahin ang kanyang account anumang oras, at gagawin namin iyon.',
+        ],
+      },
+      {
+        h: 'Mga pagbabago sa patakarang ito',
+        p: [
+          'Kung magbabago ang patakarang ito sa paraang nakakaapekto sa iyo, ia-update namin ang petsa sa itaas ng page na ito. Ang patuloy na paggamit ng CantoBuddy pagkatapos ng pagbabago ay nangangahulugang tinatanggap mo ang na-update na patakaran.',
+        ],
+      },
+      {
+        h: 'Makipag-ugnayan',
+        p: [
+          'Para sa anumang tanong tungkol sa patakarang ito, o para hilingin na burahin ang iyong data, gamitin ang feedback button sa loob ng app. Binabasa namin ang bawat mensahe.',
+        ],
+      },
+    ],
+  },
+
+  zh: {
+    title: '隐私政策',
+    updated: '最后更新：2026 年 10 月 10 日',
+    lede: 'CantoBuddy 是给香港外佣免费使用的粤语练习应用。本页用平实的语言说明：应用记录什么、不记录什么，以及如何删除这些记录。',
+    sections: [
+      {
+        h: '关于学习者，我们记录什么',
+        p: [
+          '使用 CantoBuddy 不需要注册账号。没有邮箱、没有手机号、也没有密码。你第一次打开应用时，你的设备会获得一个随机标识符，保存在你自己的浏览器里。你的进度、连续学习天数和收藏的词，就是靠这个标识符在你的手机上记住的。',
+          '我们会记录你练习了哪些词、测验答案、连续天数，以及你上次打开应用的时间。如果你填写了显示名称，我们会保存这个名称。你可以随时在应用内修改或清除它。',
+          '我们不记录你的位置，不读取你的通讯录，也不要求你提供真实姓名、出生日期或任何身份证明。',
+        ],
+      },
+      {
+        h: '雇主与进度共享',
+        p: [
+          '雇主只有在收到并接受邀请链接后，才能看到外佣的学习进度。共享默认是关闭的。外佣可以随时在应用内关闭它；一旦关闭，雇主将不再看到进度，原有链接也会失效。',
+          '雇主不会看到外佣逐题的测验答案、她的反馈，或进度摘要以外的任何内容，也看不到她在这个网站上的其他活动。',
+        ],
+      },
+      {
+        h: '反馈',
+        p: [
+          '如果你通过应用发送反馈，这条消息会被保存，但不会与你关联。我们特意不把设备标识符或任何账号附在用户的反馈上，这样外佣才能报告问题（包括关于应用或关于雇主家庭的问题）而不必担心被追溯到本人。',
+          '只有在你自己填写的情况下，我们才会保存联系方式。我们绝不会替你填写。',
+        ],
+      },
+      {
+        h: '访问统计',
+        p: [
+          '公开的指南页面会按日期和页面统计访问量。这些数据以「每天每页的总数」形式保存，不与任何个人关联，仅用于了解哪些词汇页面有用。',
+        ],
+      },
+      {
+        h: '广告',
+        p: [
+          '本站显示由 Google AdSense 提供的广告。为此，Google 及其合作方会在页面上加载脚本，并可能放置 Cookie 或读取设备标识符，用于选择与衡量广告。',
+          '这意味着 Google 及其广告客户可以看到你的 IP 地址、浏览器类型，以及你访问了本站的哪些页面。这与本应用的其他部分不同——那些部分刻意不做跟踪——我们认为应当坦白说明，而不是藏起来。',
+          '你可以在 Google 广告设置中管理个性化广告，也可以通过 aboutads.info 或 youronlinechoices.eu 退出第三方广告 Cookie。如果你位于欧洲经济区、英国或瑞士，在使用广告 Cookie 前会出现同意提示；拒绝该提示不影响你使用本应用。',
+          '如果你完全不希望看到广告，安装广告拦截扩展也会阻止 AdSense 脚本加载，应用在没有广告的情况下依然正常运行。',
+        ],
+      },
+      {
+        h: '我们绝不会做的事',
+        p: [
+          '我们不会出售你的个人信息。',
+          '我们不向外佣收取任何费用。CantoBuddy 对学习者永久免费。',
+          '我们不会用你的学习记录对你的工作做任何决定，也不会把它分享给除你明确邀请的雇主以外的任何人。',
+        ],
+      },
+      {
+        h: '儿童',
+        p: [
+          'CantoBuddy 面向在香港工作的成年人，不面向儿童，我们也不会在知情的情况下收集儿童的信息。',
+        ],
+      },
+      {
+        h: '删除你的数据',
+        p: [
+          '由于你的进度绑定在保存在你自己浏览器里的随机标识符上，清除该网站的浏览器数据即可从你的设备上移除。如果你希望删除我们服务器上的记录，请通过应用内的反馈按钮联系我们并告知你的显示名称，我们会删除对应的学习者记录。',
+          '雇主可以随时要求我们删除她的账号，我们会照办。',
+        ],
+      },
+      {
+        h: '本政策的变更',
+        p: [
+          '如果本政策有影响你的变更，我们会更新本页顶部的日期。变更后继续使用 CantoBuddy，即表示你接受更新后的政策。',
+        ],
+      },
+      {
+        h: '联系方式',
+        p: [
+          '对本政策有任何疑问，或希望删除你的数据，请使用应用内的反馈按钮。每一条消息我们都会阅读。',
+        ],
+      },
+    ],
+  },
+
+  id: {
+    title: 'Kebijakan Privasi',
+    updated: 'Terakhir diperbarui: 10 Oktober 2026',
+    lede: 'CantoBuddy adalah aplikasi latihan bahasa Kanton gratis untuk asisten rumah tangga di Hong Kong. Halaman ini menjelaskan dengan bahasa sederhana apa yang dicatat aplikasi, apa yang tidak dicatat, dan cara meminta penghapusannya.',
+    sections: [
+      {
+        h: 'Apa yang kami catat tentang pengguna',
+        p: [
+          'Anda tidak perlu akun untuk memakai CantoBuddy. Tidak ada alamat email, tidak ada nomor telepon, dan tidak ada kata sandi. Saat pertama kali membuka aplikasi, perangkat Anda diberi pengenal acak yang disimpan di browser Anda sendiri. Pengenal itulah yang mengingat kemajuan, rentetan hari belajar, dan kata tersimpan Anda di ponsel Anda.',
+          'Kami mencatat kata apa yang Anda latih, jawaban kuis, rentetan hari, dan kapan terakhir Anda membuka aplikasi. Jika Anda menuliskan nama tampilan, kami menyimpan nama itu. Anda bisa mengubah atau menghapusnya kapan saja dari dalam aplikasi.',
+          'Kami tidak mencatat lokasi Anda. Kami tidak membaca kontak Anda. Kami tidak meminta nama asli, tanggal lahir, atau dokumen identitas apa pun.',
+        ],
+      },
+      {
+        h: 'Pemberi kerja dan berbagi kemajuan',
+        p: [
+          'Pemberi kerja hanya dapat melihat kemajuan belajar seorang asisten melalui tautan undangan yang diterima oleh asisten tersebut. Berbagi dalam keadaan mati secara bawaan. Asisten dapat mematikannya lagi kapan saja dari dalam aplikasi, dan setelah itu pemberi kerja berhenti melihat kemajuannya serta tautan yang ada tidak lagi berfungsi.',
+          'Pemberi kerja tidak pernah melihat jawaban kuis asisten satu per satu, umpan baliknya, atau apa pun di luar ringkasan kemajuan. Pemberi kerja juga tidak dapat melihat aktivitas asisten lainnya di situs ini.',
+        ],
+      },
+      {
+        h: 'Umpan balik',
+        p: [
+          'Jika Anda mengirim umpan balik melalui aplikasi, pesannya disimpan tanpa dikaitkan dengan Anda. Kami sengaja tidak melampirkan pengenal perangkat atau akun apa pun pada umpan balik seorang pengguna, supaya seorang asisten dapat melaporkan masalah — termasuk tentang aplikasi atau tentang rumah tangganya — tanpa bisa dilacak kembali kepadanya.',
+          'Detail kontak hanya disimpan jika Anda memilih menuliskannya. Kami tidak pernah mengisinya untuk Anda.',
+        ],
+      },
+      {
+        h: 'Penghitungan kunjungan',
+        p: [
+          'Halaman panduan publik menghitung kunjungan per hari dan per halaman. Angka ini disimpan sebagai total per halaman per hari, tanpa kaitan dengan individu mana pun, dan hanya dipakai untuk melihat halaman kosakata mana yang bermanfaat.',
+        ],
+      },
+      {
+        h: 'Iklan',
+        p: [
+          'Situs ini menampilkan iklan dari Google AdSense. Untuk itu, Google dan mitranya memuat skrip di halaman dan dapat menempatkan cookie atau membaca pengenal perangkat guna memilih dan mengukur iklan.',
+          'Artinya, Google dan pengiklan yang bekerja dengannya dapat melihat alamat IP Anda, jenis browser, dan halaman mana yang Anda buka di situs ini. Ini berbeda dari bagian lain aplikasi ini yang dirancang untuk tidak melacak Anda, dan kami lebih memilih menyatakannya terus terang daripada menyembunyikannya.',
+          'Anda dapat mengatur iklan yang dipersonalisasi di Setelan Iklan Google, dan Anda dapat menolak cookie iklan pihak ketiga melalui aboutads.info atau youronlinechoices.eu. Jika Anda berada di Kawasan Ekonomi Eropa, Inggris Raya, atau Swiss, akan muncul permintaan persetujuan sebelum cookie iklan digunakan, dan menolaknya tidak menghalangi Anda memakai aplikasi.',
+          'Jika Anda sama sekali tidak ingin iklan, ekstensi browser yang memblokir iklan juga akan menghentikan skrip AdSense dimuat, dan aplikasi tetap berjalan normal tanpa itu.',
+        ],
+      },
+      {
+        h: 'Yang tidak pernah kami lakukan',
+        p: [
+          'Kami tidak menjual informasi pribadi Anda.',
+          'Kami tidak memungut biaya apa pun dari seorang asisten. CantoBuddy gratis bagi pengguna, dan akan selalu gratis.',
+          'Kami tidak memakai aktivitas belajar Anda untuk mengambil keputusan tentang pekerjaan Anda, dan kami tidak membagikannya kepada siapa pun kecuali pemberi kerja yang Anda undang secara jelas.',
+        ],
+      },
+      {
+        h: 'Anak-anak',
+        p: [
+          'CantoBuddy ditujukan untuk orang dewasa yang bekerja di Hong Kong. Aplikasi ini bukan untuk anak-anak, dan kami tidak dengan sengaja mengumpulkan informasi dari anak-anak.',
+        ],
+      },
+      {
+        h: 'Menghapus data Anda',
+        p: [
+          'Karena kemajuan Anda terikat pada pengenal acak yang tersimpan di browser Anda sendiri, menghapus data browser untuk situs ini akan menghapusnya dari perangkat Anda. Jika Anda ingin catatan di server kami dihapus, kirim pesan melalui tombol umpan balik di aplikasi dan sebutkan nama tampilan Anda. Kami akan menghapus catatan pengguna yang cocok.',
+          'Pemberi kerja dapat meminta penghapusan akunnya kapan saja, dan kami akan melakukannya.',
+        ],
+      },
+      {
+        h: 'Perubahan kebijakan ini',
+        p: [
+          'Jika kebijakan ini berubah dengan cara yang memengaruhi Anda, kami akan memperbarui tanggal di bagian atas halaman ini. Terus memakai CantoBuddy setelah perubahan berarti Anda menerima kebijakan yang diperbarui.',
+        ],
+      },
+      {
+        h: 'Kontak',
+        p: [
+          'Untuk pertanyaan apa pun tentang kebijakan ini, atau untuk meminta data Anda dihapus, gunakan tombol umpan balik di dalam aplikasi. Kami membaca setiap pesan.',
+        ],
+      },
+    ],
+  },
+};
+
+/** The contact route named in the policy — the in-app feedback button. */
+const PRIVACY_HREF = { en: '/privacy', fil: '/fil/privacy', zh: '/zh/privacy', id: '/id/privacy' };
+
+
 /** Where a category page lives, in the right language tree. */
 function catHref(cat, lang) {
   const prefix = LANG_PREFIX[lang] || '';
@@ -526,6 +893,7 @@ function page(o) {
   <link rel="canonical" href="${esc(canonical)}" />
   ${o.noindex ? '<meta name="robots" content="noindex, follow" />' : '<meta name="robots" content="index, follow" />'}
   ${GOOGLE_VERIFICATION ? `<meta name="google-site-verification" content="${esc(GOOGLE_VERIFICATION)}" />` : ''}
+  ${ADSENSE_SNIPPET}
   ${alt}
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="CantoBuddy" />
@@ -564,7 +932,8 @@ ${o.body}
     <p>${esc(L[lang].footerNote)}</p>
     <p>${languageLinks(lang)}
        &nbsp;·&nbsp; <a href="${LANG_PREFIX[lang]}/learn">${esc(L[lang].browse)}</a>
-       &nbsp;·&nbsp; <a href="${LANG_PREFIX[lang]}/guide">${esc((GUIDE_UI[lang] || GUIDE_UI.en).guides)}</a></p>
+       &nbsp;·&nbsp; <a href="${LANG_PREFIX[lang]}/guide">${esc((GUIDE_UI[lang] || GUIDE_UI.en).guides)}</a>
+       &nbsp;·&nbsp; <a href="${LANG_PREFIX[lang]}/privacy">${esc(PRIVACY[lang].title)}</a></p>
   </div>
 </footer>
 ${VISIT_BEACON}
@@ -1298,6 +1667,53 @@ ${ctaCard(lang)}
   });
 }
 
+/**
+ * The privacy policy page. Rendered from PRIVACY above, one entry per language.
+ *
+ * noindex is deliberately NOT set: Google's AdSense reviewers look for this
+ * page, and a policy a reviewer cannot find is a policy that does not exist.
+ * It is linked from the footer of every page (see page() and public/index.html),
+ * which is where both a reader checking it and a crawler expect to find it.
+ */
+function renderPrivacy(lang) {
+  const t = L[lang];
+  const prefix = LANG_PREFIX[lang] || '';
+  const p = PRIVACY[lang] || PRIVACY.en;
+
+  const body = `
+${crumbs(lang, [{ label: esc(p.title) }])}
+<article>
+<h1>${esc(p.title)}</h1>
+<p class="lede">${esc(p.lede)}</p>
+<p class="updated">${esc(p.updated)}</p>
+${p.sections
+  .map(
+    (s) => `<h2>${esc(s.h)}</h2>
+${s.p.map((para) => `<p>${esc(para)}</p>`).join('\n')}`
+  )
+  .join('\n')}
+</article>
+${ctaCard(lang)}
+`;
+
+  return page({
+    lang,
+    title: `${p.title} | CantoBuddy`,
+    description: p.lede,
+    path: `${prefix}/privacy`,
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'WebPage',
+      name: p.title,
+      description: p.lede,
+      inLanguage: t.htmlLang,
+      mainEntityOfPage: `${SITE_ORIGIN}${prefix}/privacy`,
+    },
+    body,
+    alternates: hreflangLinks((l) => `${LANG_PREFIX[l]}/privacy`),
+  });
+}
+
 /** 404 body for an unknown content slug, so a bad URL stays useful. */
 function renderNotFound(lang) {
   const t = L[lang];
@@ -1377,6 +1793,13 @@ ${alts}
     }
   }
 
+  // The privacy policy, in every tree. Low priority and yearly — it is not a
+  // page anyone is searching for — but listed so AdSense's reviewers (and
+  // anyone else looking) can find it without hunting through the footer.
+  for (const prefix of Object.values(LANG_PREFIX)) {
+    add(`${prefix}/privacy`, '0.3', 'yearly', hreflangLinks((l) => `${LANG_PREFIX[l]}/privacy`));
+  }
+
   // Categories, levels, words — in every language tree.
   const cats = store.listEnabledCategories();
   const { bySlug } = buildWordIndex();
@@ -1419,6 +1842,7 @@ Allow: /guide
 Allow: /fil
 Allow: /zh
 Allow: /id
+Allow: /privacy
 
 # The JSON API is not a page — it is the SPA's data feed. Crawling it just
 # duplicates the server-rendered pages below.
@@ -1467,6 +1891,23 @@ function mount(app) {
     res.send(renderRobots());
   });
 
+  /* ads.txt — the Authorized Digital Sellers file.
+   *
+   * AdSense recommends this so that only the publisher id above is allowed to
+   * sell this site's inventory. Without it a reseller could list cantobuddy.com
+   * in their own ads.txt chain; with it, buyers can verify the id is genuine.
+   * Hardcoded to match ADSENSE_CLIENT so the two can never disagree.
+   *
+   * Served from a route rather than a file in public/ for the same reason
+   * robots.txt is: one source of truth, and no chance of a stale copy in the
+   * repo drifting from the id actually loaded in the page.
+   */
+  app.get('/ads.txt', (req, res) => {
+    res.type('text/plain');
+    res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=86400');
+    res.send(`google.com, ${ADSENSE_CLIENT.replace(/^ca-/, '')}, DIRECT, f08c47fec0942fa0\n`);
+  });
+
   // English tree lives at the root; the other trees mirror it under a prefix.
   const routes = [
     ['/learn', (lang) => renderLearnHub(lang)],
@@ -1478,6 +1919,9 @@ function mount(app) {
     // makes that explicit.
     ['/guide', (lang) => renderGuideHub(lang)],
     ['/guide/:slug', (lang, p) => renderGuide(lang, p.slug)],
+    // The privacy policy. Last, so the two-segment guide route above cannot be
+    // shadowed, and reachable at /privacy (root) plus /fil|/zh|/id/privacy.
+    ['/privacy', (lang) => renderPrivacy(lang)],
   ];
 
   /* Google Search Console — HTML-file verification is a REAL FILE, not a route.
@@ -1530,4 +1974,4 @@ function mount(app) {
   console.log(`  SEO:          ${SITE_ORIGIN}/sitemap.xml  (${store.listVocabulary({ enabledOnly: true }).length} words, ${store.listEnabledCategories().length} categories, ${LANGS.length} languages)`);
 }
 
-module.exports = { mount, SITE_ORIGIN, slugify, buildWordIndex, wordSlugMap };
+module.exports = { mount, SITE_ORIGIN, slugify, buildWordIndex, wordSlugMap, LANG_PREFIX, LANGS };

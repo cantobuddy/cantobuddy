@@ -3,16 +3,16 @@
  *
  * WHY THIS IS OPTIONAL, AND WHY IT IS SO SMALL
  * --------------------------------------------
- * The news channel was specified as "HK local news, translated to English".
- * The obvious reading is "fetch Chinese news and translate it", and that is
+ * The news channel was specified as "local news, translated to English".
+ * The obvious reading is "fetch non-English news and translate it", and that is
  * exactly what this module is for — but it is deliberately NOT the main path,
  * because it turns out not to be needed for the sources we are allowed to use.
  *
- * Both approved public sources publish their own official English edition
- * alongside the Chinese one:
+ * Every approved source publishes its own English edition:
  *
- *   HK Government Press Releases   info.gov.hk/gia/rss/general_en.xml
- *   RTHK News — Local              rthk9.rthk.hk/.../e_expressnews_elocal.xml
+ *   Philippine Daily Inquirer   newsinfo.inquirer.net/feed
+ *   Antara News (Indonesia)     en.antaranews.com/rss/news.xml
+ *   RTHK News — Local           rthk9.rthk.hk/.../e_expressnews_elocal.xml
  *
  * So for those, "translate to English" is already done, by the publisher, to a
  * far higher standard than a machine can manage — and with no API key and no
@@ -20,10 +20,12 @@
  * translation call on it.
  *
  * This module exists for the case that remains: a source that publishes ONLY in
- * Chinese. When one is added, and a provider key is present, its items are
- * translated here before they enter the feed. With no key configured the item
- * is skipped and reported, never published in the wrong language — a Chinese
- * headline in the English feed is worse than a missing story.
+ * one non-English language. The Indonesian audience is the live example —
+ * Antara's Bahasa Indonesia edition carries the same stories and would serve an
+ * Indonesian helper better, but one news list is shared by all four language
+ * trees, so it is imported only if this module can translate it. With no key
+ * configured the item is skipped and reported, never published in the wrong
+ * language — a Bahasa headline in an English feed is worse than a missing story.
  *
  * PROVIDERS are chosen by environment variable, so enabling one is a config
  * change and not a code change:

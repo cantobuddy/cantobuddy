@@ -3,31 +3,54 @@
  *
  * WHAT THIS DOES
  * --------------
- * Fills the "News" channel of the Discover feed from Hong Kong public sources,
+ * Fills the "News" channel of the Discover feed from public sources,
  * automatically, on a schedule or on demand. It is the only part of the app
  * that pulls content in from outside.
  *
  * WHERE THE NEWS COMES FROM, AND WHY ONLY THESE
  * ---------------------------------------------
- * The request was "local news from HK local newspaper, translated to English".
- * Republishing a newspaper's article — in any language — is copyright
- * infringement: a translation is a derivative work, and the paper owns the
- * original. So the importer uses only sources whose content is *published for
- * reuse*, and it never republishes more than a short summary plus a link:
+ * A helper reading this app lives in Hong Kong but follows news from home. The
+ * channel therefore carries her home country as well as the city she works in:
  *
- *   HK Government Press Releases  (info.gov.hk)   — official, reusable
- *   RTHK News — Local             (rthk.hk)      — public broadcaster
+ *   Philippine Daily Inquirer  (inquirer.net)      — the Philippines
+ *   Antara News — English      (antaranews.com)    — Indonesia
+ *   RTHK News — Local          (rthk.hk)           — Hong Kong, public broadcaster
  *
- * Both publish an official ENGLISH edition of every story alongside the
- * Chinese one. That matters twice over:
+ * All three publish an ENGLISH edition of every story. That matters twice over:
  *
  *   1. "Translated to English" is already done, by the publisher, properly —
  *      so no machine translation is needed for the sources we ship, and no API
- *      key, and no cost. `translate.js` exists only for a future Chinese-only
+ *      key, and no cost. `translate.js` exists only for a future non-English
  *      source.
  *   2. It is the honest way to get a translation. A machine-translated headline
  *      about a court case or a policy change is exactly the kind of text where
  *      a subtle error misinforms.
+ *
+ * WHAT CHANGED, AND WHY IT IS WORTH RECORDING (2026-10-16)
+ * --------------------------------------------------------
+ * The HK Government Press Releases feed (info.gov.hk) used to be the first
+ * source. It was dropped at the operator's request — a press release about a
+ * statutory consultation is not what a helper opens the app for — and the
+ * home-country feeds took its place.
+ *
+ * The Philippine government route was tried first and is CLOSED, so do not
+ * spend another afternoon on it: PNA (the state agency) answers 404 on every
+ * feed path and advertises no feed at all on its homepage, and PIA, DFA, DOLE,
+ * OWWA, PCO and the Official Gazette all answer 403 — to a browser User-Agent
+ * as well as to a bot one. Inquirer is the substitute.
+ *
+ * That is a deliberate and slightly uncomfortable choice: a newspaper's feed is
+ * NOT published for reuse the way a government feed is, so this is the one
+ * source here whose licence does not cover republication. It is defensible only
+ * because of the copyright guard below — headline, a summary capped at 320
+ * characters, the source's name, and a link back. Nothing of the article is
+ * reproduced, and the reader is sent to Inquirer to read it. If the guard is
+ * ever weakened, this source has to go.
+ *
+ * Antara is the state news agency of Indonesia and the closest thing to a
+ * like-for-like replacement for the HK government feed: official, and published
+ * in English. Its Bahasa Indonesia edition is deliberately NOT imported — see
+ * the note on that source.
  *
  * THE COPYRIGHT GUARD, IN CODE
  * ----------------------------
@@ -54,18 +77,31 @@ const translate = require('./translate');
 /** Only sources that are published for reuse, and that we have checked. */
 const SOURCES = [
   {
-    key: 'gov',
-    name: 'HK Government Press Releases',
-    name_zh: '香港特區政府新聞公報',
-    home: 'https://www.info.gov.hk/gia/general/today.htm',
+    // --- the helper's home country: the Philippines ---
+    key: 'ph',
+    name: 'Philippine Daily Inquirer',
+    name_zh: '菲律賓每日詢問報',
+    home: 'https://newsinfo.inquirer.net',
     lang: 'en',
-    url: 'https://www.info.gov.hk/gia/rss/general_en.xml',
-    // Kept for provenance: the same stories, officially, in Chinese. Not
-    // imported — it cannot be paired to the English item (the two feeds assign
-    // different document ids), and the English feed is already the translation.
-    zhUrl: 'https://www.info.gov.hk/gia/rss/general_zh.xml',
+    url: 'https://newsinfo.inquirer.net/feed',
   },
   {
+    // --- the helper's home country: Indonesia ---
+    key: 'id',
+    name: 'Antara News',
+    name_zh: '印尼安塔拉通訊社',
+    home: 'https://en.antaranews.com',
+    lang: 'en',
+    url: 'https://en.antaranews.com/rss/news.xml',
+    // The same agency's Bahasa Indonesia edition, kept for provenance. NOT
+    // imported: this feed is English-only on purpose. There is ONE news list
+    // shared by all four language trees, and `translate.js` has no key set, so
+    // a Bahasa item could not be rendered for the fil/zh audiences and the
+    // "summary in English" promise the Discover page makes would be false.
+    idUrl: 'https://www.antaranews.com/rss/terkini.xml',
+  },
+  {
+    // --- where the helper lives ---
     key: 'rthk',
     name: 'RTHK News — Local',
     name_zh: '香港電台 即時新聞 — 本地',
@@ -115,6 +151,48 @@ function stripHtml(s) {
     .trim();
 }
 
+/**
+ * Decode entities until the string stops changing.
+ *
+ * ONE pass is not enough, and that is not a theoretical concern — it is what
+ * Antara's feed actually does. It escapes its HTML for XML and then escapes the
+ * ampersands again, so `&amp;nbsp;` and `&amp;rsquo;` arrive in the document. A
+ * single decode turns those into the literal text `&nbsp;` and `&rsquo;`, which
+ * then sit in the summary as visible junk. The loop is bounded rather than
+ * `while (true)` so a pathological input cannot spin.
+ */
+function decodeDeep(s, rounds = 4) {
+  let out = String(s || '');
+  for (let i = 0; i < rounds; i++) {
+    const next = decodeEntities(out);
+    if (next === out) break;
+    out = next;
+  }
+  return out;
+}
+
+/**
+ * A feed's <description> reduced to readable plain text.
+ *
+ * Decode-and-strip repeatedly, because a feed may escape its markup once
+ * (`&lt;img ...&gt;` — Antara) or twice (`&amp;lt;img ...&amp;gt;`), and each
+ * round can reveal another layer. Stripping BEFORE decoding — which is what
+ * this used to do, in a single pass — handles only the feeds that wrap literal
+ * tags in CDATA (RTHK, Inquirer), and lets the escaped forms through, because
+ * escaped markup contains no literal '<' to match until decoding has run. A
+ * live Antara import put `<img src="https://img.antaranews.com/..." ...>` at the
+ * head of EVERY summary that way.
+ */
+function plainText(s, rounds = 4) {
+  let out = String(s || '');
+  for (let i = 0; i < rounds; i++) {
+    const next = stripHtml(decodeEntities(out));
+    if (next === out) break;
+    out = next;
+  }
+  return out;
+}
+
 /** The raw inner text of the first <tag> in a block, CDATA unwrapped. */
 function tagText(block, tag) {
   const m = String(block).match(new RegExp(`<${tag}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${tag}>`, 'i'));
@@ -153,9 +231,12 @@ function summarise(text, max = SUMMARY_MAX, sentences = SUMMARY_SENTENCES) {
 function parseRss(xml) {
   const items = String(xml || '').match(/<item(?:\s[^>]*)?>[\s\S]*?<\/item>/gi) || [];
   return items.map((block) => {
-    const title = decodeEntities(tagText(block, 'title')).replace(/\s+/g, ' ').trim();
+    // Titles are decoded deeply but deliberately NOT stripped: a headline is
+    // plain text, and stripping after decoding would eat a legitimate "<" in a
+    // headline like "Growth < 2%".
+    const title = decodeDeep(tagText(block, 'title')).replace(/\s+/g, ' ').trim();
     const link = tagText(block, 'link').trim() || tagText(block, 'guid').trim();
-    const description = decodeEntities(stripHtml(tagText(block, 'description')));
+    const description = plainText(tagText(block, 'description'));
     const guid = tagText(block, 'guid').trim() || link;
     return { title, link, description, guid, published_at: parseDate(tagText(block, 'pubDate')) };
   });

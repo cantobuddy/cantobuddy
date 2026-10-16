@@ -21,6 +21,7 @@ const {
   SEED_CATEGORIES, SEED_VOCABULARY, SEED_SCENARIOS, SEED_USERS,
   MANDARIN_GLOSSES, CATEGORY_ZH_NAMES,
   INDONESIAN_GLOSSES, CATEGORY_ID_NAMES,
+  SEED_POSTS,
 } = require('./data');
 const { SEED_STICKERS } = require('./stickers');
 
@@ -383,6 +384,68 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_feedback_status  ON feedback(status);
   CREATE INDEX IF NOT EXISTS idx_feedback_created ON feedback(created_at);
+
+  /* A dated post in the "Discover" feed — one row per article a learner can read.
+
+     WHY A NEW TABLE rather than reusing the guides in content.js: a guide is
+     written once, ships with the code, and changes only on a deploy. These are
+     a FEED — something posted repeatedly, in date order, without a release.
+     "Regularly post" and "deploy a new build" are different rhythms, and the
+     guide array cannot express the first one.
+
+     TWO CHANNELS, ONE TABLE. The channel column is 'culture' or 'news' and is
+     the only thing that separates them; the shape of a post is identical, so
+     they share a table and every query, rather than being two near-identical
+     tables that would drift. The learner app shows them as two tabs of one
+     screen.
+
+     MEANING IS PER LANGUAGE (title/summary/body x en/fil/zh/id), matching the
+     rule the rest of the app already follows: a Filipino reader is not reading
+     a translation of the English, she is reading her own page. English is the
+     base — a blank column falls back to it — because a feed has to keep moving
+     and demanding four translations before a post can appear would stop it.
+
+     ATTRIBUTION IS NOT OPTIONAL FOR IMPORTED ITEMS. source_name + source_url
+     are written by the importer on every news row and rendered on every card,
+     because the news channel summarises other people's journalism and links to
+     it. The body columns are deliberately NEVER filled from a feed — a feed
+     carries the whole article in its description, and republishing that (in any
+     language) would be a copyright problem. See news.js.
+
+     source_key is the feed's own id, and the UNIQUE index on it is what makes
+     re-running the importer idempotent: the same item twice is one row, not two. */
+  CREATE TABLE IF NOT EXISTS posts (
+    id           INTEGER PRIMARY KEY,
+    slug         TEXT NOT NULL UNIQUE,
+    channel      TEXT NOT NULL DEFAULT 'culture',
+    icon         TEXT NOT NULL DEFAULT '📰',
+    title_en     TEXT NOT NULL DEFAULT '',
+    title_fil    TEXT NOT NULL DEFAULT '',
+    title_zh     TEXT NOT NULL DEFAULT '',
+    title_id     TEXT NOT NULL DEFAULT '',
+    summary_en   TEXT NOT NULL DEFAULT '',
+    summary_fil  TEXT NOT NULL DEFAULT '',
+    summary_zh   TEXT NOT NULL DEFAULT '',
+    summary_id   TEXT NOT NULL DEFAULT '',
+    body_en      TEXT NOT NULL DEFAULT '',
+    body_fil     TEXT NOT NULL DEFAULT '',
+    body_zh      TEXT NOT NULL DEFAULT '',
+    body_id      TEXT NOT NULL DEFAULT '',
+    source_name  TEXT NOT NULL DEFAULT '',
+    source_url   TEXT NOT NULL DEFAULT '',
+    source_key   TEXT,
+    source_lang  TEXT NOT NULL DEFAULT '',
+    origin       TEXT NOT NULL DEFAULT 'manual',
+    status       TEXT NOT NULL DEFAULT 'draft',
+    published_at TEXT,
+    created_at   TEXT,
+    updated_at   TEXT
+  );
+  /* Partial unique index: manual posts have no source_key and must not collide
+     with each other, so only rows that HAVE one are constrained. */
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_posts_source_key
+    ON posts(source_key) WHERE source_key IS NOT NULL;
+  CREATE INDEX IF NOT EXISTS idx_posts_feed ON posts(status, channel, published_at DESC);
 `);
 
 // ---------------------------------------------------------------------------
@@ -913,6 +976,78 @@ function seedIfEmpty() {
 }
 
 const seeded = seedIfEmpty();
+
+// ---------------------------------------------------------------------------
+// Discover feed seed — the culture channel's opening articles.
+//
+// DELIBERATELY SEPARATE from CONTENT_VERSION. That counter guards the vocabulary
+// library, and bumping it is a statement that the words changed — which this is
+// not. Adding the first posts to a table that did not exist yesterday should
+// not re-run the vocabulary migration or make every content test re-derive its
+// expected counts. So posts get their own flag in `meta`.
+//
+// Guarded on the SEED SIZE, not a boolean, following the overlay rule already
+// used for the meaning columns: when SEED_POSTS grows, the flag no longer
+// matches and the new entries are inserted. `INSERT OR IGNORE` keys on slug, so
+// a post the operator has edited is left exactly as it is.
+// ---------------------------------------------------------------------------
+
+function seedPostsIfNeeded() {
+  const row = db.prepare("SELECT value FROM meta WHERE key = 'posts_seeded'").get();
+  const current = row ? Number(row.value) || 0 : 0;
+  if (current >= SEED_POSTS.length) return 0;
+
+  const now = new Date().toISOString();
+  const ins = db.prepare(`
+    INSERT OR IGNORE INTO posts
+      (slug, channel, icon,
+       title_en, title_fil, title_zh, title_id,
+       summary_en, summary_fil, summary_zh, summary_id,
+       body_en, body_fil, body_zh, body_id,
+       source_name, source_url, source_key, source_lang, origin, status,
+       published_at, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', '', NULL, '', 'manual', ?, ?, ?, ?)
+  `);
+
+  let added = 0;
+  db.exec('BEGIN');
+  try {
+    for (const p of SEED_POSTS) {
+      added += ins.run(
+        p.slug,
+        p.channel || 'culture',
+        p.icon || '🏮',
+        p.title_en || '',
+        p.title_fil || '',
+        p.title_zh || '',
+        p.title_id || '',
+        p.summary_en || '',
+        p.summary_fil || '',
+        p.summary_zh || '',
+        p.summary_id || '',
+        p.body_en || '',
+        p.body_fil || '',
+        p.body_zh || '',
+        p.body_id || '',
+        p.status === 'published' ? 'published' : 'draft',
+        p.published_at || now,
+        now,
+        now
+      ).changes;
+    }
+    db.prepare('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)').run(
+      'posts_seeded',
+      String(SEED_POSTS.length)
+    );
+    db.exec('COMMIT');
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
+  return added;
+}
+
+const postsSeeded = seedPostsIfNeeded();
 
 // ---------------------------------------------------------------------------
 // Content migration — bring an EXISTING database up to the current CONTENT set.
@@ -1474,6 +1609,62 @@ const S = {
   deleteFeedback: db.prepare('DELETE FROM feedback WHERE id = ?'),
 
   countUsers: db.prepare('SELECT COUNT(*) AS n FROM users'),
+
+  /* ---- Discover feed ---------------------------------------------------- */
+  // The learner-facing feed. `status` is a hard filter here (unlike vocabulary,
+  // where 'draft' is a review flag that still serves) because a post is a dated
+  // publication: an unfinished one must not appear in the feed at all.
+  listPosts: db.prepare(`
+    SELECT * FROM posts
+     WHERE status = ?
+       AND (? IS NULL OR channel = ?)
+     ORDER BY COALESCE(published_at, created_at) DESC, id DESC
+     LIMIT ?
+  `),
+  // Operator view — every status, newest first.
+  listAllPosts: db.prepare(`
+    SELECT * FROM posts
+     WHERE (? IS NULL OR channel = ?)
+     ORDER BY COALESCE(published_at, created_at) DESC, id DESC
+     LIMIT ?
+  `),
+  getPostById: db.prepare('SELECT * FROM posts WHERE id = ?'),
+  getPostBySlug: db.prepare('SELECT * FROM posts WHERE slug = ?'),
+  countPosts: db.prepare('SELECT COUNT(*) AS n FROM posts'),
+  countPostsByChannel: db.prepare('SELECT channel, COUNT(*) AS n FROM posts WHERE status = ? GROUP BY channel'),
+  insertPost: db.prepare(`
+    INSERT INTO posts
+      (slug, channel, icon,
+       title_en, title_fil, title_zh, title_id,
+       summary_en, summary_fil, summary_zh, summary_id,
+       body_en, body_fil, body_zh, body_id,
+       source_name, source_url, source_key, source_lang, origin, status,
+       published_at, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `),
+  // The importer's insert. INSERT OR IGNORE keyed on the partial unique index
+  // over source_key is what makes a re-run idempotent: the same feed item is a
+  // no-op the second time, so `changes` is exactly "how many were new".
+  insertPostIfNew: db.prepare(`
+    INSERT OR IGNORE INTO posts
+      (slug, channel, icon,
+       title_en, title_fil, title_zh, title_id,
+       summary_en, summary_fil, summary_zh, summary_id,
+       body_en, body_fil, body_zh, body_id,
+       source_name, source_url, source_key, source_lang, origin, status,
+       published_at, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `),
+  updatePost: db.prepare(`
+    UPDATE posts SET
+      slug = ?, channel = ?, icon = ?,
+      title_en = ?, title_fil = ?, title_zh = ?, title_id = ?,
+      summary_en = ?, summary_fil = ?, summary_zh = ?, summary_id = ?,
+      body_en = ?, body_fil = ?, body_zh = ?, body_id = ?,
+      source_name = ?, source_url = ?, status = ?, published_at = ?, updated_at = ?
+    WHERE id = ?
+  `),
+  deletePost: db.prepare('DELETE FROM posts WHERE id = ?'),
 };
 
 // ---------------------------------------------------------------------------
@@ -2241,6 +2432,200 @@ function setFeedbackStatus(id, status) {
 
 function deleteFeedback(id) {
   return S.deleteFeedback.run(Number(id)).changes > 0;
+}
+
+// ---------------------------------------------------------------------------
+// Discover feed (posts)
+// ---------------------------------------------------------------------------
+
+const POST_CHANNELS = ['culture', 'news'];
+const POST_STATUSES = ['draft', 'published'];
+const POST_TITLE_MAX = 200;
+const POST_SUMMARY_MAX = 700;
+const POST_BODY_MAX = 20000;
+
+const trimPost = (v, max) => String(v ?? '').trim().slice(0, max);
+const pickPost = (v, fallback, max) => (v == null ? fallback : trimPost(v, max));
+
+function iconForPost(b, channel) {
+  const given = String(b.icon || '').trim();
+  if (given) return given.slice(0, 8);
+  return channel === 'news' ? '📰' : '🏮';
+}
+
+/** URL-safe slug. CJK titles produce an empty root, which uniquePostSlug repairs. */
+function slugifyPost(s) {
+  return String(s || '')
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60);
+}
+
+/** A slug no other post holds, by appending -2, -3, … (excluding one id, for edits). */
+function uniquePostSlug(base, excludeId = null) {
+  const root = slugifyPost(base) || 'post';
+  let slug = root;
+  let n = 1;
+  for (;;) {
+    const row = S.getPostBySlug.get(slug);
+    if (!row || (excludeId != null && Number(row.id) === Number(excludeId))) return slug;
+    n += 1;
+    slug = `${root}-${n}`;
+  }
+}
+
+/** The learner-facing feed — published only, newest first. */
+function listPosts({ channel = null, status = 'published', limit = 50 } = {}) {
+  const ch = POST_CHANNELS.includes(channel) ? channel : null;
+  const st = POST_STATUSES.includes(status) ? status : 'published';
+  const n = Math.min(Math.max(Math.floor(Number(limit)) || 50, 1), 200);
+  return S.listPosts.all(st, ch, ch, n);
+}
+
+/** The operator view — every status. */
+function listAllPosts({ channel = null, limit = 200 } = {}) {
+  const ch = POST_CHANNELS.includes(channel) ? channel : null;
+  const n = Math.min(Math.max(Math.floor(Number(limit)) || 200, 1), 500);
+  return S.listAllPosts.all(ch, ch, n);
+}
+
+const getPostById = (id) => S.getPostById.get(Number(id));
+const getPostBySlug = (slug) => S.getPostBySlug.get(String(slug || ''));
+
+/** Per-channel published counts, for the admin tab header. */
+function getPostCounts() {
+  const out = { culture: 0, news: 0, published: 0, total: S.countPosts.get().n };
+  for (const row of S.countPostsByChannel.all('published')) {
+    if (POST_CHANNELS.includes(row.channel)) out[row.channel] = row.n;
+    out.published += row.n;
+  }
+  return out;
+}
+
+/**
+ * Creates a post. English title is the one required field — a post with no
+ * title has nothing to show in the feed — and every other language column may
+ * be blank, falling back to English at render time.
+ */
+function createPost(b = {}) {
+  const channel = POST_CHANNELS.includes(b.channel) ? b.channel : 'culture';
+  const status = POST_STATUSES.includes(b.status) ? b.status : 'draft';
+  const title_en = trimPost(b.title_en, POST_TITLE_MAX);
+  if (!title_en) return null;
+  const now = new Date().toISOString();
+  const published_at = status === 'published' ? b.published_at || now : b.published_at || null;
+  const info = S.insertPost.run(
+    uniquePostSlug(b.slug || title_en),
+    channel,
+    iconForPost(b, channel),
+    title_en,
+    trimPost(b.title_fil, POST_TITLE_MAX),
+    trimPost(b.title_zh, POST_TITLE_MAX),
+    trimPost(b.title_id, POST_TITLE_MAX),
+    trimPost(b.summary_en, POST_SUMMARY_MAX),
+    trimPost(b.summary_fil, POST_SUMMARY_MAX),
+    trimPost(b.summary_zh, POST_SUMMARY_MAX),
+    trimPost(b.summary_id, POST_SUMMARY_MAX),
+    trimPost(b.body_en, POST_BODY_MAX),
+    trimPost(b.body_fil, POST_BODY_MAX),
+    trimPost(b.body_zh, POST_BODY_MAX),
+    trimPost(b.body_id, POST_BODY_MAX),
+    trimPost(b.source_name, 120),
+    trimPost(b.source_url, 500),
+    b.source_key != null ? String(b.source_key).slice(0, 300) : null,
+    trimPost(b.source_lang, 12),
+    b.origin === 'auto' ? 'auto' : 'manual',
+    status,
+    published_at,
+    now,
+    now
+  );
+  return S.getPostById.get(Number(info.lastInsertRowid));
+}
+
+/** Partial update. Anything the caller omits keeps its current value. */
+function updatePost(id, b = {}) {
+  const n = Number(id);
+  const cur = S.getPostById.get(n);
+  if (!cur) return null;
+  const channel = POST_CHANNELS.includes(b.channel) ? b.channel : cur.channel;
+  const status = POST_STATUSES.includes(b.status) ? b.status : cur.status;
+  const title_en = pickPost(b.title_en, cur.title_en, POST_TITLE_MAX);
+  if (!title_en) return null;
+  const now = new Date().toISOString();
+  // Publishing something that has never been published stamps it now, so it
+  // lands at the top of the feed rather than sorting by its creation time.
+  let published_at = b.published_at !== undefined ? b.published_at : cur.published_at;
+  if (status === 'published' && !published_at) published_at = now;
+  S.updatePost.run(
+    b.slug ? uniquePostSlug(b.slug, n) : cur.slug,
+    channel,
+    b.icon ? String(b.icon).trim().slice(0, 8) : cur.icon,
+    title_en,
+    pickPost(b.title_fil, cur.title_fil, POST_TITLE_MAX),
+    pickPost(b.title_zh, cur.title_zh, POST_TITLE_MAX),
+    pickPost(b.title_id, cur.title_id, POST_TITLE_MAX),
+    pickPost(b.summary_en, cur.summary_en, POST_SUMMARY_MAX),
+    pickPost(b.summary_fil, cur.summary_fil, POST_SUMMARY_MAX),
+    pickPost(b.summary_zh, cur.summary_zh, POST_SUMMARY_MAX),
+    pickPost(b.summary_id, cur.summary_id, POST_SUMMARY_MAX),
+    pickPost(b.body_en, cur.body_en, POST_BODY_MAX),
+    pickPost(b.body_fil, cur.body_fil, POST_BODY_MAX),
+    pickPost(b.body_zh, cur.body_zh, POST_BODY_MAX),
+    pickPost(b.body_id, cur.body_id, POST_BODY_MAX),
+    pickPost(b.source_name, cur.source_name, 120),
+    pickPost(b.source_url, cur.source_url, 500),
+    status,
+    published_at,
+    now,
+    n
+  );
+  return S.getPostById.get(n);
+}
+
+function deletePost(id) {
+  return S.deletePost.run(Number(id)).changes > 0;
+}
+
+/**
+ * Insert used by the news importer. Idempotent on `source_key`: re-importing
+ * the same feed item is a no-op, so the caller's "inserted" count is exactly
+ * the number of genuinely new stories. Never throws on a duplicate.
+ */
+function importPost(b = {}) {
+  const channel = POST_CHANNELS.includes(b.channel) ? b.channel : 'news';
+  const key = b.source_key != null ? String(b.source_key).trim().slice(0, 300) : '';
+  if (!key) return { inserted: false, reason: 'missing source_key' };
+  const title_en = trimPost(b.title_en, POST_TITLE_MAX);
+  if (!title_en) return { inserted: false, reason: 'missing title_en' };
+  const now = new Date().toISOString();
+  const info = S.insertPostIfNew.run(
+    uniquePostSlug(b.slug || title_en),
+    channel,
+    iconForPost(b, channel),
+    title_en,
+    trimPost(b.title_fil, POST_TITLE_MAX),
+    trimPost(b.title_zh, POST_TITLE_MAX),
+    trimPost(b.title_id, POST_TITLE_MAX),
+    trimPost(b.summary_en, POST_SUMMARY_MAX),
+    trimPost(b.summary_fil, POST_SUMMARY_MAX),
+    trimPost(b.summary_zh, POST_SUMMARY_MAX),
+    trimPost(b.summary_id, POST_SUMMARY_MAX),
+    '', '', '', '',
+    trimPost(b.source_name, 120),
+    trimPost(b.source_url, 500),
+    key,
+    trimPost(b.source_lang, 12),
+    'auto',
+    'published',
+    b.published_at || now,
+    now,
+    now
+  );
+  return { inserted: info.changes > 0, id: info.changes > 0 ? Number(info.lastInsertRowid) : null };
 }
 
 /** Who this learner has chosen to share their progress with. */
@@ -3058,6 +3443,7 @@ module.exports = {
   seeded,
   migrations,
   contentMigration,
+  postsSeeded,
   CONTENT_VERSION,
 
   hashPassword,
@@ -3141,6 +3527,18 @@ module.exports = {
   peekResetToken,
   consumeResetToken,
   purgeExpiredResets,
+
+  listPosts,
+  listAllPosts,
+  getPostById,
+  getPostBySlug,
+  getPostCounts,
+  createPost,
+  updatePost,
+  deletePost,
+  importPost,
+  POST_CHANNELS,
+  POST_STATUSES,
 
   createInvitation,
   getInvitationByCode,

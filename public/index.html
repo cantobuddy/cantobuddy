@@ -163,25 +163,60 @@
   <!-- ---- HOME VIEW ---- -->
   <section id="view-home" class="view active">
     <div class="hero">
+      <!-- Trust chip. The one fact that decides whether a helper gives this app
+           a second minute is that it costs nothing — so it is the first thing on
+           the page rather than a line in a footer. -->
+      <span class="hero-chip" data-i18n="home.freeChip">Free for helpers</span>
       <h1 class="hero-title"><span data-i18n="home.title">Learn Cantonese</span> <span class="hero-sub" data-i18n="home.subtitle">for daily life in Hong Kong</span></h1>
       <p class="hero-desc" data-i18n="home.desc">Practical words and phrases with audio, pictures, and quizzes. Start at your level!</p>
     </div>
 
+    <!-- ---- Returning-learner cards ------------------------------------
+         Both are filled by JS and both are EMPTY for a device that has never
+         practised, so a first-time visitor sees exactly the screen that
+         existed before: hero, levels, quick actions, categories. A learner
+         who has practised sees her streak and a way back in, above the fold.
+         Deliberately not [data-i18n] — these carry her own data, and
+         applyTranslations() would overwrite them with a static label. -->
+    <div id="home-resume"></div>
+    <div id="home-word"></div>
+
+    <!-- ---- Levels ---------------------------------------------------------
+         Three compact colour-coded rows rather than three tall centred cards.
+         The old cards were ~150px each to hold a 30px emoji and two lines, so
+         the single most important choice on the screen was also the emptiest
+         thing on it — a whole phone screen for three words. As rows they cost
+         about a third of that and each level carries its own colour, which is
+         the same colour it wears on Browse and in the quiz.
+
+         The class names are load-bearing: ui-mandarin asserts .hero-title's
+         text, and home-retention-test counts .level-card (3) and
+         .home-quick .btn (2). The h3/p inside each card are what the level's
+         name and description are read from. -->
     <div class="level-cards">
-      <div class="level-card" onclick="goBrowse(1)">
-        <div class="level-icon">🌱</div>
-        <h3 data-i18n="home.beginner">Beginner</h3>
-        <p data-i18n="home.beginnerDesc">Basic greetings &amp; common words</p>
+      <div class="level-card lv1" onclick="goBrowse(1)">
+        <span class="level-icon">🌱</span>
+        <div class="level-body">
+          <h3 data-i18n="home.beginner">Beginner</h3>
+          <p data-i18n="home.beginnerDesc">Basic greetings &amp; common words</p>
+        </div>
+        <span class="level-arrow" aria-hidden="true">›</span>
       </div>
-      <div class="level-card" onclick="goBrowse(2)">
-        <div class="level-icon">🌿</div>
-        <h3 data-i18n="home.intermediate">Intermediate</h3>
-        <p data-i18n="home.intermediateDesc">Daily activities &amp; routines</p>
+      <div class="level-card lv2" onclick="goBrowse(2)">
+        <span class="level-icon">🌿</span>
+        <div class="level-body">
+          <h3 data-i18n="home.intermediate">Intermediate</h3>
+          <p data-i18n="home.intermediateDesc">Daily activities &amp; routines</p>
+        </div>
+        <span class="level-arrow" aria-hidden="true">›</span>
       </div>
-      <div class="level-card" onclick="goBrowse(3)">
-        <div class="level-icon">🌳</div>
-        <h3 data-i18n="home.advanced">Advanced</h3>
-        <p data-i18n="home.advancedDesc">Full sentences &amp; phrases</p>
+      <div class="level-card lv3" onclick="goBrowse(3)">
+        <span class="level-icon">🌳</span>
+        <div class="level-body">
+          <h3 data-i18n="home.advanced">Advanced</h3>
+          <p data-i18n="home.advancedDesc">Full sentences &amp; phrases</p>
+        </div>
+        <span class="level-arrow" aria-hidden="true">›</span>
       </div>
     </div>
 
@@ -189,6 +224,10 @@
       <button class="btn btn-primary btn-lg" onclick="goQuizSelect()" data-i18n="home.startQuiz">📝 Start Quiz</button>
       <button class="btn btn-outline btn-lg" onclick="navigate('progress')" data-i18n="home.myProgress">📊 My Progress</button>
     </div>
+
+    <!-- The newest Discover item, so "there is something new" is visible
+         without opening the Discover tab. Empty when the feed is empty. -->
+    <div id="home-discover"></div>
 
     <!-- ---- Tell a friend ------------------------------------------------
          Deliberately NOT on this screen. As a card at the bottom of Home it
@@ -275,6 +314,47 @@
     </div>
     <div id="progress-content" class="progress-content"></div>
   </section>
+  <!-- ---- DISCOVER VIEW ---- -->
+  <!-- Culture and news, in one screen with two tabs.
+       Both channels are the same kind of thing (a dated article in a feed), so
+       they share this view, its card markup and its renderer; only the query
+       differs. The channel is held in STATE, not in the URL, because the whole
+       app renders into `/` — the crawlable version of these pages is
+       server-rendered by seo.js at /discover and /discover/:slug. -->
+  <section id="view-discover" class="view">
+    <div class="browse-header">
+      <button class="btn-back" onclick="navigate('home')" data-i18n="browse.backHome">← Home</button>
+      <h2 data-i18n="discover.title">Discover Hong Kong</h2>
+    </div>
+
+    <p class="discover-lead" data-i18n="discover.lead">Hong Kong life and local news, explained for helpers.</p>
+
+    <div class="discover-tabs" role="tablist">
+      <button class="discover-tab active" data-channel="culture" role="tab"
+              onclick="showChannel('culture')" data-i18n="discover.tabCulture">Culture</button>
+      <button class="discover-tab" data-channel="news" role="tab"
+              onclick="showChannel('news')" data-i18n="discover.tabNews">News</button>
+    </div>
+
+    <!-- One line saying what this channel is, filled by renderDiscover(). Not a
+         data-i18n element: it changes with the tab, and applyTranslations()
+         would overwrite it with a fixed string on every language switch. -->
+    <p class="discover-note" id="discover-note"></p>
+
+    <div id="discover-feed" class="discover-feed"></div>
+  </section>
+
+  <!-- ---- ARTICLE VIEW ---- -->
+  <!-- One post, opened from the feed. Rendered by renderPost() — the body is
+       sanitised against a small tag allowlist, because a body may come from an
+       operator edit and an href from a feed. -->
+  <section id="view-post" class="view">
+    <div class="browse-header">
+      <button class="btn-back" onclick="navigate('discover')" data-i18n="discover.back">← Discover</button>
+    </div>
+    <article id="post-body" class="post-article"></article>
+  </section>
+
   <!-- ---- SHARE VIEW ---- -->
   <!-- Its own page rather than a card on Home: word of mouth is how this app
        spreads, so it gets a permanent tab instead of something to scroll past.
@@ -329,6 +409,10 @@
     <p class="site-footer-title" data-i18n="footer.title">Browse Cantonese vocabulary</p>
     <nav class="site-footer-links" aria-label="Vocabulary">
       <a href="/learn" data-i18n="footer.allWords">All words &amp; categories</a>
+      <!-- A real crawlable link into the server-rendered Discover pages, for the
+           same reason the vocabulary links above exist: this app renders every
+           view into `/`, so a crawler would otherwise have no path to the feed. -->
+      <a href="/discover" data-i18n="nav.discover">Discover</a>
       <a href="/guide/learn-cantonese" data-i18n="footer.guide">Learn Cantonese: the beginner's guide</a>
       <a href="/level/1" data-i18n="home.beginner">Beginner</a>
       <a href="/level/2" data-i18n="home.intermediate">Intermediate</a>
@@ -358,6 +442,12 @@
   </button>
   <button class="nav-btn" data-view="browse" onclick="goBrowse()">
     <span class="nav-icon">📖</span><span data-i18n="nav.learn">Learn</span>
+  </button>
+  <!-- Discover. The one new destination in this release: two channels — culture
+       and news — behind one tab, because a sixth tab is already at the width
+       limit on a 360px phone and two more would break every label. -->
+  <button class="nav-btn" data-view="discover" onclick="navigate('discover')">
+    <span class="nav-icon">🌏</span><span data-i18n="nav.discover">Discover</span>
   </button>
   <button class="nav-btn" data-view="quiz" onclick="goQuizSelect()">
     <span class="nav-icon">📝</span><span data-i18n="nav.quiz">Quiz</span>

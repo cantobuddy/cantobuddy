@@ -9,8 +9,13 @@ const ADMIN = {
   people: null,
   report: null,
   reportDays: 30,
+  // Which practice count the daily practice-vs-quiz chart plots. Both are in
+  // the report payload already, so switching is a redraw, not a refetch.
+  practiceMetric: 'words_viewed',
   feedback: null,
   feedbackFilter: '',
+  posts: [],
+  postsFilter: '',
 };
 
 // ---- API helpers -----------------------------------------------------------
@@ -138,6 +143,7 @@ async function loadAdminData() {
     renderAdminPeople();
     renderAdminReport();
     renderAdminFeedback();
+    renderAdminPosts();
 
     // Populate category select in vocab form
     const sel = document.getElementById('vf-category');
@@ -688,6 +694,15 @@ function setReportDays(days) {
   renderAdminReport();
 }
 
+function setPracticeMetric(metric) {
+  ADMIN.practiceMetric = metric === 'cards_opened' ? 'cards_opened' : 'words_viewed';
+  document.querySelectorAll('#admin-practice-metric .chip').forEach((c) => {
+    c.classList.toggle('active', c.dataset.metric === ADMIN.practiceMetric);
+  });
+  // Redraw from the report already in memory — no second round trip.
+  renderPracticeChart((ADMIN.report && ADMIN.report.visitors) || {});
+}
+
 async function renderAdminReport() {
   const totalsEl = document.getElementById('admin-report-totals');
   const chartEl = document.getElementById('admin-report-chart');
@@ -697,7 +712,6 @@ async function renderAdminReport() {
   const vTotalsEl = document.getElementById('admin-visitor-totals');
   const vChartEl = document.getElementById('admin-visitor-chart');
   const vNotesEl = document.getElementById('admin-visitor-notes');
-  const practiceEl = document.getElementById('admin-practice-only');
   const pathsEl = document.getElementById('admin-top-paths');
   if (!totalsEl) return;
 
@@ -706,7 +720,10 @@ async function renderAdminReport() {
   notesEl.innerHTML = '';
   vChartEl.innerHTML = '<div class="progress-empty">Loading…</div>';
   vNotesEl.innerHTML = '';
-  practiceEl.innerHTML = '';
+  const pChartEl = document.getElementById('admin-practice-chart');
+  const pNotesEl = document.getElementById('admin-practice-notes');
+  if (pChartEl) pChartEl.innerHTML = '<div class="progress-empty">Loading…</div>';
+  if (pNotesEl) pNotesEl.innerHTML = '';
   pathsEl.innerHTML = '';
 
   try {
@@ -744,9 +761,7 @@ async function renderAdminReport() {
     vChartEl.innerHTML = visitorChart(v.series);
     vNotesEl.innerHTML = visitorNotes(v);
 
-    practiceEl.innerHTML = (v.practiceOnly && v.practiceOnly.length)
-      ? v.practiceOnly.map(practiceOnlyRow).join('')
-      : '<div class="progress-empty">Nobody is practising without quizzing yet.</div>';
+    renderPracticeChart(v);
 
     pathsEl.innerHTML = (v.topPaths && v.topPaths.length)
       ? v.topPaths.map(topPathRow).join('')
@@ -875,19 +890,117 @@ function visitorNotes(v) {
   return notes.map((n) => `<div class="report-note">${escapeHtml(n)}</div>`).join('');
 }
 
-/** One learner who practises but has never quizzed. */
-function practiceOnlyRow(p) {
-  const name = p.display_name || `Learner #${p.learner_id}`;
-  const bits = [
-    `${p.words_viewed} word(s) viewed`,
-    `${p.cards_opened} card(s) opened`,
-    `${p.days_active} day(s) active`,
+/**
+ * Practising vs quizzing, one day at a time.
+ *
+ * A grouped bar chart: for each day, two bars — how much was studied, and how
+ * many quizzes were started. The gap between them is the finding. A day with a
+ * tall practice bar and no quiz bar is a learner reading the vocabulary and
+ * never testing herself.
+ *
+ * Two series rather than one, so this cannot reuse svgDailyBars — that draws a
+ * single value per day. The geometry below is deliberately the same (same
+ * viewBox, same padding, same stub-for-zero rule) so the three charts on this
+ * tab read as one set.
+ *
+ * Everything it plots is already in `v.series`, which db.js builds from
+ * learner_daily. That rollup is per day and anonymous, so a bar can never be
+ * traced to a learner — which is why this is a chart and the named list is an
+ * export.
+ */
+function practiceChart(series) {
+  const s = series || [];
+  if (!s.length) return '<div class="progress-empty">No practice recorded in this period.</div>';
+
+  const metric = ADMIN.practiceMetric === 'cards_opened' ? 'cards_opened' : 'words_viewed';
+  const metricLabel = metric === 'cards_opened' ? 'card(s) opened' : 'word(s) viewed';
+
+  const practice = s.map((d) => d[metric] || 0);
+  const quizzes = s.map((d) => d.quizzes_started || 0);
+  const max = Math.max(1, ...practice, ...quizzes);
+
+  const W = 680;
+  const H = 180;
+  const padL = 8;
+  const padR = 8;
+  const padT = 16;
+  const padB = 26;
+  const plotW = W - padL - padR;
+  const plotH = H - padT - padB;
+  const slot = plotW / s.length;
+  // Two bars per slot with a small gutter; never narrower than 1px each or a
+  // 90-day view turns into a solid block.
+  const pairW = Math.max(3, Math.min(28, slot * 0.78));
+  const barW = Math.max(1, (pairW - 1) / 2);
+  const base = padT + plotH;
+
+  const bar = (d, i, value, fill, offset, label) => {
+    const x = padL + i * slot + (slot - pairW) / 2 + offset;
+    const tip = `<title>${escapeHtml(`${d.day}: ${value} ${label}`)}</title>`;
+    if (!value) {
+      return `<rect x="${x.toFixed(1)}" y="${(base - 2).toFixed(1)}" width="${barW.toFixed(1)}" height="2" rx="1" fill="#e9ecef">${tip}</rect>`;
+    }
+    const h = Math.max(3, Math.round((value / max) * plotH));
+    return `<rect x="${x.toFixed(1)}" y="${(base - h).toFixed(1)}" width="${barW.toFixed(1)}" height="${h}" rx="2" fill="${fill}">${tip}</rect>`;
+  };
+
+  const bars = s.map((d, i) => (
+    bar(d, i, d[metric] || 0, '#2a9d8f', 0, metricLabel)
+    + bar(d, i, d.quizzes_started || 0, '#52b788', barW + 1, 'quiz(zes) started')
+  )).join('');
+
+  const ticks = [...new Set([0, Math.floor((s.length - 1) / 2), s.length - 1])]
+    .map((i) => {
+      const x = padL + i * slot + slot / 2;
+      return `<text x="${x.toFixed(1)}" y="${H - 8}" text-anchor="middle" font-size="11" fill="#6c757d">${escapeHtml(s[i].day.slice(5))}</text>`;
+    })
+    .join('');
+
+  return `<svg viewBox="0 0 ${W} ${H}" class="report-svg" role="img"
+      aria-label="Daily practice and quiz starts over the last ${s.length} days">
+    <line x1="${padL}" y1="${base}" x2="${W - padR}" y2="${base}" stroke="#dee2e6" stroke-width="1"/>
+    <text x="${padL}" y="${padT - 5}" font-size="11" fill="#6c757d">peak ${max} per day</text>
+    ${bars}${ticks}
+  </svg>`;
+}
+
+function practiceNotes(v) {
+  const s = (v && v.series) || [];
+  if (!s.length) return '';
+  const days = s.length;
+  const totalPractice = s.reduce((n, d) => n + (d.words_viewed || 0), 0);
+  const totalCards = s.reduce((n, d) => n + (d.cards_opened || 0), 0);
+  const totalQuizzes = s.reduce((n, d) => n + (d.quizzes_started || 0), 0);
+
+  // The number the original list was really trying to convey, now over time.
+  const practiceDays = s.filter((d) => (d.words_viewed || 0) + (d.cards_opened || 0) > 0).length;
+  const quizDays = s.filter((d) => (d.quizzes_started || 0) > 0).length;
+  const silentDays = practiceDays - quizDays;
+
+  const notes = [
+    `<strong>${totalPractice}</strong> words viewed and <strong>${totalCards}</strong> cards opened, against <strong>${totalQuizzes}</strong> quiz(zes) started, over ${days} days.`,
+    `Studied on <strong>${practiceDays}</strong> of ${days} days; quizzed on <strong>${quizDays}</strong>.`,
   ];
-  return `<div class="learner-stat">
-    <div class="learner-stat-name">📖 ${escapeHtml(name)}</div>
-    <div class="learner-stat-sub">${escapeHtml(bits.join(' · '))}</div>
-    <div class="learner-stat-sub">first seen ${fmtDate(p.first_day)} · last practised ${fmtDate(p.last_day)}</div>
-  </div>`;
+  if (silentDays > 0) {
+    notes.push(`${silentDays} day(s) had practice but no quiz at all.`);
+  } else if (practiceDays > 0) {
+    notes.push('Every day with practice also had a quiz.');
+  }
+  if (v.practiceOnlyLearners) {
+    notes.push(`${v.practiceOnlyLearners} learner(s) have never started a quiz — named in the <em>Practice only</em> export below.`);
+  } else {
+    notes.push('Everyone who has practised has also started a quiz.');
+  }
+  return notes.map((n) => `<div class="report-note">${n}</div>`).join('');
+}
+
+function renderPracticeChart(v) {
+  const chartEl = document.getElementById('admin-practice-chart');
+  const notesEl = document.getElementById('admin-practice-notes');
+  if (!chartEl) return;
+  const series = (v && v.series) || [];
+  chartEl.innerHTML = practiceChart(series);
+  if (notesEl) notesEl.innerHTML = practiceNotes(v || {});
 }
 
 /** One landing page, by views. Path only — no visitor is attached to a path. */
@@ -1074,6 +1187,155 @@ async function deleteFeedbackItem(id) {
     await renderAdminFeedback();
   } catch (err) {
     alert('Could not delete: ' + err.message);
+  }
+}
+
+// ---- Discover feed (posts) -------------------------------------------------
+//
+// One list for both channels. Culture posts are written here; news posts are
+// imported from public Hong Kong sources and are READ-ONLY in spirit — the
+// operator can hide or delete one, but editing an imported headline would put
+// words in a source's mouth, so the form says so rather than pretending.
+
+function setPostFilter(channel) {
+  ADMIN.postsFilter = channel;
+  document.querySelectorAll('#admin-posts-filter .chip').forEach((c) => {
+    c.classList.toggle('active', c.dataset.channel === channel);
+  });
+  renderAdminPosts();
+}
+
+async function renderAdminPosts() {
+  const wrap = document.getElementById('admin-posts-list');
+  if (!wrap) return;
+  let data;
+  try {
+    const q = ADMIN.postsFilter ? `?channel=${encodeURIComponent(ADMIN.postsFilter)}` : '';
+    data = await apiGet(`/api/admin/posts${q}`);
+  } catch (err) {
+    wrap.innerHTML = `<p class="admin-hint">Could not load the feed: ${escapeHtml(err.message)}</p>`;
+    return;
+  }
+  ADMIN.posts = data.posts || [];
+
+  const summary = document.getElementById('admin-posts-summary');
+  if (summary && data.counts) {
+    summary.textContent =
+      `${data.counts.published} published (${data.counts.culture} culture, ${data.counts.news} news) · ` +
+      `${data.counts.total} total. News is imported; culture is written here.`;
+  }
+
+  if (!ADMIN.posts.length) {
+    wrap.innerHTML = '<p class="admin-hint">Nothing here yet.</p>';
+    return;
+  }
+
+  wrap.innerHTML = ADMIN.posts
+    .map((p) => {
+      const date = (p.published_at || p.created_at || '').slice(0, 10);
+      const badge =
+        p.status === 'published'
+          ? '<span class="post-badge published">Published</span>'
+          : '<span class="post-badge draft">Draft</span>';
+      const origin = p.origin === 'auto' ? '<span class="post-badge auto">Imported</span>' : '';
+      const src = p.source_name
+        ? `<a class="post-src" href="${escapeHtml(p.source_url)}" target="_blank" rel="noopener">${escapeHtml(p.source_name)}</a>`
+        : '';
+      return `<div class="post-row">
+        <div class="post-row-main">
+          <div class="post-row-title">${escapeHtml(p.icon || '')} ${escapeHtml(p.title_en)}</div>
+          <div class="post-row-meta">${escapeHtml(date)} · ${escapeHtml(p.channel)} · ${escapeHtml(p.slug)} ${src}</div>
+        </div>
+        <div class="post-row-badges">${badge}${origin}</div>
+        <div class="post-row-actions">
+          <button class="btn btn-sm btn-outline" onclick="openPostForm(${p.id})">Edit</button>
+          <button class="btn btn-sm btn-outline" onclick="deleteAdminPost(${p.id})">Delete</button>
+        </div>
+      </div>`;
+    })
+    .join('');
+}
+
+function openPostForm(id) {
+  const p = id ? ADMIN.posts.find((x) => x.id === Number(id)) : null;
+  document.getElementById('post-form-title').textContent = p ? 'Edit post' : 'New post';
+  document.getElementById('pf-id').value = p ? p.id : '';
+  document.getElementById('pf-channel').value = p ? p.channel : 'culture';
+  document.getElementById('pf-status').value = p ? p.status : 'draft';
+  const set = (field, value) => { document.getElementById(field).value = value || ''; };
+  set('pf-icon', p && p.icon);
+  set('pf-title-en', p && p.title_en);
+  set('pf-title-zh', p && p.title_zh);
+  set('pf-title-fil', p && p.title_fil);
+  set('pf-title-id', p && p.title_id);
+  set('pf-summary-en', p && p.summary_en);
+  set('pf-summary-zh', p && p.summary_zh);
+  set('pf-body-en', p && p.body_en);
+  set('pf-source-name', p && p.source_name);
+  set('pf-source-url', p && p.source_url);
+  document.getElementById('post-form-modal').classList.add('show');
+}
+
+function closePostForm(e) {
+  if (e && e.target && e.target.id !== 'post-form-modal') return;
+  document.getElementById('post-form-modal').classList.remove('show');
+}
+
+async function submitPostForm(e) {
+  e.preventDefault();
+  const id = document.getElementById('pf-id').value;
+  const body = {
+    channel: document.getElementById('pf-channel').value,
+    status: document.getElementById('pf-status').value,
+    icon: document.getElementById('pf-icon').value,
+    title_en: document.getElementById('pf-title-en').value,
+    title_zh: document.getElementById('pf-title-zh').value,
+    title_fil: document.getElementById('pf-title-fil').value,
+    title_id: document.getElementById('pf-title-id').value,
+    summary_en: document.getElementById('pf-summary-en').value,
+    summary_zh: document.getElementById('pf-summary-zh').value,
+    body_en: document.getElementById('pf-body-en').value,
+    source_name: document.getElementById('pf-source-name').value,
+    source_url: document.getElementById('pf-source-url').value,
+  };
+  try {
+    if (id) await apiPut(`/api/admin/posts/${id}`, body);
+    else await apiPost('/api/admin/posts', body);
+    closePostForm();
+    await renderAdminPosts();
+  } catch (err) {
+    alert('Could not save: ' + err.message);
+  }
+}
+
+/** Deleting a post is irreversible and there is no undo, so it asks first. */
+async function deleteAdminPost(id) {
+  if (!confirm('Delete this post? This cannot be undone.')) return;
+  try {
+    await apiDelete(`/api/admin/posts/${id}`);
+    await renderAdminPosts();
+  } catch (err) {
+    alert('Could not delete: ' + err.message);
+  }
+}
+
+/**
+ * Runs the news importer now. Reports what actually happened — how many were
+ * new, and which feed failed if one did — rather than a bare "done", because a
+ * silent zero is the one result worth noticing.
+ */
+async function fetchNewsNow() {
+  const btn = event && event.target ? event.target : null;
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Fetching…'; }
+  try {
+    const r = await apiPost('/api/admin/posts/import', {});
+    await renderAdminPosts();
+    const errs = (r.errors || []).length ? `\n\nFeed problems:\n${r.errors.join('\n')}` : '';
+    alert(`Fetched ${r.fetched} items · ${r.inserted} new · ${r.skipped} already had.${errs}`);
+  } catch (err) {
+    alert('Import failed: ' + err.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '⬇ Fetch news now'; }
   }
 }
 

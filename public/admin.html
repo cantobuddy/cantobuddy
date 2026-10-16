@@ -65,6 +65,7 @@
            is something waiting without opening the tab. Hidden at zero. -->
       <button class="admin-tab" data-tab="feedback" onclick="switchTab('feedback')">💬 Feedback<span
         id="admin-feedback-badge" class="tab-badge" style="display:none"></span></button>
+      <button class="admin-tab" data-tab="posts" onclick="switchTab('posts')">📰 Posts</button>
     </div>
 
     <!-- ---- vocab tab ---- -->
@@ -154,13 +155,26 @@
       </p>
       <div id="admin-report-employers" class="admin-list"></div>
 
-      <h4 class="admin-subhead">Practising without quizzing</h4>
+      <h4 class="admin-subhead">Practising vs quizzing, by day</h4>
       <p class="admin-hint">
-        Learners who have studied the vocabulary but never started a quiz. These
-        are the people the quiz-only reports could not see at all — often the
-        ones most likely to need encouragement rather than more content.
+        Each day, how much was studied and how much was tested. A day with a tall
+        practice bar and a flat quiz bar is a learner working through the
+        vocabulary without ever testing herself — the people the quiz-only
+        reports could not see at all. Counts are per day and anonymous; no
+        learner is attached to a bar.
       </p>
-      <div id="admin-practice-only" class="admin-list"></div>
+      <div class="chip-group" id="admin-practice-metric">
+        <button class="chip active" data-metric="words_viewed" onclick="setPracticeMetric('words_viewed')">Words viewed</button>
+        <button class="chip" data-metric="cards_opened" onclick="setPracticeMetric('cards_opened')">Cards opened</button>
+      </div>
+      <div id="admin-practice-chart" class="report-chart"></div>
+      <div id="admin-practice-notes" class="report-notes"></div>
+      <p class="admin-hint">
+        The named list of learners who have never quizzed is in the CSV export
+        below (<em>Practice only</em>) — it is a list to act on, not a chart, so
+        it lives in the export rather than on this page.
+      </p>
+      <div id="admin-practice-only" hidden></div>
 
       <h4 class="admin-subhead">Top landing pages</h4>
       <p class="admin-hint">
@@ -211,6 +225,40 @@
 
       <div id="admin-feedback-summary" class="stats-grid"></div>
       <div id="admin-feedback-list" class="admin-list"></div>
+    </div>
+
+    <!-- ---- posts tab ---- -->
+    <!-- The Discover feed: the culture channel (written here) and the news
+         channel (imported from public Hong Kong sources — see news.js).
+
+         The two live in one tab because they are one feed with two channels,
+         and because the thing an operator does to them is the same: look at the
+         list, publish or hide an item, add one by hand. The only asymmetry is
+         the "Fetch news now" button, which only makes sense for news — it is
+         labelled as such rather than hidden, so it is obvious why it exists. -->
+    <div id="tab-posts" class="admin-tab-content">
+      <div class="admin-toolbar">
+        <h3>Discover feed</h3>
+        <div class="admin-toolbar-actions">
+          <button class="btn btn-outline btn-sm" onclick="renderAdminPosts()">↻ Refresh</button>
+          <button class="btn btn-outline btn-sm" onclick="fetchNewsNow()" title="Import the latest stories from the public HK sources">⬇ Fetch news now</button>
+          <button class="btn btn-primary" onclick="openPostForm()">+ New post</button>
+        </div>
+      </div>
+      <p class="admin-hint" id="admin-posts-summary"></p>
+      <p class="admin-hint">
+        <strong>Culture</strong> posts are written here. <strong>News</strong> posts are imported
+        from Hong Kong public sources (government press releases and RTHK) as a headline, a short
+        summary and a link — never the full article, which would be a copyright problem.
+      </p>
+
+      <div class="chip-group" id="admin-posts-filter">
+        <button class="chip active" data-channel="" onclick="setPostFilter('')">All</button>
+        <button class="chip" data-channel="culture" onclick="setPostFilter('culture')">🏮 Culture</button>
+        <button class="chip" data-channel="news" onclick="setPostFilter('news')">📰 News</button>
+      </div>
+
+      <div id="admin-posts-list" class="admin-list"></div>
     </div>
 
   </section>
@@ -311,6 +359,103 @@
       </div>
       <div class="modal-actions">
         <button type="button" class="btn btn-outline" onclick="closeCatForm()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============================ POST FORM MODAL ============================ -->
+<!-- One form for both channels. English is the required language — a post with
+     no English title has nothing to show in the feed — and every other language
+     falls back to English when left blank, so a post can be published before its
+     translations exist. That is the same order the vocabulary content used:
+     approve the English first, then translate. -->
+<div id="post-form-modal" class="modal-overlay" onclick="closePostForm(event)">
+  <div class="modal-form" onclick="event.stopPropagation()">
+    <h3 id="post-form-title">New post</h3>
+    <form onsubmit="submitPostForm(event)">
+      <input type="hidden" id="pf-id" />
+
+      <div class="form-row">
+        <div class="form-field">
+          <label>Channel *</label>
+          <select id="pf-channel">
+            <option value="culture">🏮 Culture</option>
+            <option value="news">📰 News</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Status *</label>
+          <select id="pf-status">
+            <option value="draft">Draft — hidden from learners</option>
+            <option value="published">Published — live in the feed</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Icon</label>
+          <input type="text" id="pf-icon" placeholder="🏮" maxlength="4" />
+        </div>
+      </div>
+
+      <div class="form-field">
+        <label>Title — English *</label>
+        <input type="text" id="pf-title-en" placeholder="唔該 and 多謝 Are Not the Same Word" required />
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label>Title — 中文（简体）</label>
+          <input type="text" id="pf-title-zh" lang="zh-Hans" placeholder="「唔该」和「多谢」不是同一个词" />
+        </div>
+        <div class="form-field">
+          <label>Title — Filipino</label>
+          <input type="text" id="pf-title-fil" lang="tl" placeholder="Optional" />
+        </div>
+        <div class="form-field">
+          <label>Title — Bahasa Indonesia</label>
+          <input type="text" id="pf-title-id" lang="id" placeholder="Optional" />
+        </div>
+      </div>
+
+      <div class="form-field">
+        <label>Summary — English</label>
+        <textarea id="pf-summary-en" rows="3" placeholder="One or two sentences shown on the feed card."></textarea>
+        <p class="form-hint">Shown under the headline in the feed and as the page's meta description.</p>
+      </div>
+      <div class="form-field">
+        <label>Summary — 中文（简体）</label>
+        <textarea id="pf-summary-zh" rows="2" lang="zh-Hans" placeholder="留空则使用英文"></textarea>
+      </div>
+
+      <div class="form-field">
+        <label>Body — English</label>
+        <textarea id="pf-body-en" rows="10" placeholder="<p>…</p>"></textarea>
+        <p class="form-hint">
+          A small HTML subset: <code>&lt;p&gt;</code>, <code>&lt;h2&gt;</code>, <code>&lt;ul&gt;</code>,
+          <code>&lt;ol&gt;</code>, <code>&lt;li&gt;</code>, <code>&lt;strong&gt;</code>,
+          <code>&lt;em&gt;</code>, <code>&lt;a&gt;</code>. Anything else is stripped when it renders.
+          <strong>Leave empty for an imported news item</strong> — a news post is a headline, a
+          summary and a link, never the article.
+        </p>
+      </div>
+
+      <div class="form-row">
+        <div class="form-field">
+          <label>Source name</label>
+          <input type="text" id="pf-source-name" placeholder="RTHK News — Local" />
+        </div>
+        <div class="form-field">
+          <label>Source URL</label>
+          <input type="text" id="pf-source-url" placeholder="https://…" />
+        </div>
+      </div>
+      <p class="form-hint">
+        Filling these in adds an attribution line and a “Read the full story” link to the article.
+        Required for anything summarising someone else's reporting.
+      </p>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-outline" onclick="closePostForm()">Cancel</button>
         <button type="submit" class="btn btn-primary">Save</button>
       </div>
     </form>

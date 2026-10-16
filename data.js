@@ -984,6 +984,179 @@ function nextId(items) {
   return Math.max(...items.map((i) => i.id)) + 1;
 }
 
+/* ===========================================================================
+   SEED_POSTS — the first articles in the "Discover" feed.
+
+   These are the CULTURE channel's opening set. The news channel is not seeded;
+   it is filled by the importer (news.js) from public sources.
+
+   WHY THESE ARE HERE AND NOT IN content.js: a guide is written once and ships
+   with the code. A post is a dated item in a feed that the operator keeps
+   adding to. Same words, different lifecycle — see the `posts` table comment
+   in db.js.
+
+   CONTENT RULES (the same ones the guides follow):
+     - Written to be USEFUL, not to be complete. Each post answers one question
+       a helper actually has, and says what to do.
+     - Every claim about Cantonese is checked; jyutping is real jyutping.
+     - Nothing here is asserted as a universal rule. Customs differ between
+       families, and the honest instruction when they do is "ask the family",
+       which is said out loud rather than hidden.
+     - `body` is a small, fixed HTML subset (<p>, <h2>, <ul>, <li>, <strong>,
+       <em>, <a>) — the same subset the guides use, and the only tags the
+       renderers will let through.
+
+   LANGUAGE COVERAGE: English is complete. Simplified Chinese carries the title
+   and summary. Filipino and Indonesian, and the Chinese body, are deliberately
+   left blank for now and fall back to English — the same order used for the 38
+   machine-drafted words: approve the English, then translate. See
+   proposal/CULTURE-FEED-REVIEW.md.
+   =========================================================================== */
+
+const SEED_POSTS = [
+  {
+    slug: 'm-goi-and-do-ze-not-the-same',
+    channel: 'culture',
+    icon: '🙏',
+    status: 'published',
+    published_at: '2026-10-12T09:00:00.000Z',
+    title_en: '唔該 and 多謝 Are Not the Same Word',
+    title_zh: '「唔该」和「多谢」不是同一个词',
+    summary_en:
+      'Cantonese has two ways to say thank you, and using the wrong one is a small mistake that nobody corrects you for. Here is the difference, and how to tell which one a situation wants.',
+    summary_zh: '粤语里有两个「谢谢」，用错了一般没人会纠正你。这篇讲清它们的区别，以及什么场合该用哪一个。',
+    body_en: `<p>Most learners meet 唔該 and 多謝 on the same day, are told both mean "thank you", and then spend months using them at random. They are not interchangeable, and the difference is easy to remember once you see it.</p>
+<h2>The rule</h2>
+<p><strong>唔該</strong> (m4 goi1) is for a <em>service</em> — something a person <strong>does</strong> for you. Someone holds the lift door, passes you a bowl, answers your question, brings the bill.</p>
+<p><strong>多謝</strong> (do1 ze6) is for a <em>gift</em> — something a person <strong>gives</strong> you. A present, a red packet, money, food that is being handed over as a gift rather than served.</p>
+<h2>Why it matters</h2>
+<p>Say 多謝 for a small favour and it sounds slightly formal, as if you had been given a present for opening a door. Say 唔該 when you are handed a gift and it sounds like you are thanking someone for a service — a little cold. Neither is a disaster. Both are the kind of thing a family notices and never mentions.</p>
+<h2>The everyday test</h2>
+<p>Ask yourself: <strong>did they do something, or did they give me something?</strong> Done → 唔該. Given → 多謝.</p>
+<ul>
+  <li>The helper at the shop hands you your change → <strong>唔該</strong></li>
+  <li>Your employer's mother gives you a red packet at New Year → <strong>多謝</strong></li>
+  <li>Someone moves aside for you in a corridor → <strong>唔該</strong></li>
+  <li>A relative presses a box of cakes into your hands to take home → <strong>多謝</strong></li>
+</ul>
+<h2>The one you will use most</h2>
+<p>唔該 is also the word for "please" and for "excuse me" — the same two syllables cover all three. That is why it is the single most useful phrase in the app: it is 唔該 when you ask, 唔該 when you receive, and 唔該 when you need to get past someone. If you learn one word this week, learn this one.</p>`,
+  },
+
+  {
+    slug: 'the-altar-is-not-clutter',
+    channel: 'culture',
+    icon: '🕯️',
+    status: 'published',
+    published_at: '2026-10-13T09:00:00.000Z',
+    title_en: 'The Altar in the Flat Is Not Clutter — Please Do Not Move It',
+    title_zh: '家中的神枱不是杂物，请不要移动它',
+    summary_en:
+      'A red shelf with small figures, a photograph, an incense holder and sometimes fruit. It looks untidy and it is the one thing in the flat you should never tidy. Here is what it is and what to do instead.',
+    summary_zh: '红色的小架子，上面有神像、照片、香炉，有时还有水果。它看起来像没收拾好的杂物，却是家里最不该动的东西。这篇说明它是什么，以及该怎么做。',
+    body_en: `<p>Many Hong Kong flats contain something that looks, at a glance, like an untidy shelf: a small red cabinet or wall-mounted shelf, often near the door or in the living room, holding two or three small figures, a photograph, a holder with incense, and sometimes a plate of fruit. It may look dusty or cluttered, and your instinct will be to tidy it.</p>
+<p><strong>Please do not.</strong> That is 神枱 (san4 toi2) — the family altar. It is not decoration and it is not storage. Every object on it is placed there deliberately, and the arrangement carries meaning to the family.</p>
+<h2>What to do instead</h2>
+<ul>
+  <li><strong>Do not move anything on it.</strong> Not the figures, not the photograph, not the fruit.</li>
+  <li><strong>Do not dust or wipe it</strong> without asking first. If it clearly needs cleaning, ask how the family would like it done — many families clean it themselves.</li>
+  <li><strong>Never throw anything from it away.</strong> Ash in the incense holder is not dirt to be emptied, and used offerings are not rubbish.</li>
+  <li><strong>If you are unsure whether an object belongs to the altar</strong>, treat it as if it does, and ask.</li>
+</ul>
+<h2>The wider point</h2>
+<p>This is the single most useful thing to understand about a Hong Kong household: <strong>a few things that look like clutter have a purpose you cannot see.</strong> A bag of printed paper in gold and silver, a stack of folded paper, a plate of fruit left out — all of these can be part of household practice. When something looks like rubbish but you did not put it there, the safe answer is always the same: leave it, and ask.</p>
+<h2>The sentence that solves it</h2>
+<p><strong>唔好意思，我唔知道</strong> (m4 hou2 ji3 si1, ngo5 m4 zi1 dou6) — "Sorry, I didn't know." Say it plainly and early if you have already moved something. In most households that is the end of it. What turns a small thing into a problem is not the mistake — it is discovering it later and saying nothing.</p>`,
+  },
+
+  {
+    slug: 'have-you-eaten-is-a-greeting',
+    channel: 'culture',
+    icon: '🍚',
+    status: 'published',
+    published_at: '2026-10-13T10:30:00.000Z',
+    title_en: '"Have You Eaten?" Is a Greeting, Not a Dinner Invitation',
+    title_zh: '「食咗飯未？」是问候，不是请你吃饭',
+    summary_en:
+      '食咗飯未 is asked constantly by older relatives, and answering it as a real question is the mistake every new helper makes. It is a greeting. Here is what it means and how to answer.',
+    summary_zh: '长辈会经常问你「食咗飯未」，把它当成真问题来回答，是每个新来的家佣都会犯的错。它其实是一句问候。这篇讲它是什么意思、该怎么回。',
+    body_en: `<p><strong>食咗飯未</strong> (sik6 zo2 faan6 mei6) translates literally as "Have you eaten yet?" — and it is one of the first things an elderly person in the household will say to you. It is not a question about your lunch.</p>
+<p>It is a <strong>greeting</strong>. It means roughly "hello, are you well", and it comes from a time when asking after someone's next meal was how you asked after them. An elderly relative may say it several times a day, including straight after you have eaten.</p>
+<h2>How to answer</h2>
+<p>You do not owe a real answer. A short, cheerful one is what the greeting is asking for:</p>
+<ul>
+  <li><strong>食咗喇</strong> (sik6 zo2 laa3) — "I've eaten." The usual reply.</li>
+  <li><strong>未呀</strong> (mei6 aa3) — "Not yet." Perfectly fine, and often the start of a conversation about what to cook.</li>
+</ul>
+<p>What not to do is give a full account of what you ate and when. That is the equivalent of answering "how are you" with a medical history — technically responsive, socially strange.</p>
+<h2>Why this is worth a whole post</h2>
+<p>Because it is the clearest example of the thing that trips up new helpers: <strong>a phrase whose words you know perfectly, and whose meaning is not the words.</strong> Cantonese is full of these. 得閒飲茶 (dak1 haan4 jam2 caa4), "let's have tea sometime", is not an invitation either — it is a warm way of saying goodbye.</p>
+<p>When a phrase seems oddly literal or oddly repetitive, that is usually the signal. It is doing social work, not information work. Learn what it is <em>for</em>, and the words stop mattering so much.</p>`,
+  },
+
+  {
+    slug: 'lunar-new-year-at-home',
+    channel: 'culture',
+    icon: '🧧',
+    status: 'published',
+    published_at: '2026-10-14T08:00:00.000Z',
+    title_en: 'Lunar New Year: What Changes at Home, and the One Rule to Remember',
+    title_zh: '农历新年：家里会有什么变化，以及最要紧的一条规矩',
+    summary_en:
+      'The biggest week of the Hong Kong year. The cleaning happens before, not during — and on the first day there is one ordinary household task you should not do.',
+    summary_zh: '香港一年里最忙的一周。大扫除是在年前做的，不是过年时做的——而年初一，有一件最平常的家务你最好别做。',
+    body_en: `<p>Lunar New Year falls in late January or February, depending on the lunar calendar, so the date moves each year. The family will always know the exact days — asking at the start of the month is a good habit, because this is the busiest week in a Hong Kong household.</p>
+<h2>The rule to remember</h2>
+<p><strong>Do not sweep or clean on the first day of the new year.</strong> The reason usually given is that sweeping on the first day sweeps the year's good fortune out of the house, so all the cleaning is done in the days <em>before</em> the new year instead.</p>
+<p>This is worth knowing precisely because it is easy to break by accident. You will be trying to be helpful, the flat will be full of people and crumbs, and reaching for a broom is the obvious thing to do. Wait until the family has started tidying, or ask.</p>
+<h2>What else changes</h2>
+<ul>
+  <li><strong>The deep clean comes first.</strong> Expect a thorough clean of the whole flat in the days before.</li>
+  <li><strong>利是</strong> (lai6 si6) — red packets, small red envelopes with money, given to children, to unmarried people, and often to helpers. If one is given to you, take it with <strong>both hands</strong> and say <strong>多謝</strong> — it is a gift, not a service.</li>
+  <li><strong>Visitors.</strong> Relatives visit in the first days. There is a lot of food, a lot of tea, and the kettle runs constantly.</li>
+  <li><strong>Gift boxes.</strong> Fruit, cakes and sweets arrive in boxes, and many are re-gifted rather than eaten. Ask before opening a box that is still wrapped.</li>
+  <li><strong>Plants and flowers.</strong> A small kumquat tree or other lucky plant is often bought for the festival. Do not move it or throw it out while the festival is on.</li>
+</ul>
+<h2>Words for the week</h2>
+<ul>
+  <li><strong>恭喜發財</strong> (gung1 hei2 faat3 coi4) — the standard new-year greeting, "wishing you prosperity".</li>
+  <li><strong>新年快樂</strong> (san1 nin2 faai3 lok6) — Happy New Year.</li>
+  <li><strong>利是</strong> (lai6 si6) — red packet.</li>
+</ul>
+<p>As always, households differ. The family's own practice is the one that counts, and asking is never the wrong move.</p>`,
+  },
+
+  {
+    slug: 'mid-autumn-mooncakes',
+    channel: 'culture',
+    icon: '🥮',
+    status: 'published',
+    published_at: '2026-10-14T11:00:00.000Z',
+    title_en: 'Mid-Autumn Festival: Mooncakes, and the Tin You Must Not Throw Away',
+    title_zh: '中秋节：月饼，和那个不能扔的铁盒',
+    summary_en:
+      'In September or early October, decorated tins of mooncakes arrive in the flat — and they are not all for eating. What the boxes are for, and why you should not open one early.',
+    summary_zh: '九月或十月初，家里会陆续收到一盒盒包装精美的月饼——它们不全是拿来吃的。这篇讲这些盒子是做什么用的，以及为什么不要提前拆。',
+    body_en: `<p>Mid-Autumn Festival falls in September or early October, on the fifteenth day of the eighth lunar month. If you work in a Hong Kong household you will notice it before you understand it, because that is when the mooncakes arrive.</p>
+<h2>What arrives</h2>
+<p><strong>月餅</strong> (jyut6 beng2) — mooncakes. Dense, rich, expensive, and given as gifts in decorated tins and boxes. Families receive far more than they can eat, because everyone gives them to everyone.</p>
+<h2>Two things not to do</h2>
+<ul>
+  <li><strong>Do not open a tin early.</strong> Many of the tins in the flat are waiting to be given to somebody else. A box that has been cut into may no longer be suitable to pass on.</li>
+  <li><strong>Do not throw away a tin or its box.</strong> The tins are good quality and often kept and reused, and some are collectible. If you are not sure whether a box is rubbish, ask before it goes out.</li>
+</ul>
+<h2>What the household does</h2>
+<ul>
+  <li><strong>Lanterns.</strong> Children carry them in the evening, often as a family outing.</li>
+  <li><strong>Going out at night</strong> to see the moon, which is the point of the festival. Expect to be asked to help with preparation, and possibly to work later than usual.</li>
+  <li><strong>Fruit</strong> is part of it too — pomelo and star fruit in particular.</li>
+</ul>
+<h2>The general lesson</h2>
+<p>Mid-Autumn is a good example of a pattern that runs through the whole year here: <strong>during a festival, ordinary objects have an extra purpose.</strong> A box is not just a box; it is a gift in transit. A tin is not just a tin; it is something to keep. When a festival is coming, slow down before you tidy, and ask.</p>
+<p><strong>嚟緊有咩節日要準備？</strong> (lai4 gan6 jau5 me1 zit3 jat6 jiu3 zeon2 bei6) — "Is there a festival coming that we need to prepare for?" It is a good question to ask at the start of every month.</p>`,
+  },
+];
+
 module.exports = {
   load,
   save,
@@ -995,6 +1168,7 @@ module.exports = {
   SEED_VOCABULARY,
   SEED_SCENARIOS,
   SEED_USERS,
+  SEED_POSTS,
   MANDARIN_GLOSSES,
   CATEGORY_ZH_NAMES,
   INDONESIAN_GLOSSES,

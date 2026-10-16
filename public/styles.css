@@ -25,6 +25,21 @@
   --font-cn:         'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
   --font-en:         'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --max-w:           640px;
+
+  /* ---- Level ramp ------------------------------------------------------
+     One hue per level, used by the Home cards and anywhere a level is named,
+     so the colour a learner learns on Home is the colour she meets on Browse
+     and in the quiz. Written as tokens rather than repeated hex so the three
+     cannot drift apart. Each pair is (solid, tint); the tint is the icon tile
+     and the solid is the rail, the arrow and any text on white.
+     Chosen to survive daylight on a cheap phone screen: all three are dark
+     enough to carry white text and to clear 4.5:1 on their own tint. */
+  --lv1:      #17796d;  --lv1-tint: #e1f5ee;  /* beginner     */
+  --lv2:      #a8641a;  --lv2-tint: #faedda;  /* intermediate */
+  --lv3:      #2f66b8;  --lv3-tint: #e6f0fb;  /* advanced     */
+
+  /* Very light brand wash — the active nav tab and the logo tile. */
+  --c-primary-tint: #fff1f2;
 }
 
 /* ---- Reset ---- */
@@ -68,7 +83,18 @@ body {
   user-select: none;
 }
 
-.logo-emoji { font-size: 1.5rem; }
+/* The parrot sits on a tinted tile so the lockup reads as a mark rather than
+   as an emoji that happens to precede the wordmark. */
+.logo-emoji {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--c-primary-tint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
 
 .logo-text {
   font-size: 1.25rem;
@@ -315,71 +341,143 @@ body {
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ---- Hero ---- */
+/* ---- Hero ---------------------------------------------------------------
+   Was plain centred text on the page background, which made the first thing a
+   visitor sees the flattest thing on the screen. It is now a brand block — the
+   one place on Home that owns the colour, so the page has a top to it. */
 .hero {
+  position: relative;
+  overflow: hidden;
   text-align: center;
-  padding: 24px 16px 8px;
+  padding: 20px 18px 22px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(140deg, #ef4a56 0%, #c1121f 100%);
+  color: #fff;
+  box-shadow: 0 8px 22px rgba(193, 18, 31, 0.22);
+}
+
+/* A soft highlight so the block is not a flat rectangle. Decorative only. */
+.hero::after {
+  content: '';
+  position: absolute;
+  right: -40px;
+  top: -60px;
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.10);
+  pointer-events: none;
+}
+
+.hero-chip {
+  position: relative;
+  z-index: 1;
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  margin-bottom: 12px;
 }
 
 .hero-title {
-  font-size: 1.6rem;
+  position: relative;
+  z-index: 1;
+  font-size: 1.7rem;
   font-weight: 700;
-  color: var(--c-text);
-  line-height: 1.3;
+  color: #fff;
+  line-height: 1.25;
 }
 
 .hero-sub {
   display: block;
   font-size: 0.95rem;
   font-weight: 500;
-  color: var(--c-primary);
+  color: rgba(255, 255, 255, 0.92);
   margin-top: 4px;
 }
 
 .hero-desc {
-  font-size: 0.9rem;
-  color: var(--c-text-soft);
+  position: relative;
+  z-index: 1;
+  font-size: 0.88rem;
+  color: rgba(255, 255, 255, 0.86);
   margin-top: 10px;
   max-width: 400px;
   margin-inline: auto;
 }
 
-/* ---- Level cards ---- */
+/* ---- Level cards --------------------------------------------------------
+   Compact rows, each carrying its own colour. Previously three tall centred
+   cards (~150px each) holding a 30px emoji and two lines of text, which spent
+   a whole phone screen on three words. */
 .level-cards {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 12px;
-  margin-top: 20px;
+  gap: 10px;
+  margin-top: 18px;
 }
 
 .level-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   background: var(--c-surface);
-  border: 2px solid var(--c-border);
+  border: 1px solid var(--c-border);
+  border-left: 5px solid var(--lv);
   border-radius: var(--radius);
-  padding: 20px;
+  padding: 12px 14px 12px 12px;
   cursor: pointer;
-  transition: border-color 0.2s, box-shadow 0.2s, transform 0.1s;
-  text-align: center;
+  text-align: left;
+  transition: transform 0.12s, box-shadow 0.2s, border-color 0.2s;
 }
 
-.level-card:hover {
-  border-color: var(--c-primary);
-  box-shadow: 0 4px 16px var(--c-shadow-lg);
+/* Each level owns one hue — see the ramp in :root. */
+.level-card.lv1 { --lv: var(--lv1); --lv-tint: var(--lv1-tint); }
+.level-card.lv2 { --lv: var(--lv2); --lv-tint: var(--lv2-tint); }
+.level-card.lv3 { --lv: var(--lv3); --lv-tint: var(--lv3-tint); }
+
+.level-card:hover { box-shadow: 0 6px 18px var(--c-shadow-lg); }
+.level-card:active { transform: scale(0.985); }
+
+.level-icon {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--lv-tint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  line-height: 1;
 }
 
-.level-card:active { transform: scale(0.98); }
-
-.level-icon { font-size: 2rem; margin-bottom: 6px; }
+.level-body { flex: 1; min-width: 0; }
 
 .level-card h3 {
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   font-weight: 700;
-  margin-bottom: 4px;
+  margin-bottom: 1px;
 }
 
 .level-card p {
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   color: var(--c-text-soft);
+  line-height: 1.35;
+}
+
+.level-arrow {
+  flex: 0 0 auto;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--lv);
+  opacity: 0.55;
 }
 
 /* ---- Buttons ---- */
@@ -392,7 +490,7 @@ body {
   font-size: 0.95rem;
   font-weight: 600;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: 12px;
   cursor: pointer;
   transition: opacity 0.15s, background 0.15s;
   min-height: var(--tap);
@@ -420,13 +518,115 @@ body {
 .btn-sm { font-size: 0.8rem; padding: 6px 12px; min-height: 36px; }
 .btn-block { width: 100%; }
 
+/* Stacked, not side by side. "Start Quiz" and "My Progress" fit a half-width
+   button in English and in no other language: Filipino is "Simulan ang
+   Pagsusulit", 23 characters, which wrapped mid-phrase at every phone width.
+   Full width also gives the primary action the weight it should have had — it
+   is the one thing to do on this screen and it was sharing a row. */
 .home-quick {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 10px;
-  margin-top: 20px;
+  margin-top: 16px;
 }
 
-.home-quick .btn { flex: 1; }
+.home-quick .btn { border-radius: 12px; }
+
+/* The primary action carries the brand colour and a soft matching shadow, so
+   it reads as the one thing to do here rather than as one of two equal
+   buttons. Scoped to .home-quick — .btn-primary is used in every dialog and
+   must stay flat there. */
+.home-quick .btn-primary { box-shadow: 0 6px 16px rgba(230, 57, 70, 0.26); }
+
+/* ---- Home: the returning-learner cards ---------------------------------- */
+/* Same amber as the streak card in My Progress, because it IS that card — it
+   just appears where she lands rather than where she has to go looking. The
+   green variant is the "already done today" state, so the card stops nagging
+   the moment it has nothing left to ask for. */
+.home-resume {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+  padding: 14px 16px;
+  background: #fffdf7;
+  border: 1px solid #ffe08a;
+  border-radius: var(--radius);
+}
+.home-resume.done { background: #f2fbf5; border-color: #b7e4c7; }
+.home-resume-main { flex: 1 1 150px; min-width: 0; }
+.home-resume-streak {
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #8a5a00;
+}
+.home-resume.done .home-resume-streak { color: #1e6b3a; }
+.home-resume-sub { font-size: 0.82rem; color: var(--c-text-soft); margin-top: 3px; }
+.home-resume-btn { flex: 0 0 auto; }
+
+.home-word { margin-top: 20px; }
+
+.home-word-head,
+.home-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--c-text-soft);
+  margin-bottom: 10px;
+}
+
+/* A short brand tick before every section label — on Home and on My Progress.
+   The pages had rows of identical grey uppercase headings with nothing to mark
+   where a section begins or to tell one from another. */
+.home-word-head::before,
+.home-section-title::before,
+.home-categories h4::before,
+.progress-card h4::before {
+  content: '';
+  flex: 0 0 auto;
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--c-primary);
+}
+
+.home-word-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--c-primary-tint);
+  border: 1px solid #ffd9dd;
+  border-radius: var(--radius);
+  padding: 14px;
+  cursor: pointer;
+  transition: transform 0.12s, box-shadow 0.2s;
+}
+.home-word-card:hover { box-shadow: 0 6px 18px var(--c-shadow-lg); }
+.home-word-card:active { transform: scale(0.985); }
+.home-word-emoji {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+.home-word-main { flex: 1; min-width: 0; }
+.home-word-cantonese { font-size: 1.25rem; font-weight: 700; }
+.home-word-jyutping { font-size: 0.85rem; color: var(--c-primary); }
+.home-word-meaning { font-size: 0.85rem; color: var(--c-text-soft); }
+
+#home-discover { margin-top: 24px; }
 
 /* ---- Home categories strip ---- */
 .home-categories {
@@ -434,9 +634,13 @@ body {
 }
 
 .home-categories h4 {
-  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   color: var(--c-text-soft);
   margin-bottom: 10px;
 }
@@ -444,45 +648,71 @@ body {
 /* All categories shown at once — a grid, no horizontal scrolling */
 .cat-strip {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  /* minmax(0, 1fr), NOT 1fr. A plain `1fr` track has an automatic minimum of
+     min-content, so one long category name ("Health & Symptoms") forces its
+     track wider than half the row and the whole grid spills a few pixels past
+     its container — invisible in English, 6px in Indonesian at 320px. Caught by
+     tools/app-layout-test.js; see the gotcha in ARCHITECTURE.md. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 
 .cat-pill {
   background: var(--c-surface);
   border: 1px solid var(--c-border);
-  border-radius: var(--radius-sm);
-  padding: 10px 12px;
+  border-radius: 12px;
+  padding: 9px 10px;
   display: flex;
   align-items: center;
   gap: 8px;
   cursor: pointer;
   font-family: var(--font-en);
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 600;
   color: var(--c-text);
   transition: border-color 0.15s, background 0.15s, transform 0.1s;
-  min-height: 46px;
+  min-height: 48px;
   text-align: left;
   line-height: 1.2;
 }
 
 .cat-pill:hover {
   border-color: var(--c-primary);
-  background: var(--c-primary-light);
+  background: var(--c-primary-tint);
 }
 
 .cat-pill:active { transform: scale(0.98); }
 
+/* The icon sits on a tinted tile rather than floating on the white pill, which
+   is what gives an 18-item grid some texture. Four tints, cycled by position —
+   no one has to hand-pick a colour per category, and adding a category cannot
+   leave one unstyled. */
 .cat-pill-icon {
-  font-size: 1.25rem;
-  flex-shrink: 0;
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
   line-height: 1;
+  background: #eef1f5;
 }
+
+.cat-pill:nth-child(4n+1) .cat-pill-icon { background: #e1f5ee; }
+.cat-pill:nth-child(4n+2) .cat-pill-icon { background: #faedda; }
+.cat-pill:nth-child(4n+3) .cat-pill-icon { background: #e6f0fb; }
+.cat-pill:nth-child(4n+4) .cat-pill-icon { background: #fdeaea; }
 
 .cat-pill-name {
   flex: 1;
   min-width: 0;
+  /* The safety net. At 320px a two-column grid leaves ~80px for the name, and
+     one unbreakable word can be wider than that ("Appointments" is ~84px in
+     English, and Indonesian is longer). Without this the word spills out of its
+     own pill — measured, not guessed: tools/app-layout-test.js caught it. */
+  overflow-wrap: anywhere;
 }
 
 /* ===========================================================================
@@ -498,7 +728,17 @@ body {
   padding: 4px 0 10px;
 }
 
-.share-hero-icon { font-size: 2.6rem; line-height: 1; }
+.share-hero-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--c-primary-tint);
+  font-size: 2.2rem;
+  line-height: 1;
+}
 
 .share-hero-title {
   margin: 10px 0 6px;
@@ -602,8 +842,11 @@ body {
 .filters {
   background: var(--c-surface);
   border-radius: var(--radius);
-  padding: 14px;
-  margin-bottom: 16px;
+  /* 12px, not 14: ui-browse-fold asserts this block stays under 45% of the
+     viewport, and every pixel spent here is one the first vocabulary card does
+     not get. */
+  padding: 12px;
+  margin-bottom: 14px;
   border: 1px solid var(--c-border);
 }
 
@@ -617,11 +860,27 @@ body {
 
 .filter-row:last-child { margin-bottom: 0; }
 
+/* The same label treatment as the Home section headings, so "Level:" and
+   "Category:" read as part of one system rather than as form furniture. */
 .filter-row label {
-  font-size: 0.8rem;
-  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--c-text-soft);
   min-width: 60px;
+}
+
+.filter-row label::before {
+  content: '';
+  flex: 0 0 auto;
+  width: 12px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--c-primary);
 }
 
 .chip-group {
@@ -633,16 +892,17 @@ body {
 .chip {
   padding: 6px 14px;
   border: 1.5px solid var(--c-border);
-  border-radius: 20px;
+  border-radius: 999px;
   background: var(--c-surface);
   color: var(--c-text-soft);
   font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
   min-height: 36px;
   display: inline-flex;
   align-items: center;
+  gap: 5px;
 }
 
 .chip.active {
@@ -650,6 +910,17 @@ body {
   color: #fff;
   border-color: var(--c-primary);
 }
+
+/* A selected level chip wears its own level's colour. The colour a learner
+   meets on Home is the colour she meets here, and again in the quiz — which is
+   the entire reason the ramp is three tokens rather than three hex values
+   copied into each rule. */
+#filter-level .chip[data-val="1"].active,
+#quiz-level .chip[data-val="1"].active { background: var(--lv1); border-color: var(--lv1); color: #fff; }
+#filter-level .chip[data-val="2"].active,
+#quiz-level .chip[data-val="2"].active { background: var(--lv2); border-color: var(--lv2); color: #fff; }
+#filter-level .chip[data-val="3"].active,
+#quiz-level .chip[data-val="3"].active { background: var(--lv3); border-color: var(--lv3); color: #fff; }
 
 /* ---- Vocab list ---- */
 .vocab-list {
@@ -661,31 +932,38 @@ body {
   background: var(--c-surface);
   border: 1px solid var(--c-border);
   border-radius: var(--radius);
-  padding: 16px;
+  padding: 14px;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   cursor: pointer;
-  transition: box-shadow 0.2s, border-color 0.2s;
+  transition: box-shadow 0.2s, border-color 0.2s, transform 0.12s;
 }
 
+/* The card carries its level, and the level carries the colour — set from the
+   same three tokens the Home cards use, so `.lv1/.lv2/.lv3` means the same
+   thing on every view. The class is emitted by the renderer in app.js. */
+.vocab-card.lv1 { --lv: var(--lv1); --lv-tint: var(--lv1-tint); }
+.vocab-card.lv2 { --lv: var(--lv2); --lv-tint: var(--lv2-tint); }
+.vocab-card.lv3 { --lv: var(--lv3); --lv-tint: var(--lv3-tint); }
+
 .vocab-card:hover {
-  box-shadow: 0 4px 12px var(--c-shadow-lg);
-  border-color: var(--c-primary);
+  box-shadow: 0 6px 18px var(--c-shadow-lg);
+  border-color: var(--lv, var(--c-primary));
 }
 
 .vocab-card:active { transform: scale(0.99); }
 
 .vocab-emoji {
-  font-size: 2rem;
+  font-size: 1.9rem;
   flex-shrink: 0;
-  width: 56px;
-  height: 56px;
+  width: 54px;
+  height: 54px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--c-bg);
-  border-radius: var(--radius-sm);
+  background: var(--lv-tint, var(--c-bg));
+  border-radius: 12px;
 }
 
 .vocab-body { flex: 1; min-width: 0; }
@@ -1137,11 +1415,24 @@ body {
 }
 
 .setup-group label {
-  display: block;
-  font-size: 0.85rem;
-  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--c-text-soft);
   margin-bottom: 10px;
+}
+
+.setup-group label::before {
+  content: '';
+  flex: 0 0 auto;
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--c-primary);
 }
 
 .quiz-type-list {
@@ -1151,24 +1442,37 @@ body {
 
 .quiz-type-card {
   background: var(--c-surface);
-  border: 2px solid var(--c-border);
+  border: 1px solid var(--c-border);
   border-radius: var(--radius);
-  padding: 16px;
+  padding: 14px;
   cursor: pointer;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.12s;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
 }
 
 .quiz-type-card:hover {
   border-color: var(--c-primary);
-  box-shadow: 0 4px 12px var(--c-shadow);
+  box-shadow: 0 6px 18px var(--c-shadow-lg);
 }
 
-.quiz-type-card:active { transform: scale(0.98); }
+.quiz-type-card:active { transform: scale(0.985); }
 
-.quiz-type-icon { font-size: 1.8rem; flex-shrink: 0; }
+/* The same tinted icon tile the level cards use, so the quiz list reads as part
+   of one family with Home rather than as a separate screen. */
+.quiz-type-icon {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--c-primary-tint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  line-height: 1;
+}
 
 .quiz-type-info h4 { font-size: 1rem; font-weight: 700; }
 .quiz-type-info p { font-size: 0.82rem; color: var(--c-text-soft); margin-top: 2px; }
@@ -1189,28 +1493,29 @@ body {
 }
 
 .quiz-bar {
-  height: 6px;
+  height: 8px;
   background: var(--c-border);
-  border-radius: 3px;
-  margin-bottom: 24px;
+  border-radius: 999px;
+  margin-bottom: 22px;
   overflow: hidden;
 }
 
 .quiz-bar-fill {
   height: 100%;
   background: var(--c-primary);
-  border-radius: 3px;
+  border-radius: 999px;
   transition: width 0.3s ease;
   width: 0%;
 }
 
 .quiz-question {
   background: var(--c-surface);
-  border-radius: var(--radius);
-  padding: 28px 20px;
+  border-radius: var(--radius-lg);
+  padding: 26px 20px;
   text-align: center;
   margin-bottom: 16px;
   border: 1px solid var(--c-border);
+  box-shadow: 0 6px 20px var(--c-shadow);
 }
 
 .quiz-q-emoji { font-size: 3.5rem; margin-bottom: 12px; }
@@ -1256,13 +1561,13 @@ body {
 
 .quiz-option {
   background: var(--c-surface);
-  border: 2px solid var(--c-border);
-  border-radius: var(--radius);
+  border: 1.5px solid var(--c-border);
+  border-radius: 12px;
   padding: 16px;
   font-size: 1rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: background 0.15s, border-color 0.15s, transform 0.12s;
   text-align: center;
   min-height: var(--tap);
   display: flex;
@@ -1270,7 +1575,12 @@ body {
   justify-content: center;
 }
 
-.quiz-option:hover { border-color: var(--c-primary); }
+.quiz-option:hover {
+  border-color: var(--c-primary);
+  background: var(--c-primary-tint);
+}
+
+.quiz-option:active { transform: scale(0.99); }
 
 .quiz-option.correct {
   background: #d4edda;
@@ -1336,9 +1646,13 @@ body {
 }
 
 .progress-card h4 {
-  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
   color: var(--c-text-soft);
   margin-bottom: 10px;
 }
@@ -1414,11 +1728,220 @@ body {
 .nav-icon {
   font-size: 1.3rem;
   /* Fixed-height flex box so the emoji icons and the SVG share glyph all sit
-     on the same baseline across the five tabs. */
+     on the same baseline across the six tabs. min-width (not width) so the
+     pill hugs a narrow glyph — and 40px still clears a 320px screen, where
+     six tabs leave about 53px each. */
   height: 22px;
+  min-width: 40px;
+  padding: 0 6px;
+  border-radius: 11px;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: background 0.15s;
+}
+
+/* The active tab gets a soft brand pill behind its icon. With six tabs the bar
+   is dense enough that a colour change on the label alone is easy to miss. */
+.nav-btn.active .nav-icon { background: var(--c-primary-tint); }
+
+/* ===========================================================================
+   DISCOVER FEED (culture + news)
+   =========================================================================== */
+
+.discover-lead {
+  color: var(--c-text-soft);
+  font-size: 0.92rem;
+  margin: -4px 0 14px;
+}
+
+/* A segmented control rather than two loose buttons: culture and news are one
+   choice, so they read as a single track with the selected half filled. */
+.discover-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 14px;
+  background: #eef1f5;
+  border-radius: 999px;
+}
+
+.discover-tab {
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--c-text-soft);
+  font-family: inherit;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: var(--tap);
+  transition: background 0.15s, color 0.15s;
+}
+
+.discover-tab.active {
+  background: var(--c-surface);
+  color: var(--c-primary);
+  box-shadow: 0 1px 3px var(--c-shadow);
+}
+
+.discover-note {
+  color: var(--c-text-soft);
+  font-size: 0.85rem;
+  margin-bottom: 14px;
+}
+
+.discover-feed { display: flex; flex-direction: column; gap: 10px; }
+
+.discover-loading,
+.discover-empty {
+  padding: 28px 12px;
+  text-align: center;
+  color: var(--c-text-soft);
+  font-size: 0.9rem;
+}
+
+.post-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  padding: 14px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 3px var(--c-shadow);
+  cursor: pointer;
+  font-family: inherit;
+  color: inherit;
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+
+.post-card:active { transform: scale(0.99); }
+.post-card:hover { box-shadow: 0 4px 12px var(--c-shadow-lg); }
+
+.post-card-icon {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  background: var(--c-primary-tint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.post-card-main { display: flex; flex-direction: column; gap: 3px; flex: 1 1 auto; min-width: 0; }
+
+.post-card-meta {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--c-text-soft);
+}
+
+.post-card-title {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--c-text);
+}
+
+.post-card-summary {
+  font-size: 0.86rem;
+  color: var(--c-text-soft);
+  line-height: 1.45;
+  /* Two lines of summary in the card; the article itself is one tap away. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.post-card-arrow {
+  flex: 0 0 auto;
+  align-self: center;
+  color: var(--c-text-soft);
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+/* ---- One article ---- */
+
+.post-article { padding-bottom: 24px; }
+
+.post-hero { text-align: center; padding: 6px 0 18px; }
+.post-hero-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--c-primary-tint);
+  font-size: 2.2rem;
+  line-height: 1;
+}
+.post-title { font-size: 1.35rem; line-height: 1.3; margin-top: 8px; }
+.post-date {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--c-text-soft);
+  margin-top: 8px;
+}
+
+.post-summary {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--c-text);
+  background: var(--c-primary-tint);
+  border-left: 4px solid var(--c-primary);
+  /* Square on the left so the rail reads as a rail, rounded on the right. */
+  border-radius: 0 12px 12px 0;
+  padding: 12px 14px;
+  margin-bottom: 18px;
+}
+
+.post-content { font-size: 1rem; line-height: 1.65; }
+.post-content p { margin-bottom: 14px; }
+.post-content h2 {
+  font-size: 1.12rem;
+  margin: 22px 0 8px;
+  color: var(--c-primary-dark);
+}
+.post-content h3 { font-size: 1rem; margin: 18px 0 6px; }
+.post-content ul, .post-content ol { margin: 0 0 14px 20px; }
+.post-content li { margin-bottom: 7px; }
+.post-content strong { font-weight: 700; }
+.post-content a { color: var(--c-primary-dark); text-decoration: underline; }
+
+.post-source {
+  margin-top: 26px;
+  padding-top: 18px;
+  border-top: 1px solid var(--c-border);
+}
+.post-source-line { font-size: 0.88rem; color: var(--c-text-soft); margin-bottom: 12px; }
+.post-news-note {
+  font-size: 0.78rem;
+  color: var(--c-text-soft);
+  margin-top: 10px;
+  text-align: center;
+}
+
+/* Six tabs share 390px (~65px each). The widest labels — Filipino
+   "Pagsusulit" and "Tuklasin" — are right at that limit, so labels never wrap
+   and the type steps down a notch on the narrowest phones. */
+.nav-btn > span:not(.nav-icon) { white-space: nowrap; }
+@media (max-width: 400px) {
+  .nav-btn { font-size: 0.64rem; padding: 8px 2px 6px; }
 }
 
 /* ===========================================================================
@@ -1919,6 +2442,42 @@ body {
   .admin-tab { flex: 1 1 0; }
 }
 
+/* ---- Discover feed (admin Posts tab) ---- */
+.admin-toolbar-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.post-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border-top: 1px solid var(--c-border);
+  padding: 12px 0;
+  flex-wrap: wrap;
+}
+.post-row-main { flex: 1 1 260px; min-width: 0; }
+.post-row-title { font-weight: 600; font-size: 0.95rem; }
+.post-row-meta {
+  font-size: 0.76rem;
+  color: var(--c-text-soft);
+  margin-top: 3px;
+  word-break: break-word;
+}
+.post-src { color: var(--c-primary-dark); }
+.post-row-badges { display: flex; gap: 6px; align-items: center; }
+.post-row-actions { display: flex; gap: 6px; }
+
+.post-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.post-badge.published { background: #e6f4ea; color: #1e6b3a; }
+.post-badge.draft { background: #fdecea; color: #a3281f; }
+.post-badge.auto { background: #e8eefc; color: #2b4c9b; }
+
 /* ---- Modal form ---- */
 .modal-form {
   background: var(--c-surface);
@@ -2096,8 +2655,12 @@ body {
 }
 
 @media (min-width: 480px) {
-  .level-cards { grid-template-columns: 1fr 1fr 1fr; }
-  .cat-strip { grid-template-columns: repeat(3, 1fr); }
+  /* The level cards deliberately stay one per row. They used to go three-across
+     here, which worked for tall centred cards but not for rows: at 480px each
+     column would be ~150px, too narrow for "Basic greetings & common words"
+     beside a 44px icon. A stack of three full-width rows reads better and keeps
+     the phone and the tablet the same shape. */
+  .cat-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .hero-title { font-size: 1.9rem; }
   .stats-grid { grid-template-columns: 1fr 1fr 1fr; }
 }
@@ -2486,15 +3049,15 @@ body {
   margin-top: 14px;
 }
 .sticker-tile {
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 10px 6px;
   text-align: center;
   border: 1px solid var(--c-border);
   background: var(--c-surface);
   min-width: 0;
 }
-.sticker-tile.is-unlocked { border-color: #f3c9cd; background: #fff8f8; }
-.sticker-tile.is-locked { background: #fafafb; opacity: 0.75; }
+.sticker-tile.is-unlocked { border-color: #f6cdd1; background: var(--c-primary-tint); }
+.sticker-tile.is-locked { background: #fafafb; opacity: 0.7; }
 .sticker-emoji { font-size: 1.5rem; line-height: 1.2; }
 .sticker-name {
   font-size: 0.68rem;

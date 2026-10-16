@@ -161,6 +161,7 @@ const L = {
     brand: 'CantoBuddy',
     tagline: 'Learn Cantonese for daily life in Hong Kong',
     learn: 'Learn',
+    discover: 'Discover',
     browse: 'Browse vocabulary',
     openApp: 'Open the app',
     openAppDesc: 'Practise these words with audio, pictures and quizzes — free.',
@@ -200,6 +201,7 @@ const L = {
     brand: 'CantoBuddy',
     tagline: 'Matuto ng Cantonese para sa araw-araw na buhay sa Hong Kong',
     learn: 'Pag-aralan',
+    discover: 'Tuklasin',
     browse: 'Tingnan ang bokabularyo',
     openApp: 'Buksan ang app',
     openAppDesc: 'Magpraktis ng mga salitang ito may audio, larawan at pagsusulit — libre.',
@@ -246,6 +248,7 @@ const L = {
     brand: 'CantoBuddy',
     tagline: '学香港日常生活粤语',
     learn: '学习',
+    discover: '发现',
     browse: '浏览粤语词汇',
     openApp: '打开应用',
     openAppDesc: '配发音、图片和测验来练习这些词 — 免费。',
@@ -294,6 +297,7 @@ const L = {
     brand: 'CantoBuddy',
     tagline: 'Belajar bahasa Kanton untuk kehidupan sehari-hari di Hong Kong',
     learn: 'Belajar',
+    discover: 'Jelajah',
     browse: 'Jelajahi kosakata',
     openApp: 'Buka aplikasi',
     openAppDesc: 'Latih kata-kata ini dengan audio, gambar, dan kuis — gratis.',
@@ -347,6 +351,25 @@ function catName(cat, lang) {
 
 /** The URL prefix for a language tree. English is the root, deliberately. */
 const LANG_PREFIX = { en: '', fil: '/fil', zh: '/zh', id: '/id' };
+
+/**
+ * The single-segment route families this module serves, WITHOUT a language
+ * prefix — the list `mount()` registers below.
+ *
+ * This exists as one exported constant because the sitemap's ENGLISH count has
+ * to know every family. English has no prefix, so it is counted as "content
+ * URLs that belong to none of the other trees and match one of these" — and a
+ * family missing from that pattern makes English look SMALLER than the three
+ * prefixed trees, which each count on their prefix alone.
+ *
+ * That is not hypothetical. `/discover` shipped without being added to the
+ * hand-written copies of this list inside `indonesian-test.js` and
+ * `prod-id-check.js`, and both immediately reported `en=208 fil=214` — a
+ * comparison of two different page sets, dressed up as a missing English page.
+ * (The same shape of bug happened once before, with `/privacy`.) Those suites
+ * now derive the pattern from this export, so the next route cannot repeat it.
+ */
+const ROUTE_FAMILIES = ['learn', 'words', 'level', 'guide', 'discover', 'privacy'];
 
 /** Every language tree this module serves, in the order links should list them. */
 const LANGS = ['en', 'fil', 'zh', 'id'];
@@ -800,6 +823,15 @@ ul.links{list-style:none;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:9px}
 ul.links li a{display:inline-block;background:#fff;border:1px solid var(--line);border-radius:999px;
   padding:7px 15px;font-size:14.5px;text-decoration:none;color:var(--ink)}
 ul.links li a:hover{border-color:var(--red);color:var(--red)}
+/* Discover feed */
+h2.disc-h2{font-size:21px;margin:34px 0 6px}
+.post-item .pm{display:block;color:var(--muted);font-size:12.5px;font-weight:600;
+  letter-spacing:.03em;text-transform:uppercase;margin-bottom:5px}
+.post-source{margin-top:34px;padding-top:20px;border-top:1px solid var(--line)}
+.post-source .btn{display:inline-block;background:var(--red);color:#fff;text-decoration:none;
+  padding:11px 20px;border-radius:999px;font-weight:600;font-size:15.5px}
+.post-source .btn:hover{background:#c1121f}
+p.news-note{color:var(--muted);font-size:13px;margin-top:12px}
 @media(max-width:560px){
   td.jy{display:none}
   .cta-card{flex-direction:column;align-items:flex-start}
@@ -941,6 +973,7 @@ ${o.body}
     <p>${languageLinks(lang)}
        &nbsp;·&nbsp; <a href="${LANG_PREFIX[lang]}/learn">${esc(L[lang].browse)}</a>
        &nbsp;·&nbsp; <a href="${LANG_PREFIX[lang]}/guide">${esc((GUIDE_UI[lang] || GUIDE_UI.en).guides)}</a>
+       &nbsp;·&nbsp; <a href="${LANG_PREFIX[lang]}/discover">${esc(L[lang].discover)}</a>
        &nbsp;·&nbsp; <a href="${LANG_PREFIX[lang]}/privacy">${esc(PRIVACY[lang].title)}</a></p>
   </div>
 </footer>
@@ -1675,6 +1708,293 @@ ${ctaCard(lang)}
   });
 }
 
+// ---------------------------------------------------------------------------
+// Discover — the culture and news feed, server-rendered.
+//
+// The learner app has the same two channels as a tab, but every view of that
+// app renders into `/` — so without these pages the whole feed would be
+// invisible to a search engine, which is the opposite of the point. A feed is
+// the one kind of content that earns repeat visits, and repeat visits start
+// with someone finding it once.
+//
+// Content comes from the same `posts` table the app reads (store.listPosts),
+// so an article posted in the admin appears here on the next request with no
+// deploy — which is what "regularly post" has to mean.
+//
+// IMPORTED NEWS is always attributed and always linked. The body columns are
+// empty for a news row (news.js never writes them), so a news page is a
+// headline, a short summary, and a prominent link to the original. That is a
+// deliberate limit, not missing data: republishing the article would be a
+// copyright problem. See news.js.
+// ---------------------------------------------------------------------------
+
+const DISCOVER_UI = {
+  en: {
+    title: 'Discover Hong Kong',
+    lede: 'Hong Kong life and local news for domestic helpers — how things work at home, and what is happening in the city, in plain English.',
+    culture: 'Hong Kong culture',
+    cultureLede: 'The customs nobody explains — the altar, the festivals, and the two ways to say thank you.',
+    news: 'Hong Kong news',
+    newsLede: 'Local news from Hong Kong public sources. Each item is a short summary with a link to the full story.',
+    empty: 'Nothing here yet — check back soon.',
+    source: 'Source',
+    readOriginal: 'Read the full story',
+    newsNote: 'Headline and summary from a public Hong Kong source. The full story is at the link above.',
+    backToDiscover: 'All articles',
+    notFound: 'That article is not available.',
+    notFoundTitle: 'Article not found',
+  },
+  fil: {
+    title: 'Tuklasin ang Hong Kong',
+    lede: 'Buhay at lokal na balita sa Hong Kong para sa mga helper — kung paano gumagana ang tahanan, at ano ang nangyayari sa lungsod, sa simpleng Ingles.',
+    culture: 'Kultura ng Hong Kong',
+    cultureLede: 'Ang mga kaugaliang walang nagpapaliwanag — ang altar, ang mga pista, at ang dalawang paraan ng pagpapasalamat.',
+    news: 'Balita sa Hong Kong',
+    newsLede: 'Lokal na balita mula sa mga pampublikong pinagmulan sa Hong Kong. Maikling buod ang bawat isa, may link sa buong balita.',
+    empty: 'Wala pa rito — bumalik mamaya.',
+    source: 'Pinagmulan',
+    readOriginal: 'Basahin ang buong balita',
+    newsNote: 'Headline at buod mula sa pampublikong pinagmulan sa Hong Kong. Nasa link sa itaas ang buong balita.',
+    backToDiscover: 'Lahat ng artikulo',
+    notFound: 'Hindi available ang artikulong iyon.',
+    notFoundTitle: 'Hindi mahanap ang artikulo',
+  },
+  zh: {
+    title: '发现香港',
+    lede: '为家佣准备的香港生活与本地新闻——家里的事是怎么运作的，城里又发生了什么，都用简单的英文讲清楚。',
+    culture: '香港文化',
+    cultureLede: '那些没人会解释的习俗——神枱、节庆，以及两个「谢谢」的区别。',
+    news: '香港新闻',
+    newsLede: '来自香港公共来源的本地新闻。每条都是简短摘要，并附完整报道的链接。',
+    empty: '这里还没有内容，请稍后再来。',
+    source: '来源',
+    readOriginal: '阅读完整报道',
+    newsNote: '标题与摘要来自香港公共来源，完整报道见上方链接。',
+    backToDiscover: '全部文章',
+    notFound: '这篇文章暂不可用。',
+    notFoundTitle: '找不到文章',
+  },
+  id: {
+    title: 'Jelajahi Hong Kong',
+    lede: 'Kehidupan dan berita lokal Hong Kong untuk asisten rumah tangga — bagaimana rumah tangga bekerja, dan apa yang terjadi di kota, dalam bahasa Inggris sederhana.',
+    culture: 'Budaya Hong Kong',
+    cultureLede: 'Kebiasaan yang tak pernah dijelaskan — altar, perayaan, dan dua cara mengucapkan terima kasih.',
+    news: 'Berita Hong Kong',
+    newsLede: 'Berita lokal dari sumber publik Hong Kong. Setiap item adalah ringkasan singkat dengan tautan ke berita lengkapnya.',
+    empty: 'Belum ada apa-apa di sini — cek lagi nanti.',
+    source: 'Sumber',
+    readOriginal: 'Baca berita lengkapnya',
+    newsNote: 'Judul dan ringkasan dari sumber publik Hong Kong. Berita lengkapnya ada di tautan di atas.',
+    backToDiscover: 'Semua artikel',
+    notFound: 'Artikel itu tidak tersedia.',
+    notFoundTitle: 'Artikel tidak ditemukan',
+  },
+};
+
+/** A post's text in one language, falling back to English — same rule as the app. */
+function postText(post, field, lang) {
+  const localised = post[`${field}_${lang}`];
+  if (localised != null && String(localised).trim()) return String(localised);
+  return String(post[`${field}_en`] || '');
+}
+
+/** A locale-independent date, which is what belongs in server-rendered HTML. */
+function postDateShort(iso) {
+  const d = new Date(iso || '');
+  return Number.isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10);
+}
+
+/**
+ * Post bodies are an operator-authored HTML subset. This strips everything
+ * outside it before the string reaches the page — the same allowlist the app
+ * applies in sanitizePostHtml(), applied again here because the two render the
+ * same column through different code paths.
+ */
+const BODY_TAGS = new Set(['P', 'H2', 'H3', 'UL', 'OL', 'LI', 'STRONG', 'EM', 'B', 'I', 'BR', 'BLOCKQUOTE', 'A']);
+
+function sanitizeBodyHtml(html) {
+  return String(html || '')
+    .replace(/<(script|style|iframe|object|embed|svg|math)[\s\S]*?<\/\1\s*>/gi, '')
+    .replace(/<\/?(script|style|iframe|object|embed|svg|math)[^>]*>/gi, '')
+    .replace(/<\/?([a-zA-Z0-9]+)([^>]*)>/g, (m, name, attrs) => {
+      const tag = String(name).toUpperCase();
+      if (!BODY_TAGS.has(tag)) return '';
+      if (tag === 'A') {
+        const href = (String(attrs).match(/\shref\s*=\s*(?:"([^"]*)"|'([^']*)')/i) || []);
+        const url = href[1] || href[2] || '';
+        return /^(https?:\/\/|\/)/i.test(url)
+          ? `<a href="${esc(url)}" rel="noopener noreferrer">`
+          : '<a>';
+      }
+      return m.startsWith('</') ? `</${tag.toLowerCase()}>` : `<${tag.toLowerCase()}>`;
+    });
+}
+
+/** One card, shared by both channels of the hub. */
+function postCardLi(post, lang, prefix) {
+  const date = postDateShort(post.published_at || post.created_at);
+  const meta = [date, post.source_name].filter(Boolean).join(' · ');
+  return `<li class="guide-card">
+  <a href="${prefix}/discover/${esc(post.slug)}">
+    <span class="em">${esc(post.icon || '📰')}</span>
+    ${meta ? `<span class="pm">${esc(meta)}</span>` : ''}
+    <span class="gt">${esc(postText(post, 'title', lang))}</span>
+    <span class="gd">${esc(postText(post, 'summary', lang))}</span>
+  </a>
+</li>`;
+}
+
+/** The Discover hub: both channels, newest first. */
+function renderDiscoverHub(lang) {
+  const ui = DISCOVER_UI[lang] || DISCOVER_UI.en;
+  const prefix = LANG_PREFIX[lang] || '';
+
+  const posts = store.listPosts({ status: 'published', limit: 200 });
+  const culture = posts.filter((p) => p.channel === 'culture');
+  const news = posts.filter((p) => p.channel === 'news');
+
+  const section = (heading, lede, list) => `
+<h2 class="disc-h2">${esc(heading)}</h2>
+<p class="lede">${esc(lede)}</p>
+${
+    list.length
+      ? `<ul class="guide-list">\n${list.map((p) => postCardLi(p, lang, prefix)).join('\n')}\n</ul>`
+      : `<p class="lede">${esc(ui.empty)}</p>`
+  }`;
+
+  const body = `
+${crumbs(lang, [{ label: ui.title }])}
+<h1>${esc(ui.title)}</h1>
+<p class="lede">${esc(ui.lede)}</p>
+${section(ui.culture, ui.cultureLede, culture)}
+${section(ui.news, ui.newsLede, news)}
+${ctaCard(lang)}
+`;
+
+  const title = {
+    en: 'Discover Hong Kong — Culture and News for Helpers | CantoBuddy',
+    fil: 'Tuklasin ang Hong Kong — Kultura at Balita para sa Helper | CantoBuddy',
+    zh: '发现香港——家佣的文化与新闻 | CantoBuddy',
+    id: 'Jelajahi Hong Kong — Budaya dan Berita untuk Asisten Rumah Tangga | CantoBuddy',
+  }[lang];
+
+  const description = {
+    en: 'Hong Kong customs explained, and local news in English — written for domestic helpers. What changes at home, and what is happening in the city.',
+    fil: 'Paliwanag sa mga kaugalian ng Hong Kong, at lokal na balita sa Ingles — para sa mga helper. Ano ang nagbabago sa tahanan, at ano ang nangyayari sa lungsod.',
+    zh: '香港习俗讲解，以及英文的本地新闻——为家佣而写。家里会有什么变化，城里又发生了什么。',
+    id: 'Penjelasan kebiasaan Hong Kong, dan berita lokal dalam bahasa Inggris — untuk asisten rumah tangga. Apa yang berubah di rumah, dan apa yang terjadi di kota.',
+  }[lang];
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      ORG_LD,
+      breadcrumbLd([{ name: ui.title, path: `${prefix}/discover` }]),
+      {
+        '@type': 'CollectionPage',
+        name: title,
+        description,
+        url: `${SITE_ORIGIN}${prefix}/discover`,
+        inLanguage: L[lang].htmlLang,
+        hasPart: posts.slice(0, 50).map((p) => ({
+          '@type': 'Article',
+          headline: postText(p, 'title', lang),
+          url: `${SITE_ORIGIN}${prefix}/discover/${p.slug}`,
+        })),
+      },
+    ],
+  };
+
+  return page({
+    lang,
+    title,
+    description,
+    path: `${prefix}/discover`,
+    jsonLd,
+    body,
+    alternates: hreflangLinks((l) => `${LANG_PREFIX[l]}/discover`),
+  });
+}
+
+/** One article. Returns null for an unknown slug, so the route can 404. */
+function renderPost(lang, slug) {
+  const ui = DISCOVER_UI[lang] || DISCOVER_UI.en;
+  const prefix = LANG_PREFIX[lang] || '';
+  const post = store.getPostBySlug(slug);
+  // A draft has no public page. Treating it as missing is the honest answer:
+  // it is not "not ready", to a reader it does not exist.
+  if (!post || post.status !== 'published') return null;
+
+  const title = postText(post, 'title', lang);
+  const summary = postText(post, 'summary', lang);
+  const bodyHtml = sanitizeBodyHtml(postText(post, 'body', lang));
+  const date = postDateShort(post.published_at || post.created_at);
+
+  // Attribution block, only when there is a source to attribute. Culture posts
+  // have none, and an empty "Source:" line would be worse than no line.
+  const sourceBlock = post.source_url
+    ? `<div class="post-source">
+  <p>${esc(ui.source)}: <strong>${esc(post.source_name || post.source_url)}</strong></p>
+  <p><a class="btn" href="${esc(post.source_url)}" rel="noopener noreferrer">${esc(ui.readOriginal)}</a></p>
+  <p class="news-note">${esc(ui.newsNote)}</p>
+</div>`
+    : '';
+
+  const body = `
+${crumbs(lang, [
+    { label: ui.title, href: `${prefix}/discover` },
+    { label: title },
+  ])}
+<article>
+<h1>${esc(title)}</h1>
+${date ? `<p class="updated">${esc(date)}</p>` : ''}
+${summary ? `<p class="lede">${esc(summary)}</p>` : ''}
+${bodyHtml}
+${sourceBlock}
+</article>
+<p class="updated"><a href="${prefix}/discover">${esc(ui.backToDiscover)}</a></p>
+${ctaCard(lang)}
+`;
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      ORG_LD,
+      breadcrumbLd([
+        { name: ui.title, path: `${prefix}/discover` },
+        { name: title, path: `${prefix}/discover/${slug}` },
+      ]),
+      {
+        '@type': 'Article',
+        headline: title,
+        description: summary,
+        inLanguage: L[lang].htmlLang,
+        ...(date ? { datePublished: date, dateModified: date } : {}),
+        mainEntityOfPage: `${SITE_ORIGIN}${prefix}/discover/${slug}`,
+        author: { '@type': 'Organization', name: 'CantoBuddy' },
+        publisher: {
+          '@type': 'Organization',
+          name: 'CantoBuddy',
+          logo: { '@type': 'ImageObject', url: `${SITE_ORIGIN}/icons/icon-512.png` },
+        },
+        // For an imported news item, point the crawler at the original too, so
+        // the source keeps the credit and the traffic.
+        ...(post.source_url ? { isBasedOn: post.source_url } : {}),
+      },
+    ],
+  };
+
+  return page({
+    lang,
+    title: `${title} | CantoBuddy`,
+    description: summary || title,
+    path: `${prefix}/discover/${slug}`,
+    jsonLd,
+    body,
+    alternates: hreflangLinks((l) => `${LANG_PREFIX[l]}/discover/${slug}`),
+  });
+}
+
 /**
  * The privacy policy page. Rendered from PRIVACY above, one entry per language.
  *
@@ -1832,6 +2152,27 @@ ${alts}
     add(`${prefix}/privacy`, '0.3', 'yearly', hreflangLinks((l) => `${LANG_PREFIX[l]}/privacy`), SITE_STRUCTURE_DATE);
   }
 
+  // Discover — the culture and news feed, and each article in it.
+  //
+  // lastmod is the post's OWN date, never the crawl date: a feed that claims to
+  // change every day is a feed Google stops trusting, which is the same trap the
+  // word pages already fell into once (see the note below this function). The
+  // hub takes the newest post it lists, so it is exactly as fresh as its
+  // freshest article, and moves on its own the moment a post is published.
+  const feedPosts = store.listPosts({ status: 'published', limit: 200 });
+  const newestPost = feedPosts.reduce((m, p) => {
+    const d = postDateShort(p.published_at || p.updated_at || p.created_at);
+    return d > m ? d : m;
+  }, SITE_STRUCTURE_DATE);
+  for (const prefix of Object.values(LANG_PREFIX)) {
+    add(`${prefix}/discover`, '0.7', 'daily', hreflangLinks((l) => `${LANG_PREFIX[l]}/discover`), newestPost);
+    for (const p of feedPosts) {
+      const d = postDateShort(p.published_at || p.updated_at || p.created_at);
+      add(`${prefix}/discover/${p.slug}`, '0.6', 'monthly',
+        hreflangLinks((l) => `${LANG_PREFIX[l]}/discover/${p.slug}`), d || SITE_STRUCTURE_DATE);
+    }
+  }
+
   // Categories, levels, words — in every language tree. All three are drawn
   // from the vocabulary library, so their true freshness is the library's:
   // UPDATED from content.js. A category page cannot change without the words
@@ -1874,6 +2215,7 @@ Allow: /learn
 Allow: /words
 Allow: /level
 Allow: /guide
+Allow: /discover
 Allow: /fil
 Allow: /zh
 Allow: /id
@@ -1954,6 +2296,11 @@ function mount(app) {
     // makes that explicit.
     ['/guide', (lang) => renderGuideHub(lang)],
     ['/guide/:slug', (lang, p) => renderGuide(lang, p.slug)],
+    // Discover — the culture and news feed. Two segments, so it is registered
+    // after the single-segment routes; a post slug can never shadow /guide or
+    // /learn because those namespaces are distinct and the ordering is explicit.
+    ['/discover', (lang) => renderDiscoverHub(lang)],
+    ['/discover/:slug', (lang, p) => renderPost(lang, p.slug)],
     // The privacy policy. Last, so the two-segment guide route above cannot be
     // shadowed, and reachable at /privacy (root) plus /fil|/zh|/id/privacy.
     ['/privacy', (lang) => renderPrivacy(lang)],
@@ -2009,4 +2356,4 @@ function mount(app) {
   console.log(`  SEO:          ${SITE_ORIGIN}/sitemap.xml  (${store.listVocabulary({ enabledOnly: true }).length} words, ${store.listEnabledCategories().length} categories, ${LANGS.length} languages)`);
 }
 
-module.exports = { mount, SITE_ORIGIN, slugify, buildWordIndex, wordSlugMap, LANG_PREFIX, LANGS };
+module.exports = { mount, SITE_ORIGIN, slugify, buildWordIndex, wordSlugMap, LANG_PREFIX, LANGS, ROUTE_FAMILIES };

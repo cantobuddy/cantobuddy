@@ -40,6 +40,14 @@ const STATE = {
   quiz: null,           // active quiz object
   stats: null,          // her own statistics, from /api/learners/stats
   statsDays: 30,        // chart window only — never affects totals or streak
+  // Discover feed. `posts` caches each channel so switching tabs is instant and
+  // does not re-fetch; `current` is the open article, kept so a language switch
+  // can re-render it without another request.
+  discover: { channel: 'culture', posts: { culture: null, news: null }, current: null },
+  // The newest post, for the card on Home. `null` means "not asked yet",
+  // `false` means "asked and there is nothing" — the distinction stops Home
+  // re-fetching on every language switch when the feed is legitimately empty.
+  homeLatest: null,
 };
 
 // ---- TTS (Cantonese text-to-speech) with selectable practice voices --------
@@ -458,6 +466,7 @@ function navigate(view) {
 
   if (view === 'progress') renderProgress();
   if (view === 'share') renderSharePage();
+  if (view === 'discover') renderDiscover();
 }
 
 function goBrowse(level) {
@@ -511,6 +520,14 @@ async function init() {
     // applyTranslations() so its title is translated, and after the badge for the
     // same "dynamic last" reason.
     syncInstallEntry();
+
+    // The returning-learner cards, last for the same reason — they show her own
+    // numbers, not labels. Statistics are awaited so the streak card does not
+    // draw empty and then fill in; a failure leaves STATE.stats null and the
+    // card simply does not appear.
+    await fetchLearnerStats();
+    renderHomeCards();
+    renderHomeDiscover();
   } catch (err) {
     console.error('Init error:', err);
     document.getElementById('app').insertAdjacentHTML(
@@ -526,6 +543,10 @@ async function init() {
  */
 function rerenderForLanguage() {
   renderHomeCategories();
+  renderHomeCards();
+  // The Discover card on Home carries a translated heading and a post title
+  // with per-language fallbacks, so it is rebuilt too.
+  renderHomeDiscover();
   renderCategoryChips();
   renderQuizTypes();
   renderVocabList();
@@ -535,6 +556,10 @@ function rerenderForLanguage() {
   const active = document.querySelector('.view.active');
   if (active && active.id === 'view-progress') renderProgress();
   if (active && active.id === 'view-share') renderSharePage();
+  if (active && active.id === 'view-discover') renderDiscover();
+  // An open article is a body of text in one language; switching language has
+  // to rebuild it from the cached row, or it stays in the old one.
+  if (active && active.id === 'view-post' && STATE.discover.current) renderPost(STATE.discover.current);
 
   // The install dialog's instructions are built in JS, so a language switch has
   // to rebuild them or half the text stays in the old language.
@@ -562,6 +587,178 @@ function renderHomeCategories() {
       )
       .join('') +
     '</div>';
+}
+
+// ---- Home: the returning-learner cards -------------------------------------
+//
+// The streak is the app's only habit mechanic, and until now it lived one tab
+// away in My Progress — a report she had to go looking for. These cards put the
+// reason to come back on the screen she actually lands on.
+//
+// Two rules all of them follow:
+//   * A device that has never practised renders NOTHING, so the first screen a
+//     stranger sees is exactly the screen that existed before.
+//   * A failure is SILENT. Home must never be broken, or half-drawn, by a feed
+//     that will not load or a statistics call that times out.
+
+/** Today's calendar date in Hong Kong — the day the server counts in. */
+function hktDayKey(now = Date.now()) {
+  return new Date(now + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
+/**
+ * A small deterministic hash (FNV-1a), so the word of the day is the same word
+ * for every device on a given day with no storage and no server call.
+ *
+ * A plain `dayNumber % length` would be just as deterministic, but it walks the
+ * library in order — consecutive days would hand her adjacent words, which
+ * reads as a bug rather than a daily pick.
+ */
+function hashString(s) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h >>> 0;
+}
+
+/** The word of the day, drawn from the whole library. */
+function wordOfTheDay() {
+  const list = STATE.vocabulary;
+  if (!list || !list.length) return null;
+  return list[hashString('cb-wotd-' + hktDayKey()) % list.length];
+}
+
+/**
+ * Where "Continue" goes.
+ *
+ * There is no per-word completion record to continue *from*: `progress` is one
+ * row per quiz attempt and its category_id is not populated. So the honest
+ * target is the furthest level she has actually practised — that is where she
+ * stopped, and it is derived from data that already exists rather than from
+ * state this screen would have to start inventing.
+ */
+function continueLevel(s) {
+  const byLevel = (s && s.byLevel) || {};
+  const attempted = Object.keys(byLevel)
+    .map(Number)
+    .filter((l) => l >= 1 && l <= 3 && byLevel[l] && byLevel[l].attempts > 0);
+  return attempted.length ? Math.max(...attempted) : 1;
+}
+
+/**
+ * A JS string literal that is safe inside an HTML attribute.
+ *
+ * The ORDER is the whole point. The browser decodes HTML entities before it
+ * runs the JS, so the value must be JS-escaped first and HTML-escaped second.
+ * Done the other way round, a quote becomes &#39;, which decodes back to a bare
+ * quote and breaks out of the JS string — the injection this is meant to stop.
+ */
+function jsAttr(value) {
+  const js = String(value == null ? '' : value)
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, "\\'");
+  return escapeAttr(js);
+}
+
+function renderHomeResume() {
+  const wrap = document.getElementById('home-resume');
+  if (!wrap) return;
+  const s = STATE.stats;
+
+  // Never practised: draw nothing. This check is the "a stranger sees the old
+  // screen" rule, so it happens before anything else.
+  if (!s || !s.totals || !s.totals.attempts) {
+    wrap.innerHTML = '';
+    return;
+  }
+
+  const streak = s.streak || {};
+  // The headline is deliberately just the number and its unit. Gluing "in a
+  // row" onto it reads correctly in English and wrongly in Chinese ("12 天
+  // 连续"), and the sub line below already carries the meaning — so the
+  // headline stays a fact and the sentence stays in the sub.
+  const headline = streak.current
+    ? statPlural(streak.current, 'stats.dayOne', 'stats.days')
+    : t('home.resumeWelcome');
+  const sub = streak.practisedToday
+    ? t('home.resumeDone')
+    : streak.current
+      ? t('home.resumeKeep')
+      : t('home.resumeStart');
+
+  wrap.innerHTML = `
+    <div class="home-resume${streak.practisedToday ? ' done' : ''}">
+      <div class="home-resume-main">
+        <div class="home-resume-streak">${escapeHtml(headline)}</div>
+        <div class="home-resume-sub">${escapeHtml(sub)}</div>
+      </div>
+      <button class="btn btn-primary home-resume-btn" onclick="continueLearning()">
+        ${escapeHtml(t('home.resumeContinue'))}
+      </button>
+    </div>`;
+}
+
+/** Opens the browse list at the level she last worked at. */
+function continueLearning() {
+  goBrowse(continueLevel(STATE.stats));
+}
+
+function renderHomeWord() {
+  const wrap = document.getElementById('home-word');
+  if (!wrap) return;
+  const v = wordOfTheDay();
+  if (!v) {
+    wrap.innerHTML = '';
+    return;
+  }
+  wrap.innerHTML = `
+    <div class="home-word">
+      <div class="home-word-head">${escapeHtml(t('home.wordOfDay'))}</div>
+      <div class="home-word-card" onclick="openVocabModal(${v.id})">
+        <div class="home-word-emoji">${escapeHtml(v.emoji || '📝')}</div>
+        <div class="home-word-main">
+          <div class="home-word-cantonese">${escapeHtml(v.cantonese)}</div>
+          <div class="home-word-jyutping">${escapeHtml(v.jyutping || '')}</div>
+          <div class="home-word-meaning">${escapeHtml(meaning(v))}</div>
+        </div>
+        <button class="vocab-audio-btn" aria-label="${escapeAttr(v.cantonese)}"
+          onclick="event.stopPropagation(); speak('${jsAttr(v.cantonese)}', this)">🔊</button>
+      </div>
+    </div>`;
+}
+
+/**
+ * The newest Discover item, so "there is something new" is visible without
+ * opening the Discover tab. Renders nothing when the feed is empty, and
+ * swallows a failure rather than putting an error on the home screen.
+ */
+async function renderHomeDiscover() {
+  const wrap = document.getElementById('home-discover');
+  if (!wrap) return;
+  try {
+    if (STATE.homeLatest === null) {
+      const posts = await apiGet('/api/posts?limit=1');
+      STATE.homeLatest = Array.isArray(posts) && posts.length ? posts[0] : false;
+    }
+    if (!STATE.homeLatest) {
+      wrap.innerHTML = '';
+      return;
+    }
+    wrap.innerHTML =
+      `<h4 class="home-section-title">${escapeHtml(t('home.latest'))}</h4>` +
+      postCardHtml(STATE.homeLatest);
+  } catch (err) {
+    console.warn('Could not load the latest post:', err);
+    wrap.innerHTML = '';
+  }
+}
+
+/** The two synchronous home cards. Called from init() and on a language switch. */
+function renderHomeCards() {
+  renderHomeResume();
+  renderHomeWord();
 }
 
 function filterByCategory(catId) {
@@ -784,7 +981,7 @@ function renderVocabList() {
   wrap.innerHTML = items
     .map(
       (v) => `
-    <div class="vocab-card" onclick="openVocabModal(${v.id})">
+    <div class="vocab-card lv${v.level}" onclick="openVocabModal(${v.id})">
       <div class="vocab-emoji">${v.emoji || '📝'}</div>
       <div class="vocab-body">
         <div class="vocab-cantonese">${v.cantonese}</div>
@@ -2588,6 +2785,178 @@ function renderSharePage() {
   const previewLink = document.getElementById('share-preview-link');
   if (previewText) previewText.textContent = t('sharePage.message');
   if (previewLink) previewLink.textContent = url;
+}
+
+// ---- Discover feed (culture + news) ----------------------------------------
+//
+// Two channels over one shape of thing — a dated article. Culture posts are
+// written by the operator; news posts are imported from public Hong Kong
+// sources (see news.js) and always carry a link to the original, which the
+// article view surfaces. The two share this markup deliberately: a helper
+// should not have to learn a different layout for each tab.
+
+/**
+ * A post's text in the language being read, falling back to English.
+ *
+ * The same rule vocabulary meanings follow (see meaning()): a blank translation
+ * shows the English rather than nothing, because an untranslated article is
+ * still worth reading and an empty card is not.
+ */
+function postField(post, field) {
+  if (!post) return '';
+  const localised = post[`${field}_${currentLang()}`];
+  if (localised != null && String(localised).trim()) return String(localised);
+  return String(post[`${field}_en`] || '');
+}
+
+/** A readable date, in the reader's language where the device supports it. */
+function postDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  try {
+    return d.toLocaleDateString(currentHtmlLang(), { day: 'numeric', month: 'short', year: 'numeric' });
+  } catch {
+    return d.toISOString().slice(0, 10);
+  }
+}
+
+/**
+ * Post bodies are HTML (a small subset — see data.js). This strips everything
+ * outside that subset before it reaches innerHTML, so a body pasted into the
+ * admin form, or an href that arrived in a feed, cannot inject script.
+ * Unknown tags are UNWRAPPED rather than deleted, so their text survives.
+ */
+const POST_TAGS = /^(P|H2|H3|UL|OL|LI|STRONG|EM|B|I|BR|A|BLOCKQUOTE)$/;
+
+function sanitizePostHtml(html) {
+  const tpl = document.createElement('template');
+  tpl.innerHTML = String(html || '');
+  const clean = (node) => {
+    [...node.children].forEach((el) => {
+      if (!POST_TAGS.test(el.tagName)) {
+        const parent = el.parentNode;
+        while (el.firstChild) parent.insertBefore(el.firstChild, el);
+        parent.removeChild(el);
+        return; // its children were just moved up, so nothing left to walk
+      }
+      [...el.attributes].forEach((attr) => {
+        const isSafeHref = el.tagName === 'A' && attr.name === 'href' && /^(https?:\/\/|\/)/i.test(attr.value);
+        if (!isSafeHref) el.removeAttribute(attr.name);
+      });
+      if (el.tagName === 'A') {
+        el.setAttribute('target', '_blank');
+        el.setAttribute('rel', 'noopener noreferrer');
+      }
+      clean(el);
+    });
+  };
+  clean(tpl.content);
+  return tpl.innerHTML;
+}
+
+function showChannel(channel) {
+  STATE.discover.channel = channel === 'news' ? 'news' : 'culture';
+  renderDiscover();
+}
+
+/** One feed card. A button, not a link: it opens the article in the app. */
+function postCardHtml(post) {
+  const date = postDate(post.published_at || post.created_at);
+  const source = post.source_name ? ` · ${escapeHtml(post.source_name)}` : '';
+  const summary = postField(post, 'summary');
+  return `
+    <button class="post-card" onclick="openPost('${escapeHtml(post.slug)}')">
+      <span class="post-card-icon">${escapeHtml(post.icon || '📰')}</span>
+      <span class="post-card-main">
+        <span class="post-card-meta">${escapeHtml(date)}${source}</span>
+        <span class="post-card-title">${escapeHtml(postField(post, 'title'))}</span>
+        ${summary ? `<span class="post-card-summary">${escapeHtml(summary)}</span>` : ''}
+      </span>
+      <span class="post-card-arrow" aria-hidden="true">›</span>
+    </button>`;
+}
+
+async function renderDiscover() {
+  const feed = document.getElementById('discover-feed');
+  if (!feed) return;
+  const channel = STATE.discover.channel;
+
+  document.querySelectorAll('.discover-tab').forEach((b) => {
+    b.classList.toggle('active', b.dataset.channel === channel);
+  });
+  const note = document.getElementById('discover-note');
+  if (note) note.textContent = t(channel === 'news' ? 'discover.newsLead' : 'discover.cultureLead');
+
+  // Serve the cache when we have it, so a tab switch is instant and a language
+  // switch does not hit the network again.
+  let posts = STATE.discover.posts[channel];
+  if (!posts) {
+    feed.innerHTML = `<div class="discover-loading">…</div>`;
+    try {
+      posts = await apiGet(`/api/posts?channel=${channel}`);
+      STATE.discover.posts[channel] = posts;
+    } catch (err) {
+      console.warn('Could not load the feed:', err);
+      feed.innerHTML = `<p class="discover-empty">${escapeHtml(t('discover.loadFailed'))}</p>`;
+      return;
+    }
+  }
+
+  // The learner may have switched tabs while this was in flight; drawing the
+  // old channel now would overwrite the new one.
+  if (STATE.discover.channel !== channel) return;
+
+  feed.innerHTML = posts.length
+    ? posts.map(postCardHtml).join('')
+    : `<p class="discover-empty">${escapeHtml(t('discover.empty'))}</p>`;
+}
+
+/** Opens one article by slug. */
+async function openPost(slug) {
+  const host = document.getElementById('post-body');
+  if (!host || !slug) return;
+  navigate('post');
+  host.innerHTML = `<div class="discover-loading">…</div>`;
+  try {
+    const post = await apiGet(`/api/posts/${encodeURIComponent(slug)}`);
+    STATE.discover.current = post;
+    renderPost(post);
+  } catch (err) {
+    console.warn('Could not load the article:', err);
+    host.innerHTML = `<p class="discover-empty">${escapeHtml(t('discover.notFound'))}</p>`;
+  }
+}
+
+/** Draws the open article. Also re-run on a language switch. */
+function renderPost(post) {
+  const host = document.getElementById('post-body');
+  if (!host || !post) return;
+  const date = postDate(post.published_at || post.created_at);
+  const summary = postField(post, 'summary');
+  const body = sanitizePostHtml(postField(post, 'body'));
+
+  // Imported news carries attribution and a link. Culture posts have neither,
+  // so the block simply does not render for them — no empty "Source:" line.
+  const source = post.source_url
+    ? `<div class="post-source">
+         <p class="post-source-line">${escapeHtml(t('discover.source'))}:
+           <strong>${escapeHtml(post.source_name || post.source_url)}</strong></p>
+         <a class="btn btn-primary btn-block" href="${escapeHtml(post.source_url)}"
+            target="_blank" rel="noopener noreferrer">${escapeHtml(t('discover.readOriginal'))}</a>
+         <p class="post-news-note">${escapeHtml(t('discover.newsNote'))}</p>
+       </div>`
+    : '';
+
+  host.innerHTML = `
+    <div class="post-hero">
+      <div class="post-hero-icon">${escapeHtml(post.icon || '🏮')}</div>
+      <h1 class="post-title">${escapeHtml(postField(post, 'title'))}</h1>
+      ${date ? `<div class="post-date">${escapeHtml(date)}</div>` : ''}
+    </div>
+    ${summary ? `<p class="post-summary">${escapeHtml(summary)}</p>` : ''}
+    <div class="post-content">${body}</div>
+    ${source}`;
 }
 
 // ---- Employer connections --------------------------------------------------

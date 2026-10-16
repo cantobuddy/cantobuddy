@@ -14,6 +14,7 @@ const crypto = require('crypto');
 const store = require('./db');
 const SqliteSessionStore = require('./session-store');
 const seo = require('./seo');
+const news = require('./news');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -504,6 +505,72 @@ app.delete('/api/scenarios/:id', requireAdmin, (req, res) => {
   const ok = store.deleteScenario(req.params.id);
   if (!ok) return res.status(404).json({ error: 'Not found' });
   res.json({ ok: true });
+});
+
+// ---------------------------------------------------------------------------
+// Discover feed — posts (public read, admin write)
+//
+// Two channels over one table: 'culture' (written by the operator) and 'news'
+// (imported from public sources — see news.js). A learner sees PUBLISHED posts
+// only; a draft is invisible here, which is the difference from vocabulary,
+// where 'draft' is a review flag that still serves. A post is a dated
+// publication, so an unfinished one must not appear in the feed at all.
+// ---------------------------------------------------------------------------
+
+app.get('/api/posts', (req, res) => {
+  const { channel, limit } = req.query;
+  res.json(store.listPosts({ channel: channel || null, status: 'published', limit }));
+});
+
+app.get('/api/posts/:slug', (req, res) => {
+  const post = store.getPostBySlug(req.params.slug);
+  // A draft is a 404 to a learner, exactly as if it did not exist.
+  if (!post || post.status !== 'published') return res.status(404).json({ error: 'Not found' });
+  res.json(post);
+});
+
+app.get('/api/admin/posts', requireAdmin, (req, res) => {
+  const { channel, limit } = req.query;
+  res.json({ posts: store.listAllPosts({ channel: channel || null, limit }), counts: store.getPostCounts() });
+});
+
+app.post('/api/admin/posts', requireAdmin, (req, res) => {
+  const b = req.body || {};
+  if (!b.title_en || !String(b.title_en).trim()) {
+    return res.status(400).json({ error: 'An English title is required.' });
+  }
+  const post = store.createPost(b);
+  if (!post) return res.status(400).json({ error: 'Could not create the post.' });
+  res.status(201).json(post);
+});
+
+app.put('/api/admin/posts/:id', requireAdmin, (req, res) => {
+  const post = store.updatePost(req.params.id, req.body || {});
+  if (!post) return res.status(404).json({ error: 'Not found' });
+  res.json(post);
+});
+
+app.delete('/api/admin/posts/:id', requireAdmin, (req, res) => {
+  const ok = store.deletePost(req.params.id);
+  if (!ok) return res.status(404).json({ error: 'Not found' });
+  res.json({ ok: true });
+});
+
+/**
+ * Runs the news importer on demand — the "Fetch news now" button.
+ *
+ * Admin-only, and deliberately synchronous in its response: the operator asked
+ * for it and should see what happened (how many stories, from where, and any
+ * feed that failed), not a job id. It is idempotent, so pressing it twice does
+ * not duplicate anything — see importPost in db.js.
+ */
+app.post('/api/admin/posts/import', requireAdmin, async (req, res) => {
+  try {
+    const report = await news.importNews({ limitPerSource: Number(req.body && req.body.limit) || 0 });
+    res.json({ ...report, counts: store.getPostCounts() });
+  } catch (err) {
+    res.status(500).json({ error: err && err.message ? err.message : 'Import failed' });
+  }
 });
 
 // ---------------------------------------------------------------------------
@@ -1190,6 +1257,51 @@ const server = app.listen(PORT, HOST, () => {
   if (store.seeded) console.log(`  Seeded a fresh database from data.js.`);
   console.log('');
 });
+
+// ---------------------------------------------------------------------------
+// News importer schedule
+//
+// OFF BY DEFAULT, and that is the right default. The importer is idempotent, so
+// running it costs nothing but a couple of HTTP requests — but a server that
+// silently reaches out to the internet on a timer is a surprise in a codebase
+// that otherwise never does, so it is opt-in:
+//
+//     NEWS_FETCH_INTERVAL_HOURS=6
+//
+// With it unset, the feed is filled by the operator pressing "Fetch news now"
+// in the admin Posts tab, which is the honest default for a deployment that may
+// not be awake on a schedule.
+//
+// ON A SLEEPING HOST this timer does not fire while the instance is asleep
+// (Render's free tier sleeps after inactivity), so it is a convenience, not a
+// guarantee. A Render Cron Job hitting POST /api/admin/posts/import is the
+// reliable version; the button is the manual one. Both exist.
+// ---------------------------------------------------------------------------
+const NEWS_FETCH_INTERVAL_HOURS = Number(process.env.NEWS_FETCH_INTERVAL_HOURS) || 0;
+
+if (NEWS_FETCH_INTERVAL_HOURS > 0) {
+  const everyMs = Math.max(NEWS_FETCH_INTERVAL_HOURS, 0.25) * 60 * 60 * 1000;
+
+  const runImport = async (why) => {
+    try {
+      const r = await news.importNews();
+      console.log(
+        `  News import (${why}): fetched ${r.fetched}, new ${r.inserted}, already had ${r.skipped}` +
+          (r.errors.length ? ` — errors: ${r.errors.join('; ')}` : '')
+      );
+    } catch (err) {
+      // A feed being down must never take the app with it.
+      console.error(`  News import (${why}) failed:`, err && err.message ? err.message : err);
+    }
+  };
+
+  const timer = setInterval(() => runImport('scheduled'), everyMs);
+  timer.unref(); // never hold the process open
+  // One run shortly after boot, so a redeploy refreshes the feed without
+  // waiting a whole interval.
+  setTimeout(() => runImport('startup'), 15000).unref();
+  console.log(`  News import: every ${NEWS_FETCH_INTERVAL_HOURS}h (NEWS_FETCH_INTERVAL_HOURS)`);
+}
 
 // Close the database cleanly so WAL is checkpointed on shutdown.
 function shutdown(signal) {

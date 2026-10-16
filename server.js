@@ -1287,6 +1287,9 @@ if (NEWS_FETCH_INTERVAL_HOURS > 0) {
       const r = await news.importNews();
       console.log(
         `  News import (${why}): fetched ${r.fetched}, new ${r.inserted}, already had ${r.skipped}` +
+          // A retired source is a real event, not a detail: it means the feed
+          // just lost stories because the code stopped shipping their feed.
+          (r.removed ? `, retired ${r.removed} from ${r.retired.join(', ')}` : '') +
           (r.errors.length ? ` — errors: ${r.errors.join('; ')}` : '')
       );
     } catch (err) {

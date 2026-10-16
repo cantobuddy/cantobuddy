@@ -323,16 +323,38 @@ async function postsFromSource(source, doFetch) {
 }
 
 /**
+ * Retire everything imported from a source this build no longer ships.
+ *
+ * Dropping a feed from SOURCES stops new items arriving but does not remove
+ * what it already imported — `importPost` only inserts. Without this, replacing
+ * a source leaves its old stories in the feed for ever: 40 HK government press
+ * releases survived the swap to the Philippine and Indonesian feeds that way.
+ *
+ * Driven by the SHIPPED list, never by a caller's `sources` override. The tests
+ * import a single fixture source, and retiring against that list would wipe
+ * every other source's posts.
+ *
+ * @param {object[]} [sources] the sources still shipped
+ * @returns {{removed:number, retired:string[]}}
+ */
+function retireUnshippedSources(sources = SOURCES) {
+  return db.deleteNewsPostsFromSourcesNotIn(sources.map((s) => s.key));
+}
+
+/**
  * Imports every source. Never throws: a failing feed is reported, not fatal,
  * because the other source is still worth importing and a scheduled run must
  * not die on one bad response.
  *
- * @param {{fetchImpl?:Function, sources?:object[], limitPerSource?:number}} [opts]
- * @returns {Promise<{sources:number, fetched:number, inserted:number, skipped:number, errors:string[], dryRun:boolean}>}
+ * @param {{fetchImpl?:Function, sources?:object[], limitPerSource?:number, retire?:boolean}} [opts]
+ * @returns {Promise<{sources:number, fetched:number, inserted:number, skipped:number, errors:string[], retired:string[], removed:number, dryRun:boolean}>}
  */
-async function importNews({ fetchImpl, sources = SOURCES, limitPerSource = 0, dryRun = false } = {}) {
+async function importNews({ fetchImpl, sources = SOURCES, limitPerSource = 0, dryRun = false, retire } = {}) {
   const doFetch = fetchImpl || globalThis.fetch;
-  const report = { sources: sources.length, fetched: 0, inserted: 0, skipped: 0, errors: [], dryRun: !!dryRun };
+  const report = {
+    sources: sources.length, fetched: 0, inserted: 0, skipped: 0,
+    errors: [], retired: [], removed: 0, dryRun: !!dryRun,
+  };
 
   for (const source of sources) {
     const { posts, error } = await postsFromSource(source, doFetch);
@@ -354,10 +376,19 @@ async function importNews({ fetchImpl, sources = SOURCES, limitPerSource = 0, dr
     }
   }
 
+  // Retire only on a real import of the real source list — see the note on
+  // retireUnshippedSources, and never on a dry run.
+  const shouldRetire = retire === undefined ? sources === SOURCES : !!retire;
+  if (shouldRetire && !dryRun) {
+    const swept = retireUnshippedSources();
+    report.retired = swept.retired;
+    report.removed = swept.removed;
+  }
+
   return report;
 }
 
 /** Published counts, so a caller can report the feed's size after an import. */
 const feedCounts = () => db.getPostCounts();
 
-module.exports = { SOURCES, importNews, postsFromSource, parseRss, summarise, decodeEntities, stripHtml, SUMMARY_MAX };
+module.exports = { SOURCES, importNews, retireUnshippedSources, postsFromSource, parseRss, plainText, decodeDeep, summarise, decodeEntities, stripHtml, SUMMARY_MAX };

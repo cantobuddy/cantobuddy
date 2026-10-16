@@ -1331,7 +1331,12 @@ async function fetchNewsNow() {
     const r = await apiPost('/api/admin/posts/import', {});
     await renderAdminPosts();
     const errs = (r.errors || []).length ? `\n\nFeed problems:\n${r.errors.join('\n')}` : '';
-    alert(`Fetched ${r.fetched} items · ${r.inserted} new · ${r.skipped} already had.${errs}`);
+    // A retirement is shown rather than hidden: it means the feed just LOST
+    // stories, because this build no longer ships the source they came from.
+    const gone = r.removed
+      ? `\nRetired ${r.removed} item(s) from a source no longer in use (${(r.retired || []).join(', ')}).`
+      : '';
+    alert(`Fetched ${r.fetched} items · ${r.inserted} new · ${r.skipped} already had.${gone}${errs}`);
   } catch (err) {
     alert('Import failed: ' + err.message);
   } finally {

@@ -1665,6 +1665,16 @@ const S = {
     WHERE id = ?
   `),
   deletePost: db.prepare('DELETE FROM posts WHERE id = ?'),
+  // Retiring a source. See deleteNewsPostsFromSourcesNotIn for why these are
+  // scoped to channel 'news' AND origin 'auto' — that pair is what makes it
+  // impossible for a mis-set source list to delete editorial content.
+  listAutoNewsSourceKeys: db.prepare(
+    `SELECT DISTINCT source_key FROM posts
+      WHERE channel = 'news' AND origin = 'auto' AND source_key IS NOT NULL AND source_key != ''`
+  ),
+  deleteAutoNewsPostsBySourcePrefix: db.prepare(
+    `DELETE FROM posts WHERE channel = 'news' AND origin = 'auto' AND source_key LIKE ?`
+  ),
 };
 
 // ---------------------------------------------------------------------------
@@ -2588,6 +2598,44 @@ function updatePost(id, b = {}) {
 
 function deletePost(id) {
   return S.deletePost.run(Number(id)).changes > 0;
+}
+
+/**
+ * Retire imported posts whose source this build no longer ships.
+ *
+ * WHY THIS EXISTS. `importPost` only ever INSERTs, so removing a source from
+ * `news.SOURCES` stops NEW items arriving but leaves everything that source
+ * already imported sitting in the feed for ever. That is not hypothetical: when
+ * the HK Government Press Releases feed was replaced by the Philippine and
+ * Indonesian ones (2026-10-16), 40 government press releases stayed live in
+ * production after the source was gone, and only a check against the live feed
+ * caught it. The code was right and the feed was wrong.
+ *
+ * Deliberately narrow. It only ever touches a row that is ALL of:
+ *   - channel 'news'   (never a culture post)
+ *   - origin 'auto'    (never a hand-written post, and never an admin draft)
+ *   - carrying a non-empty source_key
+ * so no mis-set source list can delete editorial content. A hand-written post
+ * that happens to carry a source_url is not a candidate either, because
+ * createPost writes origin 'manual' unless explicitly told otherwise.
+ *
+ * @param {string[]} keep the source keys still shipped
+ * @returns {{removed:number, retired:string[]}} what it deleted, and whose
+ */
+function deleteNewsPostsFromSourcesNotIn(keep = []) {
+  const shipped = new Set(keep.map((k) => String(k)));
+  const stale = [
+    ...new Set(
+      S.listAutoNewsSourceKeys.all()
+        .map((r) => String(r.source_key || '').split(':')[0])
+        .filter((prefix) => prefix && !shipped.has(prefix))
+    ),
+  ];
+  let removed = 0;
+  for (const prefix of stale) {
+    removed += S.deleteAutoNewsPostsBySourcePrefix.run(`${prefix}:%`).changes;
+  }
+  return { removed, retired: stale };
 }
 
 /**
@@ -3536,6 +3584,7 @@ module.exports = {
   createPost,
   updatePost,
   deletePost,
+  deleteNewsPostsFromSourcesNotIn,
   importPost,
   POST_CHANNELS,
   POST_STATUSES,

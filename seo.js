@@ -369,7 +369,7 @@ const LANG_PREFIX = { en: '', fil: '/fil', zh: '/zh', id: '/id' };
  * (The same shape of bug happened once before, with `/privacy`.) Those suites
  * now derive the pattern from this export, so the next route cannot repeat it.
  */
-const ROUTE_FAMILIES = ['learn', 'words', 'level', 'guide', 'discover', 'privacy'];
+const ROUTE_FAMILIES = ['learn', 'words', 'level', 'guide', 'discover', 'stories', 'privacy'];
 
 /** Every language tree this module serves, in the order links should list them. */
 const LANGS = ['en', 'fil', 'zh', 'id'];
@@ -404,7 +404,7 @@ const LANGS = ['en', 'fil', 'zh', 'id'];
 const PRIVACY = {
   en: {
     title: 'Privacy Policy',
-    updated: 'Last updated: 10 October 2026',
+    updated: 'Last updated: 17 October 2026',
     lede: 'CantoBuddy is a free Cantonese practice app for domestic helpers in Hong Kong. This page explains, in plain language, what the app records, what it does not, and how to have it deleted.',
     sections: [
       {
@@ -427,6 +427,15 @@ const PRIVACY = {
         p: [
           'If you send feedback through the app, the message is stored without linking it to you. We deliberately do not attach your device identifier or any account to a learner\'s feedback, so that a helper can report a problem — including one about the app or about her household — without it being traceable to her.',
           'A contact detail is stored only if you choose to type one in. It is never filled in on your behalf.',
+        ],
+      },
+      {
+        h: 'Stories',
+        p: [
+          'You can write your own story — about your daily life, where you come from, or something that happened to you — and send it to us from inside the app. A story is read by us before it appears anywhere. Nothing you write is visible to anyone else until we have read it and chosen to publish it, and we may edit it, ask you to change it, or decline it.',
+          'Your name is published with the story only if you tick the box asking us to show it. If you do not tick it, your name is not stored at all — not hidden, not blanked out later, simply never written down. Your device identifier is never shown to a reader. We keep it only so that you can see the status of your own submissions and so that one device cannot flood the queue; it is not part of the published page.',
+          'If you do put your name to a story, remember that a published story is public: anyone can read it, copy it, and search engines may index it. Once it is out, we cannot take back a copy someone else has already made. You can ask us to remove your story at any time and we will take it down, but we cannot promise it has not been copied in the meantime.',
+          'Please do not include an address, a phone number, an employer\'s full name, or anything else that could identify you or the family you work for. If you do, we will remove it before publishing.',
         ],
       },
       {
@@ -482,7 +491,7 @@ const PRIVACY = {
 
   fil: {
     title: 'Patakaran sa Privacy',
-    updated: 'Huling na-update: 10 Oktubre 2026',
+    updated: 'Huling na-update: 17 Oktubre 2026',
     lede: 'Ang CantoBuddy ay isang libreng app para sa pagsasanay ng Cantonese para sa mga domestic helper sa Hong Kong. Ipinaliwanag sa page na ito, sa simpleng pananalita, kung ano ang itinatala ng app, kung ano ang hindi nito itinatala, at paano ito ipapabura.',
     sections: [
       {
@@ -505,6 +514,15 @@ const PRIVACY = {
         p: [
           'Kung magpapadala ka ng feedback sa app, iniimbak ang mensahe nang hindi ito nakaugnay sa iyo. Sadyang hindi namin ikinakabit ang identifier ng iyong device o anumang account sa feedback ng isang mag-aaral, para makapag-ulat ang isang helper ng problema — kasama na ang tungkol sa app o sa kanyang sambahayan — nang hindi ito natutunton sa kanya.',
           'Ang contact detail ay iniimbak lamang kung pipiliin mong mag-type nito. Hindi ito kailanman pinupunan para sa iyo.',
+        ],
+      },
+      {
+        h: 'Mga Kuwento',
+        p: [
+          'Maaari kang sumulat ng sarili mong kuwento — tungkol sa pang-araw-araw mong buhay, sa pinanggalingan mo, o sa isang bagay na nangyari sa iyo — at ipadala ito sa amin mula sa loob ng app. Binabasa namin ang kuwento bago ito lumabas kahit saan. Walang makikita ng kahit ano sa isinulat mo hangga\'t hindi namin ito nabasa at piniling ilathala; maaari rin naming i-edit ito, hilingin sa iyong baguhin, o tanggihan.',
+          'Ilalathala ang pangalan mo kasama ng kuwento kung tinitikan mo ang kahon na humihiling na ipakita ito. Kung hindi mo tinitikan, hindi ito iniimbak — hindi nakatago, hindi binura mamaya, kundi hindi kailanman isinulat. Hindi kailanman ipinapakita sa mambabasa ang identifier ng iyong device. Iniingatan namin ito para makita mo ang kalagayan ng sarili mong mga isinumite at para hindi maipon ng isang device ang pila; wala ito sa nailathalang pahina.',
+          'Kung ilalagay mo ang pangalan mo sa isang kuwento, tandaan na ang nailathalang kuwento ay pampubliko: kahit sino ay makakabasa, makakopya, at maaaring i-index ito ng mga search engine. Kapag lumabas na, hindi na namin maibabalik ang kopyang nakuha na ng iba. Maaari mong hilingin anumang oras na alisin ang kuwento mo at aalisin namin ito, ngunit hindi namin maipapangako na hindi pa ito nakopya.',
+          'Huwag isama ang address, numero ng telepono, buong pangalan ng employer, o anumang bagay na maaaring magpakilala sa iyo o sa pamilyang pinaglilingkuran mo. Kung mayroon, aalisin namin ito bago ilathala.',
         ],
       },
       {
@@ -560,7 +578,7 @@ const PRIVACY = {
 
   zh: {
     title: '隐私政策',
-    updated: '最后更新：2026 年 10 月 10 日',
+    updated: '最后更新：2026 年 10 月 17 日',
     lede: 'CantoBuddy 是给香港外佣免费使用的粤语练习应用。本页用平实的语言说明：应用记录什么、不记录什么，以及如何删除这些记录。',
     sections: [
       {
@@ -583,6 +601,15 @@ const PRIVACY = {
         p: [
           '如果你通过应用发送反馈，这条消息会被保存，但不会与你关联。我们特意不把设备标识符或任何账号附在用户的反馈上，这样外佣才能报告问题（包括关于应用或关于雇主家庭的问题）而不必担心被追溯到本人。',
           '只有在你自己填写的情况下，我们才会保存联系方式。我们绝不会替你填写。',
+        ],
+      },
+      {
+        h: '家佣故事',
+        p: [
+          '你可以写下自己的故事——关于你的日常生活、你的家乡，或发生在你身上的事——并在应用内发给我们。故事在出现在任何地方之前，都会先由我们阅读。在我们读过并决定发布之前，你写的内容对任何人都不可见；我们也可能会编辑它、请你修改，或不予采用。',
+          '只有当你勾选「显示我的名字」时，你的名字才会随故事一起发布。如果你没有勾选，你的名字根本不会被保存——不是被隐藏，也不是事后抹去，而是从未被写下。你的设备标识符绝不会展示给读者。我们保留它，只是为了让你能看到自己投稿的状态，以及防止单一设备刷屏；它不会出现在已发布的页面上。',
+          '如果你选择署名，请记住：已发布的故事是公开的——任何人都可以阅读、复制，搜索引擎也可能收录。一旦发布，别人已经留下的副本我们无法收回。你可以随时要求我们删除你的故事，我们会照办，但无法保证这段时间内它没有被复制。',
+          '请不要写入门牌地址、电话号码、雇主的全名，或任何能识别你或你雇主家庭的信息。如有，我们会在发布前删除。',
         ],
       },
       {
@@ -638,7 +665,7 @@ const PRIVACY = {
 
   id: {
     title: 'Kebijakan Privasi',
-    updated: 'Terakhir diperbarui: 10 Oktober 2026',
+    updated: 'Terakhir diperbarui: 17 Oktober 2026',
     lede: 'CantoBuddy adalah aplikasi latihan bahasa Kanton gratis untuk asisten rumah tangga di Hong Kong. Halaman ini menjelaskan dengan bahasa sederhana apa yang dicatat aplikasi, apa yang tidak dicatat, dan cara meminta penghapusannya.',
     sections: [
       {
@@ -661,6 +688,15 @@ const PRIVACY = {
         p: [
           'Jika Anda mengirim umpan balik melalui aplikasi, pesannya disimpan tanpa dikaitkan dengan Anda. Kami sengaja tidak melampirkan pengenal perangkat atau akun apa pun pada umpan balik seorang pengguna, supaya seorang asisten dapat melaporkan masalah — termasuk tentang aplikasi atau tentang rumah tangganya — tanpa bisa dilacak kembali kepadanya.',
           'Detail kontak hanya disimpan jika Anda memilih menuliskannya. Kami tidak pernah mengisinya untuk Anda.',
+        ],
+      },
+      {
+        h: 'Kisah',
+        p: [
+          'Anda bisa menulis kisah Anda sendiri — tentang kehidupan sehari-hari, kampung halaman, atau sesuatu yang pernah terjadi pada Anda — dan mengirimkannya kepada kami dari dalam aplikasi. Kisah dibaca oleh kami sebelum muncul di mana pun. Tidak ada yang bisa dilihat orang lain dari tulisan Anda sampai kami membacanya dan memutuskan untuk menerbitkannya; kami juga dapat menyuntingnya, meminta Anda mengubahnya, atau menolaknya.',
+          'Nama Anda diterbitkan bersama kisah itu hanya jika Anda mencentang kotak untuk menampilkannya. Jika tidak dicentang, nama Anda tidak disimpan sama sekali — bukan disembunyikan, bukan dihapus belakangan, tetapi memang tidak pernah ditulis. Pengenal perangkat Anda tidak pernah ditampilkan kepada pembaca. Kami menyimpannya hanya agar Anda dapat melihat status kiriman Anda sendiri dan agar satu perangkat tidak membanjiri antrean; pengenal itu tidak ada di halaman yang diterbitkan.',
+          'Jika Anda mencantumkan nama, ingatlah bahwa kisah yang diterbitkan bersifat publik: siapa pun dapat membacanya, menyalinnya, dan mesin pencari dapat mengindeksnya. Setelah terbit, kami tidak dapat menarik kembali salinan yang sudah dibuat orang lain. Anda dapat meminta kami menghapus kisah Anda kapan saja dan kami akan menurunkannya, tetapi kami tidak dapat menjamin belum ada yang menyalinnya.',
+          'Mohon jangan mencantumkan alamat, nomor telepon, nama lengkap majikan, atau apa pun yang dapat mengidentifikasi Anda atau keluarga tempat Anda bekerja. Jika ada, kami akan menghapusnya sebelum menerbitkan.',
         ],
       },
       {
@@ -827,11 +863,22 @@ ul.links li a:hover{border-color:var(--red);color:var(--red)}
 h2.disc-h2{font-size:21px;margin:34px 0 6px}
 .post-item .pm{display:block;color:var(--muted);font-size:12.5px;font-weight:600;
   letter-spacing:.03em;text-transform:uppercase;margin-bottom:5px}
+/* The meta line inside a guide-card (the date and author on a Discover item, the
+   date and byline on a story). It was only ever styled for .post-item, so the
+   same markup inside a card fell back to body text — the one line on the card
+   that is meant to be quiet was the loudest. */
+.guide-card .pm{display:block;color:var(--muted);font-size:12.5px;font-weight:600;
+  letter-spacing:.03em;text-transform:uppercase;margin-bottom:5px}
 .post-source{margin-top:34px;padding-top:20px;border-top:1px solid var(--line)}
 .post-source .btn{display:inline-block;background:var(--red);color:#fff;text-decoration:none;
   padding:11px 20px;border-radius:999px;font-weight:600;font-size:15.5px}
 .post-source .btn:hover{background:#c1121f}
 p.news-note{color:var(--muted);font-size:13px;margin-top:12px}
+/* Stories. The gloss is the operator's hand-written English version of a story
+   written in another language. It is set apart deliberately: a reader must be
+   able to tell at a glance where her words end and someone else's begin. */
+.story-gloss{margin-top:38px;padding-top:22px;border-top:1px solid var(--line)}
+.story-gloss h2{margin-top:0}
 @media(max-width:560px){
   td.jy{display:none}
   .cta-card{flex-direction:column;align-items:flex-start}
@@ -974,6 +1021,7 @@ ${o.body}
        &nbsp;·&nbsp; <a href="${LANG_PREFIX[lang]}/learn">${esc(L[lang].browse)}</a>
        &nbsp;·&nbsp; <a href="${LANG_PREFIX[lang]}/guide">${esc((GUIDE_UI[lang] || GUIDE_UI.en).guides)}</a>
        &nbsp;·&nbsp; <a href="${LANG_PREFIX[lang]}/discover">${esc(L[lang].discover)}</a>
+       &nbsp;·&nbsp; <a href="${LANG_PREFIX[lang]}/stories">${esc((STORIES_UI[lang] || STORIES_UI.en).title)}</a>
        &nbsp;·&nbsp; <a href="${LANG_PREFIX[lang]}/privacy">${esc(PRIVACY[lang].title)}</a></p>
   </div>
 </footer>
@@ -1791,6 +1839,87 @@ const DISCOVER_UI = {
   },
 };
 
+/**
+ * The Stories hub and reader.
+ *
+ * A story is written in ONE language — the one its author writes in — and is
+ * NOT translated. That is the deliberate decision, not a missing feature: a
+ * helper's own account of her life is worth more in her own words than in a
+ * machine's, and the hub is a shared shelf rather than four parallel shelves.
+ * So every language tree renders the SAME list, and the only thing that changes
+ * per tree is the chrome around it: the heading, the labels, the "written in"
+ * note. An optional hand-written English gloss (written by the operator when
+ * she approves the story) is what lets a reader who does not speak the language
+ * follow along — see `gloss` below.
+ */
+const STORIES_UI = {
+  en: {
+    title: 'Stories',
+    lede: 'Real stories from domestic helpers in Hong Kong — their daily life, where they come from, and what happened along the way. Each one is written in the helper\'s own language and read here exactly as she wrote it.',
+    empty: 'No stories have been published yet. If you would like to share yours, open the app and tap Stories.',
+    anonymous: 'Anonymous',
+    writtenIn: 'Written in',
+    gloss: 'In English',
+    backToStories: 'All stories',
+    shareYours: 'Share your story',
+    shareYoursBody: 'Your story can help another helper feel less alone. Write it in your own language — it will be read by us first, then shared here if it is published.',
+    notFound: 'That story is not available.',
+    notFoundTitle: 'Story not found',
+  },
+  fil: {
+    title: 'Mga Kuwento',
+    lede: 'Totoong kuwento mula sa mga helper sa Hong Kong — ang pang-araw-araw na buhay, ang pinanggalingan, at ang mga nangyari sa daan. Ang bawat isa ay nakasulat sa sariling wika ng helper at binabasa rito nang eksakto kung paano niya ito isinulat.',
+    empty: 'Wala pang nai-publish na kuwento. Kung gusto mong ibahagi ang sa iyo, buksan ang app at pindutin ang Mga Kuwento.',
+    anonymous: 'Hindi nagpakilala',
+    writtenIn: 'Nakasulat sa',
+    gloss: 'Sa Ingles',
+    backToStories: 'Lahat ng kuwento',
+    shareYours: 'Ibahagi ang kuwento mo',
+    shareYoursBody: 'Malaki ang maitutulong ng kuwento mo para hindi mag-isa ang kapwa helper. Isulat ito sa sarili mong wika — babasahin muna namin, at ilalathala rito kapag naaprubahan.',
+    notFound: 'Hindi available ang kuwentong iyon.',
+    notFoundTitle: 'Hindi mahanap ang kuwento',
+  },
+  zh: {
+    title: '家佣故事',
+    lede: '来自香港家佣的真实故事——日常生活、家乡背景，以及一路上发生的事。每一篇都以她自己的语言写成，在这里原样呈现。',
+    empty: '目前还没有已发布的故事。想分享你的故事，请打开应用并点击「故事」。',
+    anonymous: '匿名',
+    writtenIn: '语言',
+    gloss: '英文版',
+    backToStories: '全部故事',
+    shareYours: '分享你的故事',
+    shareYoursBody: '你的故事可以让另一位家佣感到不那么孤单。请用你自己的语言写——我们会先读一遍，通过后才在这里分享。',
+    notFound: '这篇故事暂不可用。',
+    notFoundTitle: '找不到故事',
+  },
+  id: {
+    title: 'Kisah',
+    lede: 'Kisah nyata dari para asisten rumah tangga di Hong Kong — kehidupan sehari-hari, asal-usul, dan apa yang terjadi di sepanjang jalan. Setiap kisah ditulis dalam bahasa asli penulisnya dan dibaca di sini persis seperti yang ia tulis.',
+    empty: 'Belum ada kisah yang diterbitkan. Jika ingin membagikan kisahmu, buka aplikasi dan ketuk Kisah.',
+    anonymous: 'Tanpa nama',
+    writtenIn: 'Ditulis dalam',
+    gloss: 'Dalam bahasa Inggris',
+    backToStories: 'Semua kisah',
+    shareYours: 'Bagikan kisahmu',
+    shareYoursBody: 'Kisahmu bisa membuat sesama asisten rumah tangga merasa tidak sendirian. Tulislah dalam bahasamu sendiri — kami akan membacanya lebih dulu, lalu membagikannya di sini jika disetujui.',
+    notFound: 'Kisah itu tidak tersedia.',
+    notFoundTitle: 'Kisah tidak ditemukan',
+  },
+};
+
+/**
+ * What a story's language is called, indexed by the language the READER is
+ * browsing in — so a Filipino reader sees "Ingles" and a Chinese reader sees
+ * "英文" for the same English story. The first key is the reader's tree; the
+ * second is the language the story was written in.
+ */
+const STORY_LANG_NAME = {
+  en: { en: 'English', fil: 'Filipino', zh: 'Chinese', id: 'Indonesian' },
+  fil: { en: 'Ingles', fil: 'Filipino', zh: 'Chinese', id: 'Indonesian' },
+  zh: { en: '英文', fil: '菲律宾语', zh: '中文', id: '印尼语' },
+  id: { en: 'Inggris', fil: 'Filipino', zh: 'Tionghoa', id: 'Indonesia' },
+};
+
 /** A post's text in one language, falling back to English — same rule as the app. */
 function postText(post, field, lang) {
   const localised = post[`${field}_${lang}`];
@@ -1995,6 +2124,202 @@ ${ctaCard(lang)}
   });
 }
 
+// ---------------------------------------------------------------------------
+// Stories — a helper's own life story, written in her own language
+// ---------------------------------------------------------------------------
+
+/**
+ * A story's body is PLAIN TEXT, not the operator's HTML subset. She typed it
+ * into a textarea, so the only structure she has is the newline: a blank line
+ * is a paragraph break, a single newline is a line break. Escaping first and
+ * adding structure after means nothing she types can ever become markup —
+ * which matters more here than anywhere else on the site, because this is the
+ * one page whose text a stranger wrote.
+ */
+function storyParagraphs(body) {
+  return String(body || '')
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .map((p) => `<p>${esc(p).replace(/\n/g, '<br>')}</p>`)
+    .join('\n');
+}
+
+/** Her name, or the honest label when she chose not to put one to it. */
+function storyByline(story, ui) {
+  const name = String(story.display_name || '').trim();
+  return name ? esc(name) : esc(ui.anonymous);
+}
+
+/** The label a reader needs: which language this story is in, in their own. */
+function storyLangLabel(story, ui, readerLang) {
+  const names = STORY_LANG_NAME[readerLang] || STORY_LANG_NAME.en;
+  return `${esc(ui.writtenIn)}: ${esc(names[story.lang] || story.lang)}`;
+}
+
+/** One card on the shared shelf. */
+function storyCardLi(story, ui, prefix) {
+  const date = postDateShort(story.published_at);
+  const meta = [date, storyByline(story, ui)].filter(Boolean).join(' · ');
+  return `<li class="guide-card">
+  <a href="${prefix}/stories/${esc(story.slug)}">
+    <span class="em">📖</span>
+    ${meta ? `<span class="pm">${esc(meta)}</span>` : ''}
+    <span class="gt">${esc(story.title)}</span>
+    ${story.gloss_en ? `<span class="gd">${esc(story.gloss_en)}</span>` : ''}
+  </a>
+</li>`;
+}
+
+/**
+ * The Stories hub. ONE shared shelf in every language tree — the stories are
+ * not translated, so filtering them by tree would show a reader a different
+ * site depending on which language they browse in. See STORIES_UI.
+ */
+function renderStoriesHub(lang) {
+  const ui = STORIES_UI[lang] || STORIES_UI.en;
+  const prefix = LANG_PREFIX[lang] || '';
+
+  const stories = store.listPublishedStories({ limit: 200 });
+
+  const list = stories.length
+    ? `<ul class="guide-list">\n${stories.map((s) => storyCardLi(s, ui, prefix)).join('\n')}\n</ul>`
+    : `<p class="lede">${esc(ui.empty)}</p>`;
+
+  const body = `
+${crumbs(lang, [{ label: ui.title }])}
+<h1>${esc(ui.title)}</h1>
+<p class="lede">${esc(ui.lede)}</p>
+${list}
+<div class="cta-card">
+  <p>${esc(ui.shareYoursBody)}</p>
+  <a class="cta" href="/">${esc(ui.shareYours)}</a>
+</div>
+`;
+
+  const title = {
+    en: 'Stories from domestic helpers in Hong Kong | CantoBuddy',
+    fil: 'Mga kuwento ng mga helper sa Hong Kong | CantoBuddy',
+    zh: '香港家佣的真实故事 | CantoBuddy',
+    id: 'Kisah para asisten rumah tangga di Hong Kong | CantoBuddy',
+  }[lang];
+
+  const description = {
+    en: 'Real life stories written by domestic helpers in Hong Kong — daily life, home, and what happened along the way. Read them in the language they were written in.',
+    fil: 'Totoong kuwento ng buhay na isinulat ng mga helper sa Hong Kong — pang-araw-araw, tahanan, at mga nangyari. Basahin sa wikang ginamit nila.',
+    zh: '由香港家佣亲笔写下的真实生活故事——日常、家乡，以及一路上的经历。以她们原本的语言阅读。',
+    id: 'Kisah hidup nyata yang ditulis oleh asisten rumah tangga di Hong Kong — kehidupan sehari-hari, kampung halaman, dan apa yang terjadi. Baca dalam bahasa aslinya.',
+  }[lang];
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      ORG_LD,
+      breadcrumbLd([{ name: ui.title, path: `${prefix}/stories` }]),
+      {
+        '@type': 'CollectionPage',
+        name: title,
+        description,
+        url: `${SITE_ORIGIN}${prefix}/stories`,
+        inLanguage: L[lang].htmlLang,
+        hasPart: stories.slice(0, 50).map((s) => ({
+          '@type': 'Article',
+          headline: s.title,
+          url: `${SITE_ORIGIN}${prefix}/stories/${s.slug}`,
+          inLanguage: L[s.lang] ? L[s.lang].htmlLang : undefined,
+        })),
+      },
+    ],
+  };
+
+  return page({
+    lang,
+    title,
+    description,
+    path: `${prefix}/stories`,
+    jsonLd,
+    body,
+    alternates: hreflangLinks((l) => `${LANG_PREFIX[l]}/stories`),
+  });
+}
+
+/** One story. Returns null for anything not published, so the route can 404. */
+function renderStory(lang, slug) {
+  const ui = STORIES_UI[lang] || STORIES_UI.en;
+  const prefix = LANG_PREFIX[lang] || '';
+  const story = store.getPublishedStoryBySlug(slug);
+  // A pending or rejected story has no public page, exactly as a draft post has
+  // none. To a reader who was sent the link, it simply does not exist yet.
+  if (!story) return null;
+
+  const date = postDateShort(story.published_at);
+  const meta = [storyByline(story, ui), date, storyLangLabel(story, ui, lang)].filter(Boolean).join(' · ');
+
+  // The gloss is optional and only ever hand-written by the operator. It is
+  // labelled, and it sits after the original — never instead of it.
+  const glossBlock = story.gloss_en
+    ? `<div class="story-gloss">
+  <h2>${esc(ui.gloss)}</h2>
+  ${storyParagraphs(story.gloss_en)}
+</div>`
+    : '';
+
+  const body = `
+${crumbs(lang, [
+    { label: ui.title, href: `${prefix}/stories` },
+    { label: story.title },
+  ])}
+<article>
+<h1>${esc(story.title)}</h1>
+<p class="updated">${meta}</p>
+${storyParagraphs(story.body)}
+${glossBlock}
+</article>
+<p class="updated"><a href="${prefix}/stories">${esc(ui.backToStories)}</a></p>
+${ctaCard(lang)}
+`;
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      ORG_LD,
+      breadcrumbLd([
+        { name: ui.title, path: `${prefix}/stories` },
+        { name: story.title, path: `${prefix}/stories/${slug}` },
+      ]),
+      {
+        '@type': 'Article',
+        headline: story.title,
+        description: story.gloss_en || story.body.slice(0, 200),
+        inLanguage: L[story.lang] ? L[story.lang].htmlLang : L[lang].htmlLang,
+        ...(date ? { datePublished: date, dateModified: date } : {}),
+        mainEntityOfPage: `${SITE_ORIGIN}${prefix}/stories/${slug}`,
+        // A signed story is the helper's own account, so the credit is hers;
+        // an unsigned one is credited to the site rather than to nobody, which
+        // is what keeps the structured data valid.
+        author: story.display_name
+          ? { '@type': 'Person', name: story.display_name }
+          : { '@type': 'Organization', name: 'CantoBuddy' },
+        publisher: {
+          '@type': 'Organization',
+          name: 'CantoBuddy',
+          logo: { '@type': 'ImageObject', url: `${SITE_ORIGIN}/icons/icon-512.png` },
+        },
+      },
+    ],
+  };
+
+  return page({
+    lang,
+    title: `${story.title} | CantoBuddy`,
+    description: story.gloss_en || story.body.slice(0, 200),
+    path: `${prefix}/stories/${slug}`,
+    jsonLd,
+    body,
+    alternates: hreflangLinks((l) => `${LANG_PREFIX[l]}/stories/${slug}`),
+  });
+}
+
 /**
  * The privacy policy page. Rendered from PRIVACY above, one entry per language.
  *
@@ -2087,7 +2412,7 @@ function wordSlugMap() {
  * It is deliberately NOT "today". See the note in renderSitemap() for why a
  * lastmod that equals the crawl date is worse than no lastmod at all.
  */
-const SITE_STRUCTURE_DATE = '2026-10-10';
+const SITE_STRUCTURE_DATE = '2026-10-17';
 
 function renderSitemap() {
   const urls = [];
@@ -2173,6 +2498,29 @@ ${alts}
     }
   }
 
+  // Stories — the shared shelf of helper-written stories.
+  //
+  // ONE shelf, every tree. The hub is listed in all four language trees because
+  // the CHROME is translated and a Filipino reader searching in Filipino should
+  // land on it; the stories themselves are not translated, so the same slug is
+  // the same document in each tree and the alternates are honest.
+  //
+  // lastmod is the story's own published date, never the crawl date — the same
+  // rule as the Discover feed, and for the same reason.
+  const publishedStories = store.listPublishedStorySlugs();
+  const newestStory = publishedStories.reduce((m, s) => {
+    const d = postDateShort(s.updated_at || s.published_at);
+    return d > m ? d : m;
+  }, SITE_STRUCTURE_DATE);
+  for (const prefix of Object.values(LANG_PREFIX)) {
+    add(`${prefix}/stories`, '0.7', 'weekly', hreflangLinks((l) => `${LANG_PREFIX[l]}/stories`), newestStory);
+    for (const s of publishedStories) {
+      const d = postDateShort(s.updated_at || s.published_at);
+      add(`${prefix}/stories/${s.slug}`, '0.6', 'monthly',
+        hreflangLinks((l) => `${LANG_PREFIX[l]}/stories/${s.slug}`), d || SITE_STRUCTURE_DATE);
+    }
+  }
+
   // Categories, levels, words — in every language tree. All three are drawn
   // from the vocabulary library, so their true freshness is the library's:
   // UPDATED from content.js. A category page cannot change without the words
@@ -2216,6 +2564,7 @@ Allow: /words
 Allow: /level
 Allow: /guide
 Allow: /discover
+Allow: /stories
 Allow: /fil
 Allow: /zh
 Allow: /id
@@ -2301,6 +2650,11 @@ function mount(app) {
     // /learn because those namespaces are distinct and the ordering is explicit.
     ['/discover', (lang) => renderDiscoverHub(lang)],
     ['/discover/:slug', (lang, p) => renderPost(lang, p.slug)],
+    // Stories — a helper's own life story. Two segments, registered after the
+    // single-segment routes for the same reason as Discover: the namespaces are
+    // distinct and the ordering makes that explicit.
+    ['/stories', (lang) => renderStoriesHub(lang)],
+    ['/stories/:slug', (lang, p) => renderStory(lang, p.slug)],
     // The privacy policy. Last, so the two-segment guide route above cannot be
     // shadowed, and reachable at /privacy (root) plus /fil|/zh|/id/privacy.
     ['/privacy', (lang) => renderPrivacy(lang)],

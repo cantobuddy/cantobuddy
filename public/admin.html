@@ -66,6 +66,13 @@
       <button class="admin-tab" data-tab="feedback" onclick="switchTab('feedback')">💬 Feedback<span
         id="admin-feedback-badge" class="tab-badge" style="display:none"></span></button>
       <button class="admin-tab" data-tab="posts" onclick="switchTab('posts')">📰 Posts</button>
+      <!-- Stories. Sits next to Feedback because both are queues of things a
+           stranger wrote that a human has to read — but this one is different
+           in kind: an item here is INVISIBLE TO EVERYONE until it is approved
+           from this tab, so the badge is not a nudge, it is the only way a
+           story ever becomes readable. -->
+      <button class="admin-tab" data-tab="stories" onclick="switchTab('stories')">📖 Stories<span
+        id="admin-stories-badge" class="tab-badge" style="display:none"></span></button>
     </div>
 
     <!-- ---- vocab tab ---- -->
@@ -248,8 +255,9 @@
       <p class="admin-hint" id="admin-posts-summary"></p>
       <p class="admin-hint">
         <strong>Culture</strong> posts are written here. <strong>News</strong> posts are imported
-        from Hong Kong public sources (government press releases and RTHK) as a headline, a short
-        summary and a link — never the full article, which would be a copyright problem.
+        from Philippine, Indonesian and Hong Kong public sources (Philippine Daily Inquirer,
+        Antara News and RTHK) as a headline, a short summary and a link — never the full article,
+        which would be a copyright problem.
       </p>
 
       <div class="chip-group" id="admin-posts-filter">
@@ -259,6 +267,44 @@
       </div>
 
       <div id="admin-posts-list" class="admin-list"></div>
+    </div>
+
+    <!-- ---- stories tab ---- -->
+    <!-- The moderation queue for helper-written stories.
+    
+         THIS IS THE ONLY PLACE A STORY CAN BE PUBLISHED. A submission is stored
+         'pending' and is invisible to every public surface — the shelf, the
+         reader page, the sitemap — until the operator approves it here. There is
+         no other route in the app that sets a story to 'published'.
+    
+         The operator is shown the body, the language and the name field,
+         because moderating means reading the thing; and NOT the device identity,
+         because the job is to judge words, not people. The English gloss box is
+         the one editorial power that matters: a story written in Filipino
+         reaches a reader who does not speak it only through a gloss the
+         operator writes by hand. -->
+    <div id="tab-stories" class="admin-tab-content">
+      <div class="admin-toolbar">
+        <h3>Stories</h3>
+        <button class="btn btn-outline btn-sm" onclick="renderAdminStories()">↻ Refresh</button>
+      </div>
+      <p class="admin-hint">
+        Stories written by helpers, in their own language. <strong>Nothing here is visible to
+        anyone until you approve it.</strong> Please read for an address, a phone number, an
+        employer's full name or anything else that could identify her or the family she works
+        for — and remove it before publishing. If you add an English gloss, a reader who does
+        not speak her language can follow the story too.
+      </p>
+
+      <div class="chip-group" id="admin-stories-filter">
+        <button class="chip active" data-status="pending" onclick="setStoryFilter('pending')">Waiting</button>
+        <button class="chip" data-status="published" onclick="setStoryFilter('published')">Published</button>
+        <button class="chip" data-status="rejected" onclick="setStoryFilter('rejected')">Not published</button>
+        <button class="chip" data-status="" onclick="setStoryFilter('')">All</button>
+      </div>
+
+      <div id="admin-stories-summary" class="stats-grid"></div>
+      <div id="admin-stories-list" class="admin-list"></div>
     </div>
 
   </section>

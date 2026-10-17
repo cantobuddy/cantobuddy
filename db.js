@@ -446,6 +446,57 @@ db.exec(`
   CREATE UNIQUE INDEX IF NOT EXISTS idx_posts_source_key
     ON posts(source_key) WHERE source_key IS NOT NULL;
   CREATE INDEX IF NOT EXISTS idx_posts_feed ON posts(status, channel, published_at DESC);
+
+  /* A helper's own story, submitted for publication.
+
+     THE PRIVACY DECISION, AND WHY IT LIVES IN THE SCHEMA. A story is the first
+     thing a learner writes that is meant to be read by OTHER PEOPLE. The
+     feedback inbox next door is private by design, precisely because a helper
+     lives with the person who can see her data — so publication is opt-in here,
+     and both halves of that are enforced by the shape of the table rather than
+     by the screen that happens to render it:
+
+       display_name  is EMPTY unless she ticked "show my name". An empty name
+                     publishes as Anonymous, and there is no other column a name
+                     could leak out of.
+       learner_id    is kept — it is needed to rate-limit submissions and to let
+                     her see the status of her own — but the PUBLIC queries never
+                     select it, and the moderation screen shows only the name she
+                     chose. listPublishedStories and listStoriesForModeration
+                     select different columns on purpose; do not "simplify" them
+                     into one.
+
+     status is the moderation queue: pending -> published | rejected. A story
+     that is not 'published' is a 404 to a reader, absent from the API list and
+     absent from the sitemap — exactly like a draft post.
+
+     lang is the language she WROTE it in, not a language it is available in. A
+     Tagalog story is shown to everyone and LABELLED as Tagalog; it is not
+     translated, because machine-translating a person's life story would put
+     words in her mouth. gloss_en is the single exception: the operator may add
+     a short English summary by hand while approving.
+
+     NO IMAGE COLUMN, deliberately. A photo of a helper's room can identify the
+     household she works for, and there is no upload storage to moderate. */
+  CREATE TABLE IF NOT EXISTS stories (
+    id            INTEGER PRIMARY KEY,
+    slug          TEXT NOT NULL UNIQUE,
+    learner_id    INTEGER REFERENCES learners(id) ON DELETE SET NULL,
+    display_name  TEXT NOT NULL DEFAULT '',
+    lang          TEXT NOT NULL DEFAULT 'en',
+    topic         TEXT NOT NULL DEFAULT 'daily',
+    title         TEXT NOT NULL,
+    body          TEXT NOT NULL,
+    gloss_en      TEXT NOT NULL DEFAULT '',
+    status        TEXT NOT NULL DEFAULT 'pending',
+    reviewer_note TEXT NOT NULL DEFAULT '',
+    published_at  TEXT,
+    created_at    TEXT NOT NULL,
+    updated_at    TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_stories_queue  ON stories(status, created_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_stories_feed   ON stories(status, published_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_stories_author ON stories(learner_id, created_at DESC);
 `);
 
 // ---------------------------------------------------------------------------
@@ -1675,6 +1726,74 @@ const S = {
   deleteAutoNewsPostsBySourcePrefix: db.prepare(
     `DELETE FROM posts WHERE channel = 'news' AND origin = 'auto' AND source_key LIKE ?`
   ),
+
+  // -------------------------------------------------------------------------
+  // Stories
+  //
+  // NOTE THE COLUMN LISTS. None of the PUBLIC statements below selects
+  // learner_id — that is the whole point of listing columns instead of using
+  // `SELECT *`, and it is why these cannot be collapsed into one query with a
+  // status filter. learner_id exists for rate-limiting and for a learner to see
+  // her own submissions; it must never reach a reader.
+  // -------------------------------------------------------------------------
+  insertStory: db.prepare(`
+    INSERT INTO stories
+      (slug, learner_id, display_name, lang, topic, title, body, gloss_en, status, published_at, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `),
+  /** Public list. No learner_id, no body — a list only needs the card. */
+  listPublishedStories: db.prepare(`
+    SELECT id, slug, display_name, lang, topic, title, gloss_en, published_at
+      FROM stories
+     WHERE status = 'published'
+     ORDER BY published_at DESC, id DESC
+     LIMIT ?
+  `),
+  /** Public reader. No learner_id. */
+  getPublishedStoryBySlug: db.prepare(`
+    SELECT id, slug, display_name, lang, topic, title, body, gloss_en, published_at
+      FROM stories
+     WHERE slug = ? AND status = 'published'
+  `),
+  /** Moderation queue. Still no learner_id — see the note above. */
+  listStoriesForModeration: db.prepare(`
+    SELECT id, slug, display_name, lang, topic, title, body, gloss_en, status,
+           reviewer_note, published_at, created_at, updated_at
+      FROM stories
+     WHERE (? = '' OR status = ?)
+     ORDER BY
+       CASE status WHEN 'pending' THEN 0 ELSE 1 END,
+       created_at ASC
+     LIMIT ?
+  `),
+  getStoryForModeration: db.prepare(`
+    SELECT id, slug, display_name, lang, topic, title, body, gloss_en, status,
+           reviewer_note, published_at, created_at, updated_at
+      FROM stories WHERE id = ?
+  `),
+  /** Slug uniqueness has to consider EVERY story, not just published ones. */
+  getStoryIdBySlug: db.prepare('SELECT id FROM stories WHERE slug = ?'),
+  setStoryStatus: db.prepare(`
+    UPDATE stories SET status = ?, reviewer_note = ?, published_at = ?, updated_at = ? WHERE id = ?
+  `),
+  /** The operator may fix a typo or remove an identifying detail before publishing. */
+  setStoryContent: db.prepare(`
+    UPDATE stories SET title = ?, body = ?, gloss_en = ?, display_name = ?, updated_at = ? WHERE id = ?
+  `),
+  deleteStory: db.prepare('DELETE FROM stories WHERE id = ?'),
+  storyCounts: db.prepare('SELECT status, COUNT(*) AS n FROM stories GROUP BY status'),
+  countStoriesSince: db.prepare(
+    'SELECT COUNT(*) AS n FROM stories WHERE learner_id = ? AND created_at >= ?'
+  ),
+  listStoriesByLearner: db.prepare(`
+    SELECT id, slug, title, lang, topic, status, reviewer_note, published_at, created_at
+      FROM stories WHERE learner_id = ? ORDER BY created_at DESC LIMIT ?
+  `),
+  /** For the sitemap: only published stories, and only the dates it needs. */
+  listPublishedStorySlugs: db.prepare(`
+    SELECT slug, published_at, updated_at FROM stories
+     WHERE status = 'published' ORDER BY published_at DESC
+  `),
 };
 
 // ---------------------------------------------------------------------------
@@ -2676,6 +2795,178 @@ function importPost(b = {}) {
   return { inserted: info.changes > 0, id: info.changes > 0 ? Number(info.lastInsertRowid) : null };
 }
 
+// ---------------------------------------------------------------------------
+// Stories — a helper's own writing, moderated before it is published
+// ---------------------------------------------------------------------------
+
+/**
+ * What a story can be about. Broad on purpose — "my daily life", "where I come
+ * from", "something that happened". She should not have to work out which box
+ * her life fits in, so the picker is short and the reader shows the topic as a
+ * label rather than filtering on it.
+ */
+const STORY_TOPICS = ['daily', 'background', 'interesting'];
+
+/** The moderation queue. 'pending' is the only state a submission can start in. */
+const STORY_STATUSES = ['pending', 'published', 'rejected'];
+
+const STORY_TITLE_MAX = 120;
+const STORY_BODY_MAX = 6000;
+const STORY_GLOSS_MAX = 400;
+const STORY_NAME_MAX = 40;
+const STORY_NOTE_MAX = 300;
+/** Per device, rolling 24h. Generous for one person, tight for a script. */
+const STORY_DAILY_LIMIT = 3;
+
+function slugifyStory(s) {
+  return String(s || '')
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60);
+}
+
+/** A slug no other story holds, by appending -2, -3, … */
+function uniqueStorySlug(base) {
+  const root = slugifyStory(base) || 'story';
+  let slug = root;
+  let n = 1;
+  for (;;) {
+    if (!S.getPublishedStoryBySlug.get(slug) && !S.getStoryIdBySlug.get(slug)) return slug;
+    n += 1;
+    slug = `${root}-${n}`;
+  }
+}
+
+/**
+ * Stores a submission as PENDING. Nothing in this function can publish — only
+ * setStoryStatus can, and only the admin route calls it.
+ *
+ * `sign` is the whole privacy decision, and it is applied HERE rather than at
+ * render time: when it is false the display name is thrown away before the row
+ * is written, so an unsigned story has no name stored anywhere that could leak
+ * later, in any query, in any future feature.
+ *
+ * @returns {object|null} the stored row (learner_id excluded — see the schema
+ *   note), or null when the title or body is empty after trimming.
+ */
+function createStory({ learner_id = null, title, body, lang = 'en', topic = 'daily', sign = false, display_name = '' } = {}) {
+  const t = String(title ?? '').trim().slice(0, STORY_TITLE_MAX);
+  const b = String(body ?? '').trim().slice(0, STORY_BODY_MAX);
+  if (!t || !b) return null;
+  const now = new Date().toISOString();
+  const info = S.insertStory.run(
+    uniqueStorySlug(t),
+    learner_id != null ? Number(learner_id) : null,
+    sign ? String(display_name ?? '').trim().slice(0, STORY_NAME_MAX) : '',
+    ['en', 'fil', 'zh', 'id'].includes(lang) ? lang : 'en',
+    STORY_TOPICS.includes(topic) ? topic : 'daily',
+    t,
+    b,
+    '',
+    'pending',
+    null,
+    now,
+    now
+  );
+  return S.getStoryForModeration.get(Number(info.lastInsertRowid));
+}
+
+/** The public list: published only, newest first, no learner identity. */
+function listPublishedStories({ limit = 50 } = {}) {
+  return S.listPublishedStories.all(Math.max(1, Math.min(Number(limit) || 50, 200)));
+}
+
+/** One published story by slug, or null. A pending or rejected story is null. */
+function getPublishedStoryBySlug(slug) {
+  return S.getPublishedStoryBySlug.get(String(slug || '')) || null;
+}
+
+/** The moderation queue. A null/unknown status means every state, pending first. */
+function listStoriesForModeration({ status = null, limit = 200 } = {}) {
+  const s = STORY_STATUSES.includes(status) ? status : '';
+  return S.listStoriesForModeration.all(s, s, Math.max(1, Math.min(Number(limit) || 200, 500)));
+}
+
+function getStoryForModeration(id) {
+  return S.getStoryForModeration.get(Number(id)) || null;
+}
+
+function getStoryCounts() {
+  const out = { pending: 0, published: 0, rejected: 0, total: 0 };
+  for (const row of S.storyCounts.all()) {
+    if (STORY_STATUSES.includes(row.status)) out[row.status] = row.n;
+    out.total += row.n;
+  }
+  return out;
+}
+
+/**
+ * The ONLY function that can publish a story.
+ *
+ * Approving stamps `published_at` the first time and keeps it afterwards, so a
+ * story that is un-published and re-approved does not jump back to the top of
+ * the feed with a fresh date — the date is when it was first published, which is
+ * what a reader assumes it means.
+ *
+ * Rejecting records why, because the note is shown back to the author on her own
+ * submissions screen. A rejection with no reason reads as "nobody looked".
+ */
+function setStoryStatus(id, status, note = '') {
+  if (!STORY_STATUSES.includes(status)) return null;
+  const cur = S.getStoryForModeration.get(Number(id));
+  if (!cur) return null;
+  const now = new Date().toISOString();
+  const publishedAt = status === 'published' ? cur.published_at || now : cur.published_at;
+  S.setStoryStatus.run(status, String(note ?? '').trim().slice(0, STORY_NOTE_MAX), publishedAt, now, Number(id));
+  return S.getStoryForModeration.get(Number(id));
+}
+
+/** The operator editing a submission: a typo, an identifying detail, a gloss. */
+function updateStoryContent(id, patch = {}) {
+  const cur = S.getStoryForModeration.get(Number(id));
+  if (!cur) return null;
+  const title = patch.title != null ? String(patch.title).trim().slice(0, STORY_TITLE_MAX) : cur.title;
+  const body = patch.body != null ? String(patch.body).trim().slice(0, STORY_BODY_MAX) : cur.body;
+  if (!title || !body) return null;
+  S.setStoryContent.run(
+    title,
+    body,
+    patch.gloss_en != null ? String(patch.gloss_en).trim().slice(0, STORY_GLOSS_MAX) : cur.gloss_en,
+    patch.display_name != null ? String(patch.display_name).trim().slice(0, STORY_NAME_MAX) : cur.display_name,
+    new Date().toISOString(),
+    Number(id)
+  );
+  return S.getStoryForModeration.get(Number(id));
+}
+
+function deleteStory(id) {
+  return S.deleteStory.run(Number(id)).changes > 0;
+}
+
+/**
+ * Has this device hit its daily submission limit? Counted over a rolling 24h
+ * rather than a calendar day, so the limit cannot be reset by waiting for
+ * midnight.
+ */
+function storyQuotaFor(learnerId) {
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const count = S.countStoriesSince.get(Number(learnerId), since).n;
+  return { count, limit: STORY_DAILY_LIMIT, allowed: count < STORY_DAILY_LIMIT };
+}
+
+/** A learner's own submissions, so she can see what happened to them. */
+function listStoriesByLearner(learnerId, { limit = 50 } = {}) {
+  return S.listStoriesByLearner.all(Number(learnerId), Math.max(1, Math.min(Number(limit) || 50, 200)));
+}
+
+/** Published slugs and their dates, for the sitemap. */
+function listPublishedStorySlugs() {
+  return S.listPublishedStorySlugs.all();
+}
+
 /** Who this learner has chosen to share their progress with. */
 const listEmployersForLearner = (learnerId) => S.listLinksByLearner.all(Number(learnerId));
 /** The learners an employer is allowed to see — accepted invitations only. */
@@ -3588,6 +3879,30 @@ module.exports = {
   importPost,
   POST_CHANNELS,
   POST_STATUSES,
+
+  // Community stories — a helper's own life story, moderated before it is read.
+  // Only setStoryStatus publishes; the public queries never select learner_id.
+  createStory,
+  listPublishedStories,
+  getPublishedStoryBySlug,
+  listStoriesForModeration,
+  getStoryForModeration,
+  getStoryCounts,
+  setStoryStatus,
+  updateStoryContent,
+  deleteStory,
+  storyQuotaFor,
+  listStoriesByLearner,
+  listPublishedStorySlugs,
+  slugifyStory,
+  STORY_TOPICS,
+  STORY_STATUSES,
+  STORY_TITLE_MAX,
+  STORY_BODY_MAX,
+  STORY_GLOSS_MAX,
+  STORY_NAME_MAX,
+  STORY_NOTE_MAX,
+  STORY_DAILY_LIMIT,
 
   createInvitation,
   getInvitationByCode,

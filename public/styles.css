@@ -1936,6 +1936,171 @@ body {
   text-align: center;
 }
 
+/* ===========================================================================
+   STORIES
+   ---------------------------------------------------------------------------
+   A helper's own life story. It reuses the Discover card and article shells,
+   because a story IS a piece of reading like any other — the only new surfaces
+   are the write form and the list of her own submissions.
+
+   Colour comes from the level ramp (--lv1/--lv2/--lv3) rather than a new
+   palette, and the ramp is used for the STATUS of a submission, which is the
+   one place on this screen a colour has to carry meaning: waiting (amber),
+   published (the green it shares with "correct"), not published (quiet, not
+   red — a rejection is not an error, and painting it red would make her feel
+   she had done something wrong when the note may just ask for a change).
+   =========================================================================== */
+
+.story-write-cta { margin: 4px 0 14px; }
+
+.story-intro {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--c-text);
+  margin-bottom: 8px;
+}
+.story-rule {
+  font-size: 0.86rem;
+  line-height: 1.55;
+  color: var(--c-text-soft);
+  margin-bottom: 20px;
+  padding-left: 12px;
+  border-left: 3px solid var(--c-border);
+}
+
+.story-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--c-text);
+  margin: 16px 0 6px;
+}
+.story-input,
+.story-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  font-size: 1rem;
+  color: var(--c-text);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  padding: 11px 12px;
+}
+.story-textarea { line-height: 1.6; resize: vertical; min-height: 160px; }
+.story-input:focus,
+.story-textarea:focus {
+  outline: none;
+  border-color: var(--c-primary);
+  box-shadow: 0 0 0 3px var(--c-primary-tint);
+}
+
+/* The anonymity control. Given a full-width tap target of its own, because a
+   checkbox that is hard to hit is a checkbox that decides her privacy for her. */
+.story-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 20px 0 6px;
+  padding: 12px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.story-check input { width: 20px; height: 20px; flex: none; margin: 0; accent-color: var(--c-primary); }
+.story-hint {
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--c-text-soft);
+  margin-bottom: 4px;
+}
+
+.story-error {
+  margin: 14px 0 0;
+  padding: 11px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--c-primary-light);
+  color: var(--c-primary-dark);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.story-sent {
+  margin: 22px 0 8px;
+  padding: 16px;
+  border-radius: var(--radius);
+  background: var(--lv1-tint);
+  border: 1px solid var(--lv1);
+}
+.story-sent h3 { font-size: 1rem; color: var(--lv1); margin-bottom: 6px; }
+.story-sent p { font-size: 0.9rem; line-height: 1.55; color: var(--c-text); }
+
+.story-mine { margin-top: 30px; }
+.story-mine-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+  color: var(--c-text);
+}
+.story-mine-row {
+  padding: 12px 14px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  background: var(--c-surface);
+  margin-bottom: 9px;
+}
+.story-mine-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.story-mine-name { font-weight: 600; font-size: 0.95rem; min-width: 0; overflow-wrap: anywhere; }
+.story-status {
+  flex: none;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.story-status-pending { background: var(--lv2-tint); color: var(--lv2); }
+.story-status-published { background: var(--lv1-tint); color: var(--lv1); }
+.story-status-rejected { background: var(--c-bg); color: var(--c-text-soft); }
+.story-mine-note {
+  margin-top: 8px;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: var(--c-text-soft);
+}
+
+/* The reader. The gloss is the operator's hand-written English version of a
+   story written in another language, set apart so a reader can always tell
+   where her words end and someone else's begin. */
+.story-gloss {
+  margin-top: 30px;
+  padding-top: 18px;
+  border-top: 1px solid var(--c-border);
+}
+.story-gloss h2 { font-size: 1rem; margin-bottom: 10px; color: var(--c-text-soft); }
+.story-back { margin-top: 26px; text-align: center; }
+.btn-link {
+  background: none;
+  border: none;
+  padding: 8px;
+  color: var(--c-primary-dark);
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 /* Six tabs share 390px (~65px each). The widest labels — Filipino
    "Pagsusulit" and "Tuklasin" — are right at that limit, so labels never wrap
    and the type steps down a notch on the narrowest phones. */
@@ -3446,6 +3611,51 @@ body {
 .fb-status-new       { background: #fdece0; color: #a8541c; }
 .fb-status-reviewing { background: #e0f2f0; color: #1f6f66; }
 .fb-status-resolved  { background: #e3f4ea; color: #2c6e4c; }
+/* Stories reuse the same pill, with the states a story actually has. Pending
+   shares the amber of "new" because it means the same thing here — somebody is
+   waiting on the operator. */
+.fb-status-pending   { background: #fdece0; color: #a8541c; }
+.fb-status-published { background: #e3f4ea; color: #2c6e4c; }
+.fb-status-rejected  { background: #eceef1; color: #5b6570; }
+
+/* ---- Stories in the moderation queue ---- */
+.story-item-title {
+  font-size: 1.05rem;
+  line-height: 1.35;
+  margin: 2px 0 6px;
+  color: var(--c-text);
+  overflow-wrap: anywhere;
+}
+/* Her words, in full. The operator has to read the whole thing to moderate it,
+   so this is not clamped — it is the one place in the admin area where a wall
+   of text is the point. */
+.story-quote {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--c-text);
+  overflow-wrap: anywhere;
+}
+.story-edit {
+  margin: 12px 0;
+  padding: 14px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  background: var(--c-bg);
+}
+.story-edit textarea,
+.story-edit input[type="text"] {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  font-size: 0.95rem;
+  color: var(--c-text);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  padding: 9px 10px;
+}
+.story-edit textarea { line-height: 1.55; resize: vertical; }
 
 /* The message itself — the reason the operator opened the tab, so it gets the
    most space and the darkest ink. */

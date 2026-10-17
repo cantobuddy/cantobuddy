@@ -16,6 +16,11 @@ const ADMIN = {
   feedbackFilter: '',
   posts: [],
   postsFilter: '',
+  // Community stories. The queue opens on 'pending', not on everything: this is
+  // the one tab whose default view is a to-do list, because a story that is
+  // never approved is a story nobody ever reads.
+  stories: null,
+  storyFilter: 'pending',
 };
 
 // ---- API helpers -----------------------------------------------------------
@@ -144,6 +149,7 @@ async function loadAdminData() {
     renderAdminReport();
     renderAdminFeedback();
     renderAdminPosts();
+    renderAdminStories();
 
     // Populate category select in vocab form
     const sel = document.getElementById('vf-category');
@@ -1185,6 +1191,235 @@ async function deleteFeedbackItem(id) {
   try {
     await apiDelete(`/api/admin/feedback/${id}`);
     await renderAdminFeedback();
+  } catch (err) {
+    alert('Could not delete: ' + err.message);
+  }
+}
+
+// ---- Stories (moderation) --------------------------------------------------
+//
+// The queue that stands between a helper's story and the public. Nothing a
+// helper writes is readable by anyone until it is approved from this tab — the
+// public API can only ever return `status = 'published'`, and the only function
+// in the data layer that can set that is the one this tab calls.
+//
+// What the operator sees here and what she does NOT are both deliberate. She
+// sees the body, the language, the byline and the topic, because moderating a
+// story means reading it. She never sees the device identity: the job is to
+// judge the words, not to know who wrote them, and a helper who suspects this
+// screen shows her name is a helper who does not write honestly.
+
+function setStoryFilter(status) {
+  ADMIN.storyFilter = status || '';
+  document.querySelectorAll('#admin-stories-filter .chip').forEach((c) => {
+    c.classList.toggle('active', c.dataset.status === ADMIN.storyFilter);
+  });
+  renderAdminStories();
+}
+
+async function renderAdminStories() {
+  const listEl = document.getElementById('admin-stories-list');
+  const sumEl = document.getElementById('admin-stories-summary');
+  if (!listEl) return;
+
+  listEl.innerHTML = '<div class="progress-empty">Loading…</div>';
+
+  try {
+    const q = ADMIN.storyFilter ? '?status=' + encodeURIComponent(ADMIN.storyFilter) : '';
+    const data = await apiGet('/api/admin/stories' + q);
+    ADMIN.stories = data;
+
+    const c = data.counts;
+    sumEl.innerHTML = `
+      <div class="stat-card">
+        <h4>Waiting</h4>
+        <div class="stat-number">${c.pending}</div>
+        <div class="stat-label">nobody can read these yet</div>
+      </div>
+      <div class="stat-card">
+        <h4>Published</h4>
+        <div class="stat-number">${c.published}</div>
+        <div class="stat-label">live on the site</div>
+      </div>
+      <div class="stat-card">
+        <h4>Not published</h4>
+        <div class="stat-number">${c.rejected}</div>
+        <div class="stat-label">declined, with a reason</div>
+      </div>
+      <div class="stat-card">
+        <h4>All time</h4>
+        <div class="stat-number">${c.total}</div>
+        <div class="stat-label">stories received</div>
+      </div>`;
+
+    // The badge counts what is WAITING, from the unfiltered totals — so
+    // filtering the list cannot make the badge lie about the backlog.
+    const badge = document.getElementById('admin-stories-badge');
+    if (badge) {
+      badge.textContent = c.pending ? String(c.pending) : '';
+      badge.style.display = c.pending ? '' : 'none';
+    }
+
+    listEl.innerHTML = data.stories.length
+      ? data.stories.map(storyCard).join('')
+      : `<div class="progress-empty">${
+          ADMIN.storyFilter === 'pending'
+            ? 'Nothing waiting. A story appears here the moment a helper sends one.'
+            : ADMIN.storyFilter
+              ? 'Nothing with that status.'
+              : 'No stories yet.'
+        }</div>`;
+  } catch (err) {
+    listEl.innerHTML = '<div class="progress-empty">Could not load stories.</div>';
+    sumEl.innerHTML = '';
+  }
+}
+
+const STORY_TOPIC_LABEL = { daily: 'Daily life', background: 'Where she comes from', interesting: 'Something that happened' };
+const STORY_LANG_LABEL = { en: 'English', fil: 'Filipino', zh: '中文', id: 'Bahasa Indonesia' };
+
+function storyCard(s) {
+  // An unsigned story has an empty display_name in the database — the name was
+  // never stored, so there is nothing to hide. Saying so plainly is the point:
+  // the operator must not go looking for an identity that does not exist.
+  const byline = String(s.display_name || '').trim()
+    ? `✍️ ${escapeHtml(s.display_name)}`
+    : '✍️ Unsigned — no name stored';
+  const pill = { pending: 'Waiting', published: 'Published', rejected: 'Not published' }[s.status] || s.status;
+
+  // The body is shown in full and as PLAIN TEXT. It is escaped, never rendered
+  // as HTML: this is a stranger's writing, and the one page in the admin area
+  // that must never execute anything.
+  const paragraphs = String(s.body || '')
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .map((p) => `<p class="story-quote">${escapeHtml(p).replace(/\n/g, '<br>')}</p>`)
+    .join('');
+
+  return `<div class="feedback-item story-item">
+    <div class="feedback-item-head">
+      <span class="fb-role">${byline}</span>
+      <span class="fb-status fb-status-${escapeHtml(s.status)}">${escapeHtml(pill)}</span>
+      <span class="fb-when">${escapeHtml(agoText(s.created_at))}</span>
+    </div>
+    <h4 class="story-item-title">${escapeHtml(s.title)}</h4>
+    <div class="fb-meta">
+      ${escapeHtml(STORY_LANG_LABEL[s.lang] || s.lang)}
+      · ${escapeHtml(STORY_TOPIC_LABEL[s.topic] || s.topic)}
+      · <a href="/stories/${escapeHtml(s.slug)}" target="_blank" rel="noopener noreferrer">/stories/${escapeHtml(s.slug)}</a>
+    </div>
+    ${paragraphs}
+    ${s.reviewer_note ? `<div class="fb-meta">Your note to her: ${escapeHtml(s.reviewer_note)}</div>` : ''}
+
+    <div class="story-edit" id="story-edit-${Number(s.id)}" hidden>
+      <div class="form-field">
+        <label>Title</label>
+        <input type="text" id="se-title-${Number(s.id)}" maxlength="120" value="${escapeHtml(s.title)}" />
+      </div>
+      <div class="form-field">
+        <label>Story</label>
+        <textarea id="se-body-${Number(s.id)}" rows="10" maxlength="6000">${escapeHtml(s.body)}</textarea>
+      </div>
+      <div class="form-field">
+        <label>English gloss (optional)</label>
+        <textarea id="se-gloss-${Number(s.id)}" rows="4" maxlength="400"
+                  placeholder="Your own English version, so a reader who does not speak her language can follow it.">${escapeHtml(s.gloss_en || '')}</textarea>
+      </div>
+      <div class="form-field">
+        <label>Name shown with the story</label>
+        <input type="text" id="se-name-${Number(s.id)}" maxlength="40" value="${escapeHtml(s.display_name || '')}"
+               placeholder="Leave empty to publish unsigned" />
+        <p class="form-hint">Clearing this publishes the story without a name. The name she typed
+          is not kept anywhere else — if she did not sign it, this field is already empty.</p>
+      </div>
+      <div class="fb-actions">
+        <button class="btn btn-primary btn-sm" onclick="saveStoryEdit(${Number(s.id)})">Save changes</button>
+        <button class="btn btn-outline btn-sm" onclick="toggleStoryEdit(${Number(s.id)})">Cancel</button>
+      </div>
+    </div>
+
+    <div class="fb-actions">
+      <button class="btn btn-outline btn-sm" onclick="toggleStoryEdit(${Number(s.id)})">Edit / add gloss</button>
+      ${s.status !== 'published' ? `<button class="btn btn-primary btn-sm" onclick="approveStory(${Number(s.id)})">Approve &amp; publish</button>` : ''}
+      ${s.status !== 'rejected' ? `<button class="btn btn-outline btn-sm" onclick="rejectStory(${Number(s.id)})">Not publish</button>` : ''}
+      ${s.status === 'published' ? `<button class="btn btn-outline btn-sm" onclick="unpublishStory(${Number(s.id)})">Take down</button>` : ''}
+      <button class="btn btn-outline btn-sm" onclick="deleteStoryItem(${Number(s.id)})">Delete</button>
+    </div>
+  </div>`;
+}
+
+function toggleStoryEdit(id) {
+  const box = document.getElementById('story-edit-' + id);
+  if (box) box.hidden = !box.hidden;
+}
+
+/**
+ * Approve. The one action in the whole app that makes a helper's words public.
+ *
+ * No confirmation dialog: it is reversible (Take down), and a modal between the
+ * operator and every single approval would be noise she learns to dismiss.
+ */
+async function approveStory(id) {
+  try {
+    await apiPatch(`/api/admin/stories/${id}`, { status: 'published' });
+    await renderAdminStories();
+  } catch (err) {
+    alert('Could not publish: ' + err.message);
+  }
+}
+
+/**
+ * Decline. Asks for a reason first, because the reason is shown back to the
+ * author on her own submissions screen — a rejection with no reason reads as
+ * "nobody looked", which is worse than no answer at all.
+ */
+async function rejectStory(id) {
+  const note = prompt('Why not? She will see this.\n\nFor example: "Please remove the address of the family."');
+  if (note === null) return;
+  try {
+    await apiPatch(`/api/admin/stories/${id}`, { status: 'rejected', note });
+    await renderAdminStories();
+  } catch (err) {
+    alert('Could not update: ' + err.message);
+  }
+}
+
+async function unpublishStory(id) {
+  if (!confirm('Take this story down? It stops being readable immediately.')) return;
+  try {
+    await apiPatch(`/api/admin/stories/${id}`, { status: 'pending' });
+    await renderAdminStories();
+  } catch (err) {
+    alert('Could not update: ' + err.message);
+  }
+}
+
+/** Save an edit. Editing never changes the status — publishing is its own button. */
+async function saveStoryEdit(id) {
+  const val = (pre) => {
+    const el = document.getElementById(pre + id);
+    return el ? el.value : undefined;
+  };
+  try {
+    await apiPut(`/api/admin/stories/${id}`, {
+      title: val('se-title-'),
+      body: val('se-body-'),
+      gloss_en: val('se-gloss-'),
+      display_name: val('se-name-'),
+    });
+    await renderAdminStories();
+  } catch (err) {
+    alert('Could not save: ' + err.message);
+  }
+}
+
+/** Deleting is irreversible and there is no undo, so it asks first. */
+async function deleteStoryItem(id) {
+  if (!confirm('Delete this story? This cannot be undone.')) return;
+  try {
+    await apiDelete(`/api/admin/stories/${id}`);
+    await renderAdminStories();
   } catch (err) {
     alert('Could not delete: ' + err.message);
   }

@@ -315,12 +315,20 @@
     <div id="progress-content" class="progress-content"></div>
   </section>
   <!-- ---- DISCOVER VIEW ---- -->
-  <!-- Culture and news, in one screen with two tabs.
-       Both channels are the same kind of thing (a dated article in a feed), so
-       they share this view, its card markup and its renderer; only the query
-       differs. The channel is held in STATE, not in the URL, because the whole
-       app renders into `/` — the crawlable version of these pages is
-       server-rendered by seo.js at /discover and /discover/:slug. -->
+  <!-- Culture, news and stories, in one screen with three tabs.
+       All three channels are the same kind of thing (a dated piece of reading
+       in a feed), so they share this view, its card markup and its renderer;
+       only the query differs. The channel is held in STATE, not in the URL,
+       because the whole app renders into `/` — the crawlable version of these
+       pages is server-rendered by seo.js at /discover and /stories.
+
+       WHY STORIES IS A CHANNEL HERE AND NOT A SEVENTH NAV TAB. It was asked
+       for as its own tab, and a seventh tab does not fit: measured at 320px,
+       the bar overflows the viewport in English, Filipino and Indonesian (the
+       last tab is pushed off-screen), and at 360px it fits with 0px to spare.
+       Discover already means "things to read", and a story is a thing to read,
+       so it belongs here on its own merits — and this costs no nav change and
+       no label rewording in three languages. See tools/nav-shot.js. -->
   <section id="view-discover" class="view">
     <div class="browse-header">
       <button class="btn-back" onclick="navigate('home')" data-i18n="browse.backHome">← Home</button>
@@ -334,12 +342,19 @@
               onclick="showChannel('culture')" data-i18n="discover.tabCulture">Culture</button>
       <button class="discover-tab" data-channel="news" role="tab"
               onclick="showChannel('news')" data-i18n="discover.tabNews">News</button>
+      <button class="discover-tab" data-channel="stories" role="tab"
+              onclick="showChannel('stories')" data-i18n="discover.tabStories">Stories</button>
     </div>
 
     <!-- One line saying what this channel is, filled by renderDiscover(). Not a
          data-i18n element: it changes with the tab, and applyTranslations()
          would overwrite it with a fixed string on every language switch. -->
     <p class="discover-note" id="discover-note"></p>
+
+    <!-- The Stories channel carries one extra control the other two do not: a
+         way to add to it. Shown only on that channel. -->
+    <button class="btn btn-primary btn-block story-write-cta" id="story-write-cta"
+            onclick="navigate('story-new')" data-i18n="story.shareYours" hidden>Share your story</button>
 
     <div id="discover-feed" class="discover-feed"></div>
   </section>
@@ -353,6 +368,97 @@
       <button class="btn-back" onclick="navigate('discover')" data-i18n="discover.back">← Discover</button>
     </div>
     <article id="post-body" class="post-article"></article>
+  </section>
+
+  <!-- ---- STORY VIEW ---- -->
+  <!-- One story, opened from the Stories channel. Rendered by renderStory().
+       The body is PLAIN TEXT, never HTML: this is the one page on the site
+       whose words a stranger wrote, so the renderer escapes and then adds
+       paragraph breaks itself. It never calls sanitizePostHtml(), because
+       there is nothing here that is ever meant to be markup. -->
+  <section id="view-story" class="view">
+    <div class="browse-header">
+      <button class="btn-back" onclick="navigate('discover')" data-i18n="story.back">← Discover</button>
+    </div>
+    <article id="story-body" class="post-article"></article>
+  </section>
+
+  <!-- ---- WRITE A STORY VIEW ---- -->
+  <!-- A real form, not a modal, and STATIC MARKUP rather than JS-rendered.
+       That is deliberate: a language switch re-translates labels in place
+       through applyTranslations(), so switching language mid-sentence does not
+       throw away what she has written. A renderer that rebuilds the form would
+       delete her draft. Only the list of her past submissions below is drawn
+       by JS.
+       
+       THE PRIVACY CONTROL IS THE CHECKBOX. It is UNCHECKED by default, and
+       unchecking it is not a display preference — the server never stores her
+       name at all unless it is ticked. See createStory() in db.js. -->
+  <section id="view-story-new" class="view">
+    <div class="browse-header">
+      <button class="btn-back" onclick="navigate('discover')" data-i18n="story.back">← Discover</button>
+      <h2 data-i18n="story.introTitle">Tell your story</h2>
+    </div>
+
+    <p class="story-intro" data-i18n="story.introBody">Your daily life, where you come from, or something that happened to you.</p>
+    <p class="story-rule" data-i18n="story.introRule">We read every story before it appears.</p>
+
+    <form id="story-form" onsubmit="submitStory(event)">
+      <label class="story-label" for="story-title" data-i18n="story.titleLabel">Title</label>
+      <input id="story-title" class="story-input" type="text" maxlength="120"
+             placeholder="A few words about your story"
+             data-i18n="story.titlePlaceholder" data-i18n-attr="placeholder" />
+
+      <label class="story-label" for="story-body" data-i18n="story.bodyLabel">Your story</label>
+      <textarea id="story-body" class="story-textarea" rows="10" maxlength="6000"
+                placeholder="Write as much as you like."
+                data-i18n="story.bodyPlaceholder" data-i18n-attr="placeholder"></textarea>
+
+      <label class="story-label" for="story-topic" data-i18n="story.topicLabel">What is it about?</label>
+      <select id="story-topic" class="story-input">
+        <option value="daily" data-i18n="story.topicDaily">My daily life</option>
+        <option value="background" data-i18n="story.topicBackground">Where I come from</option>
+        <option value="interesting" data-i18n="story.topicInteresting">Something that happened</option>
+      </select>
+
+      <!-- The language the story is WRITTEN in, and it is asked rather than
+           inferred. It used to be assumed from the language she was reading
+           the app in, and that is wrong often enough to matter: a helper who
+           keeps the app in English and writes in Filipino had her story
+           labelled "English" — and the label is the point of publishing a
+           story in the original language. Defaults to her reading language,
+           which is right most of the time and one tap to correct.
+           
+           The options are written in their OWN language (endonyms), not
+           translated: "中文" is recognisable to a Mandarin speaker in a way
+           that "Chinese" is not, and this is the same rule the footer language
+           switcher follows. -->
+      <label class="story-label" for="story-lang" data-i18n="story.langLabel">What language is your story in?</label>
+      <select id="story-lang" class="story-input" onchange="markStoryLangPicked()">
+        <option value="en">English</option>
+        <option value="fil">Filipino</option>
+        <option value="zh">中文</option>
+        <option value="id">Bahasa Indonesia</option>
+      </select>
+
+      <label class="story-check" for="story-sign">
+        <input type="checkbox" id="story-sign" onchange="syncStorySign()" />
+        <span data-i18n="story.signLabel">Show my name with my story</span>
+      </label>
+      <p class="story-hint" data-i18n="story.signHint">Leave this unticked and your story is published without a name.</p>
+
+      <div id="story-name-row" hidden>
+        <label class="story-label" for="story-name" data-i18n="story.nameLabel">The name to show</label>
+        <input id="story-name" class="story-input" type="text" maxlength="40" />
+      </div>
+
+      <p id="story-error" class="story-error" role="alert" hidden></p>
+      <button type="submit" class="btn btn-primary btn-block" id="story-submit"
+              data-i18n="story.submit">Send to be read</button>
+    </form>
+
+    <div id="story-sent" class="story-sent" hidden></div>
+    <div id="story-mine" class="story-mine"></div>
   </section>
 
   <!-- ---- SHARE VIEW ---- -->
@@ -413,6 +519,10 @@
            same reason the vocabulary links above exist: this app renders every
            view into `/`, so a crawler would otherwise have no path to the feed. -->
       <a href="/discover" data-i18n="nav.discover">Discover</a>
+      <!-- The server-rendered Stories hub, for the same reason as the Discover
+           link above: the app renders every view into `/`, so without this a
+           crawler has no path to a story page at all. -->
+      <a href="/stories" data-i18n="discover.tabStories">Stories</a>
       <a href="/guide/learn-cantonese" data-i18n="footer.guide">Learn Cantonese: the beginner's guide</a>
       <a href="/level/1" data-i18n="home.beginner">Beginner</a>
       <a href="/level/2" data-i18n="home.intermediate">Intermediate</a>
@@ -443,9 +553,12 @@
   <button class="nav-btn" data-view="browse" onclick="goBrowse()">
     <span class="nav-icon">📖</span><span data-i18n="nav.learn">Learn</span>
   </button>
-  <!-- Discover. The one new destination in this release: two channels — culture
-       and news — behind one tab, because a sixth tab is already at the width
-       limit on a 360px phone and two more would break every label. -->
+  <!-- Discover. Two channels — culture and news — behind one tab, and a third
+       since Stories joined them. This bar is at its limit and that is measured,
+       not assumed: at 320px the six tabs fit with 0px to spare in Filipino and
+       Indonesian, and a seventh tab overflows the viewport in three of the four
+       languages. `node tools/nav-shot.js` prints the spare pixels per label per
+       width. Do not add a tab without running it. -->
   <button class="nav-btn" data-view="discover" onclick="navigate('discover')">
     <span class="nav-icon">🌏</span><span data-i18n="nav.discover">Discover</span>
   </button>

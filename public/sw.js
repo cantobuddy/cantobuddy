@@ -7,12 +7,12 @@
 // Bump this whenever index.html / app.js / i18n.js / styles.css / the icons
 // change. The app shell is cached cache-first, so without a version bump
 // installed PWAs would keep serving the previous build from cache.
-const CACHE = 'cantobuddy-v56';
+const CACHE = 'cantobuddy-v57';
 
 // Which paths are server-rendered SEO documents rather than app-shell assets.
 // Kept as one matcher so it can be asserted against `LANG_PREFIX` in seo.js —
 // see the comment at its use site for what drifted when this was a `||` chain.
-const SEO_NETWORK_FIRST = /^\/(learn|words|level|guide|discover|fil|zh|id)(\/|$)/;
+const SEO_NETWORK_FIRST = /^\/(learn|words|level|guide|discover|stories|privacy|fil|zh|id)(\/|$)/;
 
 const APP_SHELL = [
   '/',
@@ -67,7 +67,7 @@ self.addEventListener('fetch', (event) => {
   // whatever a learner happened to visit first and keep serving it after the
   // operator edited the word.
   //
-  // THE LANGUAGE LIST HERE MUST COVER EVERY TREE IN `LANG_PREFIX` (seo.js).
+  // THE ROUTE LIST HERE MUST COVER EVERY FAMILY IN `ROUTE_FAMILIES` (seo.js).
   // This was a hand-written `||` chain and it drifted exactly the way hand-
   // written lists do: `/fil` was added when the Filipino tree shipped, and
   // `/zh` and `/id` were not added when theirs did — so the Chinese and
@@ -75,9 +75,16 @@ self.addEventListener('fetch', (event) => {
   // through to the cache-first branch below. An edited word kept serving the
   // old copy to anyone who already had the service worker, and because a
   // content-only deploy does not change an app-shell file, nothing bumped the
-  // cache to clear it. `tools/seo-pillar-test.js` now derives the required
-  // prefixes from `LANG_PREFIX` and asserts this matcher covers them, so a
-  // fifth tree cannot ship without this line.
+  // cache to clear it.
+  //
+  // `stories` was added the same way it would have been missed: the route
+  // shipped in seo.js and this line was read, not run. It matters more here
+  // than for a word page, because a story can be TAKEN DOWN — cache-first would
+  // keep serving a withdrawn story to anyone who had already opened it.
+  //
+  // `tools/seo-pillar-test.js` now derives the required families from
+  // `ROUTE_FAMILIES` and asserts this matcher covers them all, so a sixth
+  // family cannot ship without this line.
   if (SEO_NETWORK_FIRST.test(url.pathname) || url.pathname === '/sitemap.xml' || url.pathname === '/robots.txt') {
     event.respondWith(fetch(req).catch(() => caches.match(req)));
     return;

@@ -44,6 +44,12 @@ const STATE = {
   // does not re-fetch; `current` is the open article, kept so a language switch
   // can re-render it without another request.
   discover: { channel: 'culture', posts: { culture: null, news: null }, current: null },
+  // Stories — a helper's own life story, read from the Stories channel inside
+  // Discover. `list` caches the shelf so a tab switch is instant; `current` is
+  // the open story, kept so a language switch can re-render it without another
+  // request; `mine` is her own submissions, which is the only place a reviewer's
+  // note is ever shown.
+  stories: { list: null, current: null, mine: null, langPicked: false },
   // The newest post, for the card on Home. `null` means "not asked yet",
   // `false` means "asked and there is nothing" — the distinction stops Home
   // re-fetching on every language switch when the feed is legitimately empty.
@@ -467,6 +473,28 @@ function navigate(view) {
   if (view === 'progress') renderProgress();
   if (view === 'share') renderSharePage();
   if (view === 'discover') renderDiscover();
+  // Opening the write form re-reads her own submissions: the point of the
+  // screen is "here is what happened to the last one", and a stale list would
+  // be worse than none.
+  if (view === 'story-new') { defaultStoryLang(); renderStoryMine(); }
+}
+
+/**
+ * Points the story's language select at the language she is reading in.
+ *
+ * Only until she chooses one herself: the whole reason this control exists is
+ * that the two can legitimately differ, so overwriting her answer on the next
+ * visit would put back the bug it was added to fix.
+ */
+function defaultStoryLang() {
+  const sel = document.getElementById('story-lang');
+  if (!sel || STATE.stories.langPicked) return;
+  sel.value = currentLang();
+}
+
+/** She chose a language for this story; stop defaulting it for her. */
+function markStoryLangPicked() {
+  STATE.stories.langPicked = true;
 }
 
 function goBrowse(level) {
@@ -560,6 +588,12 @@ function rerenderForLanguage() {
   // An open article is a body of text in one language; switching language has
   // to rebuild it from the cached row, or it stays in the old one.
   if (active && active.id === 'view-post' && STATE.discover.current) renderPost(STATE.discover.current);
+  // An open story is the same problem as an open article: one body of text,
+  // rebuilt from the cached row so it does not stay in the old language.
+  if (active && active.id === 'view-story' && STATE.stories.current) renderStoryPage(STATE.stories.current);
+  // The write form is static markup and re-translates in place, so only her
+  // own submissions below it are rebuilt. Her half-typed draft is untouched.
+  if (active && active.id === 'view-story-new') renderStoryMine();
 
   // The install dialog's instructions are built in JS, so a language switch has
   // to rebuild them or half the text stays in the old language.
@@ -2856,7 +2890,7 @@ function sanitizePostHtml(html) {
 }
 
 function showChannel(channel) {
-  STATE.discover.channel = channel === 'news' ? 'news' : 'culture';
+  STATE.discover.channel = ['news', 'stories'].includes(channel) ? channel : 'culture';
   renderDiscover();
 }
 
@@ -2877,6 +2911,30 @@ function postCardHtml(post) {
     </button>`;
 }
 
+/**
+ * One story card.
+ *
+ * The byline is the interesting part: an unsigned story carries an EMPTY
+ * display_name from the server, because the name was never stored. The label
+ * is therefore added here, at render time, and never sent back — which is why
+ * the API shape and the card can disagree without either being wrong.
+ */
+function storyCardHtml(story) {
+  const date = postDate(story.published_at);
+  const byline = String(story.display_name || '').trim() || t('story.anonymous');
+  const meta = [date, byline].filter(Boolean).join(' · ');
+  return `
+    <button class="post-card story-card" onclick="openStory('${escapeHtml(story.slug)}')">
+      <span class="post-card-icon">📖</span>
+      <span class="post-card-main">
+        <span class="post-card-meta">${escapeHtml(meta)}</span>
+        <span class="post-card-title">${escapeHtml(story.title)}</span>
+        ${story.gloss_en ? `<span class="post-card-summary">${escapeHtml(story.gloss_en)}</span>` : ''}
+      </span>
+      <span class="post-card-arrow" aria-hidden="true">›</span>
+    </button>`;
+}
+
 async function renderDiscover() {
   const feed = document.getElementById('discover-feed');
   if (!feed) return;
@@ -2886,7 +2944,20 @@ async function renderDiscover() {
     b.classList.toggle('active', b.dataset.channel === channel);
   });
   const note = document.getElementById('discover-note');
-  if (note) note.textContent = t(channel === 'news' ? 'discover.newsLead' : 'discover.cultureLead');
+  if (note) {
+    note.textContent = t(
+      channel === 'news' ? 'discover.newsLead'
+        : channel === 'stories' ? 'discover.storiesLead'
+          : 'discover.cultureLead'
+    );
+  }
+  // The "share your story" button belongs to one channel only. It is a
+  // destination of its own (its own view), so it is a real button rather than
+  // something the feed renderer draws.
+  const cta = document.getElementById('story-write-cta');
+  if (cta) cta.hidden = channel !== 'stories';
+
+  if (channel === 'stories') return renderStoryList(feed);
 
   // Serve the cache when we have it, so a tab switch is instant and a language
   // switch does not hit the network again.
@@ -2911,6 +2982,234 @@ async function renderDiscover() {
     ? posts.map(postCardHtml).join('')
     : `<p class="discover-empty">${escapeHtml(t('discover.empty'))}</p>`;
 }
+
+/** The Stories channel: the shelf of published stories, newest first. */
+async function renderStoryList(feed) {
+  const host = feed || document.getElementById('discover-feed');
+  if (!host) return;
+
+  let stories = STATE.stories.list;
+  if (!stories) {
+    host.innerHTML = `<div class="discover-loading">…</div>`;
+    try {
+      stories = await apiGet('/api/stories');
+      STATE.stories.list = stories;
+    } catch (err) {
+      console.warn('Could not load the stories:', err);
+      host.innerHTML = `<p class="discover-empty">${escapeHtml(t('discover.storiesLoadFailed'))}</p>`;
+      return;
+    }
+  }
+
+  // She may have switched channel while this was in flight.
+  if (STATE.discover.channel !== 'stories') return;
+
+  host.innerHTML = stories.length
+    ? stories.map(storyCardHtml).join('')
+    : `<p class="discover-empty">${escapeHtml(t('discover.storiesEmpty'))}</p>`;
+}
+
+/** Opens one story by slug. */
+async function openStory(slug) {
+  const host = document.getElementById('story-body');
+  if (!host || !slug) return;
+  navigate('story');
+  host.innerHTML = `<div class="discover-loading">…</div>`;
+  try {
+    const story = await apiGet(`/api/stories/${encodeURIComponent(slug)}`);
+    STATE.stories.current = story;
+    renderStoryPage(story);
+  } catch (err) {
+    console.warn('Could not load the story:', err);
+    host.innerHTML = `<p class="discover-empty">${escapeHtml(t('story.notFound'))}</p>`;
+  }
+}
+
+/** The story body is plain text — paragraph breaks are the only structure. */
+function storyParagraphs(text) {
+  return String(text || '')
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .map((p) => `<p>${escapeHtml(p).replace(/\n/g, '<br>')}</p>`)
+    .join('');
+}
+
+/** Draws the open story. Also re-run on a language switch. */
+function renderStoryPage(story) {
+  const host = document.getElementById('story-body');
+  if (!host || !story) return;
+
+  const date = postDate(story.published_at);
+  const byline = String(story.display_name || '').trim() || t('story.anonymous');
+  const meta = [byline, date].filter(Boolean).join(' · ');
+  // The language she wrote in, named in the reader's own language. The server
+  // sends the code; the name is the client's job because it is a UI string.
+  const langNames = {
+    en: { en: 'English', fil: 'Filipino', zh: 'Chinese', id: 'Indonesian' },
+    fil: { en: 'Ingles', fil: 'Filipino', zh: 'Chinese', id: 'Indonesian' },
+    zh: { en: '英文', fil: '菲律宾语', zh: '中文', id: '印尼语' },
+    id: { en: 'Inggris', fil: 'Filipino', zh: 'Tionghoa', id: 'Indonesia' },
+  };
+  const names = langNames[currentLang()] || langNames.en;
+  const writtenIn = `${t('story.writtenIn')}: ${names[story.lang] || story.lang}`;
+
+  const gloss = story.gloss_en
+    ? `<div class="story-gloss">
+         <h2>${escapeHtml(t('story.glossTitle'))}</h2>
+         ${storyParagraphs(story.gloss_en)}
+       </div>`
+    : '';
+
+  host.innerHTML = `
+    <div class="post-hero">
+      <div class="post-hero-icon">📖</div>
+      <h1 class="post-title">${escapeHtml(story.title)}</h1>
+      <div class="post-date">${escapeHtml(meta)}</div>
+      <div class="post-date">${escapeHtml(writtenIn)}</div>
+    </div>
+    <div class="post-content">${storyParagraphs(story.body)}</div>
+    ${gloss}
+    <p class="story-back"><button class="btn-link" onclick="navigate('discover')">${escapeHtml(t('story.backToStories'))}</button></p>`;
+}
+
+// ---- Writing a story -------------------------------------------------------
+
+/** Shows or hides the name field with the checkbox that decides whether we keep it. */
+function syncStorySign() {
+  const box = document.getElementById('story-sign');
+  const row = document.getElementById('story-name-row');
+  if (!box || !row) return;
+  row.hidden = !box.checked;
+  if (box.checked) {
+    const input = document.getElementById('story-name');
+    // Pre-fill from the name she already gave the app, if any — she is only
+    // being asked to confirm it, not to type it twice.
+    if (input && !input.value && STATE.learner) input.value = STATE.learner;
+    if (input) input.focus();
+  }
+}
+
+function showStoryError(message) {
+  const box = document.getElementById('story-error');
+  if (!box) return;
+  if (!message) { box.hidden = true; box.textContent = ''; return; }
+  box.hidden = false;
+  box.textContent = message;
+}
+
+async function submitStory(event) {
+  if (event && event.preventDefault) event.preventDefault();
+  const title = document.getElementById('story-title');
+  const body = document.getElementById('story-body');
+  const topic = document.getElementById('story-topic');
+  const lang = document.getElementById('story-lang');
+  const sign = document.getElementById('story-sign');
+  const name = document.getElementById('story-name');
+  const btn = document.getElementById('story-submit');
+
+  if (!title || !body) return;
+  // Check the two things the server will check, so she is told before a round
+  // trip rather than after one.
+  if (!title.value.trim()) return showStoryError(t('story.needTitle'));
+  if (!body.value.trim()) return showStoryError(t('story.needBody'));
+  showStoryError('');
+
+  if (btn) { btn.disabled = true; btn.textContent = t('story.submitting'); }
+  try {
+    await apiPost('/api/stories', {
+      public_id: STATE.deviceId,
+      title: title.value,
+      body: body.value,
+      topic: topic ? topic.value : 'daily',
+      // ASKED, not inferred. See the note on the select in index.html: assuming
+      // this from the reading language mislabelled a story written in Filipino
+      // by someone using the app in English, and the label is the point.
+      lang: lang ? lang.value : currentLang(),
+      // The privacy decision, exactly as she left it. Default false.
+      sign: !!(sign && sign.checked),
+      display_name: name ? name.value : '',
+    });
+  } catch (err) {
+    console.warn('Could not send the story:', err);
+    if (btn) { btn.disabled = false; btn.textContent = t('story.submit'); }
+    // A throttled submission is not a failure she should retry blindly.
+    showStoryError(err && err.status === 429 ? t('story.quotaFull') : t('story.sendFailed'));
+    return;
+  }
+
+  // Clear the form and say what happens next. The response said "pending", so
+  // the confirmation must not say "published" — nothing is live until a human
+  // has read it.
+  title.value = '';
+  body.value = '';
+  if (sign) sign.checked = false;
+  if (name) name.value = '';
+  syncStorySign();
+  // The next story is a new decision, so the language goes back to her reading
+  // language rather than keeping the last story's answer.
+  STATE.stories.langPicked = false;
+  defaultStoryLang();
+  if (btn) { btn.disabled = false; btn.textContent = t('story.submit'); }
+
+  const sent = document.getElementById('story-sent');
+  if (sent) {
+    sent.hidden = false;
+    sent.innerHTML = `
+      <h3>${escapeHtml(t('story.sentTitle'))}</h3>
+      <p>${escapeHtml(t('story.sentBody'))}</p>`;
+  }
+  // Her own list is now stale by exactly one submission.
+  STATE.stories.mine = null;
+  STATE.stories.list = null;
+  renderStoryMine();
+  window.scrollTo(0, 0);
+}
+
+/** Her own submissions, so she can see what happened to each one. */
+async function renderStoryMine() {
+  const host = document.getElementById('story-mine');
+  if (!host) return;
+
+  let data = STATE.stories.mine;
+  if (!data) {
+    host.innerHTML = `<div class="discover-loading">…</div>`;
+    try {
+      data = await apiGet(`/api/stories/mine?public_id=${encodeURIComponent(STATE.deviceId)}`);
+      STATE.stories.mine = data;
+    } catch (err) {
+      console.warn('Could not load your stories:', err);
+      host.innerHTML = '';
+      return;
+    }
+  }
+
+  const rows = (data.stories || []);
+  if (!rows.length) {
+    host.innerHTML = `
+      <h3 class="story-mine-title">${escapeHtml(t('story.mineTitle'))}</h3>
+      <p class="discover-empty">${escapeHtml(t('story.mineEmpty'))}</p>`;
+    return;
+  }
+
+  const statusLabel = {
+    pending: t('story.statusPending'),
+    published: t('story.statusPublished'),
+    rejected: t('story.statusRejected'),
+  };
+
+  host.innerHTML = `
+    <h3 class="story-mine-title">${escapeHtml(t('story.mineTitle'))}</h3>
+    ${rows.map((s) => `
+      <div class="story-mine-row">
+        <div class="story-mine-head">
+          <span class="story-mine-name">${escapeHtml(s.title)}</span>
+          <span class="story-status story-status-${escapeHtml(s.status)}">${escapeHtml(statusLabel[s.status] || s.status)}</span>
+        </div>
+        ${s.reviewer_note ? `<p class="story-mine-note"><strong>${escapeHtml(t('story.reviewerNote'))}:</strong> ${escapeHtml(s.reviewer_note)}</p>` : ''}
+      </div>`).join('')}`;
+}
+
 
 /** Opens one article by slug. */
 async function openPost(slug) {

@@ -203,6 +203,23 @@ const feedbackRateLimit = makeRateLimit({
   message: (m) => `You have sent a lot of messages. Try again in ${m} minute${m === 1 ? '' : 's'}.`,
 });
 
+/**
+ * Stories are the second public write, and a heavier one: a story is up to 6000
+ * characters of text that a human then has to read. The database already caps a
+ * single device at STORY_DAILY_LIMIT (3) per rolling 24h, which is the limit
+ * that actually matters to a person. This one is per connection and sits above
+ * it, so a script that mints fresh device ids still cannot bury the queue.
+ *
+ * Read from the environment for the same reason as the others: a harness
+ * legitimately makes more submissions in a second than a user does in a day,
+ * and a throttled 429 would hide the behaviour under test.
+ */
+const storyRateLimit = makeRateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: Number(process.env.STORY_RATE_MAX) || 10,
+  message: (m) => `You have shared a lot of stories. Try again in ${m} minute${m === 1 ? '' : 's'}.`,
+});
+
 // ---------------------------------------------------------------------------
 // Auth
 // ---------------------------------------------------------------------------
@@ -571,6 +588,105 @@ app.post('/api/admin/posts/import', requireAdmin, async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err && err.message ? err.message : 'Import failed' });
   }
+});
+
+// ---------------------------------------------------------------------------
+// Stories — a helper's own life story, read by everyone, published by the
+// operator
+//
+// The whole feature turns on one rule: NOTHING a helper writes is readable by
+// anyone until the operator has read it and approved it. So the public routes
+// below can only ever return `status = 'published'`, and the only function in
+// the data layer that can set that status is setStoryStatus, which only the
+// admin routes here call. A pending story is a 404, exactly as a draft post is.
+//
+// Anonymity is the default and it is applied at WRITE time (see createStory):
+// when she does not tick "show my name", the name is discarded before the row
+// is written, so there is nothing stored to leak later. The client cannot make
+// a story anonymous on someone else's behalf and cannot attribute one that was
+// submitted unsigned — the second half of that is what the queue is for, since
+// a signature is only ever a claim the operator can check before publishing.
+// ---------------------------------------------------------------------------
+
+/** GET /api/stories — the public shelf: published only, newest first. */
+app.get('/api/stories', (req, res) => {
+  res.json(store.listPublishedStories({ limit: req.query.limit }));
+});
+
+/**
+ * GET /api/stories/mine — what happened to HER submissions.
+ *
+ * Declared before /api/stories/:slug on purpose: Express matches in order, and
+ * a later `mine` route would be swallowed by the slug route as a story called
+ * "mine". Scoped by device token, resolved server-side, so this can only ever
+ * return that device's own stories — the reviewer's note included, because a
+ * rejection she cannot read is a rejection that teaches her nothing.
+ */
+app.get('/api/stories/mine', (req, res) => {
+  const publicId = req.query.public_id;
+  if (!publicId) return res.status(400).json({ error: 'Missing device id.' });
+  const learner = store.getLearnerByPublicId(publicId);
+  // A device the server has never seen has written nothing — an empty shelf,
+  // not an error.
+  if (!learner) return res.json({ stories: [], quota: { count: 0, limit: 0, allowed: true } });
+  res.json({
+    stories: store.listStoriesByLearner(learner.id),
+    quota: store.storyQuotaFor(learner.id),
+  });
+});
+
+/** GET /api/stories/:slug — one published story, or a 404. */
+app.get('/api/stories/:slug', (req, res) => {
+  const story = store.getPublishedStoryBySlug(req.params.slug);
+  if (!story) return res.status(404).json({ error: 'Not found' });
+  res.json(story);
+});
+
+/**
+ * POST /api/stories — a helper shares her story.
+ *
+ * Public by necessity, exactly like feedback: she has no account, and making
+ * her create one before she can tell her story guarantees it is never told.
+ *
+ * The submission is stored PENDING and returns 201 — the response says "we have
+ * it", never "it is live", because at that moment a human has not yet read it.
+ * The client shows her that plainly; see the Stories tab.
+ */
+app.post('/api/stories', storyRateLimit, (req, res) => {
+  const b = req.body || {};
+  const publicId = String(b.public_id || '').trim();
+  if (!publicId) return res.status(400).json({ error: 'Missing device id.' });
+
+  // Resolve the device to a learner row. This creates one on first contact,
+  // which is deliberate: the daily quota is keyed on learner_id, so a device
+  // with no row would otherwise have no limit at all. identifyLearner is
+  // already public via /api/identify and is bounded by this route's limiter.
+  const learner = store.identifyLearner({ public_id: publicId });
+
+  const quota = store.storyQuotaFor(learner.id);
+  if (!quota.allowed) {
+    return res.status(429).json({
+      error: 'You have shared several stories today. Please try again tomorrow.',
+      quota,
+    });
+  }
+
+  const story = store.createStory({
+    learner_id: learner.id,
+    title: b.title,
+    body: b.body,
+    lang: b.lang,
+    topic: b.topic,
+    // The privacy decision, straight through. `sign` is only ever true when she
+    // ticked the box herself; anything else stores no name at all.
+    sign: b.sign === true,
+    display_name: b.display_name,
+  });
+
+  // An empty title or body is a mis-tap, not a story.
+  if (!story) return res.status(400).json({ error: 'Please write a title and your story.' });
+
+  res.status(201).json({ ok: true, id: story.id, slug: story.slug, status: story.status, quota: store.storyQuotaFor(learner.id) });
 });
 
 // ---------------------------------------------------------------------------
@@ -1094,6 +1210,60 @@ app.patch('/api/admin/feedback/:id', requireAdmin, (req, res) => {
  */
 app.delete('/api/admin/feedback/:id', requireAdmin, (req, res) => {
   if (!store.deleteFeedback(req.params.id)) return res.status(404).json({ error: 'No such feedback.' });
+  res.json({ ok: true });
+});
+
+/**
+ * GET /api/admin/stories — the moderation queue, with the counts the tab badge
+ * needs.
+ *
+ * `status` filters to pending / published / rejected. Omitted or unrecognised
+ * means everything, so a stale bookmark cannot present an empty queue as if
+ * nothing had been submitted — the same rule as the feedback inbox.
+ */
+app.get('/api/admin/stories', requireAdmin, (req, res) => {
+  res.json({
+    stories: store.listStoriesForModeration({ status: req.query.status, limit: req.query.limit }),
+    counts: store.getStoryCounts(),
+  });
+});
+
+/**
+ * PATCH /api/admin/stories/:id — approve, reject, or take one back down.
+ *
+ * The ONLY way a story becomes readable. `note` is the reason a rejection
+ * carries back to its author, so it is kept when one is supplied and the
+ * existing note is preserved otherwise — approving after fixing a typo should
+ * not silently erase the record of what was said.
+ */
+app.patch('/api/admin/stories/:id', requireAdmin, (req, res) => {
+  const b = req.body || {};
+  const status = String(b.status || '');
+  const current = store.getStoryForModeration(req.params.id);
+  if (!current) return res.status(400).json({ error: 'Unknown story, or unknown status.' });
+  const note = b.note != null ? b.note : current.reviewer_note;
+  const row = store.setStoryStatus(req.params.id, status, note);
+  if (!row) return res.status(400).json({ error: 'Unknown story, or unknown status.' });
+  res.json(row);
+});
+
+/**
+ * PUT /api/admin/stories/:id — the operator editing a submission.
+ *
+ * For a typo, an identifying detail that must come out before this can be
+ * published, or the hand-written English gloss that lets a story written in
+ * Filipino reach a reader who does not speak it. Editing never changes the
+ * status — publishing is setStoryStatus's job alone.
+ */
+app.put('/api/admin/stories/:id', requireAdmin, (req, res) => {
+  const row = store.updateStoryContent(req.params.id, req.body || {});
+  if (!row) return res.status(404).json({ error: 'Not found, or the title and story cannot both be empty.' });
+  res.json(row);
+});
+
+/** DELETE /api/admin/stories/:id — irreversible, so the admin UI confirms. */
+app.delete('/api/admin/stories/:id', requireAdmin, (req, res) => {
+  if (!store.deleteStory(req.params.id)) return res.status(404).json({ error: 'No such story.' });
   res.json({ ok: true });
 });
 

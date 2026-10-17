@@ -3474,6 +3474,28 @@ body {
 .portal-link { color: var(--c-primary); font-weight: 600; text-decoration: none; }
 .portal-link:hover { text-decoration: underline; }
 
+/* Prominent "how to get started" callout, pinned to the TOP of the employer
+   sign-in card so a first-time employer sees it before the form. Uses a left
+   accent bar rather than a filled block so it reads as helpful, not an alert. */
+.portal-promo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 22px;
+  padding: 12px 14px;
+  background: var(--c-surface-alt, #f1f5f9);
+  border: 1px solid var(--c-primary, #1d3557);
+  border-left: 4px solid var(--c-primary, #1d3557);
+  border-radius: var(--radius-sm, 8px);
+  color: var(--c-text, #1d3557);
+  text-decoration: none;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+.portal-promo:hover { background: var(--c-surface-alt-hover, #e7eef6); text-decoration: none; }
+.portal-promo .pp-emoji { font-size: 1.25rem; line-height: 1; }
+.portal-promo strong { color: var(--c-primary, #1d3557); }
+
 /* ---- Reports: platform totals, activity chart, employer engagement ---- */
 .report-chart {
   background: var(--c-surface);

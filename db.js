@@ -95,6 +95,16 @@ function hashPassword(plain) {
   return `scrypt$${salt}$${derived}`;
 }
 
+/* A short, human-readable access code for employer re-login. No 0/O/1/I/l so it
+   cannot be misread — the same convention as the helper invitation codes. */
+function generateAccessCode() {
+  const alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  let out = '';
+  const bytes = crypto.randomBytes(8);
+  for (let i = 0; i < 6; i++) out += alphabet[bytes[i] % alphabet.length];
+  return out;
+}
+
 function safeEqual(a, b) {
   const ba = Buffer.from(String(a));
   const bb = Buffer.from(String(b));
@@ -526,6 +536,14 @@ function migrateSchema() {
   if (addColumnIfMissing('users', 'last_login_at', 'TEXT')) changes.push('users.last_login_at');
   if (addColumnIfMissing('users', 'learner_id', 'INTEGER REFERENCES learners(id) ON DELETE SET NULL')) {
     changes.push('users.learner_id');
+  }
+  /* Employer access code. The portal used to sign an employer in by NAME ONLY —
+     anyone who could guess "Mrs Chan" could log in as that employer and read the
+     helpers she had connected. We keep "no email, no password to remember", but a
+     first sign-in now mints a 6-char access code that the employer saves; re-login
+     requires it. Stored hashed, never shown again. */
+  if (addColumnIfMissing('users', 'access_code_hash', 'TEXT')) {
+    changes.push('users.access_code_hash');
   }
 
   /* Referral attribution.
@@ -1479,6 +1497,7 @@ const S = {
      VALUES (?, ?, ?, ?, ?, ?, ?)`
   ),
   updateUser: db.prepare('UPDATE users SET name = ?, email = ?, role = ?, status = ? WHERE id = ?'),
+  setUserAccessCode: db.prepare('UPDATE users SET access_code_hash = ? WHERE id = ?'),
   touchUserLogin: db.prepare('UPDATE users SET last_login_at = ? WHERE id = ?'),
   countActiveAdmins: db.prepare("SELECT COUNT(*) AS n FROM users WHERE role = 'admin' AND status = 'active'"),
   deleteUser: db.prepare('DELETE FROM users WHERE id = ?'),
@@ -2220,7 +2239,27 @@ function createUser({ username, password, role = 'learner', name = '', email = n
  * rather than empty so that a stray row can never be authenticated by guessing
  * an empty password.
  */
-function loginOrCreateEmployer(rawName) {
+/**
+ * Employer sign-in, now with a per-employer access code.
+ *
+ * Returns either:
+ *   { user, firstTime: true,  accessCode }  — account just created; the caller
+ *                                             must show `accessCode` ONCE and ask
+ *                                             the employer to save it.
+ *   { user, firstTime: false }              — re-login succeeded.
+ *
+ * Behaviour:
+ *   - First sign-in (name does not exist): create the employer, mint a 6-char
+ *     access code, store it hashed, and hand it back. No code is required to
+ *     create — that is the "nothing to remember" first step.
+ *   - Re-login (name exists): the code is required. Absent code → throw with
+ *     `needsCode = true` so the UI can prompt for it. Wrong code → throw.
+ *
+ * Before this change the portal signed an employer in by NAME ONLY, so anyone who
+ * could guess an employer's name could read the helpers she had connected. The
+ * access code closes that hole while keeping "no email, no password to lose".
+ */
+function loginOrCreateEmployer(rawName, rawCode) {
   const name = String(rawName || '').trim().replace(/\s+/g, ' ').slice(0, 60);
   if (!name) throw new Error('A name is required.');
 
@@ -2229,8 +2268,21 @@ function loginOrCreateEmployer(rawName) {
     if (existing.status && existing.status !== 'active') {
       throw new Error('That account is not active.');
     }
+    // Re-login: the access code is now mandatory.
+    const code = String(rawCode || '').trim();
+    if (!code) {
+      const err = new Error('Enter your access code.');
+      err.needsCode = true;
+      err.status = 401;
+      throw err;
+    }
+    if (!existing.access_code_hash || !verifyPassword(code, existing.access_code_hash)) {
+      const err = new Error('That access code is not correct.');
+      err.status = 401;
+      throw err;
+    }
     S.touchUserLogin.run(new Date().toISOString(), existing.id);
-    return getUserById(existing.id);
+    return { user: getUserById(existing.id), firstTime: false };
   }
 
   const now = new Date().toISOString();
@@ -2255,7 +2307,10 @@ function loginOrCreateEmployer(rawName) {
     'active',
     now
   );
-  return getUserById(Number(info.lastInsertRowid));
+  const id = Number(info.lastInsertRowid);
+  const accessCode = generateAccessCode();
+  S.setUserAccessCode.run(hashPassword(accessCode), id);
+  return { user: getUserById(id), firstTime: true, accessCode };
 }
 
 function updateUser(id, patch) {

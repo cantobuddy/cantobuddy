@@ -60,6 +60,23 @@
                  autocomplete="name" maxlength="60" />
           <p class="form-hint">This is how your helper will see you on her screen.</p>
         </div>
+
+        <!-- Shown after the first sign-in, when the server hands back a one-time
+             access code. The employer must save it; it is never shown again. -->
+        <div id="auth-code-save" class="form-field" style="display:none">
+          <label>Save this access code</label>
+          <div class="access-code-box" id="auth-code-value"></div>
+          <p class="form-hint">Write it down or screenshot it. You will need it to sign
+             in again on another phone. It cannot be recovered.</p>
+        </div>
+
+        <!-- Shown on re-login, when the server asks for the stored code. -->
+        <div class="form-field" id="auth-code-field" style="display:none">
+          <label for="auth-code">Access code</label>
+          <input type="text" id="auth-code" placeholder="6 characters" autocomplete="off"
+                 maxlength="8" spellcheck="false" />
+        </div>
+
         <div id="auth-error" class="form-error"></div>
         <button type="submit" id="auth-submit" class="btn btn-primary btn-lg btn-block">Continue</button>
       </form>

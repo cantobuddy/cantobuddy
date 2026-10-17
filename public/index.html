@@ -560,8 +560,8 @@
   <button class="nav-btn active" data-view="home" onclick="navigate('home')">
     <span class="nav-icon">🏠</span><span data-i18n="nav.home">Home</span>
   </button>
-  <button class="nav-btn" data-view="browse" onclick="goBrowse()">
-    <span class="nav-icon">📖</span><span data-i18n="nav.learn">Learn</span>
+  <button class="nav-btn" data-view="discover" onclick="navigate('discover')">
+    <span class="nav-icon">🌏</span><span data-i18n="nav.discover">Discover</span>
   </button>
   <!-- Discover. Two channels — culture and news — behind one tab, and a third
        since Stories joined them. This bar is at its limit and that is measured,
@@ -569,8 +569,8 @@
        Indonesian, and a seventh tab overflows the viewport in three of the four
        languages. `node tools/nav-shot.js` prints the spare pixels per label per
        width. Do not add a tab without running it. -->
-  <button class="nav-btn" data-view="discover" onclick="navigate('discover')">
-    <span class="nav-icon">🌏</span><span data-i18n="nav.discover">Discover</span>
+  <button class="nav-btn" data-view="browse" onclick="goBrowse()">
+    <span class="nav-icon">📖</span><span data-i18n="nav.learn">Learn</span>
   </button>
   <button class="nav-btn" data-view="quiz" onclick="goQuizSelect()">
     <span class="nav-icon">📝</span><span data-i18n="nav.quiz">Quiz</span>

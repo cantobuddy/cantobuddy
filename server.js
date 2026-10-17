@@ -266,33 +266,39 @@ app.post('/api/auth/register', registerRateLimit, (req, res) => {
 });
 
 /**
- * POST /api/auth/employer — name-only employer sign-in.
+ * POST /api/auth/employer — employer sign-in with a per-employer access code.
  *
- * No email, no password. An employer types their name and is signed in; the
- * session cookie remembers them on this device. The consent gate for a helper's
- * data is the INVITATION she accepts (and can revoke), not this form — so a
- * credential here added friction without adding protection.
- *
- * The name IS the identity: typing an existing name returns that employer, which
- * is what lets them come back on another phone with nothing to remember.
+ * The first sign-in for a name creates the employer and mints a 6-char access
+ * code, returned once in `accessCode`. The employer saves it. Every later sign-in
+ * for that name requires the code, so a stranger who merely guesses "Mrs Chan"
+ * cannot read the helpers she connected. The consent gate (the invitation a
+ * helper accepts) still governs *which* helpers an employer sees — the access
+ * code governs *which employer session this is*.
  */
 app.post('/api/auth/employer', registerRateLimit, (req, res) => {
   const b = req.body || {};
   const name = String(b.name || '').trim();
+  const code = b.code ? String(b.code).trim() : '';
 
   if (!name) return res.status(400).json({ error: 'Please enter your name.' });
   if (name.length > 60) return res.status(400).json({ error: 'That name is too long.' });
 
-  let user;
   try {
-    user = store.loginOrCreateEmployer(name);
+    const { user, firstTime, accessCode } = store.loginOrCreateEmployer(name, code);
+    loginRateLimit.clear(req);
+    startSession(req, user);
+    return res.json({
+      ok: true,
+      role: user.role,
+      name: user.name,
+      email: user.email,
+      firstTime: !!firstTime,
+      accessCode: firstTime ? accessCode : undefined,
+    });
   } catch (err) {
-    return res.status(400).json({ error: err.message });
+    const status = err.status || (err.needsCode ? 401 : 400);
+    return res.status(status).json({ error: err.message, needsCode: !!err.needsCode });
   }
-
-  loginRateLimit.clear(req);
-  startSession(req, user);
-  return res.json({ ok: true, role: user.role, name: user.name, email: user.email });
 });
 
 app.post('/api/auth/login', loginRateLimit, (req, res) => {

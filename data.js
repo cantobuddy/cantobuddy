@@ -60,6 +60,15 @@ const SEED_CATEGORIES = [
   // will ask her for things across the table. This is practical, daily, and
   // the vocabulary is compact and high-frequency.
   { id: 18, name_en: 'Restaurant',  name_yue: '酒樓食飯', name_fil: 'Restawran', icon: '🍽️' },
+
+  // A whole category for the festival calendar, because in Hong Kong it is a
+  // work surface rather than a cultural interest. Twelve or so public holidays
+  // a year, each one changing what is in the flat, what is banned, what must be
+  // bought, and what the employer says to her — and the words are specific to
+  // the day, so they are useless known in the wrong week. 恭喜發財 learnt in
+  // February is forgotten by March; learnt the morning of, it is the sentence
+  // that gets her a good word instead of a mistake.
+  { id: 19, name_en: 'Festivals',   name_yue: '節日',     name_fil: 'Mga Pista',  icon: '🎊' },
 ];
 
 // Scenario sets — a situation groups phrases that are used together, which is
@@ -278,6 +287,62 @@ const SEED_VOCABULARY = [  // ---- Beginner ----
   { id: 140, cantonese: '埋單',    jyutping: 'maai4 daan1',            english: 'Pay the bill',           tagalog: 'Magbayad ng bayarin',           emoji: '💰', level: 2, category_id: 18, type: 'word',     speaker: 'helper',  tags: 'payment,restaurant' },
   { id: 141, cantonese: '要唔要茶', jyutping: 'jiu3 m4 jiu3 caa4',      english: 'Would you like tea?',    tagalog: 'Gusto mo ba ng tsa?',           emoji: '🫖', level: 3, category_id: 18, type: 'sentence', speaker: 'either',  scenario_id: 2, tags: 'question,restaurant' },
   { id: 142, cantonese: '想要啲咩', jyutping: 'soeng2 jiu3 di1 me1',   english: 'What would you like?',   tagalog: 'Ano ang gusto mo?',             emoji: '🤲', level: 3, category_id: 18, type: 'sentence', speaker: 'either',  scenario_id: 2, tags: 'question,restaurant' },
+
+  // ---- category 19: Festivals ----------------------------------------------
+  //
+  // Hong Kong's public-holiday calendar is dense and it is a WORK surface for
+  // her: every festival changes what is in the flat, what is forbidden, what
+  // must be bought, and what the employer says to her that morning. The words
+  // are useless learned in the wrong week, which is why they are gathered in
+  // one category that the landing page can name when the festival approaches
+  // (see seo.js → FESTIVALS).
+  //
+  // THE SHAPE. Words (the things a festival is made of — the bun, the packet,
+  // the boat), keywords (the set phrases that are said AS the festival), and
+  // sentences (the two or three things she has to be able to say). Six of each
+  // so the quiz has a pool at every level: generateQuestions needs 4.
+
+  // --- level 1: the things themselves ---
+  { id: 181, cantonese: '農曆新年', jyutping: 'nung4 lik6 san1 nin2', english: 'Lunar New Year', tagalog: 'Bagong Taon ng Tsino', emoji: '🎆', level: 1, category_id: 19, type: 'word', speaker: 'either', tags: 'festival,lny,date' },
+  { id: 182, cantonese: '中秋節',   jyutping: 'zung1 cau1 zit3',     english: 'Mid-Autumn Festival', tagalog: 'Pistang Mid-Autumn', emoji: '🥮', level: 1, category_id: 19, type: 'word', speaker: 'either', tags: 'festival,moon,date' },
+  { id: 183, cantonese: '端午節',   jyutping: 'dyun1 ng5 zit3',      english: 'Dragon Boat Festival', tagalog: 'Pistang Dragon Boat', emoji: '🐉', level: 1, category_id: 19, type: 'word', speaker: 'either', tags: 'festival,boat,date' },
+  { id: 184, cantonese: '利是',     jyutping: 'lai6 si6',            english: 'Red packet (lucky money)', tagalog: 'Red packet', emoji: '🧧', level: 1, category_id: 19, type: 'word', speaker: 'either', tags: 'festival,lny,money' },
+  { id: 185, cantonese: '年糕',     jyutping: 'nin2 gou1',           english: 'New Year cake', tagalog: 'Nian gao', emoji: '🍡', level: 1, category_id: 19, type: 'word', speaker: 'either', tags: 'festival,lny,food' },
+  { id: 186, cantonese: '月餅',     jyutping: 'jyut6 beng2',         english: 'Mooncake', tagalog: 'Mooncake', emoji: '🥮', level: 1, category_id: 19, type: 'word', speaker: 'either', tags: 'festival,moon,food' },
+  { id: 187, cantonese: '燈籠',     jyutping: 'dang1 lung4',         english: 'Lantern', tagalog: 'Parol', emoji: '🏮', level: 1, category_id: 19, type: 'word', speaker: 'either', tags: 'festival,moon,object' },
+  { id: 188, cantonese: '粽',       jyutping: 'zung3',               english: 'Rice dumpling (zongzi)', tagalog: 'Zongzi', emoji: '🍙', level: 1, category_id: 19, type: 'word', speaker: 'either', tags: 'festival,boat,food' },
+  { id: 189, cantonese: '煙花',     jyutping: 'jin1 faa1',           english: 'Fireworks', tagalog: 'Paputok', emoji: '🎇', level: 1, category_id: 19, type: 'word', speaker: 'either', tags: 'festival,lny,night' },
+  { id: 190, cantonese: '平安包',   jyutping: 'ping4 on1 baau1',      english: 'Peace bun (Cheung Chau)', tagalog: 'Bun ng kapayapaan', emoji: '🍞', level: 1, category_id: 19, type: 'word', speaker: 'either', tags: 'festival,cheungchau,food' },
+  { id: 191, cantonese: '團圓',     jyutping: 'tyun4 jyun4',         english: 'Reunion', tagalog: 'Pagkakabuklod', emoji: '👨‍👩‍👧', level: 1, category_id: 19, type: 'word', speaker: 'either', tags: 'festival,moon,family' },
+  { id: 192, cantonese: '搶包山',   jyutping: 'coeng2 baau1 saan1',  english: 'Bun-scrambling (the Cheung Chau tower)', tagalog: 'Bun scrambling', emoji: '⛰️', level: 1, category_id: 19, type: 'word', speaker: 'either', tags: 'festival,cheungchau,event', usage_note: 'A 14-metre tower of buns, climbed at midnight on the last night of the Cheung Chau festival. The single most photographed thing in Hong Kong in May.' },
+
+  // --- level 2: the keywords — phrases that are the festival ---
+  { id: 193, cantonese: '恭喜發財', jyutping: 'gung1 hei2 faat3 coi4', english: 'Wishing you prosperity (the New Year greeting)', tagalog: 'Sana yumaman ka', emoji: '🧨', level: 2, category_id: 19, type: 'word', speaker: 'either', tags: 'festival,lny,greeting', usage_note: ' Said to almost everyone in the first two weeks. The standard reply is 恭喜發財 back — it is not hierarchical.' },
+  { id: 194, cantonese: '新年快樂', jyutping: 'san1 nin2 faai3 lok6',  english: 'Happy New Year', tagalog: 'Maligayang Bagong Taon', emoji: '🎊', level: 2, category_id: 19, type: 'word', speaker: 'either', tags: 'festival,lny,greeting' },
+  { id: 195, cantonese: '身體健康', jyutping: 'san1 tai2 gin6 hong1',  english: 'Good health', tagalog: 'Mabuhay nang malusog', emoji: '💪', level: 2, category_id: 19, type: 'word', speaker: 'either', tags: 'festival,lny,greeting' },
+  { id: 196, cantonese: '快高長大', jyutping: 'faai3 gou1 coeng4 daai6', english: 'Grow up fast and tall (said to children)', tagalog: 'Mabilis lumaki', emoji: '🧒', level: 2, category_id: 19, type: 'word', speaker: 'either', tags: 'festival,lny,children' },
+  { id: 197, cantonese: '逗利是',   jyutping: 'dau3 lai6 si6',       english: 'To collect red packets', tagalog: 'Manghingi ng red packet', emoji: '🧧', level: 2, category_id: 19, type: 'word', speaker: 'either', tags: 'festival,lny,money' },
+  { id: 198, cantonese: '派利是',   jyutping: 'paai3 lai6 si6',      english: 'To hand out red packets', tagalog: 'Magbigay ng red packet', emoji: '💸', level: 2, category_id: 19, type: 'word', speaker: 'either', tags: 'festival,lny,money', usage_note: 'The married give to the unmarried and to staff. As a helper she is on the receiving side, from the family and from married friends.' },
+  { id: 199, cantonese: '拜年',     jyutping: 'baai3 nin2',          english: 'New Year visits', tagalog: 'Panggugulo sa bahay-bahay', emoji: '🙇', level: 2, category_id: 19, type: 'word', speaker: 'either', tags: 'festival,lny,visit' },
+  { id: 200, cantonese: '買年花',   jyutping: 'maai5 nin4 faa1',     english: 'Buy New Year flowers', tagalog: 'Bumili ng bulaklak', emoji: '🌸', level: 2, category_id: 19, type: 'word', speaker: 'helper', tags: 'festival,lny,shopping' },
+  { id: 201, cantonese: '行花市',   jyutping: 'haang4 faa1 si5',     english: 'Walk the flower market', tagalog: 'Pumunta sa palengke ng bulaklak', emoji: '🛍️', level: 2, category_id: 19, type: 'word', speaker: 'either', tags: 'festival,lny,event' },
+  { id: 202, cantonese: '賞月',     jyutping: 'soeng2 jyut6',        english: 'Look at the full moon', tagalog: 'Manood ng buwan', emoji: '🌕', level: 2, category_id: 19, type: 'word', speaker: 'either', tags: 'festival,moon,night' },
+  { id: 203, cantonese: '拜神',     jyutping: 'baai3 san4',          english: 'Worship the gods', tagalog: 'Sumamba sa diyos', emoji: '🕯️', level: 2, category_id: 19, type: 'word', speaker: 'either', tags: 'festival,religion,altar', usage_note: 'What the household does at the altar on the first and fifteenth of most lunar months. She may be asked to help lay out the fruit, never to move anything already there.' },
+  { id: 204, cantonese: '燒衣',     jyutping: 'siu1 ji1',            english: 'Burn paper offerings', tagalog: 'Magsunog ng papel na alay', emoji: '🔥', level: 2, category_id: 19, type: 'word', speaker: 'either', tags: 'festival,ghost,outdoor', usage_note: 'Done outdoors, in a tin or a marked spot, during the Hungry Ghost month. Ashes and paper left in the street are offerings, not litter.' },
+
+  // --- level 3: the sentences she has to be able to say ---
+  { id: 205, cantonese: '恭喜發財，恭喜發財', jyutping: 'gung1 hei2 faat3 coi4, gung1 hei2 faat3 coi4', english: 'Wishing you prosperity! (to everyone, in turn)', tagalog: 'Sana yumaman ka, sana yumaman ka', emoji: '🧧', level: 3, category_id: 19, type: 'sentence', speaker: 'helper', tags: 'festival,lny,greeting' },
+  { id: 206, cantonese: '今年有咩節日？', jyutping: 'gam1 nin2 jau5 me1 zit3 jat6', english: 'What festivals are there this year?', tagalog: 'Anong pista ang mayroon ngayong taon?', emoji: '📅', level: 3, category_id: 19, type: 'sentence', speaker: 'helper', tags: 'festival,question,planning' },
+  { id: 207, cantonese: '我要去唔去拜年？', jyutping: 'ngo5 jiu3 hei3 m4 hei3 baai3 nin2', english: 'Should I go on the New Year visits?', tagalog: 'Dapat ba akong sumama sa panggugulo?', emoji: '🚶', level: 3, category_id: 19, type: 'sentence', speaker: 'helper', tags: 'festival,lny,question' },
+  { id: 208, cantonese: '邊個派利是俾你？', jyutping: 'bin1 go3 paai3 lai6 si6 bei2 nei5', english: 'Who gives you a red packet?', tagalog: 'Sino ang nagbibigay sa iyo ng red packet?', emoji: '🧧', level: 3, category_id: 19, type: 'sentence', speaker: 'either', tags: 'festival,lny,question' },
+  { id: 209, cantonese: '中秋節食月餅，你去唔去？', jyutping: 'zung1 cau1 zit3 sik6 jyut6 beng2, nei5 hei3 m4 hei3', english: 'We eat mooncakes at Mid-Autumn — are you coming?', tagalog: 'Kumakain ng mooncake sa Mid-Autumn, sasama ka ba?', emoji: '🥮', level: 3, category_id: 19, type: 'sentence', speaker: 'either', tags: 'festival,moon,invitation' },
+  { id: 210, cantonese: '今晚去邊度賞月？', jyutping: 'gam1 maan5 heoi3 bin1 dou6 soeng2 jyut6', english: 'Where are we going to see the moon tonight?', tagalog: 'Saan tayo manonood ng buwan ngayong gabi?', emoji: '🌕', level: 3, category_id: 19, type: 'sentence', speaker: 'either', tags: 'festival,moon,question' },
+  { id: 211, cantonese: '端午節有龍舟比賽', jyutping: 'dyun1 ng5 zit3 jau5 lung4 zau1 bei2 coi3', english: 'There are dragon-boat races at Dragon Boat Festival', tagalog: 'May karera ng dragon boat sa Dragon Boat Festival', emoji: '🐉', level: 3, category_id: 19, type: 'sentence', speaker: 'either', tags: 'festival,boat,information' },
+  { id: 212, cantonese: '呢排係盂蘭，唔好亂扔嘢', jyutping: 'ni1 paai4 hai6 jyu4 laan4, m4 hou2 lyun6 waak6 je5', english: "It's Hungry Ghost month now — don't throw things around", tagalog: 'Buwan ng Hungry Ghost ngayon, huwag magtapon nang walang pakundangan', emoji: '👻', level: 3, category_id: 19, type: 'sentence', speaker: 'either', tags: 'festival,ghost,rule' },
+  { id: 213, cantonese: '開工喇，恭喜發財', jyutping: 'hoi1 gung1 laa3, gung1 hei2 faat3 coi4', english: "You're back at work — wishing you prosperity", tagalog: 'Bumalik ka na sa trabaho, sana yumaman ka', emoji: '🧨', level: 3, category_id: 19, type: 'sentence', speaker: 'either', tags: 'festival,lny,greeting' },
+  { id: 214, cantonese: '記得攞利是', jyutping: 'gei3 dak1 lo2 lai6 si6', english: 'Remember to collect your red packet', tagalog: 'Tandaan kunin ang red packet mo', emoji: '🧧', level: 3, category_id: 19, type: 'sentence', speaker: 'either', tags: 'festival,lny,reminder' },
+  { id: 215, cantonese: '今晚有煙花睇', jyutping: 'gam1 maan5 jau5 jin1 faa1 tai2', english: "There are fireworks tonight", tagalog: 'May paputok mamayang gabi', emoji: '🎆', level: 3, category_id: 19, type: 'sentence', speaker: 'either', tags: 'festival,lny,night' },
+  { id: 216, cantonese: '去唔去長洲睇太平清醮？', jyutping: 'heoi3 m4 heoi3 coeng4 zau1 tai2 taai3 ping4 cing1 ziu3', english: 'Are you going to Cheung Chau for the Bun Festival?', tagalog: 'Pupunta ka ba sa Cheung Chau para sa Bun Festival?', emoji: '🏝️', level: 3, category_id: 19, type: 'sentence', speaker: 'either', tags: 'festival,cheungchau,invitation' },
 
   // ---- v6: the 9 empty (category x level) combinations, filled ----------
   // Machine-drafted to the same standard and with the same caveat as Tier A.
@@ -595,6 +660,43 @@ const MANDARIN_GLOSSES = {
   178:  '关 — 关门、关盖',
   179:  '房间',
   180:  '大门',
+  // --- ids 181-216: the festival calendar (category 19) ---
+  181:  '农历新年',
+  182:  '中秋节',
+  183:  '端午节',
+  184:  '红包',
+  185:  '年糕',
+  186:  '月饼',
+  187:  '灯笼',
+  188:  '粽子',
+  189:  '烟花',
+  190:  '平安包',
+  191:  '团圆',
+  192:  '抢包山',
+  193:  '恭喜发财',
+  194:  '新年快乐',
+  195:  '身体健康',
+  196:  '快高长大',
+  197:  '讨红包',
+  198:  '发红包',
+  199:  '拜年',
+  200:  '买年花',
+  201:  '逛花市',
+  202:  '赏月',
+  203:  '拜神',
+  204:  '烧衣',
+  205:  '恭喜发财，恭喜发财',
+  206:  '今年有什么节日？',
+  207:  '我要不要去拜年？',
+  208:  '谁发红包给你？',
+  209:  '中秋节吃月饼，你去不去？',
+  210:  '今晚去哪里赏月？',
+  211:  '端午节有龙舟比赛',
+  212:  '现在是盂兰，不要乱扔东西',
+  213:  '开工了，恭喜发财',
+  214:  '记得拿红包',
+  215:  '今晚有烟花看',
+  216:  '去不去长洲看太平清醮？',
 };
 
 SEED_VOCABULARY.forEach((v) => {
@@ -635,6 +737,7 @@ const CATEGORY_ZH_NAMES = {
   16: '吃饭喂食',
   17: '安慰与鼓励',
   18: '餐厅',
+  19: '节日',
 };
 
 SEED_CATEGORIES.forEach((c) => {
@@ -890,6 +993,43 @@ const INDONESIAN_GLOSSES = {
   178:  'Tutup — pintu atau tutup wadah',
   179:  'Kamar',
   180:  'Pintu depan',
+  // --- ids 181-216: the festival calendar (category 19) ---
+  181:  'Tahun Baru Imlek',
+  182:  'Festival Pertengahan Musim Gugur',
+  183:  'Festival Perahu Naga',
+  184:  'Angpao (uang keberuntungan)',
+  185:  'Kue tahun baru',
+  186:  'Kue bulan',
+  187:  'Lampion',
+  188:  'Bakcang',
+  189:  'Kembang api',
+  190:  'Bun perdamaian (Cheung Chau)',
+  191:  'Bersatu kembali',
+  192:  'Perebutan bun (menara Cheung Chau)',
+  193:  'Semoga Anda maju',
+  194:  'Selamat tahun baru',
+  195:  'Semoga sehat selalu',
+  196:  'Cepat tinggi besar (kata ke anak)',
+  197:  'Meminta angpao',
+  198:  'Memberi angpao',
+  199:  'Kunjungan tahun baru',
+  200:  'Beli bunga tahun baru',
+  201:  'Keliling pasar bunga',
+  202:  'Menatap bulan purnama',
+  203:  'Berdoa kepada dewa',
+  204:  'Bakar kertas persembahan',
+  205:  'Semoga Anda maju, semoga Anda maju',
+  206:  'Festival apa saja tahun ini?',
+  207:  'Perlu ikut kunjungan tahun baru?',
+  208:  'Siapa yang memberi angpao kepada Anda?',
+  209:  'Festival Pertengahan Musim Gugur makan kue bulan, ikut?',
+  210:  'Malam ini ke mana menatap bulan?',
+  211:  'Festival Perahu Naga ada lomba perahu naga',
+  212:  'Sekarang bulan orang lapar, jangan buang barang sembarangan',
+  213:  'Mulai bekerja lagi, semoga Anda maju',
+  214:  'Ingat ambil angpao',
+  215:  'Malam ini ada kembang api',
+  216:  'Ikut ke Cheung Chau lihat Bun Festival?',
 };
 
 SEED_VOCABULARY.forEach((v) => {
@@ -926,6 +1066,7 @@ const CATEGORY_ID_NAMES = {
   16: 'Makan & Menyuapi',
   17: 'Menenangkan & Menyemangati',
   18: 'Restoran',
+  19: 'Hari Raya',
 };
 
 SEED_CATEGORIES.forEach((c) => {
@@ -1154,6 +1295,193 @@ const SEED_POSTS = [
 <h2>The general lesson</h2>
 <p>Mid-Autumn is a good example of a pattern that runs through the whole year here: <strong>during a festival, ordinary objects have an extra purpose.</strong> A box is not just a box; it is a gift in transit. A tin is not just a tin; it is something to keep. When a festival is coming, slow down before you tidy, and ask.</p>
 <p><strong>嚟緊有咩節日要準備？</strong> (lai4 gan6 jau5 me1 zit3 jat6 jiu3 zeon2 bei6) — "Is there a festival coming that we need to prepare for?" It is a good question to ask at the start of every month.</p>`,
+  },
+
+  {
+    slug: 'chopsticks-five-rules',
+    channel: 'culture',
+    icon: '🥢',
+    status: 'published',
+    published_at: '2026-10-17T09:00:00.000Z',
+    title_en: 'Chopsticks: Five Things That Are Done, and One That Is Not',
+    title_zh: '筷子：五件该做的事，和一件绝不能做的事',
+    summary_en:
+      'You will use chopsticks every day, and there are exactly two rules most Hong Kong households actually care about. Here is what matters, what is only a story, and the one thing that will genuinely upset an older relative.',
+    summary_zh: '你每天都会用到筷子，而香港家庭真正在意的其实只有两条规矩。这篇讲哪些重要、哪些只是传说，以及哪一件事是真的会让长辈不高兴。',
+    body_en: `<p>Chopstick etiquette is a subject where most of what is written down is not what families actually do. This is the short, true version — the things that come up in a Hong Kong household.</p>
+<h2>The one that genuinely upsets people</h2>
+<p><strong>Never stand chopsticks upright in a bowl of rice.</strong> Not while you eat, not while you carry it, not for a second while you reach for something else. Upright sticks in rice is the shape of the offerings at a funeral, and it is the one chopstick mistake that will make an older relative put down their bowl.</p>
+<p>If you need to set chopsticks down, lay them flat beside the bowl, or across it.</p>
+<h2>The four that are good manners, not taboos</h2>
+<ul>
+  <li><strong>Use the serving spoons or the far end of the serving chopsticks</strong> when you take food from a shared plate to someone else's bowl. Passing food chopstick-to-chopstick is another funeral shape; flipping the chopsticks around and using the thick end is the everyday fix.</li>
+  <li><strong>Do not spear food</strong> because it will not come up cleanly. It is not forbidden, it just looks hurried.</li>
+  <li><strong>Do not point at people with them</strong>, and do not wave them while talking.</li>
+  <li><strong>Do not dig through a shared dish</strong> looking for the piece you want. Take from the near side.</li>
+</ul>
+<h2>What nobody will actually mind</h2>
+<ul>
+  <li><strong>Holding them low or high.</strong> There is an old claim that holding them far from the tip means you will marry far from home. It is said as a joke to children. Nobody is judging your grip.</li>
+  <li><strong>Crossing them on the table.</strong> Fine.</li>
+  <li><strong>Tapping the bowl.</strong> Poor manners in general, but the specific story about beggars is folklore.</li>
+</ul>
+<h2>The sentence that helps</h2>
+<p><strong>唔好意思，我第一次用</strong> (m4 hou2 ji3 si1, ngo5 dai3 jat1 ci3 jung6) — "Sorry, it's my first time." Said cheerfully, it turns a mistake into a moment people enjoy. Almost everything on this page is softer than you expect.</p>
+<h2>Useful to know</h2>
+<p>筷子 (<strong>faai3 zi2</strong>) — chopsticks. 碗 (<strong>wun2</strong>) — bowl. 飯 (<strong>faan6</strong>) — rice. Most kitchen vocabulary in this app is in the Kitchen and Restaurant categories if you want the words around the table.</p>`,
+  },
+
+  {
+    slug: 'numbers-sound-lucky-unlucky',
+    channel: 'culture',
+    icon: '🔢',
+    status: 'published',
+    published_at: '2026-10-17T10:00:00.000Z',
+    title_en: 'Why Some Numbers Are Lucky Here and Others Are Never Said',
+    title_zh: '为什么有些数字是吉利的，有些数字没人愿意说出口',
+    summary_en:
+      'In Cantonese a number can sound exactly like a word for something good or something dreadful. Four is avoided on whole floors of buildings, eight is paid extra for. This is why, in plain terms.',
+    summary_zh: '在粤语里，一个数字的发音可能刚好和某个好词或某个可怕的词一样。数字「四」会被整层楼避开，「八」却要加价买。这篇用最简单的话说明原因。',
+    body_en: `<p>This is one of the first things a new helper notices and cannot explain: the lifts in some buildings skip a number, a phone number with lots of eights costs money, and nobody will say the number of a hotel room out loud without a small laugh.</p>
+<h2>The reason is sound, not superstition about numbers</h2>
+<p>It is not that numbers are magical. It is that Cantonese has many homophones — different words with the same sound — so a number sounds like whatever else it sounds like. A few of these:</p>
+<ul>
+  <li><strong>四</strong> (sei3, four) sounds like <strong>死</strong> (sei2, death). Very close. This is the origin of "tetraphobia", and it is why buildings often have no 4th, 14th, 24th or 40th floor.</li>
+  <li><strong>八</strong> (baat3, eight) sounds like <strong>發</strong> (faat3, to prosper / to get rich). Same reason 8 is lucky, and why the Beijing Olympics opened on 08/08/08.</li>
+  <li><strong>九</strong> (gau2, nine) sounds like <strong>久</strong> (gau2, long-lasting). Long-lasting marriage, long-lasting business.</li>
+  <li><strong>六</strong> (luk6, six) sounds like <strong>祿</strong> (luk6, a salary or blessing). Good for work and money.</li>
+  <li><strong>三</strong> (saam1, three) sounds like <strong>生</strong> (saang1, to be born / to live). Life, growth.</li>
+</ul>
+<h2>What you will actually see</h2>
+<ul>
+  <li><strong>Buildings without a 4th floor.</strong> The lift goes 3, 5, 6. Nothing is missing; the number is being avoided.</li>
+  <li><strong>Phone numbers and licence plates</strong> with 8s sell for more.</li>
+  <li><strong>Red packets</strong> hold amounts that avoid 4. Even the number of items in a gift can matter.</li>
+  <li><strong>Weddings avoid 4</strong> in dates and in gift amounts.</li>
+  <li><strong>13 is not avoided</strong> the way it is in the West. A Western superstition that exists here is imported and mild.</li>
+</ul>
+<h2>How to handle it</h2>
+<p>You do not need to believe any of it. You do need to <strong>avoid the number out loud when someone else is uncomfortable</strong>. If a lift skips a floor and someone makes a face, the polite move is to not draw attention to it.</p>
+<p>And if you slip and say something that sounds unlucky, the ordinary fix is to say something lucky immediately after — most people do it as a joke. Nobody is angry about it. This is a set of habits, not a set of rules anyone enforces on you.</p>
+<h2>The useful vocabulary</h2>
+<ul>
+  <li><strong>數字</strong> (sou3 zi6) — number</li>
+  <li><strong>四</strong> (sei3) — four</li>
+  <li><strong>八</strong> (baat3) — eight</li>
+  <li><strong>幾多</strong> (gei2 do1) — how many</li>
+  <li><strong>唔好意思，講錯咗</strong> (m4 hou2 ji3 si1, gong2 co3 zo2) — "Sorry, I said the wrong thing."</li>
+</ul>`,
+  },
+
+  {
+    slug: 'colours-when-to-wear-what',
+    channel: 'culture',
+    icon: '🎨',
+    status: 'published',
+    published_at: '2026-10-17T11:00:00.000Z',
+    title_en: 'Colour Rules: When to Wear Red, and When Never to Wear It',
+    title_zh: '颜色的讲究：什么时候该穿红，什么时候千万不要穿红',
+    summary_en:
+      'Red means celebration and money at a wedding, and it means death at a funeral. The same colour flips meaning with the occasion. This is the short guide to the colours a helper actually has to get right.',
+    summary_zh: '红色在婚礼上代表喜庆和吉利，在丧礼上却代表死亡。同一件颜色换个场合，意思完全相反。这篇讲家佣真正需要分清楚的那几种颜色。',
+    body_en: `<p>Colour in Chinese culture is tied to the occasion, not to the colour itself. A colour is right or wrong depending on what is happening. This is the version you need for work.</p>
+<h2>紅 — red</h2>
+<p>The colour of <strong>joy, luck and money</strong>. Worn at weddings, at New Year, at a birthday, at a birth. Given in red packets. Wearing red to a happy event is correct and welcome.</p>
+<p><strong>But never to a funeral.</strong> Red at a funeral is the single worst colour choice. At a funeral you wear white or black, quiet and plain.</p>
+<h2>白 — white</h2>
+<p>In the West white is for weddings. Here, <strong>white is for mourning</strong>. Wearing white to a funeral is correct. Wearing a white dress to a wedding is unusual and will be noticed.</p>
+<p>That said, white as an everyday clothing colour is completely fine — a white shirt is a white shirt. The rule is about <em>occasions</em>, not about owning white clothes.</p>
+<h2>黑 — black</h2>
+<p>Mourning, and also just dark neutral clothing. A black outfit is safe at a funeral. Black at a wedding is fine — nobody will object to black at a wedding here the way some Western etiquette books do.</p>
+<h2>金 — gold</h2>
+<p>Wealth and celebration. Gold with red at New Year and weddings is the classic pairing. Gold jewellery is a normal gift for a child at New Year.</p>
+<h2>The rule that covers everything</h2>
+<p><strong>Red for a happy occasion, white or black for a sad one.</strong></p>
+<p>If you are not sure which kind of occasion you are dressing for, ask: <strong>喜事定喪事？</strong> (hei2 si6 ding6 song1 si6) — "Is this a happy event or a funeral?" It sounds blunt written down; asked plainly and early it is exactly the right question, and it is much better than guessing.</p>
+<h2>One thing not to worry about</h2>
+<p>Your own clothes on an ordinary working day can be any colour you like. Nothing here governs a Tuesday.</p>`,
+  },
+
+  {
+    slug: 'festival-stories-you-will-hear',
+    channel: 'culture',
+    icon: '🏮',
+    status: 'published',
+    published_at: '2026-10-17T12:00:00.000Z',
+    title_en: 'The Four Festival Stories You Will Actually Be Told',
+    title_zh: '你真的会听到的四个节日故事',
+    summary_en:
+      'Every family has a version of these, told at the dinner table while you are serving. Here is what they are, so you are not hearing a story about a monster for the first time while holding a plate.',
+    summary_zh: '每个家庭都有自己的版本，通常在你上菜的时候在饭桌上讲给你听。这篇先把这些故事讲一遍，免得你第一次听说「年兽」的时候手里还端着菜。',
+    body_en: `<p>Hong Kong families tell stories about the festivals. You will hear these four, in some version, in your first year. None of them are long, and knowing them turns a story you cannot follow into a story you can enjoy.</p>
+<h2>1. 年獸 — the monster afraid of red and loud noises (Lunar New Year)</h2>
+<p>A beast called Nian came down from the mountains on the last night of the year to eat livestock and people. One year the villagers discovered it was terrified of three things: <strong>the colour red, fire, and loud banging</strong>. So they pasted red paper on the doors, lit fires, and set off firecrackers. The beast fled. The next morning everyone greeted each other with 恭喜 — "you have survived".</p>
+<p>That is why New Year is red, why there are fireworks, and why the greeting is a congratulation rather than a "happy new year".</p>
+<h2>2. 嫦娥 — the woman who flew to the moon (Mid-Autumn)</h2>
+<p>Chang'e drank an elixir of immortality meant for her husband, and it lifted her off the ground. She rose until she landed on the moon, and she lives there now, with a jade rabbit that pounds medicine. Her husband could only watch. On the night of the full moon in the eighth lunar month, families eat mooncakes, go outside, and look up.</p>
+<p>The mooncakes are round because the moon is round, and round means the family is together.</p>
+<h2>3. 屈原 — the poet the dragon boats race for (Dragon Boat Festival)</h2>
+<p>Qu Yuan was a loyal official who drowned himself in a river in protest. The people raced out in boats to try to save him, or at least to find his body, beating drums and throwing rice into the water so the fish would not eat him.</p>
+<p>That is the whole origin of both the dragon-boat race and the rice dumplings (粽), which are still made by wrapping glutinous rice in bamboo leaves.</p>
+<h2>4. 盂蘭 — the hungry ghosts of the seventh month</h2>
+<p>In the seventh lunar month the gates of the underworld open and the dead walk. Not as a horror story — more like relatives coming to visit who need feeding. Families burn paper money and paper goods for them, put out food, and go out of their way not to sit on, step on, or throw away anything left in the street. The month is considered a bad time for big new ventures and a good time for caution.</p>
+<h2>The one question that always works</h2>
+<p>When someone starts telling you a story, <strong>然後呢？</strong> (jin4 hau6 ne1) — "And then?" It keeps the story going and tells the teller you are listening. It will get you a better version of all four than any textbook.</p>`,
+  },
+
+  {
+    slug: 'lunar-new-year-customs',
+    channel: 'culture',
+    icon: '🧨',
+    status: 'published',
+    published_at: '2026-10-17T13:00:00.000Z',
+    title_en: 'Lunar New Year Customs: The Week Before, and the Rules for the First Three Days',
+    title_zh: '农历新年习俗：年前那一周，和年初头三天的规矩',
+    summary_en:
+      'The most work-heavy week of your year, and two days of rules that nobody explains. Here is the sequence — what to clean, what to buy, what you must not sweep away, and what to wear on the first morning.',
+    summary_zh: '一年里最忙的一周，外加两天没人会解释的规矩。这篇按顺序讲清楚：该打扫什么、该买什么、什么绝对不能扫掉，以及初一早上该穿什么。',
+    body_en: `<p>Lunar New Year (<strong>農曆新年</strong>, nung4 lik6 san1 nin2) is the biggest event in the Hong Kong year and it is the one that changes your working life most. It falls in late January or February, and the important part starts about a week before the first day.</p>
+<h2>The week before: cleaning</h2>
+<p>There is a saying that you sweep out the old year to make room for the new. The whole flat gets cleaned, top to bottom, and it is normally the helper who does it. Practical points:</p>
+<ul>
+  <li><strong>Clean before New Year's Eve, not after.</strong> The cleaning is finished by the last day — the new year brings its own rules about sweeping.</li>
+  <li><strong>Do not throw out anything you do not recognise.</strong> Old calendars, red paper decorations, packets from last year, a bundle of gold and silver paper — these are all festival material, and some families keep them year to year.</li>
+  <li><strong>Windows and doors get cleaned first</strong> in many households. Ask which rooms the family wants done in which order.</li>
+  <li><strong>You will be asked to do more than usual</strong>, and possibly to work later. It is understood, but if the load is impossible, say so early — the week goes badly for everyone when it is discovered on the last day.</li>
+</ul>
+<h2>What gets bought</h2>
+<ul>
+  <li><strong>Red packets</strong> (利是, lai6 si6) — new ones every year, in quantity.</li>
+  <li><strong>Nian gao</strong> (年糕, nin2 gou1) — the New Year cake. Sweet and sticky.</li>
+  <li><strong>New flowers and a kumquat or mandarin plant</strong> for the entrance.</li>
+  <li><strong>New clothes</strong>, and new red decorations for the door.</li>
+  <li><strong>Food for the reunion dinner</strong> — which you may be cooking.</li>
+</ul>
+<h2>New Year's Eve: the reunion dinner</h2>
+<p>年夜飯 (nin4 je6 faan6) — the reunion dinner — is the most important meal of the year. Everyone who can be there is there. It is usually the biggest, most formal thing you will cook, and the family may invite relatives. Fish is on the table because the word for fish sounds like the word for surplus. Expect to work late.</p>
+<h2>The first three days: the rules</h2>
+<p>These are the ones that surprise new helpers, because nobody announces them and breaking one is genuinely noticed.</p>
+<ul>
+  <li><strong>Do not sweep or take the rubbish out on the first day.</strong> Sweeping on New Year's Day sweeps the good fortune out of the door with it. If something must be cleaned, sweep it inward or wait.</li>
+  <li><strong>Do not wash your hair on the first day.</strong> It washes away the year's good luck.</li>
+  <li><strong>Do not use sharp words.</strong> Nothing about death, nothing about owing money, no arguments. "Happy New Year" and cheerful things only. This is the reason the standard greeting is a congratulation.</li>
+  <li><strong>Do not break anything.</strong> If something does break, say something lucky straight away — most families do this as a joke and the moment passes.</li>
+  <li><strong>Wear red on the first morning</strong> if you have anything red. New clothes are traditional — wearing last year's is considered bad luck by some families.</li>
+</ul>
+<h2>What you actually say</h2>
+<ul>
+  <li><strong>恭喜發財</strong> (gung1 hei2 faat3 coi4) — "Wishing you prosperity." Said to everyone.</li>
+  <li><strong>新年快樂</strong> (san1 nin2 faai3 lok6) — "Happy New Year."</li>
+  <li><strong>身體健康</strong> (san1 tai2 gin6 hong1) — "Good health."</li>
+  <li>The reply to 恭喜發財 is 恭喜發財 — you say it back. It is not a one-way greeting.</li>
+</ul>
+<h2>Red packets, and the money question</h2>
+<p>Married people give red packets to unmarried people, to children, and to staff. As a helper you will receive one from the family, and you may receive several from married friends and relatives. It is polite to accept with both hands, and to say 多謝 — the thank-you for a gift, not the one for a service (see 唔該 and 多謝 in the Culture channel).</p>
+<p>How much is in it is not your business and is not to be commented on. Say thank you and put it away.</p>
+<h2>The three days after</h2>
+<p>The visit-and-greeting continues, and there is a good chance of being asked to cook for visitors or to help with an outing. If you are given time off, ask when the family wants you back — being late back from New Year is one of the things that is remembered for a long time.</p>
+<h2>If it all goes wrong</h2>
+<p><strong>唔好意思，我唔知道</strong> — "Sorry, I didn't know." It works for a swept floor, a broken cup, and a wrong greeting. Say it early and plainly. What turns a small mistake into a real one is discovering it later and saying nothing.</p>`,
   },
 ];
 

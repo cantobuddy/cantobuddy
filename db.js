@@ -1772,15 +1772,52 @@ const S = {
   `),
   getPostById: db.prepare('SELECT * FROM posts WHERE id = ?'),
   getPostBySlug: db.prepare('SELECT * FROM posts WHERE slug = ?'),
+  /* The same feed with a retention cut. Two statements rather than one with a
+     nullable cutoff because `? IS NULL OR ...` cannot use an index, and this
+     query runs on every Discover load.
+
+     `origin` is in the WHERE for the reason in listPosts(): the age cut governs
+     imported news, while something an operator published by hand does not
+     expire. So it is `origin != 'auto' OR … >= ?` — the manual row always
+     passes, and the imported row has to be inside the window. */
+  listPostsInWindow: db.prepare(`
+    SELECT * FROM posts
+     WHERE status = ?
+       AND (? IS NULL OR channel = ?)
+       AND (origin != 'auto' OR COALESCE(published_at, created_at) >= ?)
+       AND (? IS NULL OR category = ?)
+     ORDER BY COALESCE(published_at, created_at) DESC, id DESC
+     LIMIT ?
+  `),
   countPosts: db.prepare('SELECT COUNT(*) AS n FROM posts'),
   countPostsByChannel: db.prepare('SELECT channel, COUNT(*) AS n FROM posts WHERE status = ? GROUP BY channel'),
+  /* Everything past the retention window, oldest first — what pruneNewsPast()
+     is about to delete. Oldest-first matters for a human reading the report,
+     and for a test that wants to know WHICH rows went. */
+  listExpiredNews: db.prepare(
+    `SELECT id, slug, title_en, published_at, created_at FROM posts
+      WHERE channel = 'news' AND origin = 'auto'
+        AND COALESCE(published_at, created_at) < ?
+      ORDER BY COALESCE(published_at, created_at) ASC, id ASC`
+  ),
+  deleteNewsOlderThan: db.prepare(
+    `DELETE FROM posts
+      WHERE channel = 'news' AND origin = 'auto'
+        AND COALESCE(published_at, created_at) < ?`
+  ),
   /* Published news counts per category, for the filter chips. 'all' is every
-     published news row, so the chip row can show "All 137" beside "Work 12".
+     published news row a learner can actually read, so the chip row can show
+     "All news 41" beside "Work 12" — and a number that does not match the list
+     under it is a number she learns to distrust. So the count is scoped exactly
+     like the feed: imported news inside the retention window, plus anything an
+     operator published by hand, which does not expire (see listPosts).
      A category with nothing in it is deliberately still returned as 0 — a chip
      that appears only once it has content is a chip she cannot learn. */
   countPublishedNewsByCategory: db.prepare(
     `SELECT category, COUNT(*) AS n FROM posts
-      WHERE status = 'published' AND channel = 'news' GROUP BY category`
+      WHERE status = 'published' AND channel = 'news'
+        AND (origin != 'auto' OR COALESCE(published_at, created_at) >= ?)
+      GROUP BY category`
   ),
   /* Everything still unclassified, newest last so a backfill reads the rows in
      a stable order. The classifier is a pure function of the row, so the order
@@ -2716,6 +2753,56 @@ const POST_TITLE_MAX = 200;
 const POST_SUMMARY_MAX = 700;
 const POST_BODY_MAX = 20000;
 
+/**
+ * How long an imported news item stays in the feed. Three days.
+ *
+ * WHY THERE IS A WINDOW AT ALL. The importer runs hourly, so the News channel
+ * is the one channel that grows without bound. Left unbounded it becomes a
+ * scrolling archive of last week's typhoon, which is exactly the "not user
+ * friendly, long scroll down" complaint that also produced the topic filter and
+ * the pager. News is dated on purpose — its value is in being current — so an
+ * expiry is the correct treatment rather than a loss of data.
+ *
+ * WHY THREE DAYS. Long enough that someone who opens the app once a day on her
+ * day off has not missed anything, short enough that the channel still reads
+ * as "this week". A helper who works six days a week should be able to catch up
+ * in one sitting.
+ *
+ * Overridable with NEWS_MAX_AGE_DAYS so the number is a setting, not a rebuild:
+ * 0 disables the window entirely (news never expires).
+ */
+const DEFAULT_NEWS_MAX_AGE_DAYS = 3;
+
+const newsMaxAgeDays = () => {
+  const raw = process.env.NEWS_MAX_AGE_DAYS;
+  if (raw === undefined || raw === null || String(raw).trim() === '') return DEFAULT_NEWS_MAX_AGE_DAYS;
+  const n = Math.floor(Number(raw));
+  return Number.isFinite(n) && n >= 0 ? n : DEFAULT_NEWS_MAX_AGE_DAYS;
+};
+
+/**
+ * The window a caller asked for, defaulted to the configured one.
+ *
+ * THREE cases, and the distinction between the first two is load-bearing:
+ *   - omitted  → the configured window (the ordinary feed)
+ *   - 0        → no window at all (how the admin list sees everything)
+ *   - a number → that number, honoured
+ *
+ * An earlier version returned the configured window for any positive request,
+ * so `pruneNewsPast({ days: 500 })` silently pruned at three days and deleted a
+ * row the caller had explicitly said to keep. A parameter that is accepted and
+ * then ignored is worse than no parameter: it reads as agreement.
+ */
+const newsRetentionDays = (requested) => {
+  if (requested === undefined || requested === null) return newsMaxAgeDays();
+  const n = Math.floor(Number(requested));
+  return Number.isFinite(n) && n >= 0 ? n : newsMaxAgeDays();
+};
+
+/** An ISO instant `days` ago. Comparing strings works because ISO sorts. */
+const beforeIso = (days) =>
+  new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+
 const trimPost = (v, max) => String(v ?? '').trim().slice(0, max);
 const pickPost = (v, fallback, max) => (v == null ? fallback : trimPost(v, max));
 
@@ -2750,7 +2837,7 @@ function uniquePostSlug(base, excludeId = null) {
 }
 
 /** The learner-facing feed — published only, newest first. */
-function listPosts({ channel = null, status = 'published', limit = 50, category = null } = {}) {
+function listPosts({ channel = null, status = 'published', limit = 50, category = null, maxAgeDays } = {}) {
   const ch = POST_CHANNELS.includes(channel) ? channel : null;
   const st = POST_STATUSES.includes(status) ? status : 'published';
   // A category is only meaningful for news; asking for one on the culture
@@ -2758,7 +2845,18 @@ function listPosts({ channel = null, status = 'published', limit = 50, category 
   // silently returning nothing.
   const cat = ch === 'news' && newsCategory.isValidCategory(category) ? category : null;
   const n = Math.min(Math.max(Math.floor(Number(limit)) || 50, 1), 200);
-  return S.listPosts.all(st, ch, ch, cat, cat, n);
+  // Read-time retention, so the guarantee holds even if the sweep has not run
+  // yet on a freshly booted instance. Two limits on WHAT expires, both from the
+  // same rule — imported news has a shelf life, an operator's writing does not:
+  //   - the NEWS channel only (a culture post has no expiry date)
+  //   - `origin = 'auto'` only (a hand-written news post is not deleted after
+  //     three days either; see the guard in listPostsInWindow)
+  // The prune uses the same pair, so the feed and the table cannot disagree.
+  const windowDays = newsRetentionDays(maxAgeDays);
+  const cutoff = ch === 'news' && windowDays > 0 ? beforeIso(windowDays) : null;
+  return cutoff
+    ? S.listPostsInWindow.all(st, ch, ch, cutoff, cat, cat, n)
+    : S.listPosts.all(st, ch, ch, cat, cat, n);
 }
 
 /** The operator view — every status. */
@@ -2785,11 +2883,21 @@ function getPostCounts() {
 /**
  * Published news counts per category, plus the total — what the filter chips
  * are built from. Always includes every category key, even at zero.
+ *
+ * Scoped to the same window the feed reads through (see listPosts), so the chip
+ * row and the list underneath it can never disagree.
  */
 function getNewsCategoryCounts() {
   const counts = { all: 0 };
   for (const key of newsCategory.NEWS_CATEGORY_KEYS) counts[key] = 0;
-  for (const row of S.countPublishedNewsByCategory.all()) {
+  // The same cut the feed reads through, so a chip count is the number of
+  // stories actually waiting under it. With the window disabled the cutoff has
+  // to be an instant everything is newer than — `beforeIso(0)` is "now", which
+  // would exclude the whole channel, so it is the epoch instead.
+  const cutoff = newsMaxAgeDays() > 0
+    ? beforeIso(newsMaxAgeDays())
+    : new Date(0).toISOString();
+  for (const row of S.countPublishedNewsByCategory.all(cutoff)) {
     const key = newsCategory.isValidCategory(row.category) ? row.category : 'other';
     counts[key] += row.n;
     counts.all += row.n;
@@ -2933,6 +3041,48 @@ function deleteNewsPostsFromSourcesNotIn(keep = []) {
     removed += S.deleteAutoNewsPostsBySourcePrefix.run(`${prefix}:%`).changes;
   }
   return { removed, retired: stale };
+}
+
+/**
+ * Delete imported news that has fallen out of the retention window.
+ *
+ * WHY THIS EXISTS. The feed is meant to read as "this week", not as an archive:
+ * a helper who opens the app on her day off should be able to catch up in one
+ * sitting. Age is also the only automatic way a feed stays fresh when the
+ * sources keep republishing — Inquirer's RSS always has 40 items, so without a
+ * cut the Discover channel just grows and the news section is, after a month,
+ * 90% stories nobody will read.
+ *
+ * `listPosts` already applies the window at READ time (db.js listPosts), so the
+ * learner-facing feed is correct the moment a row goes stale. This deletes the
+ * rows themselves, which is what keeps the table from growing without bound and
+ * what stops old slugs lingering in sitemaps and search results.
+ *
+ * Deliberately narrow — the same guard as deleteNewsPostsFromSourcesNotIn, and
+ * for the same reason. It only ever touches a row that is ALL of:
+ *   - channel 'news'    (never a culture post — those are editorial, evergreen)
+ *   - origin 'auto'     (never a hand-written post, and never an admin draft)
+ * A hand-written news post is not expiry-limited because an operator wrote it
+ * on purpose; only the importer's rows are.
+ *
+ * @param {{days?:number}} [opts] `days: 0` disables the window entirely
+ * @returns {{removed:number, pruned:object[], days:number}} deleted rows, and
+ *   which ones went (oldest first) so a caller can log or assert them.
+ */
+function pruneNewsPast({ days } = {}) {
+  const windowDays = newsRetentionDays(days);
+  if (windowDays <= 0) return { removed: 0, pruned: [], days: 0, disabled: true };
+  const cutoff = beforeIso(windowDays);
+  // Ask first, so the report can name the rows even though the DELETE cannot.
+  const pruned = S.listExpiredNews.all(cutoff).map((r) => ({
+    id: Number(r.id),
+    slug: r.slug,
+    title: r.title_en,
+    published_at: r.published_at || r.created_at,
+  }));
+  if (!pruned.length) return { removed: 0, pruned, days: windowDays };
+  S.deleteNewsOlderThan.run(cutoff);
+  return { removed: pruned.length, pruned, days: windowDays };
 }
 
 /**
@@ -4067,6 +4217,7 @@ module.exports = {
   updatePost,
   deletePost,
   deleteNewsPostsFromSourcesNotIn,
+  pruneNewsPast,
   importPost,
   POST_CHANNELS,
   POST_STATUSES,

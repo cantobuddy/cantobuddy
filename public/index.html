@@ -247,10 +247,37 @@
     <div class="home-categories" id="home-categories"></div>
   </section>
 
+  <!-- ---- CATEGORIES VIEW ---- -->
+  <!-- Every category, on its own page, one tap away from the Learn tab.
+
+       WHY. The category list used to exist in two places that were both wrong
+       for the same reason: a horizontal strip of pills on Home, and a scrolling
+       chip row inside Browse. Both show the same N categories and neither lets
+       her see all of them at once, because neither scrolls far enough or is big
+       enough to count. She was choosing where to learn from a row she had to
+       hunt through.
+
+       So Learn now lands HERE: the full list, with a word count each, and
+       tapping one goes to Browse already filtered. The strip on Home stays —
+       it is a shortcut for someone who knows what she wants, and this page is
+       for someone who is still deciding. -->
+  <section id="view-categories" class="view">
+    <div class="browse-header">
+      <button class="btn-back" onclick="navigate('home')" data-i18n="categories.backHome">← Home</button>
+      <h2 data-i18n="categories.title">Categories</h2>
+    </div>
+
+    <p class="categories-lead" id="categories-lead"></p>
+
+    <!-- Filled by renderCategoriesPage(). A grid rather than a strip because the
+         whole point is that every category is visible at once. -->
+    <div class="categories-grid" id="categories-grid"></div>
+  </section>
+
   <!-- ---- BROWSE VIEW ---- -->
   <section id="view-browse" class="view">
     <div class="browse-header">
-      <button class="btn-back" onclick="navigate('home')" data-i18n="browse.backHome">← Home</button>
+      <button class="btn-back" onclick="backFromBrowse()" data-i18n="browse.backHome">← Home</button>
       <h2 id="browse-title" data-i18n="browse.title">Vocabulary</h2>
     </div>
 
@@ -589,7 +616,12 @@
        Indonesian, and a seventh tab overflows the viewport in three of the four
        languages. `node tools/nav-shot.js` prints the spare pixels per label per
        width. Do not add a tab without running it. -->
-  <button class="nav-btn" data-view="browse" onclick="goBrowse()">
+  <!-- Learn opens the CATEGORIES page, not the word list. The category is the
+       decision she has to make first — "what do I want to learn" — and the word
+       list is the answer to it, so the list is the second step rather than the
+       first. See the note on #view-categories for why this replaced a chip row
+       inside Browse. -->
+  <button class="nav-btn" data-view="categories" onclick="goCategories()">
     <span class="nav-icon">📖</span><span data-i18n="nav.learn">Learn</span>
   </button>
   <button class="nav-btn" data-view="quiz" onclick="goQuizSelect()">

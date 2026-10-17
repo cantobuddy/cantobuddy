@@ -45,10 +45,30 @@ const NEWS_PAGE_SIZE = 10;
  * news-category.js) because the client has to render chips in a stable order
  * before it has heard from the server, and a filter row that reshuffles itself
  * while you reach for it is worse than one in the wrong order.
+ *
+ * `key` and `i18n` are listed separately and on purpose. The key is a STORED
+ * VALUE — it is written in the database, put in the query string and returned by
+ * the API, so it is lowercase and never changes. The i18n key is read by a human.
+ * Deriving one from the other with a capitalisation rule was tried and failed
+ * silently: `discover.cat${key}` produced `discover.cathongkong`, which has no
+ * entry, and t() falls back to the raw key — so the chips read
+ * "discover.cathongkong 11" to a helper in Hong Kong. Listed side by side, a new
+ * topic is one line and tools/posts-test.js checks that every row here resolves
+ * in all four languages rather than trusting it.
  */
 const NEWS_CATEGORY_ORDER = [
-  'all', 'hongkong', 'work', 'money', 'health', 'home', 'politics', 'other',
+  { key: 'all', i18n: 'discover.catAll' },
+  { key: 'hongkong', i18n: 'discover.catHongkong' },
+  { key: 'work', i18n: 'discover.catWork' },
+  { key: 'money', i18n: 'discover.catMoney' },
+  { key: 'health', i18n: 'discover.catHealth' },
+  { key: 'home', i18n: 'discover.catHome' },
+  { key: 'politics', i18n: 'discover.catPolitics' },
+  { key: 'other', i18n: 'discover.catOther' },
 ];
+
+/** The taxonomy keys only, for the places that ask "is this a real topic?". */
+const NEWS_CATEGORY_KEYS = NEWS_CATEGORY_ORDER.map((c) => c.key);
 
 const STATE = {
   vocabulary: [],
@@ -59,6 +79,7 @@ const STATE = {
   employers: [],              // who is allowed to see this learner's progress
   currentLevel: 0,      // 0 = all, 1-3 = specific
   currentCat: 0,        // 0 = all
+  browseFrom: 'home',   // where Browse was entered from, so back goes back there
   catNudgeDone: false,  // set the moment she scrolls the category row herself
   quiz: null,           // active quiz object
   stats: null,          // her own statistics, from /api/learners/stats
@@ -512,6 +533,7 @@ function navigate(view) {
   if (view === 'progress') renderProgress();
   if (view === 'share') renderSharePage();
   if (view === 'discover') renderDiscover();
+  if (view === 'categories') renderCategoriesPage();
   // Opening the write form re-reads her own submissions: the point of the
   // screen is "here is what happened to the last one", and a stale list would
   // be worse than none.
@@ -536,6 +558,64 @@ function markStoryLangPicked() {
   STATE.stories.langPicked = true;
 }
 
+/**
+ * The Learn tab's destination: every category, one screen, with a word count.
+ *
+ * This is the screen that answers "what do I want to learn?" — the question a
+ * new helper actually has. It used to be answered by a scrolling chip row
+ * inside Browse, which only showed a handful of categories at a time, so most
+ * of them were effectively invisible. The decision was being made from a list
+ * she could not see, which is not a decision.
+ *
+ * The word count is on each card on purpose: a category with 3 words in it and
+ * one with 60 are not the same promise, and hiding the number means she finds
+ * out by opening the small one.
+ */
+function renderCategoriesPage() {
+  const grid = document.getElementById('categories-grid');
+  const lead = document.getElementById('categories-lead');
+  if (!grid) return;
+  if (lead) {
+    lead.textContent = t('categories.lead')
+      .replace('{n}', String(STATE.categories.length))
+      .replace('{w}', String(STATE.vocabulary.length));
+  }
+
+  // Counts come from the vocabulary already on screen, not from a second fetch:
+  // STATE.vocabulary is loaded once at init and every card here is a filter
+  // over it, so a re-count costs nothing and cannot disagree with Browse.
+  const countFor = (id) => STATE.vocabulary.filter((v) => v.category_id === id).length;
+
+  grid.innerHTML = STATE.categories
+    .map(
+      (c) => `
+      <button class="category-card" onclick="openCategory(${c.id})">
+        <span class="category-card-icon">${escapeHtml(c.icon || '📘')}</span>
+        <span class="category-card-name">${escapeHtml(categoryLabel(c))}</span>
+        <span class="category-card-count">${t('categories.words').replace('{n}', String(countFor(c.id)))}</span>
+      </button>`
+    )
+    .join('');
+}
+
+/** The Learn tab. */
+function goCategories() {
+  navigate('categories');
+}
+
+/**
+ * One category chosen from the Categories page → Browse, already filtered.
+ *
+ * `browseFrom` is remembered so Browse's back button returns HERE rather than
+ * jumping to Home: she came from a list of categories and back means "the list
+ * again", not "start over".
+ */
+function openCategory(id) {
+  STATE.currentCat = Number(id);
+  STATE.browseFrom = 'categories';
+  goBrowse();
+}
+
 function goBrowse(level) {
   if (level) {
     STATE.currentLevel = level;
@@ -545,6 +625,16 @@ function goBrowse(level) {
   }
   navigate('browse');
   renderVocabList();
+}
+
+/**
+ * Browse's back button, which is context-aware: back from a category opened out
+ * of the Categories page returns to that page, and back from anywhere else
+ * returns Home. A fixed back target that ignores where she came from is how a
+ * person ends up at the wrong end of the app with no way back but the nav bar.
+ */
+function backFromBrowse() {
+  navigate(STATE.browseFrom === 'categories' ? 'categories' : 'home');
 }
 
 // ---- Init ------------------------------------------------------------------
@@ -3622,7 +3712,7 @@ const postsCacheKey = () => {
 
 /** Narrows the News channel to one topic. 'all' clears the filter. */
 function showNewsCategory(cat) {
-  const next = cat && cat !== 'all' && NEWS_CATEGORY_ORDER.includes(cat) ? cat : null;
+  const next = cat && cat !== 'all' && NEWS_CATEGORY_KEYS.includes(cat) ? cat : null;
   if (STATE.discover.category === next) return; // already showing this — no refetch
   STATE.discover.category = next;
   STATE.discover.shown = NEWS_PAGE_SIZE;
@@ -3660,10 +3750,16 @@ function renderNewsFilters() {
     return;
   }
   const counts = STATE.discover.counts;
-  const rows = [newsFilterChip('all', t('discover.catAll'), counts ? counts.all : null, !STATE.discover.category)];
-  for (const key of NEWS_CATEGORY_ORDER) {
-    if (key === 'all') continue;
-    rows.push(newsFilterChip(key, t(`discover.cat${key}`), counts ? counts[key] : null, STATE.discover.category === key));
+  const rows = [];
+  for (const c of NEWS_CATEGORY_ORDER) {
+    rows.push(
+      newsFilterChip(
+        c.key,
+        t(c.i18n),
+        counts ? (c.key === 'all' ? counts.all : counts[c.key]) : null,
+        c.key === 'all' ? !STATE.discover.category : STATE.discover.category === c.key
+      )
+    );
   }
   host.innerHTML =
     `<span class="discover-filters-label">${escapeHtml(t('discover.filterLabel'))}</span>` +

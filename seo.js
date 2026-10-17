@@ -802,6 +802,24 @@ h1{font-size:clamp(26px,4.6vw,36px);line-height:1.25;margin:0 0 10px;letter-spac
 h1 .sub{display:block;font-size:.62em;font-weight:500;color:var(--muted);margin-top:6px}
 h2{font-size:21px;margin:34px 0 12px}
 p.lede{font-size:17px;color:var(--muted);margin:0 0 26px;max-width:64ch}
+/* The coming-up festival. Red rather than neutral because it is the one thing
+   on this page that changes with the calendar: a reader who arrives in October
+   sees a different panel from one who arrives in February, and the colour has
+   to say "this is new" before the words do. */
+.fest-banner{background:linear-gradient(135deg,#fff5f5,#fff);border:1px solid #f3c2c7;
+  border-left:5px solid #e63946;border-radius:14px;padding:20px 22px;margin:0 0 26px}
+.fest-banner-kicker{margin:0 0 8px;font-size:11px;font-weight:700;letter-spacing:.09em;
+  text-transform:uppercase;color:#c1121f}
+.fest-banner-title{margin:0 0 4px;font-size:23px}
+.fest-banner-when{margin:0 0 10px;font-size:14px;font-weight:600;color:#c1121f}
+.fest-banner-body{margin:0 0 14px;font-size:15px;color:var(--muted);max-width:60ch}
+.fest-banner-words{list-style:none;margin:0 0 16px;padding:0;display:flex;flex-wrap:wrap;gap:10px}
+.fest-banner-words li{display:flex;align-items:baseline;gap:7px;background:#fff;
+  border:1px solid #f3c2c7;border-radius:999px;padding:7px 14px}
+.fest-yue{font-family:"Noto Sans SC","PingFang HK","Microsoft JhengHei",sans-serif;
+  font-size:18px;font-weight:500;white-space:nowrap}
+.fest-jy{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;color:var(--muted)}
+@media (max-width:560px){.fest-banner-words li{flex:1 1 auto}}
 .cta-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px 22px;
   display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;margin:26px 0}
 .cta-card p{margin:0;color:var(--muted);font-size:15px;max-width:46ch}
@@ -1248,6 +1266,7 @@ function renderLearnHub(lang) {
 
   const body = `
 ${crumbs(lang, [{ label: t.browse }])}
+${festivalBanner(lang)}
 <h1>${esc(t.browse)}<span class="sub">${esc(t.tagline)}</span></h1>
 <p class="lede">${esc(t.hubLede(total, cats.length))}</p>
 
@@ -1912,6 +1931,139 @@ const NEWS_TOPIC_UI = {
 
 const newsTopicLabel = (lang, key) =>
   (NEWS_TOPIC_UI[lang] || NEWS_TOPIC_UI.en)[key] || key;
+
+/* ---------------------------------------------------------------------------
+   The Hong Kong festival calendar, as DATE RANGES.
+
+   WHY THIS IS A TABLE AND NOT A CALCULATION. Most of these festivals are
+   lunar, which means their Gregorian date moves every year — Lunar New Year
+   falls anywhere between 21 January and 20 February. A lunar-calendar library
+   would be the correct general answer and is far more code than this is worth:
+   the app needs to answer one question ("is a festival in the next seven
+   days?"), for roughly a dozen known events, and the answers are published in
+   advance by the Hong Kong government. So the table is maintained by hand, one
+   line per year per festival, and it is honest about being hand-maintained.
+
+   THE WINDOW SEVEN DAYS. Long enough that someone who checks on Monday sees
+   everything that week, short enough that "this week" still means something.
+   A window measured in days rather than in "the current festival" means the
+   banner appears while there is still time to prepare, which is the only time
+   it is useful.
+
+   `words` names the vocabulary that goes with the festival, in the same
+   category-19 set data.js seeds. The banner links to /learn/<category> so the
+   words are one tap away.
+   --------------------------------------------------------------------------- */
+const HK_FESTIVALS = [
+  { key: 'lny',          name_en: 'Lunar New Year',        name_zh: '农历新年',   icon: '🧨', dates: ['2026-02-17', '2027-02-06', '2028-01-26'] },
+  { key: 'chingming',    name_en: 'Ching Ming Festival',   name_zh: '清明节',     icon: '🌿', dates: ['2026-04-05', '2027-04-05', '2028-04-04'] },
+  { key: 'buddha',       name_en: "Buddha's Birthday",      name_zh: '佛诞',       icon: '🪷', dates: ['2026-05-24', '2027-05-12', '2028-04-30'] },
+  { key: 'bun',          name_en: 'Cheung Chau Bun Festival', name_zh: '长洲太平清醮', icon: '🍞', dates: ['2026-05-17', '2027-05-06', '2028-05-24'] },
+  { key: 'dragonboat',   name_en: 'Dragon Boat Festival',  name_zh: '端午节',     icon: '🐉', dates: ['2026-06-19', '2027-06-09', '2028-05-28'] },
+  { key: 'hungryghost',  name_en: 'Hungry Ghost Festival', name_zh: '盂兰盆节',   icon: '👻', dates: ['2026-08-27', '2027-08-16', '2028-08-05'] },
+  { key: 'midautumn',    name_en: 'Mid-Autumn Festival',   name_zh: '中秋节',     icon: '🥮', dates: ['2026-09-25', '2027-09-15', '2028-10-03'] },
+  { key: 'chongyang',    name_en: 'Chongyang Festival',    name_zh: '重阳节',     icon: '⛰️', dates: ['2026-10-18', '2027-10-08', '2028-10-26'] },
+  { key: 'wintersolstice', name_en: 'Winter Solstice',     name_zh: '冬至',       icon: '🥟', dates: ['2026-12-22', '2027-12-22', '2028-12-21'] },
+  { key: 'christmas',    name_en: 'Christmas Day',         name_zh: '圣诞节',     icon: '🎄', dates: ['2026-12-25', '2027-12-25', '2028-12-25'] },
+];
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Hong Kong's day, as YYYY-MM-DD. The server runs in UTC; the events are local. */
+const hkToday = (now = Date.now()) => new Date(now + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+/** Whole days from `date` to `today`. Negative is in the past. */
+const daysUntil = (date, today) => Math.round((Date.parse(`${date}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / DAY_MS);
+
+/**
+ * Festivals starting within the next `window` days, soonest first.
+ *
+ * The window is measured from TODAY, so an event three days away is "this
+ * week" and an event ten days away is not — which is the honest reading of
+ * the request: a banner for something two weeks out is not "coming up", it
+ * is a calendar, and it would sit there so often that it stops being read.
+ */
+function upcomingFestivals(now = Date.now(), window = 7) {
+  const today = hkToday(now);
+  const out = [];
+  for (const f of HK_FESTIVALS) {
+    for (const d of f.dates) {
+      const n = daysUntil(d, today);
+      if (n >= 0 && n <= window) out.push({ ...f, startsOn: d, inDays: n });
+    }
+  }
+  return out.sort((a, b) => a.inDays - b.inDays);
+}
+
+/** The panel shown on the landing page, or '' when no festival is near. */
+function festivalBanner(lang, now = Date.now()) {
+  const soon = upcomingFestivals(now);
+  if (!soon.length) return '';
+  const prefix = LANG_PREFIX[lang] || '';
+  // The soonest festival only. Two panels stacked would compete with each
+  // other, and the first is the one she needs to prepare for.
+  const f = soon[0];
+  const ui = FESTIVAL_BANNER_UI[lang] || FESTIVAL_BANNER_UI.en;
+  const when = f.inDays === 0 ? ui.today : f.inDays === 1 ? ui.tomorrow : ui.inDays.replace('{n}', String(f.inDays));
+  const date = new Date(`${f.startsOn}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', timeZone: 'UTC' });
+
+  const words = [
+    ['恭喜發財', 'gung1 hei2 faat3 coi4'],
+    ['新年快樂', 'san1 nin2 faai3 lok6'],
+    ['利是', 'lai6 si6'],
+  ];
+
+  return `<div class="fest-banner" role="region" aria-label="${esc(ui.label)}">
+  <p class="fest-banner-kicker">${esc(ui.kicker)}</p>
+  <h2 class="fest-banner-title">${esc(f.icon)} ${esc(f.key === 'christmas' || f.key === 'wintersolstice' ? f.name_en : (L[lang] === L.zh ? f.name_zh : f.name_en))}</h2>
+  <p class="fest-banner-when">${esc(when)} · ${esc(date)}</p>
+  <p class="fest-banner-body">${esc(ui.body.replace('{festival}', f.name_en))}</p>
+  <ul class="fest-banner-words">
+    ${words.map(([c, j]) => `<li><span class="fest-yue">${esc(c)}</span><span class="fest-jyut">${esc(j)}</span></li>`).join('\n    ')}
+  </ul>
+  <a class="cta" href="${prefix}/learn/festivals">${esc(ui.cta)}</a>
+</div>`;
+}
+
+/** The banner's own copy, per language. */
+const FESTIVAL_BANNER_UI = {
+  en: {
+    label: 'Festival coming up',
+    kicker: 'COMING UP',
+    today: 'Today',
+    tomorrow: 'Tomorrow',
+    inDays: 'In {n} days',
+    body: '{festival} starts soon. The household will be busy, and there are words you will hear all week — start with these.',
+    cta: 'Practise the festival words',
+  },
+  fil: {
+    label: 'Papalapit na pista',
+    kicker: 'PAPALAPIT',
+    today: 'Ngayon',
+    tomorrow: 'Bukas',
+    inDays: 'Sa {n} araw',
+    body: 'Malapit na ang {festival}. Magiging abala ang tahanan, at may mga salitang maririnig mo buong linggo — simulan dito.',
+    cta: 'Sanayin ang mga salita sa pista',
+  },
+  zh: {
+    label: '即将到来的节日',
+    kicker: '即将到来',
+    today: '今天',
+    tomorrow: '明天',
+    inDays: '{n} 天后',
+    body: '{festival}快到了。家里会很忙，这一周你会反复听到这些话——从这几个词开始。',
+    cta: '练习节日用语',
+  },
+  id: {
+    label: 'Hari raya akan datang',
+    kicker: 'SEGERA',
+    today: 'Hari ini',
+    tomorrow: 'Besok',
+    inDays: 'Dalam {n} hari',
+    body: '{festival} sebentar lagi. Rumah akan sibuk, dan ada kata-kata yang akan Anda dengar sepanjang pekan — mulai dari sini.',
+    cta: 'Latihan kata hari raya',
+  },
+};
 
 const DISCOVER_UI = {
   en: {
@@ -2936,4 +3088,4 @@ function mount(app) {
   console.log(`  SEO:          ${SITE_ORIGIN}/sitemap.xml  (${store.listVocabulary({ enabledOnly: true }).length} words, ${store.listEnabledCategories().length} categories, ${LANGS.length} languages)`);
 }
 
-module.exports = { mount, SITE_ORIGIN, slugify, buildWordIndex, wordSlugMap, LANG_PREFIX, LANGS, ROUTE_FAMILIES };
+module.exports = { mount, SITE_ORIGIN, slugify, buildWordIndex, wordSlugMap, LANG_PREFIX, LANGS, ROUTE_FAMILIES, HK_FESTIVALS, upcomingFestivals, festivalBanner };

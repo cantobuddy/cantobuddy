@@ -45,6 +45,14 @@
 /* ---- Reset ---- */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* The `hidden` attribute is a UA `display:none`, and ANY author display rule
+   beats the UA stylesheet. `.btn { display: inline-flex }` alone was enough to
+   make `hidden` lie: the Discover "Share your story" button (a .btn-block) had
+   `hidden` set on every channel and still rendered on Culture and News. This is
+   the one reset the HTML attribute cannot live without, so it is asserted by
+   tools/hidden-attribute-test.js rather than left to memory. */
+[hidden] { display: none !important; }
+
 html { -webkit-text-size-adjust: 100%; font-size: 16px; }
 
 body {
@@ -762,6 +770,85 @@ body {
      English, and Indonesian is longer). Without this the word spills out of its
      own pill — measured, not guessed: tools/app-layout-test.js caught it. */
   overflow-wrap: anywhere;
+}
+
+/* ===========================================================================
+   CATEGORIES PAGE (#view-categories)
+   ---------------------------------------------------------------------------
+   The Learn tab's destination. A grid of every category, because the decision
+   she has to make here is "what do I want to learn", and that decision cannot
+   be made from a scrolling chip row that shows six of nineteen categories.
+   Two-column at 320px: the names are long in Indonesian and the count has to
+   fit underneath, and a three-column grid leaves ~55px per name at that width,
+   which is four letters. minmax(0, 1fr) rather than 1fr for the reason in
+   .cat-strip above — measured with the same instrument.
+   =========================================================================== */
+
+.categories-lead {
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--c-text-soft);
+  margin: 0 0 14px;
+}
+
+.categories-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.category-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-height: 96px;
+  padding: 12px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-en);
+  transition: border-color 0.15s, background 0.15s, transform 0.1s;
+}
+
+.category-card:active { transform: scale(0.98); }
+.category-card:hover { border-color: var(--c-primary); }
+
+.category-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: #eef1f5;
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+/* The same four-way tint the Home pills use, so the icon colour a helper saw
+   next to a category name does not change when she taps through to its page. */
+.category-card:nth-child(4n+1) .category-card-icon { background: #e1f5ee; }
+.category-card:nth-child(4n+2) .category-card-icon { background: #faedda; }
+.category-card:nth-child(4n+3) .category-card-icon { background: #e6f0fb; }
+.category-card:nth-child(4n+4) .category-card-icon { background: #f8d7da; }
+
+.category-card-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--c-text);
+  overflow-wrap: anywhere;
+}
+
+.category-card-count {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--c-text-soft);
 }
 
 /* ===========================================================================

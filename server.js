@@ -1545,6 +1545,7 @@ if (NEWS_FETCH_INTERVAL_HOURS > 0) {
           // A retired source is a real event, not a detail: it means the feed
           // just lost stories because the code stopped shipping their feed.
           (r.removed ? `, retired ${r.removed} from ${r.retired.join(', ')}` : '') +
+          (r.prunedRemoved ? `, pruned ${r.prunedRemoved} older than ${news.NEWS_MAX_AGE_DAYS || 3}d` : '') +
           (r.errors.length ? ` — errors: ${r.errors.join('; ')}` : '')
       );
     } catch (err) {

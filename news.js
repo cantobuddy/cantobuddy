@@ -378,18 +378,35 @@ function retireUnshippedSources(sources = SOURCES) {
 }
 
 /**
+ * Delete imported news that has fallen out of the retention window (three days
+ * by default, set with NEWS_MAX_AGE_DAYS). See db.pruneNewsPast for what it
+ * touches and what it refuses to.
+ *
+ * Called on a real import of the real source list, the same condition as
+ * retireUnshippedSources, so a fixture-driven test run never prunes.
+ *
+ * @param {{days?:number}} [opts] `days: 0` disables the window entirely
+ * @returns {{removed:number, pruned:object[], days:number}}
+ */
+function pruneExpiredNews(opts = {}) {
+  return db.pruneNewsPast(opts);
+}
+
+/**
  * Imports every source. Never throws: a failing feed is reported, not fatal,
  * because the other source is still worth importing and a scheduled run must
  * not die on one bad response.
  *
- * @param {{fetchImpl?:Function, sources?:object[], limitPerSource?:number, retire?:boolean}} [opts]
- * @returns {Promise<{sources:number, fetched:number, inserted:number, skipped:number, errors:string[], retired:string[], removed:number, dryRun:boolean}>}
+ * @param {{fetchImpl?:Function, sources?:object[], limitPerSource?:number, retire?:boolean, prune?:boolean}} [opts]
+ * @returns {Promise<{sources:number, fetched:number, inserted:number, skipped:number, errors:string[], retired:string[], removed:number, pruned:object[], prunedRemoved:number, dryRun:boolean}>}
  */
-async function importNews({ fetchImpl, sources = SOURCES, limitPerSource = 0, dryRun = false, retire } = {}) {
+async function importNews({ fetchImpl, sources = SOURCES, limitPerSource = 0, dryRun = false, retire, prune } = {}) {
   const doFetch = fetchImpl || globalThis.fetch;
   const report = {
     sources: sources.length, fetched: 0, inserted: 0, skipped: 0,
-    errors: [], retired: [], removed: 0, dryRun: !!dryRun,
+    errors: [], retired: [], removed: 0,
+    pruned: [], prunedRemoved: 0,
+    dryRun: !!dryRun,
   };
 
   for (const source of sources) {
@@ -419,6 +436,16 @@ async function importNews({ fetchImpl, sources = SOURCES, limitPerSource = 0, dr
     const swept = retireUnshippedSources();
     report.retired = swept.retired;
     report.removed = swept.removed;
+
+    // Then the age cut. After, not before, the import: a feed publishes with the
+    // day's date, so pruning first would only throw away what the next sweep is
+    // about to re-insert, and the report would count the churn twice.
+    const shouldPrune = prune === undefined ? sources === SOURCES : !!prune;
+    if (shouldPrune) {
+      const cut = pruneExpiredNews();
+      report.pruned = cut.pruned;
+      report.prunedRemoved = cut.removed;
+    }
   }
 
   return report;
@@ -427,4 +454,4 @@ async function importNews({ fetchImpl, sources = SOURCES, limitPerSource = 0, dr
 /** Published counts, so a caller can report the feed's size after an import. */
 const feedCounts = () => db.getPostCounts();
 
-module.exports = { SOURCES, importNews, retireUnshippedSources, postsFromSource, parseRss, plainText, decodeDeep, summarise, decodeEntities, stripHtml, tagTexts, SUMMARY_MAX };
+module.exports = { SOURCES, importNews, retireUnshippedSources, pruneExpiredNews, postsFromSource, parseRss, plainText, decodeDeep, summarise, decodeEntities, stripHtml, tagTexts, SUMMARY_MAX };

@@ -352,6 +352,13 @@ function catName(cat, lang) {
 /** The URL prefix for a language tree. English is the root, deliberately. */
 const LANG_PREFIX = { en: '', fil: '/fil', zh: '/zh', id: '/id' };
 
+// Employer-facing landing page (/for-employers) and its footer link. The body
+// is English-primary and falls back to English in every tree until the
+// translations land (see the guide in content.js). The chrome is localised by
+// page() already.
+const FOR_EMPLOYERS_HREF = { en: '/for-employers', fil: '/fil/for-employers', zh: '/zh/for-employers', id: '/id/for-employers' };
+const FOR_EMPLOYERS_LABEL = { en: 'For employers', fil: 'Para sa mga employer', zh: '雇主专区', id: 'Untuk majikan' };
+
 /**
  * The single-segment route families this module serves, WITHOUT a language
  * prefix — the list `mount()` registers below.
@@ -369,7 +376,7 @@ const LANG_PREFIX = { en: '', fil: '/fil', zh: '/zh', id: '/id' };
  * (The same shape of bug happened once before, with `/privacy`.) Those suites
  * now derive the pattern from this export, so the next route cannot repeat it.
  */
-const ROUTE_FAMILIES = ['learn', 'words', 'level', 'guide', 'discover', 'stories', 'privacy'];
+const ROUTE_FAMILIES = ['learn', 'words', 'level', 'guide', 'discover', 'stories', 'privacy', 'for-employers'];
 
 /** Every language tree this module serves, in the order links should list them. */
 const LANGS = ['en', 'fil', 'zh', 'id'];
@@ -1032,7 +1039,8 @@ ${o.body}
        &nbsp;·&nbsp; <a href="${LANG_PREFIX[lang]}/guide">${esc((GUIDE_UI[lang] || GUIDE_UI.en).guides)}</a>
        &nbsp;·&nbsp; <a href="${LANG_PREFIX[lang]}/discover">${esc(L[lang].discover)}</a>
        &nbsp;·&nbsp; <a href="${LANG_PREFIX[lang]}/stories">${esc((STORIES_UI[lang] || STORIES_UI.en).title)}</a>
-       &nbsp;·&nbsp; <a href="${LANG_PREFIX[lang]}/privacy">${esc(PRIVACY[lang].title)}</a></p>
+       &nbsp;·&nbsp; <a href="${LANG_PREFIX[lang]}/privacy">${esc(PRIVACY[lang].title)}</a>
+       &nbsp;·&nbsp; <a href="${FOR_EMPLOYERS_HREF[lang]}">${esc(FOR_EMPLOYERS_LABEL[lang])}</a></p>
   </div>
 </footer>
 ${VISIT_BEACON}
@@ -1763,6 +1771,96 @@ ${ctaCard(lang)}
     jsonLd,
     body,
     alternates: hreflangLinks((l) => `${LANG_PREFIX[l]}/guide/${slug}`),
+  });
+}
+
+/**
+ * The employer landing page: /for-employers.
+ *
+ * Short and employer-first — an employer deciding whether to bother will not
+ * read 2,000 words. It explains what CantoBuddy is, how to connect to a
+ * helper, what progress is and is not visible, and where the line is. The
+ * longer version lives at /guide/getting-your-helper-started-with-cantonese.
+ *
+ * English-primary: the body falls back to English in every tree until the
+ * translations land (see content.js). The header and footer chrome is
+ * localised by page() already.
+ */
+function renderForEmployers(lang) {
+  const t = L[lang];
+  const prefix = LANG_PREFIX[lang] || '';
+
+  const body = `
+<h1>Your helper learns Cantonese. Here's how you help.</h1>
+<blockquote>Most helpers arrive speaking English and learn Cantonese on the job — usually from the person in the household who speaks English least.</blockquote>
+<p>If your mother is the one at home all day, she is the one your helper cannot talk to. That is where the small misunderstandings start: a request repeated three times, a symptom not reported, a medicine taken at the wrong hour because nobody could confirm it.</p>
+
+<h2>What CantoBuddy is</h2>
+<p>A free Cantonese practice app, built for domestic helpers in Hong Kong. 180 words and phrases for the situations that actually come up at home — elder care, the kitchen, medication, emergencies — each with audio, Jyutping, and quizzes.</p>
+<p>No sign-up. No cost. Works offline. <strong>Free to your helper, always</strong> — and there is nothing in it to sell her.</p>
+
+<h2>How to connect with your helper</h2>
+<ol>
+  <li><strong>Sign in</strong> at the employer portal.</li>
+  <li><strong>Invite her.</strong> You get a link to send, <em>and</em> a short code you can read aloud — the codes leave out 0/O and 1/I so they cannot be misheard over the phone.</li>
+  <li><strong>Add a note.</strong> One thing, this week. "Please practise the Elder Care words" works far better than "please study".</li>
+  <li><strong>She accepts on her own phone.</strong> Sharing is off until she does.</li>
+</ol>
+
+<h2>What you can see — and what you cannot</h2>
+<p><strong>You can see:</strong> how many quiz attempts she has done, her accuracy (% correct), her total right answers, a progress bar, her progress per level, and when she last practised.</p>
+<p><strong>You cannot see:</strong></p>
+<ul>
+  <li>her quiz answers, word by word;</li>
+  <li>her feedback to us;</li>
+  <li>anything else she does on this site;</li>
+  <li>anything at all once she disconnects.</li>
+</ul>
+<p>She can disconnect at any time, and she keeps every bit of her progress. The invitation is hers to accept and hers to end. That is not a setting we might change later — it is the reason a helper can use this app honestly, and it is written into our <a href="${prefix}/privacy">privacy policy</a>.</p>
+
+<h2>How to encourage her — without watching her</h2>
+<ul>
+  <li><strong>Start small and be specific.</strong> One category this week. A helper given "learn Cantonese" does nothing; a helper given "the Elder Care words" opens the app.</li>
+  <li><strong>Invite in the first week, not the first day.</strong> On day one she is learning the household. An app request then reads as one more task. Give her a week to settle.</li>
+  <li><strong>Let her own it.</strong> The app is hers. If she asks you not to connect, that is allowed, and the app still works completely for her.</li>
+  <li><strong>Say thank you out loud.</strong> You can see when she last practised and how her accuracy is moving. Noticing it costs nothing and is the entire mechanism.</li>
+</ul>
+<p><em>If you want to recognise progress with a gift, that happens between you and her — the app does not handle money and never will.</em></p>
+
+<p class="cta-card"><a class="cta" href="/portal.html">Sign in to the employer portal</a></p>
+<p><a href="${prefix}/guide/getting-your-helper-started-with-cantonese">Read the full guide →</a></p>
+`;
+
+  const title = 'For employers — help your helper learn Cantonese | CantoBuddy';
+  const description = 'How to connect to your domestic helper’s Cantonese progress on CantoBuddy — what you can see, what you cannot, and how to encourage her without watching her. Free for helpers, always.';
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      ORG_LD,
+      breadcrumbLd([
+        { name: t.learn, path: `${prefix}/learn` },
+        { name: 'For employers', path: `${prefix}/for-employers` },
+      ]),
+      {
+        '@type': 'WebPage',
+        name: title,
+        description,
+        inLanguage: L[lang].htmlLang,
+        url: `${SITE_ORIGIN}${prefix}/for-employers`,
+        isPartOf: { '@type': 'WebSite', name: 'CantoBuddy', url: SITE_ORIGIN },
+      },
+    ],
+  };
+
+  return page({
+    lang,
+    title,
+    description,
+    path: `${prefix}/for-employers`,
+    jsonLd,
+    body,
+    alternates: hreflangLinks((l) => `${LANG_PREFIX[l]}/for-employers`),
   });
 }
 
@@ -2515,6 +2613,13 @@ ${alts}
     add(`${prefix}/privacy`, '0.3', 'yearly', hreflangLinks((l) => `${LANG_PREFIX[l]}/privacy`), SITE_STRUCTURE_DATE);
   }
 
+  // The employer landing page, in every tree. This is the page aimed at the
+  // only paying audience, so it earns a mid priority and a monthly cadence
+  // (the content is stable but the surrounding product moves).
+  for (const prefix of Object.values(LANG_PREFIX)) {
+    add(`${prefix}/for-employers`, '0.7', 'monthly', hreflangLinks((l) => `${LANG_PREFIX[l]}/for-employers`), SITE_STRUCTURE_DATE);
+  }
+
   // Stories — the shared shelf of helper-written stories.
   //
   // ONE shelf, every tree. The hub is listed in all four language trees because
@@ -2702,6 +2807,9 @@ function mount(app) {
     // The privacy policy. Last, so the two-segment guide route above cannot be
     // shadowed, and reachable at /privacy (root) plus /fil|/zh|/id/privacy.
     ['/privacy', (lang) => renderPrivacy(lang)],
+    // The employer landing page — reachable at /for-employers (root) plus
+    // /fil|/zh|/id/for-employers, mirroring every other top-level page.
+    ['/for-employers', (lang) => renderForEmployers(lang)],
   ];
 
   /* Google Search Console — HTML-file verification is a REAL FILE, not a route.

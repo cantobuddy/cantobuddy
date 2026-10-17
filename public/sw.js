@@ -7,12 +7,12 @@
 // Bump this whenever index.html / app.js / i18n.js / styles.css / the icons
 // change. The app shell is cached cache-first, so without a version bump
 // installed PWAs would keep serving the previous build from cache.
-const CACHE = 'cantobuddy-v62';
+const CACHE = 'cantobuddy-v63';
 
 // Which paths are server-rendered SEO documents rather than app-shell assets.
 // Kept as one matcher so it can be asserted against `LANG_PREFIX` in seo.js —
 // see the comment at its use site for what drifted when this was a `||` chain.
-const SEO_NETWORK_FIRST = /^\/(learn|words|level|guide|discover|stories|privacy|fil|zh|id)(\/|$)/;
+const SEO_NETWORK_FIRST = /^\/(learn|words|level|guide|discover|stories|privacy|for-employers|fil|zh|id)(\/|$)/;
 
 const APP_SHELL = [
   '/',
@@ -83,7 +83,7 @@ self.addEventListener('fetch', (event) => {
   // keep serving a withdrawn story to anyone who had already opened it.
   //
   // `tools/seo-pillar-test.js` now derives the required families from
-  // `ROUTE_FAMILIES` and asserts this matcher covers them all, so a sixth
+  // `ROUTE_FAMILIES` and asserts this matcher covers them all, so a new
   // family cannot ship without this line.
   if (SEO_NETWORK_FIRST.test(url.pathname) || url.pathname === '/sitemap.xml' || url.pathname === '/robots.txt') {
     event.respondWith(fetch(req).catch(() => caches.match(req)));

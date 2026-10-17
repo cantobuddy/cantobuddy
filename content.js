@@ -1053,6 +1053,82 @@ const GUIDES = [
       { href: '/learn/greetings', label: { en: 'Start with greetings', fil: 'Simulan sa pagbati', zh: '从打招呼开始', id: 'Mulai dari salam' } },
     ],
   },
+
+  /* ===================================================================== */
+  {
+    slug: 'getting-your-helper-started-with-cantonese',
+    icon: '🤝',
+    updated: UPDATED,
+    title: {
+      en: 'Getting Your Helper Started with Cantonese',
+    },
+    description: {
+      en: 'Most helpers learn Cantonese from whoever in the household speaks English least. Here is how to make that easier — and how to connect to her progress without watching her.',
+    },
+    body: {
+      en: `
+<h2>1. Why the person at home all day matters most</h2>
+<p>The household's English is not evenly distributed. Whoever is home during the day — often an elderly parent — is the person your helper spends the most time with and can say the least to. Cantonese therefore matters most in exactly the relationship where it is hardest.</p>
+
+<h2>2. What to ask her to learn first</h2>
+<p>Not "start at the beginning". The app has three levels, and the useful thing for your household is usually:</p>
+<ul>
+  <li><strong>Elder Care, Health &amp; Symptoms, and Medicine &amp; Appointments</strong> — if an elderly person is at home.</li>
+  <li><strong>Kitchen, Meals &amp; Feeding, and Cleaning</strong> — if the day is mostly household work.</li>
+  <li><strong>Safety</strong> — always.</li>
+</ul>
+<p>Name one. Let her finish it before naming the next.</p>
+
+<h2>3. The invitation, and the note</h2>
+<p>When you invite her from your dashboard, you can add a short note. The wording decides whether she opens the app. Side by side:</p>
+<blockquote>❌ "Please study Cantonese every day, it is important."</blockquote>
+<blockquote>✅ "This week, please try the Elder Care words — the ones you'd hear from my mother."</blockquote>
+<p>The difference is that the second one tells her <strong>which words</strong>, and <strong>why</strong>.</p>
+
+<h2>4. What you will see, and what you will not</h2>
+<p>You can see her quiz attempts, her accuracy, her total right answers, a progress bar, her progress per level, and when she last practised. You <strong>cannot</strong> see her answers word by word, her feedback to us, or anything else she does here — and once she disconnects, you see nothing at all.</p>
+<p>This is deliberate. A helper is a live-in worker whose employer can see her progress; if a complaint could be traced back to her, she would not write it. So her feedback is anonymous, and her answers stay with her. That is a design choice, not an oversight — and it is written into our <a href="/privacy">privacy policy</a>.</p>
+
+<h2>5. Encouraging without pressure</h2>
+<ul>
+  <li>Ask her what she has learned, rather than telling her to practise.</li>
+  <li>If she is stuck on a word, ask her to teach it to you. It changes the relationship from supervision to shared effort.</li>
+  <li><strong>Recognise progress.</strong> The portal shows how many quizzes she has attempted and how her accuracy is moving, and when she last practised. If she has been at it consistently, say so.</li>
+</ul>
+
+<h2>6. If it does not happen</h2>
+<p>Some helpers will not want to, and that is a legitimate answer. The app is not a performance-management tool and it is not designed to become one. If she declines, she keeps the app and keeps every word she has learned.</p>
+<p><a href="/for-employers">See how the employer portal works →</a></p>
+`,
+    },
+    faq: [
+      {
+        q: { en: 'Do I need to pay anything?' },
+        a: { en: 'No. CantoBuddy is free for helpers and always will be. There is no premium tier.' },
+      },
+      {
+        q: { en: 'Can I see what she got wrong?' },
+        a: { en: 'No — only her overall accuracy. This is deliberate: the app is a place she can be bad at something without being graded by her employer.' },
+      },
+      {
+        q: { en: 'What if I employ two helpers?' },
+        a: { en: 'Invite each separately. Each has her own progress and can disconnect independently.' },
+      },
+      {
+        q: { en: 'What if she already uses the app?' },
+        a: { en: 'Send her the invitation anyway — it connects her existing progress, it does not start her again.' },
+      },
+      {
+        q: { en: 'Can I use this to check she is working?' },
+        a: { en: 'No. It records learning, only while she chooses to share it, and she can stop at any time.' },
+      },
+    ],
+    related: [
+      { href: '/guide/learn-cantonese', label: { en: "Learn Cantonese: the complete beginner's guide" } },
+      { href: '/guide/cantonese-for-elderly-care', label: { en: 'Cantonese for elderly care' } },
+      { href: '/for-employers', label: { en: 'For employers' } },
+    ],
+  },
 ];
 
 /** Guide lookup by slug. */

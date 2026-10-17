@@ -134,6 +134,7 @@ const I18N = {
     'home.resumeContinue': 'Continue',
     'home.wordOfDay': 'Word of the day',
     'home.latest': 'New on Discover',
+    'home.dailyCulture': "Today's Culture",
 
     // browse
     'browse.backHome': '← Home',
@@ -513,6 +514,7 @@ const I18N = {
     'home.resumeContinue': 'Ituloy',
     'home.wordOfDay': 'Salita ng araw',
     'home.latest': 'Bago sa Tuklasin',
+    'home.dailyCulture': 'Kultura ngayong araw',
 
     // browse
     'browse.backHome': '← Simula',
@@ -899,6 +901,7 @@ const I18N = {
     'home.resumeContinue': '继续',
     'home.wordOfDay': '每日一词',
     'home.latest': '发现新内容',
+    'home.dailyCulture': '今日文化',
 
     // browse
     'browse.backHome': '← 首页',
@@ -1282,6 +1285,7 @@ const I18N = {
     'home.resumeContinue': 'Lanjutkan',
     'home.wordOfDay': 'Kata hari ini',
     'home.latest': 'Baru di Jelajah',
+    'home.dailyCulture': 'Budaya hari ini',
 
     // browse
     'browse.backHome': '← Beranda',

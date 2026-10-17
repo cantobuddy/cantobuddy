@@ -54,6 +54,9 @@ const STATE = {
   // `false` means "asked and there is nothing" — the distinction stops Home
   // re-fetching on every language switch when the feed is legitimately empty.
   homeLatest: null,
+  // One culture article per day, from /api/posts/daily-culture. Same null /
+  // false pattern as homeLatest.
+  homeDailyCulture: null,
 };
 
 // ---- TTS (Cantonese text-to-speech) with selectable practice voices --------
@@ -555,6 +558,8 @@ async function init() {
     // card simply does not appear.
     await fetchLearnerStats();
     renderHomeCards();
+    renderHomeDailyCulture();
+    renderHomeDiscoverPromo();
     renderHomeDiscover();
   } catch (err) {
     console.error('Init error:', err);
@@ -572,6 +577,8 @@ async function init() {
 function rerenderForLanguage() {
   renderHomeCategories();
   renderHomeCards();
+  renderHomeDailyCulture();
+  renderHomeDiscoverPromo();
   // The Discover card on Home carries a translated heading and a post title
   // with per-language fallbacks, so it is rebuilt too.
   renderHomeDiscover();
@@ -793,6 +800,49 @@ async function renderHomeDiscover() {
 function renderHomeCards() {
   renderHomeResume();
   renderHomeWord();
+}
+
+/** One culture article per day, chosen by the server. */
+async function renderHomeDailyCulture() {
+  const wrap = document.getElementById('home-daily-culture');
+  if (!wrap) return;
+  try {
+    if (STATE.homeDailyCulture === null) {
+      const post = await apiGet('/api/posts/daily-culture');
+      STATE.homeDailyCulture = post || false;
+    }
+    if (!STATE.homeDailyCulture) {
+      wrap.innerHTML = '';
+      return;
+    }
+    wrap.innerHTML =
+      `<h4 class="home-section-title">${escapeHtml(t('home.dailyCulture'))}</h4>` +
+      postCardHtml(STATE.homeDailyCulture);
+  } catch (err) {
+    console.warn('Could not load daily culture:', err);
+    wrap.innerHTML = '';
+  }
+}
+
+/** Three Discover channel cards on the home screen. */
+function renderHomeDiscoverPromo() {
+  const wrap = document.getElementById('home-discover-promo');
+  if (!wrap) return;
+  const channels = [
+    { key: 'culture', emoji: '🏛️', label: t('discover.tabCulture'), desc: t('discover.cultureLead') },
+    { key: 'news',    emoji: '📰', label: t('discover.tabNews'),    desc: t('discover.newsLead') },
+    { key: 'stories', emoji: '📖', label: t('discover.tabStories'), desc: t('discover.storiesLead') },
+  ];
+  wrap.innerHTML =
+    `<h4 class="home-section-title">${escapeHtml(t('discover.title'))}</h4>` +
+    `<div class="discover-promo-grid">` +
+    channels.map((c) => `
+      <button class="discover-promo-card" onclick="navigate('discover'); showChannel('${c.key}');">
+        <span class="discover-promo-emoji">${c.emoji}</span>
+        <span class="discover-promo-label">${escapeHtml(c.label)}</span>
+        <span class="discover-promo-desc">${escapeHtml(c.desc)}</span>
+      </button>`).join('') +
+    `</div>`;
 }
 
 function filterByCategory(catId) {

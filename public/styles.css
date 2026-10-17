@@ -629,6 +629,63 @@ body {
 #home-discover { margin-top: 24px; }
 
 /* ---- Home categories strip ---- */
+/* ---- Home: Daily Culture (one featured article per day) ---------------- */
+.home-daily-culture {
+  margin-top: 20px;
+}
+.home-daily-culture .home-section-title::before { content: '🏛️'; }
+
+/* ---- Home: Discover promo (three channel cards) ------------------------ */
+.home-discover-promo {
+  margin-top: 20px;
+}
+.home-discover-promo .home-section-title::before { content: '🌏'; }
+.discover-promo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.discover-promo-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 8px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+}
+.discover-promo-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px var(--c-shadow-lg);
+  border-color: var(--c-primary);
+}
+.discover-promo-card:active { transform: scale(0.97); }
+.discover-promo-emoji { font-size: 1.6rem; line-height: 1; }
+.discover-promo-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--c-text);
+}
+.discover-promo-desc {
+  font-size: 0.7rem;
+  color: var(--c-text-soft);
+  line-height: 1.35;
+}
+
+/* Compact quick actions: two equal columns, regular button size */
+.home-quick {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 16px;
+}
+.home-quick .btn { border-radius: 12px; font-size: 0.9rem; padding: 10px 8px; }
+.home-quick .btn-primary { box-shadow: 0 4px 10px rgba(230, 57, 70, 0.22); }
+
 .home-categories {
   margin-top: 24px;
 }

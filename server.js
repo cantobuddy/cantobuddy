@@ -552,6 +552,20 @@ app.get('/api/posts/:slug', (req, res) => {
   res.json(post);
 });
 
+/** One culture post per day, chosen deterministically by date so every
+ *  device shows the same article on the same day with no storage or call. */
+app.get('/api/posts/daily-culture', (req, res) => {
+  const posts = store.listPosts({ channel: 'culture', status: 'published', limit: 200 });
+  if (!posts.length) return res.status(404).json({ error: 'No culture posts yet.' });
+  // Same deterministic hash the client uses for the word of the day.
+  const dayKey = new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  let h = 0x811c9dc5;
+  const s = 'cb-culture-' + dayKey;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  const pick = posts[(h >>> 0) % posts.length];
+  res.json(pick);
+});
+
 app.get('/api/admin/posts', requireAdmin, (req, res) => {
   const { channel, limit } = req.query;
   res.json({ posts: store.listAllPosts({ channel: channel || null, limit }), counts: store.getPostCounts() });

@@ -181,6 +181,16 @@
     <div id="home-resume"></div>
     <div id="home-word"></div>
 
+    <!-- ---- Daily Culture --------------------------------------------------
+         One culture article per day, chosen by the server so every device
+         shows the same pick. Empty when there are no culture posts. -->
+    <div id="home-daily-culture"></div>
+
+    <!-- ---- Discover Channels ----------------------------------------------
+         Three compact cards so a learner sees what Discover offers without
+         opening the tab first. -->
+    <div id="home-discover-promo"></div>
+
     <!-- ---- Levels ---------------------------------------------------------
          Three compact colour-coded rows rather than three tall centred cards.
          The old cards were ~150px each to hold a 30px emoji and two lines, so
@@ -221,8 +231,8 @@
     </div>
 
     <div class="home-quick">
-      <button class="btn btn-primary btn-lg" onclick="goQuizSelect()" data-i18n="home.startQuiz">📝 Start Quiz</button>
-      <button class="btn btn-outline btn-lg" onclick="navigate('progress')" data-i18n="home.myProgress">📊 My Progress</button>
+      <button class="btn btn-primary" onclick="goQuizSelect()" data-i18n="home.startQuiz">📝 Start Quiz</button>
+      <button class="btn btn-outline" onclick="navigate('progress')" data-i18n="home.myProgress">📊 My Progress</button>
     </div>
 
     <!-- The newest Discover item, so "there is something new" is visible

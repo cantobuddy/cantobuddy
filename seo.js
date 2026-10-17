@@ -1778,12 +1778,14 @@ ${ctaCard(lang)}
 
 const DISCOVER_UI = {
   en: {
-    title: 'Discover: Hong Kong life and news from home',
-    lede: 'Hong Kong life for domestic helpers — how things work at home — plus news from the Philippines, Indonesia and Hong Kong, in plain English.',
+    title: 'Discover: Hong Kong life, news and stories from home',
+    lede: 'Hong Kong life for domestic helpers — how things work at home — plus news from the Philippines, Indonesia and Hong Kong, and stories written by helpers themselves, in plain English.',
     culture: 'Hong Kong culture',
     cultureLede: 'The customs nobody explains — the altar, the festivals, and the two ways to say thank you.',
     news: 'News from home and Hong Kong',
     newsLede: 'News from the Philippines, Indonesia and Hong Kong. Each item is a short summary with a link to the full story.',
+    stories: 'Stories from helpers',
+    storiesLede: 'Real stories written by domestic helpers in their own language — their daily life, where they come from, and what happened along the way.',
     empty: 'Nothing here yet — check back soon.',
     source: 'Source',
     readOriginal: 'Read the full story',
@@ -1793,12 +1795,14 @@ const DISCOVER_UI = {
     notFoundTitle: 'Article not found',
   },
   fil: {
-    title: 'Tuklasin: buhay sa Hong Kong at balita sa tahanan',
-    lede: 'Buhay sa Hong Kong para sa mga helper — kung paano gumagana ang tahanan — at balita mula sa Pilipinas, Indonesia at Hong Kong, sa simpleng Ingles.',
+    title: 'Tuklasin: buhay sa Hong Kong, balita at mga kuwento',
+    lede: 'Buhay sa Hong Kong para sa mga helper — kung paano gumagana ang tahanan — at balita mula sa Pilipinas, Indonesia at Hong Kong, at mga kuwentong isinulat mismo ng mga helper, sa simpleng Ingles.',
     culture: 'Kultura ng Hong Kong',
     cultureLede: 'Ang mga kaugaliang walang nagpapaliwanag — ang altar, ang mga pista, at ang dalawang paraan ng pagpapasalamat.',
     news: 'Balita sa tahanan at Hong Kong',
     newsLede: 'Balita mula sa Pilipinas, Indonesia at Hong Kong. Maikling buod ang bawat isa, may link sa buong balita.',
+    stories: 'Mga kuwento ng mga helper',
+    storiesLede: 'Totoong kuwento ng mga helper sa Hong Kong, nakasulat sa sarili nilang wika — ang pang-araw-araw na buhay, ang pinanggalingan, at ang mga nangyari sa daan.',
     empty: 'Wala pa rito — bumalik mamaya.',
     source: 'Pinagmulan',
     readOriginal: 'Basahin ang buong balita',
@@ -1808,12 +1812,14 @@ const DISCOVER_UI = {
     notFoundTitle: 'Hindi mahanap ang artikulo',
   },
   zh: {
-    title: '发现：香港生活与家乡新闻',
-    lede: '为家佣准备的香港生活——家里的事是怎么运作的——以及来自菲律宾、印尼和香港的新闻，都用简单的英文讲清楚。',
+    title: '发现：香港生活、新闻与家佣故事',
+    lede: '为家佣准备的香港生活——家里的事是怎么运作的——以及来自菲律宾、印尼和香港的新闻，还有家佣亲手写下的故事，都用简单的英文讲清楚。',
     culture: '香港文化',
     cultureLede: '那些没人会解释的习俗——神枱、节庆，以及两个「谢谢」的区别。',
     news: '家乡与香港新闻',
     newsLede: '来自菲律宾、印尼和香港的新闻。每条都是简短摘要，并附完整报道的链接。',
+    stories: '家佣的故事',
+    storiesLede: '香港家佣写下的真实故事，用她们自己的语言——日常生活、家乡，以及一路上的经历。',
     empty: '这里还没有内容，请稍后再来。',
     source: '来源',
     readOriginal: '阅读完整报道',
@@ -1823,12 +1829,14 @@ const DISCOVER_UI = {
     notFoundTitle: '找不到文章',
   },
   id: {
-    title: 'Jelajahi: kehidupan Hong Kong & berita kampung halaman',
-    lede: 'Kehidupan di Hong Kong untuk asisten rumah tangga — bagaimana rumah tangga bekerja — serta berita dari Indonesia, Filipina, dan Hong Kong, dalam bahasa Inggris sederhana.',
+    title: 'Jelajahi: kehidupan Hong Kong, berita & kisah',
+    lede: 'Kehidupan di Hong Kong untuk asisten rumah tangga — bagaimana rumah tangga bekerja — serta berita dari Indonesia, Filipina, dan Hong Kong, dan kisah yang ditulis sendiri oleh para asisten, dalam bahasa Inggris sederhana.',
     culture: 'Budaya Hong Kong',
     cultureLede: 'Kebiasaan yang tak pernah dijelaskan — altar, perayaan, dan dua cara mengucapkan terima kasih.',
     news: 'Berita kampung halaman dan Hong Kong',
     newsLede: 'Berita dari Indonesia, Filipina, dan Hong Kong. Setiap item adalah ringkasan singkat dengan tautan ke berita lengkapnya.',
+    stories: 'Kisah dari para asisten',
+    storiesLede: 'Kisah nyata dari para asisten rumah tangga di Hong Kong, ditulis dalam bahasa mereka sendiri — kehidupan sehari-hari, kampung halaman, dan apa yang terjadi di sepanjang jalan.',
     empty: 'Belum ada apa-apa di sini — cek lagi nanti.',
     source: 'Sumber',
     readOriginal: 'Baca berita lengkapnya',
@@ -1976,11 +1984,17 @@ function postCardLi(post, lang, prefix) {
 /** The Discover hub: both channels, newest first. */
 function renderDiscoverHub(lang) {
   const ui = DISCOVER_UI[lang] || DISCOVER_UI.en;
+  const storiesUi = STORIES_UI[lang] || STORIES_UI.en;
   const prefix = LANG_PREFIX[lang] || '';
 
   const posts = store.listPosts({ status: 'published', limit: 200 });
   const culture = posts.filter((p) => p.channel === 'culture');
   const news = posts.filter((p) => p.channel === 'news');
+  // The third channel. Discover has three, and this page is the one with the
+  // authority to link into the stories — without a section here the stories hub
+  // is reachable only from the footer and the app, so the pages that most need
+  // to be found would have no internal link pointing at them.
+  const stories = store.listPublishedStories({ limit: 200 });
 
   const section = (heading, lede, list) => `
 <h2 class="disc-h2">${esc(heading)}</h2>
@@ -1991,29 +2005,36 @@ ${
       : `<p class="lede">${esc(ui.empty)}</p>`
   }`;
 
+  // A link to the full shelf, so this page is a doorway rather than a dead end.
+  const more = (label, href) => `<p class="lede"><a href="${href}">${esc(label)} →</a></p>`;
+
   const body = `
 ${crumbs(lang, [{ label: ui.title }])}
 <h1>${esc(ui.title)}</h1>
 <p class="lede">${esc(ui.lede)}</p>
 ${section(ui.culture, ui.cultureLede, culture)}
 ${section(ui.news, ui.newsLede, news)}
+${section(ui.stories, ui.storiesLede, stories)}
+${more(storiesUi.backToStories, `${prefix}/stories`)}
 ${ctaCard(lang)}
 `;
 
   const title = {
-    en: 'Discover: Hong Kong Life and News from Home | CantoBuddy',
-    fil: 'Tuklasin: Buhay sa Hong Kong at Balita mula sa Pilipinas at Indonesia | CantoBuddy',
-    zh: '发现：香港生活与家乡新闻 | CantoBuddy',
-    id: 'Jelajahi: Kehidupan Hong Kong dan Berita dari Indonesia dan Filipina | CantoBuddy',
+    en: 'Discover: Hong Kong Life, News and Helper Stories | CantoBuddy',
+    fil: 'Tuklasin: Buhay sa Hong Kong, Balita at mga Kuwento | CantoBuddy',
+    zh: '发现：香港生活、新闻与家佣故事 | CantoBuddy',
+    id: 'Jelajahi: Kehidupan Hong Kong, Berita dan Kisah | CantoBuddy',
   }[lang];
 
   const description = {
-    en: 'Hong Kong customs explained, plus news from the Philippines, Indonesia and Hong Kong in English — written for domestic helpers.',
-    fil: 'Paliwanag sa mga kaugalian ng Hong Kong, at balita mula sa Pilipinas, Indonesia at Hong Kong sa Ingles — para sa mga helper.',
-    zh: '香港习俗讲解，以及来自菲律宾、印尼和香港的英文新闻——为家佣而写。',
-    id: 'Penjelasan kebiasaan Hong Kong, serta berita dari Indonesia, Filipina, dan Hong Kong dalam bahasa Inggris — untuk asisten rumah tangga.',
+    en: 'Hong Kong customs explained, news from the Philippines, Indonesia and Hong Kong in English, and real stories written by domestic helpers — written for helpers.',
+    fil: 'Paliwanag sa mga kaugalian ng Hong Kong, balita mula sa Pilipinas, Indonesia at Hong Kong sa Ingles, at totoong kuwento ng mga helper — para sa mga helper.',
+    zh: '香港习俗讲解、来自菲律宾、印尼和香港的英文新闻，以及家佣写下的真实故事——为家佣而写。',
+    id: 'Penjelasan kebiasaan Hong Kong, berita dari Indonesia, Filipina, dan Hong Kong dalam bahasa Inggris, serta kisah nyata dari para asisten rumah tangga — untuk para asisten.',
   }[lang];
 
+  // Every published story is part of this page's structured data, so a story is
+  // attributable to the hub that lists it as well as to its own URL.
   const jsonLd = {
     '@context': 'https://schema.org',
     '@graph': [
@@ -2025,11 +2046,18 @@ ${ctaCard(lang)}
         description,
         url: `${SITE_ORIGIN}${prefix}/discover`,
         inLanguage: L[lang].htmlLang,
-        hasPart: posts.slice(0, 50).map((p) => ({
-          '@type': 'Article',
-          headline: postText(p, 'title', lang),
-          url: `${SITE_ORIGIN}${prefix}/discover/${p.slug}`,
-        })),
+        hasPart: [
+          ...posts.slice(0, 50).map((p) => ({
+            '@type': 'Article',
+            headline: postText(p, 'title', lang),
+            url: `${SITE_ORIGIN}${prefix}/discover/${p.slug}`,
+          })),
+          ...stories.slice(0, 50).map((s) => ({
+            '@type': 'Article',
+            headline: s.title,
+            url: `${SITE_ORIGIN}${prefix}/stories/${s.slug}`,
+          })),
+        ],
       },
     ],
   };
@@ -2477,27 +2505,6 @@ ${alts}
     add(`${prefix}/privacy`, '0.3', 'yearly', hreflangLinks((l) => `${LANG_PREFIX[l]}/privacy`), SITE_STRUCTURE_DATE);
   }
 
-  // Discover — the culture and news feed, and each article in it.
-  //
-  // lastmod is the post's OWN date, never the crawl date: a feed that claims to
-  // change every day is a feed Google stops trusting, which is the same trap the
-  // word pages already fell into once (see the note below this function). The
-  // hub takes the newest post it lists, so it is exactly as fresh as its
-  // freshest article, and moves on its own the moment a post is published.
-  const feedPosts = store.listPosts({ status: 'published', limit: 200 });
-  const newestPost = feedPosts.reduce((m, p) => {
-    const d = postDateShort(p.published_at || p.updated_at || p.created_at);
-    return d > m ? d : m;
-  }, SITE_STRUCTURE_DATE);
-  for (const prefix of Object.values(LANG_PREFIX)) {
-    add(`${prefix}/discover`, '0.7', 'daily', hreflangLinks((l) => `${LANG_PREFIX[l]}/discover`), newestPost);
-    for (const p of feedPosts) {
-      const d = postDateShort(p.published_at || p.updated_at || p.created_at);
-      add(`${prefix}/discover/${p.slug}`, '0.6', 'monthly',
-        hreflangLinks((l) => `${LANG_PREFIX[l]}/discover/${p.slug}`), d || SITE_STRUCTURE_DATE);
-    }
-  }
-
   // Stories — the shared shelf of helper-written stories.
   //
   // ONE shelf, every tree. The hub is listed in all four language trees because
@@ -2506,12 +2513,39 @@ ${alts}
   // the same document in each tree and the alternates are honest.
   //
   // lastmod is the story's own published date, never the crawl date — the same
-  // rule as the Discover feed, and for the same reason.
+  // rule as the Discover feed, and for the same reason. Computed BEFORE the
+  // Discover block below, which needs it: /discover lists the stories too.
   const publishedStories = store.listPublishedStorySlugs();
   const newestStory = publishedStories.reduce((m, s) => {
     const d = postDateShort(s.updated_at || s.published_at);
     return d > m ? d : m;
   }, SITE_STRUCTURE_DATE);
+
+  // Discover — the culture and news feed, the stories, and each article in it.
+  //
+  // lastmod is the post's OWN date, never the crawl date: a feed that claims to
+  // change every day is a feed Google stops trusting, which is the same trap the
+  // word pages already fell into once (see the note below this function). The
+  // hub takes the newest item it lists — posts AND stories, because the page
+  // renders both — so it is exactly as fresh as its freshest item and moves on
+  // its own the moment either kind is published. Taking only the posts was
+  // correct until the stories section was added to this page; after that, a
+  // newly published story changed the page without changing its date.
+  const feedPosts = store.listPosts({ status: 'published', limit: 200 });
+  const newestPost = feedPosts.reduce((m, p) => {
+    const d = postDateShort(p.published_at || p.updated_at || p.created_at);
+    return d > m ? d : m;
+  }, SITE_STRUCTURE_DATE);
+  const newestDiscoverItem = newestPost > newestStory ? newestPost : newestStory;
+  for (const prefix of Object.values(LANG_PREFIX)) {
+    add(`${prefix}/discover`, '0.7', 'daily', hreflangLinks((l) => `${LANG_PREFIX[l]}/discover`), newestDiscoverItem);
+    for (const p of feedPosts) {
+      const d = postDateShort(p.published_at || p.updated_at || p.created_at);
+      add(`${prefix}/discover/${p.slug}`, '0.6', 'monthly',
+        hreflangLinks((l) => `${LANG_PREFIX[l]}/discover/${p.slug}`), d || SITE_STRUCTURE_DATE);
+    }
+  }
+
   for (const prefix of Object.values(LANG_PREFIX)) {
     add(`${prefix}/stories`, '0.7', 'weekly', hreflangLinks((l) => `${LANG_PREFIX[l]}/stories`), newestStory);
     for (const s of publishedStories) {

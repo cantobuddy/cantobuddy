@@ -40,8 +40,8 @@ const I18N = {
     'nav.discover': 'Discover',
 
     // discover — the culture + news feed
-    'discover.title': 'Discover: HK life & news from home',
-    'discover.lead': 'Hong Kong life, and news from the Philippines and Indonesia.',
+    'discover.title': 'Discover: HK life, news & stories from home',
+    'discover.lead': 'Hong Kong life, news from the Philippines and Indonesia, and stories written by helpers.',
     'discover.tabCulture': 'Culture',
     'discover.tabNews': 'News',
     'discover.cultureLead': 'How things work in a Hong Kong home — the customs nobody explains.',
@@ -388,8 +388,8 @@ const I18N = {
     'nav.discover': 'Tuklasin',
 
     // discover — ang feed ng kultura at balita
-    'discover.title': 'Tuklasin: buhay sa HK at balita sa tahanan',
-    'discover.lead': 'Buhay sa Hong Kong, at balita mula sa Pilipinas at Indonesia.',
+    'discover.title': 'Tuklasin: buhay sa HK, balita at mga kuwento',
+    'discover.lead': 'Buhay sa Hong Kong, balita mula sa Pilipinas at Indonesia, at mga kuwentong isinulat ng mga helper.',
     'discover.tabCulture': 'Kultura',
     'discover.tabNews': 'Balita',
     'discover.cultureLead': 'Paano gumagana ang isang tahanan sa Hong Kong — ang mga kaugaliang walang nagpapaliwanag.',
@@ -738,8 +738,8 @@ const I18N = {
     'nav.discover': '发现',
 
     // discover — 文化与新闻
-    'discover.title': '发现：香港生活与家乡新闻',
-    'discover.lead': '香港生活，以及来自菲律宾和印尼的消息。',
+    'discover.title': '发现：香港生活、新闻与家佣故事',
+    'discover.lead': '香港生活、来自菲律宾和印尼的消息，以及家佣写下的故事。',
     'discover.tabCulture': '文化',
     'discover.tabNews': '新闻',
     'discover.cultureLead': '香港家庭里的事是怎么运作的——那些没人会解释的习俗。',
@@ -1087,8 +1087,8 @@ const I18N = {
     'nav.discover': 'Jelajah',
 
     // discover — umpan budaya dan berita
-    'discover.title': 'Jelajahi: kehidupan HK & berita kampung halaman',
-    'discover.lead': 'Kehidupan di Hong Kong, serta berita dari Indonesia dan Filipina.',
+    'discover.title': 'Jelajahi: kehidupan HK, berita & kisah',
+    'discover.lead': 'Kehidupan di Hong Kong, berita dari Indonesia dan Filipina, serta kisah yang ditulis para asisten.',
     'discover.tabCulture': 'Budaya',
     'discover.tabNews': 'Berita',
     'discover.cultureLead': 'Bagaimana rumah tangga Hong Kong bekerja — kebiasaan yang tak pernah dijelaskan.',

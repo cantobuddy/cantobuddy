@@ -606,14 +606,35 @@ function goCategories() {
 /**
  * One category chosen from the Categories page → Browse, already filtered.
  *
+ * Opens at BEGINNER level (1) by default, not "all levels": a helper who taps a
+ * category wants to start at the easy words in that topic, and "all levels"
+ * drops her into the hardest sentences before she has a foothold. She can still
+ * lift the level filter from the chips — openCategory only sets the *default*.
+ *
+ * Both chip rows are synced to the selection so the screen agrees with itself:
+ * the Beginner level chip lights up, and the chosen category chip lights up,
+ * exactly as the home-strip entry point (filterByCategory) does for "all levels".
+ *
  * `browseFrom` is remembered so Browse's back button returns HERE rather than
  * jumping to Home: she came from a list of categories and back means "the list
  * again", not "start over".
  */
 function openCategory(id) {
-  STATE.currentCat = Number(id);
+  const catId = Number(id);
+  STATE.currentCat = catId;
+  STATE.currentLevel = 1;
   STATE.browseFrom = 'categories';
-  goBrowse();
+
+  document.querySelectorAll('#filter-level .chip').forEach((c) => {
+    c.classList.toggle('active', Number(c.dataset.val) === 1);
+  });
+  renderCategoryChips();
+  document.querySelectorAll('#filter-cat .chip').forEach((c) => {
+    c.classList.toggle('active', Number(c.dataset.val) === catId);
+  });
+
+  navigate('browse');
+  renderVocabList();
 }
 
 function goBrowse(level) {

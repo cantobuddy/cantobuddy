@@ -500,6 +500,16 @@
     <button class="btn btn-outline btn-block share-copy-btn" onclick="copyShareLink()" data-i18n="sharePage.copyBtn">🔗 Copy link</button>
 
     <p class="share-footnote" data-i18n="sharePage.footnote">Every link you share carries your own code, so we can see how CantoBuddy is spreading through the community. No names, no personal details.</p>
+
+    <!-- ---- Share what you did ----
+         The second half of the page, and the answer to "how do I show my friend
+         THIS part of the app?". Filled in by renderSharePage() so each card can
+         reflect her real state — a helper with no stickers yet is not offered a
+         sticker album, and a helper who has just finished a quiz is offered her
+         score. Each one sends a PICTURE, because a friend who sees the album
+         understands the app faster than one who reads about it. -->
+    <h3 class="share-hub-heading" id="share-hub-heading" data-i18n="sharePage.hubHeading">Or share what you did</h3>
+    <div class="share-hub" id="share-hub"></div>
   </section>
 
 </main>

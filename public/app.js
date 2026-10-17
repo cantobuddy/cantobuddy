@@ -1786,7 +1786,10 @@ async function finishQuiz() {
           ? `<button class="btn btn-primary btn-block" style="margin-top:12px" onclick="navigate('progress')">🏅 ${t('rewards.viewAlbum')}</button>`
           : ''
       }
-      <button class="btn btn-outline btn-block" style="margin-top:12px" onclick="shareResult()">${SHARE_ICON_SVG}${t('result.share')}</button>
+      ${shareRowHtml([
+        { label: t('share.chatBtn'), icon: WHATSAPP_ICON_SVG, onclick: "shareResult('chat')", variant: 'wa' },
+        { label: t('share.pictureBtn'), icon: '🖼️', onclick: 'shareResult()' },
+      ])}
     </div>
   `;
 
@@ -1828,9 +1831,47 @@ async function fetchRewards() {
   return _rewards;
 }
 
-/** A sticker's name in the language currently being read. */
+/**
+ * A sticker's name in the language currently being read.
+ *
+ * Mirrors meaning(): the reader's own column first, English as the fallback.
+ * Before this, only Filipino was handled, so a Chinese or Indonesian reader met
+ * English on her own album — the one place in the app where every single label
+ * is a word she is meant to be learning.
+ */
 function stickerName(s) {
-  return currentLang() === 'fil' ? s.tagalog || s.english : s.english;
+  const lang = currentLang();
+  if (lang === 'zh') return s.mandarin || s.english || '';
+  if (lang === 'fil') return s.tagalog || s.english || '';
+  if (lang === 'id') return s.indonesian || s.english || '';
+  return s.english || '';
+}
+
+/**
+ * One sticker in the album.
+ *
+ * Unlocked stickers are buttons, because tapping one opens the detail sheet and
+ * the sheet is where sharing lives — the album is the thing she is proud of, so
+ * it is also the thing she most wants to send to a friend.
+ *
+ * A locked sticker shows its emoji greyed out and its price, and no name: the
+ * greyed silhouette is the invitation ("what is that?") and the number is the
+ * distance to it. Its name is withheld on purpose — the reveal is the reward.
+ */
+function stickerTileHtml(s) {
+  const tier = s.tier || 'local';
+  if (s.unlocked) {
+    return `<button class="sticker-tile tier-${tier} is-unlocked" onclick="openStickerModal('${s.key}')"
+                    aria-label="${escapeHtml(stickerName(s))} — ${escapeHtml(t('rewards.openSticker'))}">
+              <span class="sticker-emoji">${s.emoji}</span>
+              <span class="sticker-name">${escapeHtml(stickerName(s))}</span>
+              <span class="sticker-canto">${escapeHtml(s.cantonese)}</span>
+            </button>`;
+  }
+  return `<div class="sticker-tile tier-${tier} is-locked" title="${escapeHtml(t('rewards.notYet'))}">
+            <span class="sticker-emoji">${s.emoji}</span>
+            <span class="sticker-cost">${s.credits}</span>
+          </div>`;
 }
 
 /**
@@ -1839,12 +1880,17 @@ function stickerName(s) {
  * Uncollected stickers still show what they cost, so the album reads as
  * something to work towards rather than a wall of padlocks. Each sticker is
  * also a phrase worth knowing, so it doubles as a vocabulary list.
+ *
+ * The album is grouped into four shelves by the `tier` the server derives from
+ * each sticker's credit threshold — never stored, so the shelves can never
+ * disagree with the numbers.
  */
 function renderRewardsCard() {
   const r = _rewards;
   if (!r || !r.stickers.length) return '';
 
   const collected = r.stickers.filter((s) => s.unlocked).length;
+  const total = r.stickers.length;
   const creditWord = r.credits === 1 ? t('rewards.creditOne') : t('rewards.credits');
 
   let next;
@@ -1864,20 +1910,28 @@ function renderRewardsCard() {
     next = `<p class="rewards-complete">${t('rewards.complete')}</p>`;
   }
 
-  const tiles = r.stickers
-    .map((s) =>
-      s.unlocked
-        ? `<div class="sticker-tile is-unlocked">
-             <div class="sticker-emoji">${s.emoji}</div>
-             <div class="sticker-name">${escapeHtml(stickerName(s))}</div>
-             <div class="sticker-canto">${escapeHtml(s.cantonese)}</div>
-           </div>`
-        : `<div class="sticker-tile is-locked" title="${t('rewards.notYet')}">
-             <div class="sticker-emoji">🔒</div>
-             <div class="sticker-name">${s.credits}</div>
-             <div class="sticker-canto">${t('rewards.credits')}</div>
-           </div>`
-    )
+  // Group into shelves, keeping the seed order (which is ascending by credits).
+  const order = [];
+  const shelves = {};
+  for (const s of r.stickers) {
+    const k = s.tier || 'local';
+    if (!shelves[k]) { shelves[k] = []; order.push(k); }
+    shelves[k].push(s);
+  }
+
+  const album = order
+    .map((k) => {
+      const list = shelves[k];
+      const got = list.filter((s) => s.unlocked).length;
+      return `
+        <div class="sticker-shelf">
+          <h5 class="sticker-shelf-title">
+            <span>${escapeHtml(t('rewards.shelf.' + k))}</span>
+            <span class="sticker-shelf-count">${got}/${list.length}</span>
+          </h5>
+          <div class="sticker-grid">${list.map(stickerTileHtml).join('')}</div>
+        </div>`;
+    })
     .join('');
 
   return `
@@ -1886,12 +1940,54 @@ function renderRewardsCard() {
       <div class="rewards-balance">
         <span class="rewards-credits">${r.credits}</span>
         <span class="rewards-credit-word">${creditWord}</span>
-        <span class="rewards-count">${collected}/${r.stickers.length}</span>
+        <span class="rewards-count">${collected}/${total}</span>
       </div>
       <p class="rewards-hint">${t('rewards.hint')}</p>
       ${next}
-      <div class="sticker-grid">${tiles}</div>
+      <div class="sticker-album">${album}</div>
+      ${shareRowHtml([
+        { label: t('share.chatBtn'), icon: WHATSAPP_ICON_SVG, onclick: "shareAlbum('chat')", variant: 'wa' },
+        { label: t('share.pictureBtn'), icon: '🖼️', onclick: 'shareAlbum()' },
+      ])}
     </div>`;
+}
+
+/**
+ * The sticker detail sheet — the same modal the vocabulary cards use.
+ *
+ * Reusing #vocab-modal rather than adding a second dialog keeps one piece of
+ * modal plumbing (open, close, backdrop tap) instead of two that drift apart.
+ */
+function openStickerModal(key) {
+  const s = _rewards && _rewards.stickers.find((x) => x.key === key);
+  if (!s || !s.unlocked) return;
+  const modal = document.getElementById('vocab-modal');
+  if (!modal) return;
+
+  const name = stickerName(s);
+  // The reader's own gloss, then English underneath when it is a different
+  // string — the same order the browse cards use.
+  const extra = s.english && s.english !== name
+    ? `<div class="vocab-tagalog">${escapeHtml(s.english)}</div>`
+    : '';
+  const when = s.unlocked_at ? postDate(s.unlocked_at) : '';
+
+  modal.querySelector('.modal-card').innerHTML = `
+    <div class="modal-emoji">${s.emoji}</div>
+    <div class="modal-cantonese">${escapeHtml(s.cantonese)}</div>
+    <div class="modal-jyutping">${escapeHtml(s.jyutping)}</div>
+    <div class="vocab-english">${escapeHtml(name)}</div>
+    ${extra}
+    <button class="modal-audio-btn" onclick="speak('${s.cantonese.replace(/'/g, "\\'")}', this)">🔊</button>
+    <div style="font-size:0.75rem;color:#6c757d;margin-top:6px">${escapeHtml(t('browse.tapToHear'))}</div>
+    ${when ? `<div class="sticker-earned">${escapeHtml(t('rewards.earnedOn'))} ${escapeHtml(when)}</div>` : ''}
+    ${shareRowHtml([
+      { label: t('share.chatBtn'), icon: WHATSAPP_ICON_SVG, onclick: `shareSticker('${s.key}', 'chat')`, variant: 'wa' },
+      { label: t('share.pictureBtn'), icon: '🖼️', onclick: `shareSticker('${s.key}')` },
+    ])}
+    <button class="modal-close" onclick="closeModal()">${t('misc.close')}</button>
+  `;
+  modal.classList.add('show');
 }
 
 /**
@@ -1899,14 +1995,27 @@ function renderRewardsCard() {
  *
  * Only ever shows stickers unlocked by THIS quiz — the server reports them once
  * and then forgets, so re-opening the result cannot re-announce them.
+ *
+ * When it is a single sticker the phrase is spelled out underneath, because the
+ * moment she is pleased is the moment she will actually read it. A share button
+ * sits with it for the same reason: pride is the only reliable urge to post.
  */
 function renderStickerCelebration(r) {
   if (!r || !r.newly_unlocked || !r.newly_unlocked.length) return '';
   const won = r.stickers.filter((s) => r.newly_unlocked.includes(s.key));
+  // Guard rather than assume: `newly_unlocked` is the server's list of keys and
+  // `stickers` is the catalogue, and a key that is in one but not the other
+  // would make won[0] below throw on the result screen — the worst possible
+  // place to break.
+  if (!won.length) return '';
   const body =
     won.length === 1
       ? t('rewards.newBody').replace('{name}', escapeHtml(stickerName(won[0])))
       : t('rewards.newBodyMany').replace('{n}', won.length);
+
+  const say = won.length === 1
+    ? `<div class="sticker-celebrate-say">${escapeHtml(won[0].cantonese)} · ${escapeHtml(won[0].jyutping)}</div>`
+    : '';
 
   return `
     <div class="sticker-celebrate">
@@ -1915,6 +2024,11 @@ function renderStickerCelebration(r) {
         ${won.map((s) => `<span class="sticker-celebrate-tile">${s.emoji}</span>`).join('')}
       </div>
       <div class="sticker-celebrate-body">${body}</div>
+      ${say}
+      ${shareRowHtml([
+        { label: t('share.chatBtn'), icon: WHATSAPP_ICON_SVG, onclick: `shareSticker('${won[0].key}', 'chat')`, variant: 'wa' },
+        { label: t('share.pictureBtn'), icon: '🖼️', onclick: `shareSticker('${won[0].key}')` },
+      ])}
     </div>`;
 }
 
@@ -2633,92 +2747,262 @@ function mountShareIcons() {
 // without a tap, it carries the branding, and it is the thing people forward on
 // to somebody else. Drawn with canvas so there is no server round-trip, no new
 // dependency, and it works offline.
+//
+// ONE renderer, six layouts. Every shareable thing — a word, a sticker, the
+// album, a quiz score, a story, an article — is the same 1080px square with the
+// same frame, and differs only in the blocks it puts in the middle. That is
+// deliberate: the point of sharing several different parts of the app is that a
+// friend sees SIX DIFFERENT PICTURES from one app, not six variations of a
+// poster. The frame is what makes them read as one app; the middle is what
+// makes each one worth sending.
 
 const CARD_SIZE = 1080;
+const CARD_HAN = '"Noto Sans SC","PingFang HK","Microsoft JhengHei",sans-serif';
+const CARD_UI = 'Inter,-apple-system,"Segoe UI",Roboto,sans-serif';
+const CARD_MONO = 'ui-monospace,Menlo,monospace';
+
+/**
+ * Read a CSS custom property so the cards share the app's palette instead of
+ * carrying a second copy of it. A canvas cannot use a var(), but it can read
+ * one — which is the difference between one palette and two that drift.
+ */
+let _cardTokens = null;
+function cardTokens() {
+  if (_cardTokens) return _cardTokens;
+  const read = (name, fallback) => {
+    try {
+      const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+      return v || fallback;
+    } catch { return fallback; }
+  };
+  _cardTokens = {
+    primary: read('--c-primary', '#e63946'),
+    primaryTint: read('--c-primary-tint', '#fff1f2'),
+    secondary: read('--c-secondary', '#2a9d8f'),
+    text: read('--c-text', '#1a1a2e'),
+    soft: read('--c-text-soft', '#6c757d'),
+    lv1: read('--lv1', '#17796d'), lv1Tint: read('--lv1-tint', '#e1f5ee'),
+    lv2: read('--lv2', '#a8641a'), lv2Tint: read('--lv2-tint', '#faedda'),
+    lv3: read('--lv3', '#2f66b8'), lv3Tint: read('--lv3-tint', '#e6f0fb'),
+  };
+  return _cardTokens;
+}
+
+/** The accent and wash for a sticker shelf, taken from the level tokens. */
+function tierColours(tier) {
+  const k = cardTokens();
+  if (tier === 'first') return { accent: k.lv1, tint: k.lv1Tint };
+  if (tier === 'everyday') return { accent: k.lv2, tint: k.lv2Tint };
+  if (tier === 'out') return { accent: k.lv3, tint: k.lv3Tint };
+  return { accent: k.primary, tint: k.primaryTint };
+}
 
 /** Draw text centred on one line, shrinking until it fits `maxWidth`. */
-function cardFitText(ctx, text, maxWidth, startSize, family) {
+function cardFitText(ctx, text, maxWidth, startSize, family, weight = 700) {
   let size = startSize;
   do {
-    ctx.font = `700 ${size}px ${family}`;
+    ctx.font = `${weight} ${size}px ${family}`;
     if (ctx.measureText(text).width <= maxWidth) break;
     size -= 4;
-  } while (size > 28);
+  } while (size > 22);
   return size;
 }
 
+const isCJKChar = (s) => /[\u3400-\u4dbf\u4e00-\u9fff\u3000-\u303f\uff00-\uffef]/.test(s);
+
 /**
- * Render a word as a square PNG.
+ * Split text into wrap tokens: one per CJK character, one per latin word.
+ *
+ * Chinese has no spaces, so wrapping by words alone turns a Chinese title into
+ * a single unbreakable token and it overflows the card. A story can be written
+ * in any of the four languages, so this cannot assume latin word boundaries.
+ */
+function cardTextTokens(text) {
+  const out = [];
+  const re = /[\u3000-\u303f\u3400-\u4dbf\u4e00-\u9fff\uff00-\uffef]|[^\s]+/g;
+  let m;
+  while ((m = re.exec(String(text || '')))) out.push(m[0]);
+  return out;
+}
+
+/** Join two tokens with a space only where one belongs (never around CJK). */
+function cardJoin(a, b) {
+  if (!a) return b;
+  if (isCJKChar(a.slice(-1)) || isCJKChar(b[0])) return a + b;
+  return `${a} ${b}`;
+}
+
+/**
+ * Wrap text into at most `maxLines` lines, ellipsising the last one.
+ *
+ * A token too wide for a whole line on its own is broken by character, so a
+ * long unbroken string degrades into something readable rather than running off
+ * the edge of the card.
+ */
+function cardWrap(ctx, text, maxWidth, family, size, weight, maxLines) {
+  ctx.font = `${weight} ${size}px ${family}`;
+  const toks = cardTextTokens(text);
+  const lines = [];
+  let line = '';
+
+  for (let i = 0; i < toks.length; i++) {
+    const test = cardJoin(line, toks[i]);
+    if (ctx.measureText(test).width <= maxWidth) { line = test; continue; }
+    if (!line) {
+      // Nothing on the line yet and this token still does not fit: split it.
+      let chunk = '';
+      for (const ch of toks[i]) {
+        if (chunk && ctx.measureText(chunk + ch).width > maxWidth) { lines.push(chunk); chunk = ch; }
+        else chunk += ch;
+      }
+      line = chunk;
+      continue;
+    }
+    lines.push(line);
+    line = toks[i];
+    if (lines.length === maxLines) break;
+  }
+  if (lines.length < maxLines && line) lines.push(line);
+  if (lines.length === maxLines && line && lines[lines.length - 1] !== line) {
+    let last = lines[maxLines - 1];
+    while (last.length > 3 && ctx.measureText(`${last}…`).width > maxWidth) last = last.slice(0, -1);
+    lines[maxLines - 1] = `${last}…`;
+  }
+  return lines;
+}
+
+/** Draw one block of a card. */
+function drawCardBlock(ctx, b, accent, textColour, softColour) {
+  const color = b.color || textColour;
+  const align = b.align || 'center';
+  ctx.textAlign = align;
+  ctx.textBaseline = 'middle';
+  const x = align === 'left' ? 72 : CARD_SIZE / 2;
+
+  if (b.type === 'emoji') {
+    ctx.font = `${b.size || 180}px ${CARD_UI}`;
+    ctx.fillStyle = color;
+    ctx.fillText(b.value, x, b.y);
+    return;
+  }
+
+  if (b.type === 'emojiRow' || b.type === 'emojiGrid') {
+    const values = b.values || [];
+    if (!values.length) return;
+    const size = b.size || 52;
+    ctx.font = `${size}px ${CARD_UI}`;
+    const gap = b.gap == null ? 12 : b.gap;
+    const widths = values.map((v) => ctx.measureText(v).width);
+    const rowH = size + (b.rowGap == null ? 16 : b.rowGap);
+
+    if (b.type === 'emojiRow') {
+      const total = widths.reduce((a, w) => a + w, 0) + gap * (values.length - 1);
+      let cx = CARD_SIZE / 2 - total / 2;
+      ctx.textAlign = 'left';
+      ctx.fillStyle = color;
+      values.forEach((v, i) => {
+        ctx.fillText(v, cx, b.y);
+        cx += widths[i] + gap;
+      });
+      return;
+    }
+
+    // Grid: fixed columns, each glyph centred in its cell, at most two rows.
+    const cols = b.columns || Math.min(12, Math.ceil(values.length / 2)) || 1;
+    const cell = (CARD_SIZE - 144) / cols;
+    ctx.textAlign = 'center';
+    ctx.fillStyle = color;
+    values.forEach((v, i) => {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      ctx.fillText(v, 72 + cell * col + cell / 2, b.y + row * rowH);
+    });
+    return;
+  }
+
+  if (b.type === 'wrap') {
+    const family = b.family || CARD_UI;
+    const weight = b.weight || 700;
+    const size = b.size || 54;
+    const lh = b.lineHeight || Math.round(size * 1.26);
+    const lines = cardWrap(ctx, b.value, b.maxWidth || CARD_SIZE - 200, family, size, weight, b.maxLines || 3);
+    ctx.font = `${weight} ${size}px ${family}`;
+    ctx.fillStyle = color;
+    lines.forEach((ln, i) => ctx.fillText(ln, x, b.y + i * lh));
+    return;
+  }
+
+  // A single fitted line.
+  const family = b.family || CARD_UI;
+  const weight = b.weight || 700;
+  const size = cardFitText(ctx, b.value, b.maxWidth || CARD_SIZE - 200, b.size || 64, family, weight);
+  ctx.font = `${weight} ${size}px ${family}`;
+  ctx.fillStyle = color;
+  ctx.fillText(b.value, x, b.y);
+}
+
+/**
+ * Render a share card as a square PNG.
+ *
+ * @param {object} spec  { accent, tint, eyebrow, blocks[], footnote, link }
  * @returns {Promise<Blob|null>} null if canvas is unavailable.
  */
-function wordCardBlob(v) {
+function shareCardBlob(spec) {
   return new Promise((resolve) => {
     try {
+      const k = cardTokens();
       const cv = document.createElement('canvas');
       cv.width = CARD_SIZE;
       cv.height = CARD_SIZE;
       const ctx = cv.getContext('2d');
       if (!ctx) return resolve(null);
 
-      const HAN = '"Noto Sans SC","PingFang HK","Microsoft JhengHei",sans-serif';
-      const UI = 'Inter,-apple-system,"Segoe UI",Roboto,sans-serif';
+      const accent = spec.accent || k.primary;
+      const tint = spec.tint || k.primaryTint;
 
-      // Background
+      // Paper.
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, CARD_SIZE, CARD_SIZE);
 
-      // Brand bar
-      ctx.fillStyle = '#e63946';
+      // A soft wash in the top-right corner. A bare white square reads as a
+      // missing image in a chat; a tinted one reads as a designed card.
+      const wash = ctx.createRadialGradient(
+        CARD_SIZE * 0.9, CARD_SIZE * 0.06, 0,
+        CARD_SIZE * 0.9, CARD_SIZE * 0.06, CARD_SIZE * 0.72
+      );
+      wash.addColorStop(0, tint);
+      wash.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = wash;
+      ctx.fillRect(0, 0, CARD_SIZE, CARD_SIZE);
+
+      // Brand bar.
+      ctx.fillStyle = accent;
       ctx.fillRect(0, 0, CARD_SIZE, 14);
 
-      // Wordmark
-      ctx.fillStyle = '#1a1a2e';
-      ctx.font = `700 44px ${UI}`;
+      // Wordmark.
+      ctx.fillStyle = k.text;
+      ctx.font = `700 44px ${CARD_UI}`;
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
       ctx.fillText('🦜 CantoBuddy', 72, 96);
 
-      // The Cantonese, the whole point of the card
-      const han = v.cantonese || '';
-      const hanSize = cardFitText(ctx, han, CARD_SIZE - 160, 300, HAN);
-      ctx.font = `500 ${hanSize}px ${HAN}`;
-      ctx.fillStyle = '#1a1a2e';
+      if (spec.eyebrow) {
+        ctx.font = `700 28px ${CARD_UI}`;
+        ctx.fillStyle = accent;
+        ctx.fillText(String(spec.eyebrow).toUpperCase(), 72, 178);
+      }
+
+      for (const b of spec.blocks || []) drawCardBlock(ctx, b, accent, k.text, k.soft);
+
+      // Footer: what this is, and where to get it.
       ctx.textAlign = 'center';
-      ctx.fillText(han, CARD_SIZE / 2, 430);
-
-      // Jyutping
-      ctx.font = `400 52px ui-monospace,Menlo,monospace`;
-      ctx.fillStyle = '#e63946';
-      ctx.fillText(v.jyutping || '', CARD_SIZE / 2, 600);
-
-      // Meaning. The reader's own language is promoted to the top line and
-      // English sits underneath as the fallback — the same order as the browse
-      // card, so a shared picture reads the same way the sender saw it.
-      const primary = meaning(v) || v.english || '';
-      const secondary = currentLang() === 'en' ? v.tagalog || '' : v.english || '';
-
-      if (primary) {
-        const pSize = cardFitText(ctx, primary, CARD_SIZE - 200, 68, primary === (v.mandarin || '') ? HAN : UI);
-        ctx.font = `700 ${pSize}px ${primary === (v.mandarin || '') ? HAN : UI}`;
-        ctx.fillStyle = '#1a1a2e';
-        ctx.fillText(primary, CARD_SIZE / 2, 720);
-      }
-
-      if (secondary && secondary !== primary) {
-        const sSize = cardFitText(ctx, secondary, CARD_SIZE - 200, 52, UI);
-        ctx.font = `400 ${sSize}px ${UI}`;
-        ctx.fillStyle = '#6c757d';
-        ctx.fillText(secondary, CARD_SIZE / 2, 800);
-      }
-
-      // Footer: what the app is, and where to get it
-      ctx.font = `400 38px ${UI}`;
-      ctx.fillStyle = '#6c757d';
-      ctx.fillText(t('share.cardFooter'), CARD_SIZE / 2, 950);
-
-      ctx.font = `700 42px ${UI}`;
-      ctx.fillStyle = '#e63946';
-      ctx.fillText('cantobuddy.com', CARD_SIZE / 2, 1010);
+      ctx.textBaseline = 'middle';
+      ctx.font = `400 36px ${CARD_UI}`;
+      ctx.fillStyle = k.soft;
+      ctx.fillText(spec.footnote || t('share.cardFooter'), CARD_SIZE / 2, 946);
+      ctx.font = `700 42px ${CARD_UI}`;
+      ctx.fillStyle = accent;
+      ctx.fillText(spec.link || 'cantobuddy.com', CARD_SIZE / 2, 1006);
 
       cv.toBlob((blob) => resolve(blob), 'image/png');
     } catch {
@@ -2726,6 +3010,179 @@ function wordCardBlob(v) {
     }
   });
 }
+
+/**
+ * Hand a rendered card to the platform.
+ *
+ * Three paths, in order of preference:
+ *   1. the native sheet WITH the file — one tap to any app she has
+ *   2. save the PNG and put the text on the clipboard — desktop, and any
+ *      browser that cannot share files
+ * The second is not a failure: she still ends up with both halves of the post.
+ */
+async function sharePicture({ spec, text, url, filename }) {
+  const clean = String(text || '').trim();
+  const blob = await shareCardBlob(spec);
+  if (!blob) return shareOrCopy({ title: 'CantoBuddy', text: clean, url });
+
+  const file = new File([blob], filename, { type: 'image/png' });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], text: clean, url });
+      return;
+    } catch (err) {
+      if (err && err.name === 'AbortError') return;
+    }
+  }
+
+  try {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+    await navigator.clipboard.writeText(`${clean}\n${url}`);
+    showToast(t('share.cardSaved'));
+  } catch {
+    showToast(t('share.failed'));
+  }
+}
+
+/**
+ * The share strip: one consistent row under anything worth sharing.
+ *
+ * WhatsApp comes first because that is where this community actually talks, and
+ * the picture second because a text-only post dies in a busy group chat. Having
+ * the same two buttons in the same place on the album, on a story and on an
+ * article is the whole "easier to share" idea — she learns the row once.
+ */
+function shareRowHtml(actions) {
+  return `<div class="share-row">${actions
+    .map(
+      (a) => `<button class="share-row-btn${a.variant ? ' share-row-btn--' + a.variant : ''}" onclick="${a.onclick}">
+                ${a.icon || SHARE_ICON_SVG}<span class="share-row-label">${escapeHtml(a.label)}</span>
+              </button>`
+    )
+    .join('')}</div>`;
+}
+
+// ---- The six card layouts --------------------------------------------------
+
+/** A vocabulary word — the original card, now drawn through the shared frame. */
+function wordSpec(v) {
+  const primary = meaning(v) || v.english || '';
+  const secondary = currentLang() === 'en' ? v.tagalog || '' : v.english || '';
+  return {
+    eyebrow: t('share.cardWord'),
+    blocks: [
+      { type: 'text', value: v.cantonese || '', family: CARD_HAN, weight: 500, size: 300, y: 420, maxWidth: CARD_SIZE - 160 },
+      { type: 'text', value: v.jyutping || '', family: CARD_MONO, weight: 400, size: 52, color: cardTokens().primary, y: 600 },
+      { type: 'text', value: primary, size: 66, y: 716, maxWidth: CARD_SIZE - 200 },
+      secondary && secondary !== primary
+        ? { type: 'text', value: secondary, weight: 400, size: 50, color: cardTokens().soft, y: 796, maxWidth: CARD_SIZE - 200 }
+        : null,
+    ].filter(Boolean),
+  };
+}
+
+/** Public word-card renderer — delegates to the shared card engine. */
+function wordCardBlob(v) {
+  return shareCardBlob(wordSpec(v));
+}
+
+/** One collected sticker, in its shelf's colour. */
+function stickerSpec(s) {
+  const { accent, tint } = tierColours(s.tier);
+  const r = _rewards;
+  const n = r ? r.stickers.findIndex((x) => x.key === s.key) + 1 : 0;
+  const total = r ? r.stickers.length : 0;
+  const name = stickerName(s);
+  return {
+    accent,
+    tint,
+    eyebrow: total ? t('share.cardSticker').replace('{n}', n).replace('{total}', total) : t('share.cardStickerShort'),
+    blocks: [
+      { type: 'emoji', value: s.emoji, size: 200, y: 340 },
+      { type: 'text', value: s.cantonese, family: CARD_HAN, weight: 600, size: 170, y: 530, maxWidth: CARD_SIZE - 220 },
+      { type: 'text', value: s.jyutping, family: CARD_MONO, weight: 400, size: 50, color: accent, y: 648 },
+      { type: 'text', value: name, size: 58, y: 736, maxWidth: CARD_SIZE - 200 },
+      s.english && s.english !== name
+        ? { type: 'text', value: s.english, weight: 400, size: 42, color: cardTokens().soft, y: 796, maxWidth: CARD_SIZE - 200 }
+        : null,
+    ].filter(Boolean),
+  };
+}
+
+/** The whole album — the most personal thing in the app, and the most shareable. */
+function albumSpec(r) {
+  const got = r.stickers.filter((s) => s.unlocked);
+  const total = r.stickers.length;
+  const k = cardTokens();
+  return {
+    accent: k.primary,
+    tint: k.primaryTint,
+    eyebrow: t('share.cardAlbum'),
+    blocks: [
+      { type: 'text', value: `${got.length}/${total}`, size: 200, y: 372 },
+      { type: 'text', value: t('share.cardAlbumSub'), size: 52, y: 500, maxWidth: CARD_SIZE - 200 },
+      got.length
+        ? { type: 'emojiGrid', values: got.map((s) => s.emoji), size: got.length > 12 ? 46 : 58, y: 640, rowGap: 22 }
+        : null,
+      { type: 'text', value: `${r.credits} ${t('rewards.credits')}`, weight: 500, size: 42, color: k.soft, y: 800 },
+    ].filter(Boolean),
+  };
+}
+
+/** A quiz score. */
+function resultSpec(r) {
+  const k = cardTokens();
+  return {
+    accent: k.primary,
+    tint: k.primaryTint,
+    eyebrow: t('share.cardResult'),
+    blocks: [
+      { type: 'text', value: `${r.score}/${r.total}`, size: 210, y: 400 },
+      { type: 'text', value: t('share.cardResultSub').replace('{pct}', r.pct), size: 54, y: 540, maxWidth: CARD_SIZE - 200 },
+      { type: 'text', value: quizTypeName(r.type), weight: 500, size: 44, color: k.soft, y: 632, maxWidth: CARD_SIZE - 200 },
+    ],
+  };
+}
+
+/** A helper's story. */
+function storySpec(story) {
+  const k = cardTokens();
+  const byline = String(story.display_name || '').trim() || t('story.anonymous');
+  return {
+    accent: k.secondary,
+    tint: '#e6f5f3',
+    eyebrow: t('share.cardStory'),
+    blocks: [
+      { type: 'emoji', value: '📖', size: 140, y: 300 },
+      { type: 'wrap', value: story.title, size: 60, y: 470, maxLines: 3, lineHeight: 76 },
+      { type: 'text', value: byline, weight: 500, size: 42, color: k.soft, y: 790, maxWidth: CARD_SIZE - 200 },
+    ],
+  };
+}
+
+/** A Discover article. */
+function articleSpec(post) {
+  const k = cardTokens();
+  const summary = postField(post, 'summary');
+  return {
+    accent: k.secondary,
+    tint: '#e6f5f3',
+    eyebrow: t('share.cardArticle'),
+    blocks: [
+      { type: 'emoji', value: post.icon || '🏮', size: 140, y: 300 },
+      { type: 'wrap', value: postField(post, 'title'), size: 56, y: 462, maxLines: 3, lineHeight: 72 },
+      summary
+        ? { type: 'wrap', value: summary, size: 34, weight: 400, color: k.soft, y: 760, maxLines: 2, lineHeight: 46, maxWidth: CARD_SIZE - 220 }
+        : null,
+    ].filter(Boolean),
+  };
+}
+
+// ---- Sharing each one ------------------------------------------------------
 
 /**
  * Share a word as a picture.
@@ -2737,43 +3194,84 @@ function wordCardBlob(v) {
 async function shareWordCard(id) {
   const v = STATE.vocabulary.find((x) => x.id === id);
   if (!v) return;
-  const url = shareUrl(v.slug ? `/words/${v.slug}` : null);
-  const text = `${v.emoji || ''} ${v.cantonese} (${v.jyutping}) = ${v.english}\n${t('share.wordText')}`;
-
-  const blob = await wordCardBlob(v);
-  if (!blob) return shareOrCopy({ title: 'CantoBuddy', text: text.trim(), url });
-
-  const file = new File([blob], `cantobuddy-${v.slug || v.id}.png`, { type: 'image/png' });
-  if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    try {
-      await navigator.share({ files: [file], text: text.trim(), url });
-      return;
-    } catch (err) {
-      if (err && err.name === 'AbortError') return;
-    }
-  }
-
-  // No file sharing here. Save the image and put the text on the clipboard, so
-  // she has both halves of the post in hand.
-  try {
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = file.name;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 10000);
-    await navigator.clipboard.writeText(`${text}\n${url}`);
-    showToast(t('share.cardSaved'));
-  } catch {
-    showToast(t('share.failed'));
-  }
+  const gloss = [meaning(v), v.english].filter(Boolean).filter((s, i, a) => a.indexOf(s) === i).join(' / ');
+  await sharePicture({
+    spec: wordSpec(v),
+    text: `${v.emoji || ''} ${v.cantonese} (${v.jyutping}) = ${gloss}\n${t('share.wordText')}`,
+    url: shareUrl(v.slug ? `/words/${v.slug}` : null),
+    filename: `cantobuddy-${v.slug || v.id}.png`,
+  });
 }
 
-/** Share the most recent quiz score. */
-function shareResult() {
+/**
+ * Share one sticker, either as a picture or straight into a chat.
+ *
+ * `mode` is 'picture' (default) or 'chat'. One function with a mode rather than
+ * two near-identical ones, so the text and the picture can never say different
+ * things about the same sticker.
+ */
+async function shareSticker(key, mode) {
+  const s = _rewards && _rewards.stickers.find((x) => x.key === key);
+  if (!s || !s.unlocked) return;
+  const name = stickerName(s);
+  const text = t('share.stickerText')
+    .replace('{emoji}', s.emoji)
+    .replace('{cantonese}', s.cantonese)
+    .replace('{jyutping}', s.jyutping)
+    .replace('{name}', name);
+  if (mode === 'chat') return shareToWhatsApp(text, shareUrl(null));
+  await sharePicture({ spec: stickerSpec(s), text, url: shareUrl(null), filename: `cantobuddy-sticker-${s.key}.png` });
+}
+
+/** Share the album, as a picture or into a chat. */
+async function shareAlbum(mode) {
+  const r = _rewards;
+  if (!r || !r.stickers.length) return;
+  const got = r.stickers.filter((s) => s.unlocked).length;
+  const text = t('share.albumText')
+    .replace('{n}', got)
+    .replace('{total}', r.stickers.length);
+  if (mode === 'chat') return shareToWhatsApp(text, shareUrl(null));
+  await sharePicture({ spec: albumSpec(r), text, url: shareUrl(null), filename: 'cantobuddy-album.png' });
+}
+
+/** Share the most recent quiz score, as a picture or into a chat. */
+async function shareResult(mode) {
   const r = window._lastResult;
   if (!r) return;
   const text = t('share.scoreText').replace('{score}', r.score).replace('{total}', r.total);
-  shareOrCopy({ title: 'CantoBuddy', text, url: shareUrl(null) });
+  if (mode === 'chat') return shareToWhatsApp(text, shareUrl(null));
+  await sharePicture({ spec: resultSpec(r), text, url: shareUrl(null), filename: 'cantobuddy-score.png' });
+}
+
+/**
+ * Share a story someone else wrote.
+ *
+ * The link is the story's own page, which is a real crawlable document with its
+ * own title and description — so the share works even for a friend who never
+ * installs the app.
+ */
+async function shareStory(slug, mode) {
+  const story = STATE.stories.current && STATE.stories.current.slug === slug
+    ? STATE.stories.current
+    : (STATE.stories.list || []).find((s) => s.slug === slug);
+  if (!story) return;
+  const text = t('share.storyText').replace('{title}', story.title);
+  const url = shareUrl(`/stories/${slug}`);
+  if (mode === 'chat') return shareToWhatsApp(text, url);
+  await sharePicture({ spec: storySpec(story), text, url, filename: `cantobuddy-story-${slug}.png` });
+}
+
+/** Share an article from the Discover feed. */
+async function shareArticle(slug, mode) {
+  const post = STATE.discover.current && STATE.discover.current.slug === slug
+    ? STATE.discover.current
+    : (STATE.discover.list || []).find((p) => p.slug === slug);
+  if (!post) return;
+  const text = t('share.articleText').replace('{title}', postField(post, 'title'));
+  const url = shareUrl(`/discover/${slug}`);
+  if (mode === 'chat') return shareToWhatsApp(text, url);
+  await sharePicture({ spec: articleSpec(post), text, url, filename: `cantobuddy-${slug}.png` });
 }
 
 /**
@@ -2807,8 +3305,124 @@ async function copyShareLink() {
 }
 
 /**
- * Fill in the Share page: the exact message the friend will receive, and the
- * link. Re-run on language change so the preview matches what would be sent.
+ * The "share what you did" cards.
+ *
+ * Only offers what she actually has. An empty album card is a dead end, and a
+ * dead end on the one page whose whole job is to get a link sent is worse than
+ * not showing the card at all — so a card appears only when there is something
+ * behind it.
+ */
+function renderShareHub() {
+  const host = document.getElementById('share-hub');
+  if (!host) return;
+
+  const cards = [];
+
+  const r = _rewards;
+  const got = r ? r.stickers.filter((s) => s.unlocked).length : 0;
+  if (got) {
+    cards.push({
+      icon: '🏅',
+      title: t('share.hubAlbum'),
+      sub: t('share.hubAlbumSub').replace('{n}', got).replace('{total}', r.stickers.length),
+      onclick: 'shareAlbum()',
+    });
+  }
+
+  if (window._lastResult) {
+    const lr = window._lastResult;
+    cards.push({
+      icon: '🌟',
+      title: t('share.hubScore'),
+      sub: t('share.hubScoreSub').replace('{score}', lr.score).replace('{total}', lr.total),
+      onclick: 'shareResult()',
+    });
+  }
+
+  const word = STATE.vocabulary[0];
+  if (word) {
+    cards.push({
+      icon: word.emoji || '📝',
+      title: t('share.hubWord'),
+      sub: t('share.hubWordSub').replace('{word}', `${word.cantonese} · ${meaning(word)}`),
+      onclick: `shareWordCard(${Number(word.id)})`,
+    });
+  }
+
+  const story = (STATE.stories.list || [])[0];
+  if (story) {
+    cards.push({
+      icon: '📖',
+      title: t('share.hubStory'),
+      sub: t('share.hubStorySub').replace('{title}', story.title),
+      onclick: `shareStory('${story.slug}')`,
+    });
+  }
+
+  const post = (STATE.discover.posts.culture || [])[0] || (STATE.discover.posts.news || [])[0];
+  if (post) {
+    cards.push({
+      icon: post.icon || '🏮',
+      title: t('share.hubArticle'),
+      sub: t('share.hubArticleSub').replace('{title}', postField(post, 'title')),
+      onclick: `shareArticle('${post.slug}')`,
+    });
+  }
+
+  const heading = document.getElementById('share-hub-heading');
+  if (heading) heading.hidden = !cards.length;
+
+  host.innerHTML = cards
+    .map(
+      (c) => `<button class="share-hub-card" onclick="${c.onclick}">
+                <span class="share-hub-icon">${escapeHtml(c.icon)}</span>
+                <span class="share-hub-text">
+                  <span class="share-hub-title">${escapeHtml(c.title)}</span>
+                  <span class="share-hub-sub">${escapeHtml(c.sub)}</span>
+                </span>
+                <span class="share-hub-go" aria-hidden="true">›</span>
+              </button>`
+    )
+    .join('');
+}
+
+/**
+ * Quietly load what the hub needs, then redraw it.
+ *
+ * The album card needs her credits, and the story and article cards need a list
+ * she may never have opened this session. Fetching them here rather than
+ * leaving the cards out means the page is complete on a first visit, and every
+ * fetch writes into the same STATE cache Discover uses — so arriving here costs
+ * one request, not a second copy of the feed.
+ *
+ * The redraw is gated on her still being on the page: a slow response must
+ * never paint over whatever she has navigated to since.
+ */
+async function prefetchShareHub() {
+  const jobs = [];
+  if (!_rewards) jobs.push(fetchRewards());
+  if (!STATE.stories.list) {
+    jobs.push(apiGet('/api/stories').then((s) => { STATE.stories.list = s; }).catch(() => {}));
+  }
+  if (!STATE.discover.posts.culture) {
+    jobs.push(
+      apiGet('/api/posts?channel=culture')
+        .then((p) => { STATE.discover.posts.culture = p; })
+        .catch(() => {})
+    );
+  }
+  if (!jobs.length) return;
+  await Promise.all(jobs);
+  const view = document.getElementById('view-share');
+  if (view && view.classList.contains('active')) renderShareHub();
+}
+
+/**
+ * Fill in the Share page: the exact message the friend will receive, the link,
+ * and the cards for everything she has made.
+ *
+ * Re-run on language change so the preview and the cards match what would be
+ * sent.
  */
 function renderSharePage() {
   // The real link, referral code and all — the preview's whole job is to show
@@ -2819,6 +3433,9 @@ function renderSharePage() {
   const previewLink = document.getElementById('share-preview-link');
   if (previewText) previewText.textContent = t('sharePage.message');
   if (previewLink) previewLink.textContent = url;
+
+  renderShareHub();
+  prefetchShareHub();
 }
 
 // ---- Discover feed (culture + news) ----------------------------------------
@@ -3070,6 +3687,10 @@ function renderStoryPage(story) {
     </div>
     <div class="post-content">${storyParagraphs(story.body)}</div>
     ${gloss}
+    ${shareRowHtml([
+      { label: t('share.chatBtn'), icon: WHATSAPP_ICON_SVG, onclick: `shareStory('${story.slug}', 'chat')`, variant: 'wa' },
+      { label: t('share.pictureBtn'), icon: '🖼️', onclick: `shareStory('${story.slug}')` },
+    ])}
     <p class="story-back"><button class="btn-link" onclick="navigate('discover')">${escapeHtml(t('story.backToStories'))}</button></p>`;
 }
 
@@ -3255,7 +3876,11 @@ function renderPost(post) {
     </div>
     ${summary ? `<p class="post-summary">${escapeHtml(summary)}</p>` : ''}
     <div class="post-content">${body}</div>
-    ${source}`;
+    ${source}
+    ${shareRowHtml([
+      { label: t('share.chatBtn'), icon: WHATSAPP_ICON_SVG, onclick: `shareArticle('${post.slug}', 'chat')`, variant: 'wa' },
+      { label: t('share.pictureBtn'), icon: '🖼️', onclick: `shareArticle('${post.slug}')` },
+    ])}`;
 }
 
 // ---- Employer connections --------------------------------------------------

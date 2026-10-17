@@ -919,7 +919,17 @@ const VISIT_BEACON = `<script>
       }).join('');
       try { localStorage.setItem(KEY, id); } catch (e) {}
     }
-    var body = JSON.stringify({ path: location.pathname, public_id: id });
+    // First-touch referral, same rule as the app: whoever brought her here
+    // is recorded once and never overwritten, so a later link cannot steal it.
+    var ref = '';
+    try {
+      var p = new URLSearchParams(location.search);
+      ref = (p.get('ref') || p.get('utm_source') || '').trim();
+      if (ref && !localStorage.getItem('cb_ref')) {
+        localStorage.setItem('cb_ref', ref.slice(0, 64));
+      }
+    } catch (e) {}
+    var body = JSON.stringify({ path: location.pathname, public_id: id, ref: ref || undefined });
     if (navigator.sendBeacon) {
       navigator.sendBeacon('/api/visit', new Blob([body], { type: 'application/json' }));
     } else {

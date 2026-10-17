@@ -257,6 +257,35 @@ const I18N = {
     'share.cardSaved': 'Image saved — paste it anywhere!',
     'share.cardFooter': 'Free Cantonese practice for helpers in Hong Kong',
 
+    // share cards — one picture per part of the app
+    'share.cardWord': 'Cantonese',
+    'share.cardSticker': 'Sticker {n} of {total}',
+    'share.cardStickerShort': 'Sticker',
+    'share.cardAlbum': 'My sticker album',
+    'share.cardAlbumSub': 'stickers collected',
+    'share.cardResult': 'Quiz result',
+    'share.cardResultSub': '{pct}% correct',
+    'share.cardStory': 'A story from a helper',
+    'share.cardArticle': 'From CantoBuddy',
+    'share.chatBtn': 'WhatsApp',
+    'share.pictureBtn': 'Picture',
+    'share.stickerText': '{emoji} {cantonese} ({jyutping}) = {name} — a sticker I earned on CantoBuddy! 🇭🇰',
+    'share.albumText': 'I have collected {n} of {total} Cantonese stickers on CantoBuddy! 🇭🇰',
+    'share.storyText': 'A helper wrote this: "{title}" — read it on CantoBuddy',
+    'share.articleText': '"{title}" — worth reading on CantoBuddy',
+
+    // the share hub — the different parts of the app she can send
+    'share.hubAlbum': 'My sticker album',
+    'share.hubAlbumSub': '{n} of {total} collected — send it as a picture',
+    'share.hubScore': 'My last quiz score',
+    'share.hubScoreSub': '{score} out of {total} — send it as a picture',
+    'share.hubWord': 'A word I am learning',
+    'share.hubWordSub': '{word} — send it as a picture',
+    'share.hubStory': 'A story from the community',
+    'share.hubStorySub': '{title} — send it as a picture',
+    'share.hubArticle': 'Something from Discover',
+    'share.hubArticleSub': '{title} — send it as a picture',
+
     // share page — inviting a friend to the app
     'sharePage.title': 'Share CantoBuddy',
     'sharePage.hero': 'Tell a friend',
@@ -269,6 +298,7 @@ const I18N = {
     'sharePage.copied': 'Link copied!',
     'sharePage.copyFailed': 'Could not copy the link.',
     'sharePage.message': "I'm learning Cantonese with CantoBuddy — free, and made for helpers in Hong Kong. Try it!",
+    'sharePage.hubHeading': 'Or share what you did',
 
     // connecting to an employer (invitation link)
     'connect.title': 'Connect to {name}?',
@@ -308,6 +338,12 @@ const I18N = {
     'rewards.newBodyMany': 'You earned {n} new stickers!',
     'rewards.viewAlbum': 'See my album',
     'rewards.notYet': 'Not collected yet',
+    'rewards.openSticker': 'Open sticker',
+    'rewards.earnedOn': 'Collected',
+    'rewards.shelf.first': 'First words',
+    'rewards.shelf.everyday': 'Everyday',
+    'rewards.shelf.out': 'Out and about',
+    'rewards.shelf.local': 'Almost local',
 
     // connecting with a code instead of a link
     'connect.enterCode': 'Enter a code',
@@ -600,6 +636,34 @@ const I18N = {
     'share.cardSaved': 'Nai-save ang larawan — i-paste kahit saan!',
     'share.cardFooter': 'Libreng Cantonese practice para sa mga helper sa Hong Kong',
 
+    // share cards
+    'share.cardWord': 'Cantonese',
+    'share.cardSticker': 'Sticker {n} ng {total}',
+    'share.cardStickerShort': 'Sticker',
+    'share.cardAlbum': 'Ang album ko ng sticker',
+    'share.cardAlbumSub': 'sticker ang nakuha',
+    'share.cardResult': 'Resulta ng quiz',
+    'share.cardResultSub': '{pct}% ang tama',
+    'share.cardStory': 'Kuwento mula sa isang helper',
+    'share.cardArticle': 'Mula sa CantoBuddy',
+    'share.chatBtn': 'WhatsApp',
+    'share.pictureBtn': 'Larawan',
+    'share.stickerText': '{emoji} {cantonese} ({jyutping}) = {name} — sticker na nakuha ko sa CantoBuddy! 🇭🇰',
+    'share.albumText': 'Nakuha ko na ang {n} sa {total} sticker ng Cantonese sa CantoBuddy! 🇭🇰',
+    'share.storyText': 'Isinulat ito ng isang helper: "{title}" — basahin sa CantoBuddy',
+    'share.articleText': '"{title}" — sulit basahin sa CantoBuddy',
+
+    'share.hubAlbum': 'Ang album ko ng sticker',
+    'share.hubAlbumSub': '{n} sa {total} ang nakuha — ipadala bilang larawan',
+    'share.hubScore': 'Huling score ko sa quiz',
+    'share.hubScoreSub': '{score} sa {total} — ipadala bilang larawan',
+    'share.hubWord': 'Isang salitang pinag-aaralan ko',
+    'share.hubWordSub': '{word} — ipadala bilang larawan',
+    'share.hubStory': 'Kuwento mula sa komunidad',
+    'share.hubStorySub': '{title} — ipadala bilang larawan',
+    'share.hubArticle': 'Isang bagay mula sa Discover',
+    'share.hubArticleSub': '{title} — ipadala bilang larawan',
+
     // share page — inviting a friend to the app
     'sharePage.title': 'Ibahagi ang CantoBuddy',
     'sharePage.hero': 'Sabihan ang kaibigan',
@@ -612,6 +676,7 @@ const I18N = {
     'sharePage.copied': 'Nakopya ang link!',
     'sharePage.copyFailed': 'Hindi makopya ang link.',
     'sharePage.message': 'Nag-aaral ako ng Cantonese sa CantoBuddy — libre, at para sa mga katulong sa Hong Kong. Subukan mo!',
+    'sharePage.hubHeading': 'O ibahagi ang nagawa mo',
 
     // connecting to an employer (invitation link)
     'connect.title': 'Kumonekta kay {name}?',
@@ -651,6 +716,12 @@ const I18N = {
     'rewards.newBodyMany': 'Nakakuha ka ng {n} bagong sticker!',
     'rewards.viewAlbum': 'Tingnan ang album ko',
     'rewards.notYet': 'Wala pa',
+    'rewards.openSticker': 'Buksan ang sticker',
+    'rewards.earnedOn': 'Nakuha noong',
+    'rewards.shelf.first': 'Mga unang salita',
+    'rewards.shelf.everyday': 'Araw-araw',
+    'rewards.shelf.out': 'Sa labas',
+    'rewards.shelf.local': 'Halos lokal na',
 
     // connecting with a code instead of a link
     'connect.enterCode': 'Maglagay ng code',
@@ -951,6 +1022,34 @@ const I18N = {
     'share.cardSaved': '图片已保存 — 可粘贴到任何地方！',
     'share.cardFooter': '香港外佣和外籍家庭助理的免费粤语练习',
 
+    // share cards
+    'share.cardWord': '粤语',
+    'share.cardSticker': '第 {n} 张，共 {total} 张',
+    'share.cardStickerShort': '贴纸',
+    'share.cardAlbum': '我的贴纸册',
+    'share.cardAlbumSub': '张已收集',
+    'share.cardResult': '测验成绩',
+    'share.cardResultSub': '正确率 {pct}%',
+    'share.cardStory': '一位家佣的故事',
+    'share.cardArticle': '来自 CantoBuddy',
+    'share.chatBtn': 'WhatsApp',
+    'share.pictureBtn': '图片',
+    'share.stickerText': '{emoji} {cantonese}（{jyutping}）= {name} —— 我在 CantoBuddy 拿到的贴纸！🇭🇰',
+    'share.albumText': '我在 CantoBuddy 已经收集了 {n}/{total} 张粤语贴纸！🇭🇰',
+    'share.storyText': '一位家佣写的：{title} —— 在 CantoBuddy 读读看',
+    'share.articleText': '{title} —— 值得在 CantoBuddy 一读',
+
+    'share.hubAlbum': '我的贴纸册',
+    'share.hubAlbumSub': '已收集 {n}/{total} —— 以图片分享',
+    'share.hubScore': '我上次的测验成绩',
+    'share.hubScoreSub': '{score}/{total} —— 以图片分享',
+    'share.hubWord': '我正在学的一个词',
+    'share.hubWordSub': '{word} —— 以图片分享',
+    'share.hubStory': '社区里的一个故事',
+    'share.hubStorySub': '{title} —— 以图片分享',
+    'share.hubArticle': '发现页的内容',
+    'share.hubArticleSub': '{title} —— 以图片分享',
+
     // share page — inviting a friend to the app
     'sharePage.title': '分享 CantoBuddy',
     'sharePage.hero': '告诉朋友',
@@ -963,6 +1062,7 @@ const I18N = {
     'sharePage.copied': '链接已复制！',
     'sharePage.copyFailed': '无法复制链接。',
     'sharePage.message': '我在用 CantoBuddy 学粤语 — 免费，专门为在香港生活的人做的。你也试试！',
+    'sharePage.hubHeading': '或者分享你做到的',
 
     // connecting to an employer (invitation link)
     'connect.title': '连接到 {name}？',
@@ -1002,6 +1102,12 @@ const I18N = {
     'rewards.newBodyMany': '你获得了 {n} 张新贴纸！',
     'rewards.viewAlbum': '看我的贴纸册',
     'rewards.notYet': '还没收集',
+    'rewards.openSticker': '打开贴纸',
+    'rewards.earnedOn': '收集于',
+    'rewards.shelf.first': '第一批词',
+    'rewards.shelf.everyday': '日常',
+    'rewards.shelf.out': '出门在外',
+    'rewards.shelf.local': '快像本地人了',
 
     // connecting with a code instead of a link
     'connect.enterCode': '输入代码',
@@ -1299,6 +1405,34 @@ const I18N = {
     'share.cardSaved': 'Gambar tersimpan — tempel di mana saja!',
     'share.cardFooter': 'Latihan bahasa Kanton gratis untuk asisten rumah tangga di Hong Kong',
 
+    // share cards
+    'share.cardWord': 'Bahasa Kanton',
+    'share.cardSticker': 'Stiker {n} dari {total}',
+    'share.cardStickerShort': 'Stiker',
+    'share.cardAlbum': 'Album stiker saya',
+    'share.cardAlbumSub': 'stiker terkumpul',
+    'share.cardResult': 'Hasil kuis',
+    'share.cardResultSub': '{pct}% benar',
+    'share.cardStory': 'Cerita dari seorang asisten',
+    'share.cardArticle': 'Dari CantoBuddy',
+    'share.chatBtn': 'WhatsApp',
+    'share.pictureBtn': 'Gambar',
+    'share.stickerText': '{emoji} {cantonese} ({jyutping}) = {name} — stiker yang saya dapat di CantoBuddy! 🇭🇰',
+    'share.albumText': 'Saya sudah mengumpulkan {n} dari {total} stiker Kanton di CantoBuddy! 🇭🇰',
+    'share.storyText': 'Seorang asisten menulis ini: "{title}" — baca di CantoBuddy',
+    'share.articleText': '"{title}" — layak dibaca di CantoBuddy',
+
+    'share.hubAlbum': 'Album stiker saya',
+    'share.hubAlbumSub': '{n} dari {total} terkumpul — kirim sebagai gambar',
+    'share.hubScore': 'Skor kuis terakhir saya',
+    'share.hubScoreSub': '{score} dari {total} — kirim sebagai gambar',
+    'share.hubWord': 'Kata yang sedang saya pelajari',
+    'share.hubWordSub': '{word} — kirim sebagai gambar',
+    'share.hubStory': 'Cerita dari komunitas',
+    'share.hubStorySub': '{title} — kirim sebagai gambar',
+    'share.hubArticle': 'Sesuatu dari Discover',
+    'share.hubArticleSub': '{title} — kirim sebagai gambar',
+
     // share page
     'sharePage.title': 'Bagikan CantoBuddy',
     'sharePage.hero': 'Beri tahu teman',
@@ -1311,6 +1445,7 @@ const I18N = {
     'sharePage.copied': 'Tautan tersalin!',
     'sharePage.copyFailed': 'Tidak bisa menyalin tautan.',
     'sharePage.message': 'Saya belajar bahasa Kanton dengan CantoBuddy — gratis, dan dibuat untuk asisten rumah tangga di Hong Kong. Coba!',
+    'sharePage.hubHeading': 'Atau bagikan yang sudah kamu lakukan',
 
     // connecting to an employer
     'connect.title': 'Hubungkan ke {name}?',
@@ -1350,6 +1485,12 @@ const I18N = {
     'rewards.newBodyMany': 'Anda mendapat {n} stiker baru!',
     'rewards.viewAlbum': 'Lihat album saya',
     'rewards.notYet': 'Belum dikumpulkan',
+    'rewards.openSticker': 'Buka stiker',
+    'rewards.earnedOn': 'Dikumpulkan',
+    'rewards.shelf.first': 'Kata pertama',
+    'rewards.shelf.everyday': 'Sehari-hari',
+    'rewards.shelf.out': 'Di luar rumah',
+    'rewards.shelf.local': 'Hampir warga lokal',
 
     // connecting with a code
     'connect.enterCode': 'Masukkan kode',

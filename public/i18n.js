@@ -147,6 +147,8 @@ const I18N = {
     'home.startQuiz': '📝 Start Quiz',
     'home.myProgress': '📊 My Progress',
     'home.browseByCategory': 'Browse by Category',
+    'home.showMoreCategories': 'Show more',
+    'home.showLessCategories': 'Show less',
     // The returning-learner cards on Home. Nothing here is shown to a device
     // that has never practised, so these strings are only ever read by someone
     // who has already used the app at least once.
@@ -547,6 +549,8 @@ const I18N = {
     'home.startQuiz': '📝 Simulan ang Pagsusulit',
     'home.myProgress': '📊 Aking Progreso',
     'home.browseByCategory': 'Tingnan ayon sa Kategorya',
+    'home.showMoreCategories': 'Magpakita ng higit pa',
+    'home.showLessCategories': 'Magpakita ng mas kaunti',
     'home.resumeWelcome': 'Maligayang pagbabalik',
     'home.resumeKeep': 'Magpraktis ngayon para tuloy ang sunod-sunod mo',
     'home.resumeDone': 'Nagpraktis ka na ngayon — magaling',
@@ -951,6 +955,8 @@ const I18N = {
     'home.startQuiz': '📝 开始测验',
     'home.myProgress': '📊 我的进度',
     'home.browseByCategory': '按类别浏览',
+    'home.showMoreCategories': '显示更多',
+    'home.showLessCategories': '收起',
     'home.resumeWelcome': '欢迎回来',
     'home.resumeKeep': '今天练习，保持连续记录',
     'home.resumeDone': '今天已经练习了，做得好',
@@ -1352,6 +1358,8 @@ const I18N = {
     'home.startQuiz': '📝 Mulai Kuis',
     'home.myProgress': '📊 Kemajuan Saya',
     'home.browseByCategory': 'Jelajahi per Kategori',
+    'home.showMoreCategories': 'Tampilkan lebih banyak',
+    'home.showLessCategories': 'Tampilkan lebih sedikit',
     'home.resumeWelcome': 'Selamat datang kembali',
     'home.resumeKeep': 'Latihan hari ini agar rentetanmu tetap berjalan',
     'home.resumeDone': 'Kamu sudah berlatih hari ini — bagus',

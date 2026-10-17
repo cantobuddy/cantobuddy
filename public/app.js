@@ -81,6 +81,7 @@ const STATE = {
   currentCat: 0,        // 0 = all
   browseFrom: 'home',   // where Browse was entered from, so back goes back there
   catNudgeDone: false,  // set the moment she scrolls the category row herself
+  homeCatsExpanded: false,  // home category grid: collapsed to 2 rows, "more" reveals the rest
   quiz: null,           // active quiz object
   stats: null,          // her own statistics, from /api/learners/stats
   statsDays: 30,        // chart window only — never affects totals or streak
@@ -762,8 +763,18 @@ function rerenderForLanguage() {
 function renderHomeCategories() {
   const wrap = document.getElementById('home-categories');
   if (!wrap) return;
+  // The strip is intentionally long (19 categories), which makes the home page
+  // honest about how much there is to learn — but the strip itself is a choice
+  // she's not yet making. Show two rows and a "Show more" button. The grid
+  // keeps all 19 cards in the DOM and the container is the thing that clips,
+  // so the reveal is instant and the chips are still rendered, just behind a
+  // max-height. A fade at the bottom is a hint that the strip continues, not
+  // a wall.
+  const total = STATE.categories.length;
+  const expanded = STATE.homeCatsExpanded;
   wrap.innerHTML =
     `<h4>${t('home.browseByCategory')}</h4>` +
+    `<div class="cat-strip-wrap${expanded ? '' : ' collapsed'}" id="cat-strip-wrap">` +
     '<div class="cat-strip">' +
     STATE.categories
       .map(
@@ -774,7 +785,17 @@ function renderHomeCategories() {
       </button>`
       )
       .join('') +
-    '</div>';
+    '</div>' +
+    '</div>' +
+    (total > 4 // anything that fits in 2 rows at every breakpoint stays uncluttered
+      ? `<button class="cat-strip-toggle" onclick="toggleHomeCategories()">${t(expanded ? 'home.showLessCategories' : 'home.showMoreCategories')}</button>`
+      : '');
+}
+
+/** The "Show more / Show less" toggle on the home category grid. */
+function toggleHomeCategories() {
+  STATE.homeCatsExpanded = !STATE.homeCatsExpanded;
+  renderHomeCategories();
 }
 
 // ---- Home: the returning-learner cards -------------------------------------

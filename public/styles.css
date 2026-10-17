@@ -714,6 +714,40 @@ body {
   gap: 8px;
 }
 
+/* The home screen shows 19 categories, which is honest about how much there is
+   to learn but is a lot to scroll past before the story cards. The wrapper
+   clips the grid to ~2 rows when collapsed and fades the bottom edge so the
+   "more" button below is the obvious next step. The fade is a hint, not a
+   hard cut, so she still sees the next row's icons peeking through. */
+.cat-strip-wrap.collapsed {
+  max-height: 130px;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, black 0, black calc(100% - 22px), transparent 100%);
+          mask-image: linear-gradient(to bottom, black 0, black calc(100% - 22px), transparent 100%);
+}
+
+/* "Show more / Show less" for the home category grid. Sits centred below the
+   clipped grid; a soft outline keeps it visible without competing with the
+   category pills above. */
+.cat-strip-toggle {
+  display: block;
+  margin: 10px auto 0;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--c-primary);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, border-color 0.15s;
+}
+.cat-strip-toggle:hover {
+  background: var(--c-primary-tint);
+  border-color: var(--c-primary);
+}
+
 .cat-pill {
   background: var(--c-surface);
   border: 1px solid var(--c-border);

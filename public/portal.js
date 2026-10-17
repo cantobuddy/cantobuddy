@@ -226,7 +226,7 @@ async function checkSession() {
   if (!me.authenticated) return;
 
   if (me.role === 'employer') return showDashboard(me);
-  if (me.role === 'admin') return showOperatorNotice();
+  if (me.role === 'admin') return showEmployerSignIn();
 
   // Any other role has no business in the portal. Say so, rather than
   // resetting the form and leaving the visitor staring at a card that did
@@ -236,26 +236,22 @@ async function checkSession() {
 }
 
 /**
- * The sign-in card, plus a note explaining why an operator is not let in.
+ * An operator (admin) session does not get the employer dashboard: it is sent
+ * back to the employer sign-in card.
  *
  * Deliberately does not touch the dashboard: the point is that an operator
  * session never reaches it.
  */
-function showOperatorNotice() {
+function showEmployerSignIn() {
   document.getElementById('portal-auth').classList.add('active');
   document.getElementById('portal-dash').classList.remove('active');
   document.getElementById('logout-btn').style.display = 'none';
-  const note = document.getElementById('operator-note');
-  if (note) note.style.display = '';
 }
 
 async function showDashboard(me) {
   document.getElementById('portal-auth').classList.remove('active');
   document.getElementById('portal-dash').classList.add('active');
   document.getElementById('logout-btn').style.display = '';
-  // An employer may sign in on a machine where the notice was showing.
-  const note = document.getElementById('operator-note');
-  if (note) note.style.display = 'none';
 
   if (!me) me = await apiGet('/api/auth/me').catch(() => ({}));
   const who = me.name || me.email || 'there';

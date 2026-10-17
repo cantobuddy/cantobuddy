@@ -55,6 +55,24 @@ app.use((req, res, next) => {
   next();
 });
 
+// The admin and employer-portal pages must never be cached. They show live
+// account and progress data, and express.static's default `max-age=0` still
+// leaves the browser free to serve a stored copy — which is exactly how a
+// notice that was deleted in a deploy kept showing on a returning visitor's
+// phone (2026-10-17). Registered BEFORE express.static so the header lands on
+// the static file response itself, not just on the routes that come after it.
+//
+// `/reset` serves the portal's HTML, so it carries the same rule.
+const NO_STORE_PATHS = new Set([
+  '/portal', '/portal.html', '/portal.js',
+  '/admin', '/admin.html', '/admin.js',
+  '/reset',
+]);
+app.use((req, res, next) => {
+  if (NO_STORE_PATHS.has(req.path)) res.setHeader('Cache-Control', 'no-store');
+  next();
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(

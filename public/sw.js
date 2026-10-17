@@ -41,9 +41,37 @@ self.addEventListener('activate', (event) => {
     caches
       .keys()
       .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      // An OLD service worker — one from before /portal and /admin were made
+      // network-first — ran those pages through the app-shell branch below and
+      // CACHED them, under this same cache name. Deleting the old cache *names*
+      // is not enough on its own, so purge any stray copy explicitly.
+      //
+      // This is not hypothetical: a deleted operator notice came back on the
+      // operator's own phone minutes after the deploy (2026-10-17), served from
+      // a cached portal.html. These pages show live account data and must never
+      // be served from cache, so removing them here is correctness, not tidiness.
+      .then(() => purgeOperatorPages())
       .then(() => self.clients.claim())
   );
 });
+
+/**
+ * Delete every cached response for the operator pages from the live cache.
+ *
+ * The prefixes are deliberately broad — nothing else on this origin starts with
+ * them, and a near-miss leaves the stale page in place, which is the bug.
+ */
+function purgeOperatorPages() {
+  return caches.open(CACHE).then((cache) =>
+    cache.keys().then((reqs) => {
+      const stale = reqs.filter((r) => {
+        const p = new URL(r.url).pathname;
+        return p.startsWith('/portal') || p.startsWith('/admin') || p.startsWith('/reset');
+      });
+      return Promise.all(stale.map((r) => cache.delete(r)));
+    })
+  );
+}
 
 // ---- Fetch strategy ----
 self.addEventListener('fetch', (event) => {

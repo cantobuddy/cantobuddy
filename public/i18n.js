@@ -54,6 +54,23 @@ const I18N = {
     'discover.readOriginal': 'Read the full story',
     'discover.notFound': 'That article is not available.',
     'discover.newsNote': 'Headlines and short summaries from Philippine, Indonesian and Hong Kong sources. The full story is at the link.',
+    // News categories. The chips narrow the News channel to one topic, because
+    // the channel grows without bound and a helper should not have to scroll to
+    // find what she came for. Labels are per language on purpose — these are
+    // topic names a reader chooses by, not untranslated interface furniture.
+    'discover.filterLabel': 'Show only',
+    'discover.catAll': 'All news',
+    'discover.catHongkong': 'Hong Kong',
+    'discover.catWork': 'Work & your rights',
+    'discover.catMoney': 'Money & prices',
+    'discover.catHealth': 'Health',
+    'discover.catHome': 'Home & family',
+    'discover.catPolitics': 'Government',
+    'discover.catOther': 'Other news',
+    // The pager. `%s` is the number of items still hidden.
+    'discover.showMore': 'Show more (%s)',
+    'discover.showAll': 'Show everything',
+    'discover.allShown': 'That is everything.',
     // Stories — a helper's own life story. It lives INSIDE Discover, beside
     // Culture and News, because a story is a thing to read like any other, and
     // because a seventh bottom-nav tab does not fit a 320px phone.
@@ -439,6 +456,19 @@ const I18N = {
     'discover.readOriginal': 'Basahin ang buong balita',
     'discover.notFound': 'Hindi available ang artikulong iyon.',
     'discover.newsNote': 'Mga headline at maikling buod mula sa mga pinagmulan sa Pilipinas, Indonesia at Hong Kong. Nasa link ang buong balita.',
+    // News categories
+    'discover.filterLabel': 'Ipakita lang ang',
+    'discover.catAll': 'Lahat ng balita',
+    'discover.catHongkong': 'Hong Kong',
+    'discover.catWork': 'Trabaho at karapatan',
+    'discover.catMoney': 'Pera at presyo',
+    'discover.catHealth': 'Kalusugan',
+    'discover.catHome': 'Tahanan at pamilya',
+    'discover.catPolitics': 'Pamahalaan',
+    'discover.catOther': 'Iba pang balita',
+    'discover.showMore': 'Ipakita pa (%s)',
+    'discover.showAll': 'Ipakita lahat',
+    'discover.allShown': 'Yan lahat na.',
     // Stories — a helper's own life story. It lives INSIDE Discover, beside
     // Culture and News, because a story is a thing to read like any other, and
     // because a seventh bottom-nav tab does not fit a 320px phone.
@@ -825,6 +855,19 @@ const I18N = {
     'discover.readOriginal': '阅读完整报道',
     'discover.notFound': '这篇文章暂不可用。',
     'discover.newsNote': '标题与简短摘要来自菲律宾、印尼和香港的媒体，完整报道见链接。',
+    // 新闻分类
+    'discover.filterLabel': '只看',
+    'discover.catAll': '全部新闻',
+    'discover.catHongkong': '香港',
+    'discover.catWork': '工作与权益',
+    'discover.catMoney': '金钱与物价',
+    'discover.catHealth': '健康',
+    'discover.catHome': '家乡与家庭',
+    'discover.catPolitics': '政府',
+    'discover.catOther': '其他新闻',
+    'discover.showMore': '再看 %s 条',
+    'discover.showAll': '全部显示',
+    'discover.allShown': '已经全部显示。',
     // Stories — a helper's own life story. It lives INSIDE Discover, beside
     // Culture and News, because a story is a thing to read like any other, and
     // because a seventh bottom-nav tab does not fit a 320px phone.
@@ -1210,6 +1253,19 @@ const I18N = {
     'discover.readOriginal': 'Baca berita lengkapnya',
     'discover.notFound': 'Artikel itu tidak tersedia.',
     'discover.newsNote': 'Judul dan ringkasan singkat dari sumber Indonesia, Filipina, dan Hong Kong. Berita lengkapnya ada di tautan.',
+    // Kategori berita
+    'discover.filterLabel': 'Tampilkan hanya',
+    'discover.catAll': 'Semua berita',
+    'discover.catHongkong': 'Hong Kong',
+    'discover.catWork': 'Kerja & hak Anda',
+    'discover.catMoney': 'Uang & harga',
+    'discover.catHealth': 'Kesehatan',
+    'discover.catHome': 'Kampung & keluarga',
+    'discover.catPolitics': 'Pemerintah',
+    'discover.catOther': 'Berita lain',
+    'discover.showMore': 'Tampilkan %s lagi',
+    'discover.showAll': 'Tampilkan semua',
+    'discover.allShown': 'Itu saja.',
     // Stories — a helper's own life story. It lives INSIDE Discover, beside
     // Culture and News, because a story is a thing to read like any other, and
     // because a seventh bottom-nav tab does not fit a 320px phone.

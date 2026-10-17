@@ -16,6 +16,7 @@ const ADMIN = {
   feedbackFilter: '',
   posts: [],
   postsFilter: '',
+  newsCategory: '',
   // Community stories. The queue opens on 'pending', not on everything: this is
   // the one tab whose default view is a to-do list, because a story that is
   // never approved is a story nobody ever reads.
@@ -1437,6 +1438,22 @@ function setPostFilter(channel) {
   document.querySelectorAll('#admin-posts-filter .chip').forEach((c) => {
     c.classList.toggle('active', c.dataset.channel === channel);
   });
+  // The topic row belongs to the News channel only. Leaving it visible on
+  // Culture would be a control that does nothing, which is worse than no
+  // control — and clearing the topic filter here stops a stale news topic
+  // from hiding an imported post she is looking for under Culture.
+  const topicRow = document.getElementById('admin-posts-category');
+  if (topicRow) topicRow.hidden = channel !== 'news';
+  if (channel !== 'news') ADMIN.newsCategory = '';
+  renderAdminPosts();
+}
+
+/** Narrows the News list to one topic. '' is every topic. */
+function setNewsCategoryFilter(category) {
+  ADMIN.newsCategory = category || '';
+  document.querySelectorAll('#admin-posts-category .chip').forEach((c) => {
+    c.classList.toggle('active', (c.dataset.category || '') === ADMIN.newsCategory);
+  });
   renderAdminPosts();
 }
 
@@ -1445,8 +1462,13 @@ async function renderAdminPosts() {
   if (!wrap) return;
   let data;
   try {
-    const q = ADMIN.postsFilter ? `?channel=${encodeURIComponent(ADMIN.postsFilter)}` : '';
-    data = await apiGet(`/api/admin/posts${q}`);
+    const q = new URLSearchParams();
+    if (ADMIN.postsFilter) q.set('channel', ADMIN.postsFilter);
+    // The topic filter is only ever sent for the News channel; sending it
+    // anywhere else would be asking the server for a category that does not
+    // exist there and getting an empty list back.
+    if (ADMIN.postsFilter === 'news' && ADMIN.newsCategory) q.set('category', ADMIN.newsCategory);
+    data = await apiGet(`/api/admin/posts${q.toString() ? `?${q}` : ''}`);
   } catch (err) {
     wrap.innerHTML = `<p class="admin-hint">Could not load the feed: ${escapeHtml(err.message)}</p>`;
     return;
@@ -1455,9 +1477,15 @@ async function renderAdminPosts() {
 
   const summary = document.getElementById('admin-posts-summary');
   if (summary && data.counts) {
+    const cats = data.newsCategories || {};
+    const byTopic = Object.entries(cats)
+      .filter(([k]) => k !== 'all')
+      .map(([k, n]) => `${k} ${n}`)
+      .join(' · ');
     summary.textContent =
       `${data.counts.published} published (${data.counts.culture} culture, ${data.counts.news} news) · ` +
-      `${data.counts.total} total. News is imported; culture is written here.`;
+      `${data.counts.total} total.` +
+      (byTopic ? ` News by topic — ${byTopic}.` : ' News is imported; culture is written here.');
   }
 
   if (!ADMIN.posts.length) {
@@ -1473,6 +1501,12 @@ async function renderAdminPosts() {
           ? '<span class="post-badge published">Published</span>'
           : '<span class="post-badge draft">Draft</span>';
       const origin = p.origin === 'auto' ? '<span class="post-badge auto">Imported</span>' : '';
+      // The topic, so a mis-classified item is visible as one rather than
+      // something that has to be discovered by opening the form. A culture post
+      // has no topic and shows nothing.
+      const topic = p.channel === 'news'
+        ? `<span class="post-badge topic">${escapeHtml(p.category || 'no topic')}</span>`
+        : '';
       const src = p.source_name
         ? `<a class="post-src" href="${escapeHtml(p.source_url)}" target="_blank" rel="noopener">${escapeHtml(p.source_name)}</a>`
         : '';
@@ -1481,7 +1515,7 @@ async function renderAdminPosts() {
           <div class="post-row-title">${escapeHtml(p.icon || '')} ${escapeHtml(p.title_en)}</div>
           <div class="post-row-meta">${escapeHtml(date)} · ${escapeHtml(p.channel)} · ${escapeHtml(p.slug)} ${src}</div>
         </div>
-        <div class="post-row-badges">${badge}${origin}</div>
+        <div class="post-row-badges">${badge}${origin}${topic}</div>
         <div class="post-row-actions">
           <button class="btn btn-sm btn-outline" onclick="openPostForm(${p.id})">Edit</button>
           <button class="btn btn-sm btn-outline" onclick="deleteAdminPost(${p.id})">Delete</button>
@@ -1491,12 +1525,26 @@ async function renderAdminPosts() {
     .join('');
 }
 
+/**
+ * The topic row follows the channel. A culture post has no topics at all, so
+ * showing the select for one would invite a choice the server then ignores.
+ */
+function togglePostCategoryRow() {
+  const channel = document.getElementById('pf-channel').value;
+  document.getElementById('pf-category-row').hidden = channel !== 'news';
+}
+
 function openPostForm(id) {
   const p = id ? ADMIN.posts.find((x) => x.id === Number(id)) : null;
   document.getElementById('post-form-title').textContent = p ? 'Edit post' : 'New post';
   document.getElementById('pf-id').value = p ? p.id : '';
-  document.getElementById('pf-channel').value = p ? p.channel : 'culture';
+  const channel = p ? p.channel : 'culture';
+  document.getElementById('pf-channel').value = channel;
   document.getElementById('pf-status').value = p ? p.status : 'draft';
+  // The topic row exists for the News channel only, so it is shown or hidden
+  // with the channel the form is about rather than always being on screen.
+  document.getElementById('pf-category-row').hidden = channel !== 'news';
+  document.getElementById('pf-category').value = (p && p.category) || '';
   const set = (field, value) => { document.getElementById(field).value = value || ''; };
   set('pf-icon', p && p.icon);
   set('pf-title-en', p && p.title_en);
@@ -1519,10 +1567,16 @@ function closePostForm(e) {
 async function submitPostForm(e) {
   e.preventDefault();
   const id = document.getElementById('pf-id').value;
+  const channel = document.getElementById('pf-channel').value;
   const body = {
-    channel: document.getElementById('pf-channel').value,
+    channel,
     status: document.getElementById('pf-status').value,
     icon: document.getElementById('pf-icon').value,
+    // Only sent for the News channel. An empty value means "leave the topic
+    // alone on edit / let the importer guess on create" — which is exactly the
+    // select's blank option, and exactly what an edit of a culture post should
+    // never carry at all.
+    ...(channel === 'news' ? { category: document.getElementById('pf-category').value } : {}),
     title_en: document.getElementById('pf-title-en').value,
     title_zh: document.getElementById('pf-title-zh').value,
     title_fil: document.getElementById('pf-title-fil').value,
@@ -1558,8 +1612,7 @@ async function deleteAdminPost(id) {
  * Runs the news importer now. Reports what actually happened — how many were
  * new, and which feed failed if one did — rather than a bare "done", because a
  * silent zero is the one result worth noticing.
- */
-async function fetchNewsNow() {
+ */async function fetchNewsNow() {
   const btn = event && event.target ? event.target : null;
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Fetching…'; }
   try {
@@ -1576,6 +1629,31 @@ async function fetchNewsNow() {
     alert('Import failed: ' + err.message);
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = '⬇ Fetch news now'; }
+  }
+}
+
+/**
+ * Fills in the topic of every news item that has none.
+ *
+ * Reports a zero honestly rather than as a failure — "nothing needed it" is
+ * the expected result most of the time, and a button that says done whether it
+ * worked or not is a button she learns to ignore. It never overwrites a topic
+ * she has already corrected by hand, which is the only reason it is safe to
+ * have on a toolbar at all.
+ */
+async function classifyNewsPosts() {
+  const btn = event && event.target ? event.target : null;
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Classifying…'; }
+  try {
+    const r = await apiPost('/api/admin/posts/classify', {});
+    await renderAdminPosts();
+    alert(r.classified
+      ? `Gave ${r.classified} news item(s) a topic.`
+      : 'Nothing needed a topic — every news item already has one.');
+  } catch (err) {
+    alert('Re-classification failed: ' + err.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🏷 Re-classify news'; }
   }
 }
 

@@ -361,12 +361,22 @@
          would overwrite it with a fixed string on every language switch. -->
     <p class="discover-note" id="discover-note"></p>
 
+    <!-- The News channel's topic filter. Rendered and shown/hidden by
+         renderDiscover() — the other two channels have no topics, and a row of
+         chips that does nothing is worse than no row at all. -->
+    <div class="discover-filters" id="discover-filters" role="group" aria-label="Filter" hidden></div>
+
     <!-- The Stories channel carries one extra control the other two do not: a
          way to add to it. Shown only on that channel. -->
     <button class="btn btn-primary btn-block story-write-cta" id="story-write-cta"
             onclick="navigate('story-new')" data-i18n="story.shareYours" hidden>Share your story</button>
 
     <div id="discover-feed" class="discover-feed"></div>
+
+    <!-- The pager. A sibling of the feed rather than its last card, so the
+         feed element keeps holding exactly the cards and a test that counts
+         them is still counting cards. -->
+    <div id="discover-pager" class="discover-pager" hidden></div>
   </section>
 
   <!-- ---- ARTICLE VIEW ---- -->

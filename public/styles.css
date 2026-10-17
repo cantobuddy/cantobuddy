@@ -520,12 +520,14 @@ body {
 
 /* Stacked, not side by side. "Start Quiz" and "My Progress" fit a half-width
    button in English and in no other language: Filipino is "Simulan ang
-   Pagsusulit", 23 characters, which wrapped mid-phrase at every phone width.
+   Pagsusitul", 23 characters, which wrapped mid-phrase at every phone width.
    Full width also gives the primary action the weight it should have had — it
-   is the one thing to do on this screen and it was sharing a row. */
+   is the one thing to do on this screen and it was sharing a row.
+   `minmax(0, 1fr)` rather than `1fr` because a 1fr track has a min-content
+   floor and overflows silently — see the note in tools/app-layout-test.js. */
 .home-quick {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
   margin-top: 16px;
 }
@@ -675,16 +677,6 @@ body {
   color: var(--c-text-soft);
   line-height: 1.35;
 }
-
-/* Compact quick actions: two equal columns, regular button size */
-.home-quick {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-top: 16px;
-}
-.home-quick .btn { border-radius: 12px; font-size: 0.9rem; padding: 10px 8px; }
-.home-quick .btn-primary { box-shadow: 0 4px 10px rgba(230, 57, 70, 0.22); }
 
 .home-categories {
   margin-top: 24px;
@@ -1929,6 +1921,85 @@ body {
   line-height: 1;
 }
 
+/* ---- News topic filter ----------------------------------------------------
+   The News channel grows without bound (the importer runs hourly), so it is
+   the only channel with topics. These are chips rather than a <select>
+   because the point is to see the choices at once — a dropdown hides the fact
+   that there are eight of them, and eight visible chips fit a 320px screen
+   once they wrap. */
+
+.discover-filters {
+  margin-bottom: 14px;
+}
+
+.discover-filters-label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--c-text-soft);
+  margin-bottom: 7px;
+}
+
+/* minmax(0,1fr) is not needed here — these tracks hold one short word each —
+   but the row MUST be allowed to wrap, or eight chips on a 320px screen
+   overflow the viewport instead of forming a second line. `flex` on the
+   container with `flex-wrap` on the row is what permits that. */
+.discover-filters-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.news-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 12px;
+  border: 1px solid var(--c-border);
+  border-radius: 999px;
+  background: var(--c-surface);
+  color: var(--c-text-soft);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 34px;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.news-filter-chip:hover { border-color: var(--c-primary); color: var(--c-primary); }
+
+.news-filter-chip.active {
+  background: var(--c-primary);
+  border-color: var(--c-primary);
+  color: #fff;
+}
+
+/* The count is quieter than the label on purpose: it is the answer to "is it
+   worth tapping", not the name of the thing. */
+.news-filter-chip .chip-count {
+  font-size: 0.78rem;
+  font-weight: 700;
+  opacity: 0.75;
+}
+
+/* ---- The pager ------------------------------------------------------------
+   Deliberately plain. It is a control, not content, and it should read as one
+   after a screen full of cards. */
+
+.discover-pager { margin-top: 4px; }
+
+.discover-pager-note {
+  padding: 14px 12px 4px;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--c-text-soft);
+}
+
+.discover-pager .btn-outline { margin-top: 4px; }
+
 /* ---- One article ---- */
 
 .post-article { padding-bottom: 24px; }
@@ -2699,6 +2770,9 @@ body {
 .post-badge.published { background: #e6f4ea; color: #1e6b3a; }
 .post-badge.draft { background: #fdecea; color: #a3281f; }
 .post-badge.auto { background: #e8eefc; color: #2b4c9b; }
+/* The topic. Neutral on purpose: unlike Published/Draft it is neither good news
+   nor bad, it is a label the operator may be about to change. */
+.post-badge.topic { background: #f1f3f5; color: #495057; text-transform: none; }
 
 /* ---- Modal form ---- */
 .modal-form {

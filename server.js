@@ -556,22 +556,38 @@ app.delete('/api/scenarios/:id', requireAdmin, (req, res) => {
 // only; a draft is invisible here, which is the difference from vocabulary,
 // where 'draft' is a review flag that still serves. A post is a dated
 // publication, so an unfinished one must not appear in the feed at all.
+//
+// `category` narrows the NEWS channel by topic (see news-category.js). It is
+// validated by the store, not here: an unrecognised value is dropped rather
+// than turned into an empty result, so a stale link or a typo in a bookmark
+// shows the whole channel instead of a blank screen.
 // ---------------------------------------------------------------------------
 
 app.get('/api/posts', (req, res) => {
-  const { channel, limit } = req.query;
-  res.json(store.listPosts({ channel: channel || null, status: 'published', limit }));
+  const { channel, limit, category } = req.query;
+  res.json(store.listPosts({ channel: channel || null, status: 'published', limit, category: category || null }));
 });
 
-app.get('/api/posts/:slug', (req, res) => {
-  const post = store.getPostBySlug(req.params.slug);
-  // A draft is a 404 to a learner, exactly as if it did not exist.
-  if (!post || post.status !== 'published') return res.status(404).json({ error: 'Not found' });
-  res.json(post);
+/**
+ * How many published news items each category has — what the filter chips are
+ * built from, so a chip can say "Work 12" and a category with nothing in it
+ * still appears at zero. Returning `all` as well means the client never has to
+ * add the buckets up and risk disagreeing with the server.
+ */
+app.get('/api/posts/categories', (req, res) => {
+  res.json(store.getNewsCategoryCounts());
 });
 
-/** One culture post per day, chosen deterministically by date so every
- *  device shows the same article on the same day with no storage or call. */
+/**
+ * One culture post per day, chosen deterministically by date so every
+ * device shows the same article on the same day with no storage or call.
+ *
+ * REGISTERED BEFORE /api/posts/:slug — Express matches in registration order,
+ * so a literal route placed after a parameter one is dead code that answers
+ * 404. This route sat below :slug until the category work made someone read
+ * the block; the home screen's "Today's Culture" card had been quietly
+ * swallowing the 404 the whole time.
+ */
 app.get('/api/posts/daily-culture', (req, res) => {
   const posts = store.listPosts({ channel: 'culture', status: 'published', limit: 200 });
   if (!posts.length) return res.status(404).json({ error: 'No culture posts yet.' });
@@ -584,9 +600,20 @@ app.get('/api/posts/daily-culture', (req, res) => {
   res.json(pick);
 });
 
+app.get('/api/posts/:slug', (req, res) => {
+  const post = store.getPostBySlug(req.params.slug);
+  // A draft is a 404 to a learner, exactly as if it did not exist.
+  if (!post || post.status !== 'published') return res.status(404).json({ error: 'Not found' });
+  res.json(post);
+});
+
 app.get('/api/admin/posts', requireAdmin, (req, res) => {
-  const { channel, limit } = req.query;
-  res.json({ posts: store.listAllPosts({ channel: channel || null, limit }), counts: store.getPostCounts() });
+  const { channel, limit, category } = req.query;
+  res.json({
+    posts: store.listAllPosts({ channel: channel || null, limit, category: category || null }),
+    counts: store.getPostCounts(),
+    newsCategories: store.getNewsCategoryCounts(),
+  });
 });
 
 app.post('/api/admin/posts', requireAdmin, (req, res) => {
@@ -625,6 +652,26 @@ app.post('/api/admin/posts/import', requireAdmin, async (req, res) => {
     res.json({ ...report, counts: store.getPostCounts() });
   } catch (err) {
     res.status(500).json({ error: err && err.message ? err.message : 'Import failed' });
+  }
+});
+
+/**
+ * Re-run the classifier over every post that has no category yet.
+ *
+ * Admin-only and deliberately narrow: it only fills EMPTY categories, so a
+ * correction the operator made by hand in the post form is never overwritten.
+ * That is what makes it safe to press after the keyword list has improved —
+ * and the keyword list will improve, because it is a guess (see
+ * news-category.js). Deliberately NOT part of the import, so a fetch that
+ * happens to run on a build with a better classifier does not silently
+ * rewrite topics the operator has already fixed.
+ */
+app.post('/api/admin/posts/classify', requireAdmin, (req, res) => {
+  try {
+    const classified = store.backfillNewsCategories();
+    res.json({ classified, counts: store.getPostCounts(), newsCategories: store.getNewsCategoryCounts() });
+  } catch (err) {
+    res.status(500).json({ error: err && err.message ? err.message : 'Classification failed' });
   }
 });
 

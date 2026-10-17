@@ -248,6 +248,7 @@
         <h3>Discover feed</h3>
         <div class="admin-toolbar-actions">
           <button class="btn btn-outline btn-sm" onclick="renderAdminPosts()">↻ Refresh</button>
+          <button class="btn btn-outline btn-sm" onclick="classifyNewsPosts()" title="Fill in the topic of any news item that has none. Never changes a topic you have already set by hand.">🏷 Re-classify news</button>
           <button class="btn btn-outline btn-sm" onclick="fetchNewsNow()" title="Import the latest stories from the public HK sources">⬇ Fetch news now</button>
           <button class="btn btn-primary" onclick="openPostForm()">+ New post</button>
         </div>
@@ -259,11 +260,30 @@
         Antara News and RTHK) as a headline, a short summary and a link — never the full article,
         which would be a copyright problem.
       </p>
+      <p class="admin-hint">
+        Each news item is given a <strong>topic</strong> on import, by keyword — see
+        <code>news-category.js</code>. It is a guess, so it can be corrected on any single post
+        with the Topic field below; <em>Re-classify news</em> only ever fills in topics that are
+        empty and will never overwrite one you have set.
+      </p>
 
       <div class="chip-group" id="admin-posts-filter">
         <button class="chip active" data-channel="" onclick="setPostFilter('')">All</button>
         <button class="chip" data-channel="culture" onclick="setPostFilter('culture')">🏮 Culture</button>
         <button class="chip" data-channel="news" onclick="setPostFilter('news')">📰 News</button>
+      </div>
+      <!-- The topic row. Only meaningful for the News channel, so it is shown
+           and hidden with the channel filter rather than left on screen doing
+           nothing. -->
+      <div class="chip-group" id="admin-posts-category" hidden>
+        <button class="chip active" data-category="" onclick="setNewsCategoryFilter('')">Every topic</button>
+        <button class="chip" data-category="hongkong" onclick="setNewsCategoryFilter('hongkong')">🏙 Hong Kong</button>
+        <button class="chip" data-category="work" onclick="setNewsCategoryFilter('work')">💼 Work</button>
+        <button class="chip" data-category="money" onclick="setNewsCategoryFilter('money')">💰 Money</button>
+        <button class="chip" data-category="health" onclick="setNewsCategoryFilter('health')">🩺 Health</button>
+        <button class="chip" data-category="home" onclick="setNewsCategoryFilter('home')">🏠 Home</button>
+        <button class="chip" data-category="politics" onclick="setNewsCategoryFilter('politics')">🏛 Government</button>
+        <button class="chip" data-category="other" onclick="setNewsCategoryFilter('other')">📌 Other</button>
       </div>
 
       <div id="admin-posts-list" class="admin-list"></div>
@@ -426,7 +446,7 @@
       <div class="form-row">
         <div class="form-field">
           <label>Channel *</label>
-          <select id="pf-channel">
+          <select id="pf-channel" onchange="togglePostCategoryRow()">
             <option value="culture">🏮 Culture</option>
             <option value="news">📰 News</option>
           </select>
@@ -441,6 +461,28 @@
         <div class="form-field">
           <label>Icon</label>
           <input type="text" id="pf-icon" placeholder="🏮" maxlength="4" />
+        </div>
+      </div>
+
+      <!-- The News topic. Blank means "let the importer guess", which is what
+           an imported item gets; the operator comes here to OVERRIDE a guess,
+           not to supply one for a post that has not been written yet. Culture
+           posts have no topics at all, so this row is hidden for that channel
+           rather than shown with a select that would be ignored. -->
+      <div class="form-row" id="pf-category-row" hidden>
+        <div class="form-field">
+          <label>Topic</label>
+          <select id="pf-category">
+            <option value="">— guess it on save (news only) —</option>
+            <option value="hongkong">🏙 Hong Kong</option>
+            <option value="work">💼 Work &amp; your rights</option>
+            <option value="money">💰 Money &amp; prices</option>
+            <option value="health">🩺 Health</option>
+            <option value="home">🏠 Home &amp; family</option>
+            <option value="politics">🏛 Government</option>
+            <option value="other">📌 Other news</option>
+          </select>
+          <p class="form-hint">Only used by the News channel. Set it here to correct a wrong guess.</p>
         </div>
       </div>
 

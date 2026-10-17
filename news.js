@@ -69,6 +69,13 @@
  * Idempotency is the database's job, not this module's: every item is keyed on
  * its feed guid, and db.importPost ignores a key it has already seen. Running
  * the importer twice is therefore harmless — the second run adds nothing.
+ *
+ * CATEGORIES. Every item is given a topic on the way in (see news-category.js),
+ * so the reader can narrow the News channel instead of scrolling it. This module
+ * only supplies raw material — the headline, the summary, and the feed's own
+ * <category> tags — and never decides the topic itself. Classification is a
+ * guess, which is exactly why the operator can correct any single post in the
+ * admin dashboard.
  */
 
 const db = require('./db');
@@ -203,6 +210,26 @@ function tagText(block, tag) {
   return v;
 }
 
+/**
+ * Every <tag> in a block, not just the first.
+ *
+ * Used for <category>, which appears more than once per item in two of our
+ * three feeds (Inquirer's WordPress feed carries several; Antara's carries one
+ * or two). A single match would throw away most of the topic signal the
+ * publisher published.
+ */
+function tagTexts(block, tag) {
+  const re = new RegExp(`<${tag}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${tag}>`, 'gi');
+  const out = [];
+  for (const m of String(block).matchAll(re)) {
+    let v = m[1].trim();
+    const c = v.match(/^<!\[CDATA\[([\s\S]*?)\]\]>$/);
+    if (c) v = c[1].trim();
+    if (v) out.push(plainText(decodeDeep(v)));
+  }
+  return out;
+}
+
 /** A date string → ISO, or null. Never throws on a malformed pubDate. */
 function parseDate(s) {
   const d = new Date(String(s || '').trim());
@@ -238,7 +265,13 @@ function parseRss(xml) {
     const link = tagText(block, 'link').trim() || tagText(block, 'guid').trim();
     const description = plainText(tagText(block, 'description'));
     const guid = tagText(block, 'guid').trim() || link;
-    return { title, link, description, guid, published_at: parseDate(tagText(block, 'pubDate')) };
+    // The publisher's own topic labels. NOT used as a category directly — an
+    // Inquirer tag is a WordPress slug like "Newsbod" and an Antara tag is an
+    // Indonesian word, and neither is one of our categories. They go to the
+    // classifier as extra haystack instead (see news-category.js), which is
+    // the honest use of a signal we cannot fully trust.
+    const tags = tagTexts(block, 'category');
+    return { title, link, description, guid, tags, published_at: parseDate(tagText(block, 'pubDate')) };
   });
 }
 
@@ -311,6 +344,9 @@ async function postsFromSource(source, doFetch) {
       // original is already in the title.
       title_zh: source.lang === 'en' ? '' : item.title,
       summary_en,
+      // The publisher's tags go through verbatim; db.importPost folds them into
+      // the classifier and never stores them.
+      tags: item.tags,
       source_name: source.name,
       source_url: item.link,
       source_key: `${source.key}:${item.guid}`,
@@ -391,4 +427,4 @@ async function importNews({ fetchImpl, sources = SOURCES, limitPerSource = 0, dr
 /** Published counts, so a caller can report the feed's size after an import. */
 const feedCounts = () => db.getPostCounts();
 
-module.exports = { SOURCES, importNews, retireUnshippedSources, postsFromSource, parseRss, plainText, decodeDeep, summarise, decodeEntities, stripHtml, SUMMARY_MAX };
+module.exports = { SOURCES, importNews, retireUnshippedSources, postsFromSource, parseRss, plainText, decodeDeep, summarise, decodeEntities, stripHtml, tagTexts, SUMMARY_MAX };

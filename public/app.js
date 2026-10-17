@@ -27,6 +27,29 @@ function loadDeviceId() {
   return id;
 }
 
+/**
+ * How many News cards are on screen before the "Show more" button appears.
+ *
+ * The News channel is the only one that grows without bound — the importer
+ * runs hourly — so it is the only one that needs a pager. Ten is roughly a
+ * screen and a half on a phone, which is enough to decide whether this channel
+ * is worth scrolling and small enough that the button is always visible
+ * without hunting. Culture and Stories are short lists and render whole; the
+ * pager is applied to them too but never reaches a second page, so they are
+ * unchanged by it.
+ */
+const NEWS_PAGE_SIZE = 10;
+
+/**
+ * The News topics, in display order. Kept here as well as on the server (see
+ * news-category.js) because the client has to render chips in a stable order
+ * before it has heard from the server, and a filter row that reshuffles itself
+ * while you reach for it is worse than one in the wrong order.
+ */
+const NEWS_CATEGORY_ORDER = [
+  'all', 'hongkong', 'work', 'money', 'health', 'home', 'politics', 'other',
+];
+
 const STATE = {
   vocabulary: [],
   categories: [],
@@ -43,7 +66,20 @@ const STATE = {
   // Discover feed. `posts` caches each channel so switching tabs is instant and
   // does not re-fetch; `current` is the open article, kept so a language switch
   // can re-render it without another request.
-  discover: { channel: 'culture', posts: { culture: null, news: null }, current: null },
+  //
+  // `category` is the News channel's topic filter — null is "All news". The
+  // cache is keyed by channel AND category, because a filtered view is a
+  // different list, not a subset of the one on screen. `counts` is the
+  // per-topic tally the chips render, and `shown` is how many cards of the
+  // current list are on screen (the pager — see NEWS_PAGE_SIZE).
+  discover: {
+    channel: 'culture',
+    category: null,
+    posts: { culture: null, news: null },
+    counts: null,
+    shown: NEWS_PAGE_SIZE,
+    current: null,
+  },
   // Stories — a helper's own life story, read from the Stories channel inside
   // Discover. `list` caches the shelf so a tab switch is instant; `current` is
   // the open story, kept so a language switch can re-render it without another
@@ -3556,9 +3592,120 @@ function sanitizePostHtml(html) {
   return tpl.innerHTML;
 }
 
+/**
+ * Switches the Discover tab.
+ *
+ * Resets the News topic filter and the pager on the way through. Leaving the
+ * filter set would be defensible for a language switch and wrong for a tab
+ * switch: coming back to News from Stories should show all of it, the same way
+ * a fresh visit does.
+ */
 function showChannel(channel) {
   STATE.discover.channel = ['news', 'stories'].includes(channel) ? channel : 'culture';
+  STATE.discover.category = null;
+  STATE.discover.shown = NEWS_PAGE_SIZE;
   renderDiscover();
+}
+
+/** Which topic the News channel is narrowed to, or null for all of it. */
+const newsCategoryKey = () => (STATE.discover.channel === 'news' && STATE.discover.category ? STATE.discover.category : null);
+
+/**
+ * The cache key for the list on screen. A filtered News view is a DIFFERENT
+ * list, not a subset — sharing one cache entry would mean the "All news" tab
+ * silently showed only the filtered slice after she had visited a topic.
+ */
+const postsCacheKey = () => {
+  const cat = newsCategoryKey();
+  return cat ? `news:${cat}` : STATE.discover.channel;
+};
+
+/** Narrows the News channel to one topic. 'all' clears the filter. */
+function showNewsCategory(cat) {
+  const next = cat && cat !== 'all' && NEWS_CATEGORY_ORDER.includes(cat) ? cat : null;
+  if (STATE.discover.category === next) return; // already showing this — no refetch
+  STATE.discover.category = next;
+  STATE.discover.shown = NEWS_PAGE_SIZE;
+  renderDiscover();
+}
+
+/** Reveals one more page of the list already on screen. No network. */
+function showMorePosts() {
+  STATE.discover.shown += NEWS_PAGE_SIZE;
+  renderDiscover();
+}
+
+/** One category chip. `on` marks the selected one for the browser too. */
+function newsFilterChip(key, label, count, active) {
+  const n = count == null ? '' : ` <span class="chip-count">${count}</span>`;
+  return `<button type="button" class="chip news-filter-chip${active ? ' active' : ''}"
+            aria-pressed="${active ? 'true' : 'false'}"
+            onclick="showNewsCategory('${key}')">${escapeHtml(label)}${n}</button>`;
+}
+
+/**
+ * The topic filter row, for the News channel only.
+ *
+ * Counts come from the server (/api/posts/categories) rather than from the
+ * list on screen, so a chip can say "Work 12" while showing the first ten.
+ * They are fetched once and cached in STATE: a filter row that grows and
+ * shrinks as she scrolls would be a filter she cannot aim at.
+ */
+function renderNewsFilters() {
+  const host = document.getElementById('discover-filters');
+  if (!host) return;
+  if (STATE.discover.channel !== 'news') {
+    host.hidden = true;
+    host.innerHTML = '';
+    return;
+  }
+  const counts = STATE.discover.counts;
+  const rows = [newsFilterChip('all', t('discover.catAll'), counts ? counts.all : null, !STATE.discover.category)];
+  for (const key of NEWS_CATEGORY_ORDER) {
+    if (key === 'all') continue;
+    rows.push(newsFilterChip(key, t(`discover.cat${key}`), counts ? counts[key] : null, STATE.discover.category === key));
+  }
+  host.innerHTML =
+    `<span class="discover-filters-label">${escapeHtml(t('discover.filterLabel'))}</span>` +
+    `<div class="discover-filters-row">${rows.join('')}</div>`;
+  host.hidden = false;
+}
+
+/** Loads the per-topic counts once, then draws the chips. */
+async function loadNewsFilters() {
+  if (STATE.discover.counts) return;
+  try {
+    STATE.discover.counts = await apiGet('/api/posts/categories');
+  } catch (err) {
+    // Counts are decoration: the channel still works without them, so a failed
+    // tally must not stop her reading. The chips render with no numbers.
+    STATE.discover.counts = null;
+    return;
+  }
+  renderNewsFilters();
+}
+
+/**
+ * The pager: "Show more (23)" while there is more, and a quiet full stop when
+ * there is not. Both halves matter — a button that does nothing when the list
+ * is exhausted teaches her that buttons here are decorative.
+ */
+function renderPostPager(host, posts) {
+  const shown = Math.min(STATE.discover.shown, posts.length);
+  const hidden = posts.length - shown;
+  host.hidden = false;
+  if (hidden <= 0) {
+    // Only says something when the list was actually long enough to have been
+    // worth paging; a three-item channel does not need to be told it is done.
+    host.innerHTML = posts.length > NEWS_PAGE_SIZE
+      ? `<p class="discover-pager-note">${escapeHtml(t('discover.allShown'))}</p>`
+      : '';
+    host.hidden = !host.innerHTML;
+    return;
+  }
+  host.innerHTML = `<button type="button" class="btn btn-outline btn-block" onclick="showMorePosts()">
+      ${escapeHtml(t('discover.showMore').replace('%s', String(hidden)))}
+    </button>`;
 }
 
 /** One feed card. A button, not a link: it opens the article in the app. */
@@ -3606,6 +3753,7 @@ async function renderDiscover() {
   const feed = document.getElementById('discover-feed');
   if (!feed) return;
   const channel = STATE.discover.channel;
+  const pager = document.getElementById('discover-pager');
 
   document.querySelectorAll('.discover-tab').forEach((b) => {
     b.classList.toggle('active', b.dataset.channel === channel);
@@ -3623,17 +3771,26 @@ async function renderDiscover() {
   // something the feed renderer draws.
   const cta = document.getElementById('story-write-cta');
   if (cta) cta.hidden = channel !== 'stories';
+  if (pager) { pager.hidden = true; pager.innerHTML = ''; }
+
+  renderNewsFilters();
+  if (channel === 'news') loadNewsFilters();
 
   if (channel === 'stories') return renderStoryList(feed);
 
   // Serve the cache when we have it, so a tab switch is instant and a language
-  // switch does not hit the network again.
-  let posts = STATE.discover.posts[channel];
+  // switch does not hit the network again. The key carries the topic filter,
+  // so "All news" and "Work" are two separate lists, never one shared one.
+  const key = postsCacheKey();
+  let posts = STATE.discover.posts[key];
   if (!posts) {
     feed.innerHTML = `<div class="discover-loading">…</div>`;
     try {
-      posts = await apiGet(`/api/posts?channel=${channel}`);
-      STATE.discover.posts[channel] = posts;
+      const cat = newsCategoryKey();
+      const q = new URLSearchParams({ channel });
+      if (cat) q.set('category', cat);
+      posts = await apiGet(`/api/posts?${q.toString()}`);
+      STATE.discover.posts[key] = posts;
     } catch (err) {
       console.warn('Could not load the feed:', err);
       feed.innerHTML = `<p class="discover-empty">${escapeHtml(t('discover.loadFailed'))}</p>`;
@@ -3641,13 +3798,15 @@ async function renderDiscover() {
     }
   }
 
-  // The learner may have switched tabs while this was in flight; drawing the
-  // old channel now would overwrite the new one.
-  if (STATE.discover.channel !== channel) return;
+  // The learner may have switched tabs or topics while this was in flight;
+  // drawing the old list now would overwrite the new one.
+  if (STATE.discover.channel !== channel || newsCategoryKey() !== (key.includes(':') ? key.split(':')[1] : null)) return;
 
   feed.innerHTML = posts.length
-    ? posts.map(postCardHtml).join('')
+    ? posts.slice(0, Math.max(STATE.discover.shown, 0)).map(postCardHtml).join('')
     : `<p class="discover-empty">${escapeHtml(t('discover.empty'))}</p>`;
+
+  if (pager) renderPostPager(pager, posts);
 }
 
 /** The Stories channel: the shelf of published stories, newest first. */

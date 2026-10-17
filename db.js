@@ -24,6 +24,11 @@ const {
   SEED_POSTS,
 } = require('./data');
 const { SEED_STICKERS } = require('./stickers');
+// The news taxonomy and the keyword classifier that fills it. Required here
+// rather than in news.js because the migration has to classify posts that were
+// imported by an EARLIER build, and the backfill has to live next to the
+// column it fills.
+const newsCategory = require('./news-category');
 
 // ---------------------------------------------------------------------------
 // Hong Kong time
@@ -447,6 +452,12 @@ db.exec(`
     source_lang  TEXT NOT NULL DEFAULT '',
     origin       TEXT NOT NULL DEFAULT 'manual',
     status       TEXT NOT NULL DEFAULT 'draft',
+    /* Which topic this post belongs to — a news category key (see
+       news-category.js), or '' when it has none. Culture posts never carry
+       one: the culture channel is small enough to read, and giving it a
+       taxonomy would be a taxonomy nobody uses. News is the channel that
+       grows without bound, so that is the channel that needs sifting. */
+    category     TEXT NOT NULL DEFAULT '',
     published_at TEXT,
     created_at   TEXT,
     updated_at   TEXT
@@ -891,12 +902,71 @@ function migrateSchema() {
     }
   }
 
+  /* ---- posts.category ---------------------------------------------------- */
+  /* A topic for the News channel, so a reader can narrow an endless list to
+     what she came for (see news-category.js for the taxonomy and the
+     classifier). Added to the live table because the column was introduced
+     after the first posts were already imported — 50 of them had a category
+     of nothing, and a filter chip that silently hides them would be worse
+     than no chip at all. */
+  if (addColumnIfMissing('posts', 'category', "TEXT NOT NULL DEFAULT ''")) {
+    changes.push('posts.category');
+    const filled = backfillNewsCategories();
+    if (filled > 0) changes.push(`classified ${filled} existing post(s)`);
+  }
+
   // The single seeded admin predates the email/status columns.
   db.exec("UPDATE users SET status = 'active' WHERE status IS NULL OR status = ''");
 
   return changes;
 }
 
+/**
+ * Classify every post that has no category yet.
+ *
+ * Runs on the migration that adds the column, and again whenever the operator
+ * asks ("Re-classify news" in the dashboard) — the keyword list in
+ * news-category.js is a guess, and a guess made with a shorter keyword list
+ * yesterday is worth redoing with a better one today. Only ever touches rows
+ * with an EMPTY category, so a correction the operator made in the admin form
+ * survives every future run. That is the whole point of the emptiness test:
+ * "classified" and "classified wrongly" both look like a non-empty category.
+ *
+ * @returns {number} how many rows were written
+ */
+function backfillNewsCategories() {
+  // Prepared here rather than in S: this runs from migrateSchema(), which is
+  // called long before the statement table is built. Same reason the learner
+  // backfill above prepares its own.
+  const rows = db
+    .prepare(
+      `SELECT id, channel, title_en, summary_en, source_key FROM posts
+        WHERE category IS NULL OR category = ''`
+    )
+    .all();
+  const set = db.prepare('UPDATE posts SET category = ? WHERE id = ?');
+  let n = 0;
+  db.exec('BEGIN');
+  try {
+    for (const row of rows) {
+      const category = newsCategory.classifyNews({
+        title: row.title_en,
+        summary: row.summary_en,
+        source_key: row.source_key,
+      });
+      // Culture posts get no topic on purpose — the channel is read, not
+      // sifted — so a culture row is left alone even by a re-run.
+      if (row.channel !== 'news') continue;
+      set.run(category, Number(row.id));
+      n += 1;
+    }
+    db.exec('COMMIT');
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
+  return n;
+}
 const migrations = migrateSchema();
 
 // ---------------------------------------------------------------------------
@@ -1688,6 +1758,7 @@ const S = {
     SELECT * FROM posts
      WHERE status = ?
        AND (? IS NULL OR channel = ?)
+       AND (? IS NULL OR category = ?)
      ORDER BY COALESCE(published_at, created_at) DESC, id DESC
      LIMIT ?
   `),
@@ -1695,6 +1766,7 @@ const S = {
   listAllPosts: db.prepare(`
     SELECT * FROM posts
      WHERE (? IS NULL OR channel = ?)
+       AND (? IS NULL OR category = ?)
      ORDER BY COALESCE(published_at, created_at) DESC, id DESC
      LIMIT ?
   `),
@@ -1702,32 +1774,48 @@ const S = {
   getPostBySlug: db.prepare('SELECT * FROM posts WHERE slug = ?'),
   countPosts: db.prepare('SELECT COUNT(*) AS n FROM posts'),
   countPostsByChannel: db.prepare('SELECT channel, COUNT(*) AS n FROM posts WHERE status = ? GROUP BY channel'),
+  /* Published news counts per category, for the filter chips. 'all' is every
+     published news row, so the chip row can show "All 137" beside "Work 12".
+     A category with nothing in it is deliberately still returned as 0 — a chip
+     that appears only once it has content is a chip she cannot learn. */
+  countPublishedNewsByCategory: db.prepare(
+    `SELECT category, COUNT(*) AS n FROM posts
+      WHERE status = 'published' AND channel = 'news' GROUP BY category`
+  ),
+  /* Everything still unclassified, newest last so a backfill reads the rows in
+     a stable order. The classifier is a pure function of the row, so the order
+     only matters for a human reading a debug log. */
+  postsMissingCategory: db.prepare(
+    `SELECT id, channel, title_en, summary_en, source_key FROM posts
+      WHERE category IS NULL OR category = ''`
+  ),
+  setPostCategory: db.prepare('UPDATE posts SET category = ? WHERE id = ?'),
   insertPost: db.prepare(`
     INSERT INTO posts
-      (slug, channel, icon,
+      (slug, channel, icon, category,
        title_en, title_fil, title_zh, title_id,
        summary_en, summary_fil, summary_zh, summary_id,
        body_en, body_fil, body_zh, body_id,
        source_name, source_url, source_key, source_lang, origin, status,
        published_at, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `),
   // The importer's insert. INSERT OR IGNORE keyed on the partial unique index
   // over source_key is what makes a re-run idempotent: the same feed item is a
   // no-op the second time, so `changes` is exactly "how many were new".
   insertPostIfNew: db.prepare(`
     INSERT OR IGNORE INTO posts
-      (slug, channel, icon,
+      (slug, channel, icon, category,
        title_en, title_fil, title_zh, title_id,
        summary_en, summary_fil, summary_zh, summary_id,
        body_en, body_fil, body_zh, body_id,
        source_name, source_url, source_key, source_lang, origin, status,
        published_at, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `),
   updatePost: db.prepare(`
     UPDATE posts SET
-      slug = ?, channel = ?, icon = ?,
+      slug = ?, channel = ?, icon = ?, category = ?,
       title_en = ?, title_fil = ?, title_zh = ?, title_id = ?,
       summary_en = ?, summary_fil = ?, summary_zh = ?, summary_id = ?,
       body_en = ?, body_fil = ?, body_zh = ?, body_id = ?,
@@ -2662,18 +2750,23 @@ function uniquePostSlug(base, excludeId = null) {
 }
 
 /** The learner-facing feed — published only, newest first. */
-function listPosts({ channel = null, status = 'published', limit = 50 } = {}) {
+function listPosts({ channel = null, status = 'published', limit = 50, category = null } = {}) {
   const ch = POST_CHANNELS.includes(channel) ? channel : null;
   const st = POST_STATUSES.includes(status) ? status : 'published';
+  // A category is only meaningful for news; asking for one on the culture
+  // channel is a caller mistake, not a filter, so it is dropped rather than
+  // silently returning nothing.
+  const cat = ch === 'news' && newsCategory.isValidCategory(category) ? category : null;
   const n = Math.min(Math.max(Math.floor(Number(limit)) || 50, 1), 200);
-  return S.listPosts.all(st, ch, ch, n);
+  return S.listPosts.all(st, ch, ch, cat, cat, n);
 }
 
 /** The operator view — every status. */
-function listAllPosts({ channel = null, limit = 200 } = {}) {
+function listAllPosts({ channel = null, limit = 200, category = null } = {}) {
   const ch = POST_CHANNELS.includes(channel) ? channel : null;
+  const cat = ch === 'news' && newsCategory.isValidCategory(category) ? category : null;
   const n = Math.min(Math.max(Math.floor(Number(limit)) || 200, 1), 500);
-  return S.listAllPosts.all(ch, ch, n);
+  return S.listAllPosts.all(ch, ch, cat, cat, n);
 }
 
 const getPostById = (id) => S.getPostById.get(Number(id));
@@ -2687,6 +2780,21 @@ function getPostCounts() {
     out.published += row.n;
   }
   return out;
+}
+
+/**
+ * Published news counts per category, plus the total — what the filter chips
+ * are built from. Always includes every category key, even at zero.
+ */
+function getNewsCategoryCounts() {
+  const counts = { all: 0 };
+  for (const key of newsCategory.NEWS_CATEGORY_KEYS) counts[key] = 0;
+  for (const row of S.countPublishedNewsByCategory.all()) {
+    const key = newsCategory.isValidCategory(row.category) ? row.category : 'other';
+    counts[key] += row.n;
+    counts.all += row.n;
+  }
+  return counts;
 }
 
 /**
@@ -2705,6 +2813,14 @@ function createPost(b = {}) {
     uniquePostSlug(b.slug || title_en),
     channel,
     iconForPost(b, channel),
+    // A hand-written post may pick any category; a news post written here by
+    // the operator is classified like an imported one, because it still has to
+    // answer to the same filter chips.
+    b.category
+      ? newsCategory.normaliseCategory(b.category)
+      : channel === 'news'
+        ? newsCategory.classifyNews({ title: title_en, summary: b.summary_en, tags: b.tags })
+        : '',
     title_en,
     trimPost(b.title_fil, POST_TITLE_MAX),
     trimPost(b.title_zh, POST_TITLE_MAX),
@@ -2744,10 +2860,17 @@ function updatePost(id, b = {}) {
   // lands at the top of the feed rather than sorting by its creation time.
   let published_at = b.published_at !== undefined ? b.published_at : cur.published_at;
   if (status === 'published' && !published_at) published_at = now;
+  // A category the operator did not touch keeps its current value; one she did
+  // set wins, even to clear it (an explicit '' is a decision, not an omission).
+  // Re-classification is a separate, explicit act — see backfillNewsCategories.
+  const category = b.category !== undefined
+    ? newsCategory.normaliseCategory(b.category)
+    : cur.category;
   S.updatePost.run(
     b.slug ? uniquePostSlug(b.slug, n) : cur.slug,
     channel,
     b.icon ? String(b.icon).trim().slice(0, 8) : cur.icon,
+    channel === 'news' ? category : '',
     title_en,
     pickPost(b.title_fil, cur.title_fil, POST_TITLE_MAX),
     pickPost(b.title_zh, cur.title_zh, POST_TITLE_MAX),
@@ -2828,6 +2951,17 @@ function importPost(b = {}) {
     uniquePostSlug(b.slug || title_en),
     channel,
     iconForPost(b, channel),
+    // An importer's category is the classifier's, unless the source said
+    // otherwise — and a source only ever gets to say so through `category`,
+    // which news.js fills from the feed's own <category> tags.
+    b.category
+      ? newsCategory.normaliseCategory(b.category)
+      : newsCategory.classifyNews({
+        title: title_en,
+        summary: b.summary_en,
+        tags: b.tags,
+        source_key: key,
+      }),
     title_en,
     trimPost(b.title_fil, POST_TITLE_MAX),
     trimPost(b.title_zh, POST_TITLE_MAX),
@@ -3927,6 +4061,8 @@ module.exports = {
   getPostById,
   getPostBySlug,
   getPostCounts,
+  getNewsCategoryCounts,
+  backfillNewsCategories,
   createPost,
   updatePost,
   deletePost,
@@ -3934,6 +4070,7 @@ module.exports = {
   importPost,
   POST_CHANNELS,
   POST_STATUSES,
+  NEWS_CATEGORIES: newsCategory.NEWS_CATEGORY_KEYS,
 
   // Community stories — a helper's own life story, moderated before it is read.
   // Only setStoryStatus publishes; the public queries never select learner_id.

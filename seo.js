@@ -868,6 +868,18 @@ ul.links li a{display:inline-block;background:#fff;border:1px solid var(--line);
 ul.links li a:hover{border-color:var(--red);color:var(--red)}
 /* Discover feed */
 h2.disc-h2{font-size:21px;margin:34px 0 6px}
+h3.disc-h3{font-size:17px;margin:26px 0 8px}
+/* The topic tag on a news card. A pill, because a topic is a bucket and a
+   bucket should read as something you could also navigate by — which is what
+   the nav below does. */
+.pc-topic{display:inline-block;background:#fdeced;color:var(--red);border-radius:999px;
+  padding:3px 11px;font-size:12.5px;font-weight:700;margin-bottom:9px}
+/* Jump links to each topic section. Reuses the pill styling of ul.links so
+   the page gains one visual idiom rather than two. */
+nav.topic-nav ul{list-style:none;padding:0;margin:0 0 8px;display:flex;flex-wrap:wrap;gap:9px}
+nav.topic-nav a{display:inline-block;background:#fff;border:1px solid var(--line);border-radius:999px;
+  padding:7px 15px;font-size:14.5px;text-decoration:none;color:var(--ink)}
+nav.topic-nav a:hover{border-color:var(--red);color:var(--red)}
 .post-item .pm{display:block;color:var(--muted);font-size:12.5px;font-weight:600;
   letter-spacing:.03em;text-transform:uppercase;margin-bottom:5px}
 /* The meta line inside a guide-card (the date and author on a Discover item, the
@@ -1884,6 +1896,23 @@ function renderForEmployers(lang) {
 // copyright problem. See news.js.
 // ---------------------------------------------------------------------------
 
+/**
+ * News topic labels, per language.
+ *
+ * The same keys news-category.js classifies into. Kept here rather than shared
+ * with the app's i18n.js because these are server-rendered page text, and a
+ * crawler has no client to translate for it. 'all' is the unfiltered label.
+ */
+const NEWS_TOPIC_UI = {
+  en: { all: 'All news', hongkong: 'Hong Kong', work: 'Work & your rights', money: 'Money & prices', health: 'Health', home: 'Home & family', politics: 'Government', other: 'Other news' },
+  fil: { all: 'Lahat ng balita', hongkong: 'Hong Kong', work: 'Trabaho at karapatan', money: 'Pera at presyo', health: 'Kalusugan', home: 'Tahanan at pamilya', politics: 'Pamahalaan', other: 'Iba pang balita' },
+  zh: { all: '全部新闻', hongkong: '香港', work: '工作与权益', money: '金钱与物价', health: '健康', home: '家乡与家庭', politics: '政府', other: '其他新闻' },
+  id: { all: 'Semua berita', hongkong: 'Hong Kong', work: 'Kerja & hak Anda', money: 'Uang & harga', health: 'Kesehatan', home: 'Kampung & keluarga', politics: 'Pemerintah', other: 'Berita lain' },
+};
+
+const newsTopicLabel = (lang, key) =>
+  (NEWS_TOPIC_UI[lang] || NEWS_TOPIC_UI.en)[key] || key;
+
 const DISCOVER_UI = {
   en: {
     title: 'Discover: Hong Kong life, news and stories from home',
@@ -2079,14 +2108,57 @@ function sanitizeBodyHtml(html) {
 function postCardLi(post, lang, prefix) {
   const date = postDateShort(post.published_at || post.created_at);
   const meta = [date, post.source_name].filter(Boolean).join(' · ');
+  // A news card names its topic; a culture card has none and is not given one.
+  const topic = post.channel === 'news' && post.category
+    ? `<span class="pc-topic">${esc(newsTopicLabel(lang, post.category))}</span>`
+    : '';
   return `<li class="guide-card">
   <a href="${prefix}/discover/${esc(post.slug)}">
     <span class="em">${esc(post.icon || '📰')}</span>
+    ${topic}
     ${meta ? `<span class="pm">${esc(meta)}</span>` : ''}
     <span class="gt">${esc(postText(post, 'title', lang))}</span>
     <span class="gd">${esc(postText(post, 'summary', lang))}</span>
   </a>
 </li>`;
+}
+
+/**
+ * The News channel as topic sections.
+ *
+ * WHY GROUPED, AND WHY IT MATTERS FOR A PAGE LIKE THIS. The News channel grows
+ * without bound — the importer runs hourly — so a flat newest-first list of it
+ * is a page nobody can read and a section search engines cannot summarise.
+ * Grouping by topic gives every bucket a real heading and an anchor, and it
+ * means the newest story in each topic is near the top of its own section
+ * rather than buried under whatever else happened to arrive.
+ *
+ * Only topics that actually have items appear. An empty section headed
+ * "Government" with nothing under it is a promise the page does not keep.
+ */
+function newsTopicSections(news, lang, prefix) {
+  const topics = ['hongkong', 'work', 'money', 'health', 'home', 'politics', 'other'];
+  const groups = new Map();
+  for (const p of news) {
+    const key = topics.includes(p.category) ? p.category : 'other';
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(p);
+  }
+  const nav = [...groups.keys()]
+    .map((k) => `<li><a href="#topic-${esc(k)}">${esc(newsTopicLabel(lang, k))}</a></li>`)
+    .join('');
+  const sections = [...groups.entries()]
+    .map(([k, items]) => `
+<h3 class="disc-h3" id="topic-${esc(k)}">${esc(newsTopicLabel(lang, k))}</h3>
+<ul class="guide-list">
+${items.map((p) => postCardLi(p, lang, prefix)).join('\n')}
+</ul>`)
+    .join('\n');
+  return `
+<nav class="topic-nav" aria-label="${esc(newsTopicLabel(lang, 'all'))}">
+<ul>${nav}</ul>
+</nav>
+${sections}`;
 }
 
 /** The Discover hub: both channels, newest first. */
@@ -2121,7 +2193,9 @@ ${crumbs(lang, [{ label: ui.title }])}
 <h1>${esc(ui.title)}</h1>
 <p class="lede">${esc(ui.lede)}</p>
 ${section(ui.culture, ui.cultureLede, culture)}
-${section(ui.news, ui.newsLede, news)}
+<h2 class="disc-h2">${esc(ui.news)}</h2>
+<p class="lede">${esc(ui.newsLede)}</p>
+${news.length ? newsTopicSections(news, lang, prefix) : `<p class="lede">${esc(ui.empty)}</p>`}
 ${section(ui.stories, ui.storiesLede, stories)}
 ${more(storiesUi.backToStories, `${prefix}/stories`)}
 ${ctaCard(lang)}

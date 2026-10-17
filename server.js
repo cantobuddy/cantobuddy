@@ -1516,23 +1516,27 @@ const server = app.listen(PORT, HOST, () => {
 // ---------------------------------------------------------------------------
 // News importer schedule
 //
-// OFF BY DEFAULT, and that is the right default. The importer is idempotent, so
-// running it costs nothing but a couple of HTTP requests — but a server that
-// silently reaches out to the internet on a timer is a surprise in a codebase
-// that otherwise never does, so it is opt-in:
+// ON BY DEFAULT: an hourly pull. The importer is idempotent (it only ever
+// inserts posts it does not already have, keyed on the source GUID), so running
+// it costs nothing but a couple of HTTP requests and the feed stays current
+// without the operator pressing "Fetch news now" in the admin Posts tab. The
+// 3-day retention (see db.js pruneExpiredNews) keeps the schedule harmless —
+// a stale item is gone after 72h and re-fetched fresh when the feed moves.
 //
-//     NEWS_FETCH_INTERVAL_HOURS=6
-//
-// With it unset, the feed is filled by the operator pressing "Fetch news now"
-// in the admin Posts tab, which is the honest default for a deployment that may
-// not be awake on a schedule.
+// OVERRIDE:
+//   NEWS_FETCH_INTERVAL_HOURS=6   -> pull every 6 hours instead
+//   NEWS_FETCH_INTERVAL_HOURS=0   -> off (revert to manual-only)
 //
 // ON A SLEEPING HOST this timer does not fire while the instance is asleep
 // (Render's free tier sleeps after inactivity), so it is a convenience, not a
-// guarantee. A Render Cron Job hitting POST /api/admin/posts/import is the
-// reliable version; the button is the manual one. Both exist.
+// hard guarantee. A Render Cron Job hitting POST /api/admin/posts/import is the
+// reliable version; the startup pull below is the belt-and-braces one. Both
+// exist. When the var is unset we default to 1h; when it is explicitly "0" we
+// honour the opt-out (Number('0') is 0, so the `|| 1` must not swallow it).
 // ---------------------------------------------------------------------------
-const NEWS_FETCH_INTERVAL_HOURS = Number(process.env.NEWS_FETCH_INTERVAL_HOURS) || 0;
+const rawNewsInterval = process.env.NEWS_FETCH_INTERVAL_HOURS;
+const NEWS_FETCH_INTERVAL_HOURS =
+  rawNewsInterval === undefined ? 1 : Number(rawNewsInterval);
 
 if (NEWS_FETCH_INTERVAL_HOURS > 0) {
   const everyMs = Math.max(NEWS_FETCH_INTERVAL_HOURS, 0.25) * 60 * 60 * 1000;
@@ -1545,7 +1549,7 @@ if (NEWS_FETCH_INTERVAL_HOURS > 0) {
           // A retired source is a real event, not a detail: it means the feed
           // just lost stories because the code stopped shipping their feed.
           (r.removed ? `, retired ${r.removed} from ${r.retired.join(', ')}` : '') +
-          (r.prunedRemoved ? `, pruned ${r.prunedRemoved} older than ${news.NEWS_MAX_AGE_DAYS || 3}d` : '') +
+          (r.prunedRemoved ? `, pruned ${r.prunedRemoved} older than ${Number(process.env.NEWS_MAX_AGE_DAYS) || 3}d` : '') +
           (r.errors.length ? ` — errors: ${r.errors.join('; ')}` : '')
       );
     } catch (err) {

@@ -1983,9 +1983,9 @@ const newsTopicLabel = (lang, key) =>
    banner appears while there is still time to prepare, which is the only time
    it is useful.
 
-   `words` names the vocabulary that goes with the festival, in the same
-   category-19 set data.js seeds. The banner links to /learn/<category> so the
-   words are one tap away.
+   `key` is also the tag the vocabulary carries, and the lookup into
+   FESTIVAL_WORDS below, which is what the banner actually prints. The banner
+   links to /learn/festivals, where the words are one tap away.
    --------------------------------------------------------------------------- */
 const HK_FESTIVALS = [
   { key: 'lny',          name_en: 'Lunar New Year',        name_zh: '农历新年',   icon: '🧨', dates: ['2026-02-17', '2027-02-06', '2028-01-26'] },
@@ -2040,23 +2040,52 @@ function festivalBanner(lang, now = Date.now()) {
   const when = f.inDays === 0 ? ui.today : f.inDays === 1 ? ui.tomorrow : ui.inDays.replace('{n}', String(f.inDays));
   const date = new Date(`${f.startsOn}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', timeZone: 'UTC' });
 
-  const words = [
-    ['恭喜發財', 'gung1 hei2 faat3 coi4'],
-    ['新年快樂', 'san1 nin2 faai3 lok6'],
-    ['利是', 'lai6 si6'],
-  ];
+  const words = FESTIVAL_WORDS[f.key] || [];
 
   return `<div class="fest-banner" role="region" aria-label="${esc(ui.label)}">
   <p class="fest-banner-kicker">${esc(ui.kicker)}</p>
   <h2 class="fest-banner-title">${esc(f.icon)} ${esc(f.key === 'christmas' || f.key === 'wintersolstice' ? f.name_en : (L[lang] === L.zh ? f.name_zh : f.name_en))}</h2>
   <p class="fest-banner-when">${esc(when)} · ${esc(date)}</p>
   <p class="fest-banner-body">${esc(ui.body.replace('{festival}', f.name_en))}</p>
-  <ul class="fest-banner-words">
+  ${words.length ? `<ul class="fest-banner-words">
     ${words.map(([c, j]) => `<li><span class="fest-yue">${esc(c)}</span><span class="fest-jyut">${esc(j)}</span></li>`).join('\n    ')}
-  </ul>
+  </ul>` : ''}
   <a class="cta" href="${prefix}/learn/festivals">${esc(ui.cta)}</a>
 </div>`;
 }
+
+/* ---------------------------------------------------------------------------
+   THE WORDS UNDER THE BANNER, PER FESTIVAL.
+
+   This used to be a single array of Lunar New Year greetings declared inside
+   festivalBanner(), so every festival printed 恭喜發財 / 新年快樂 / 利是. It went
+   unnoticed for a year because the banner only appears within seven days of an
+   event and the first one to land after the banner shipped was, by luck, a
+   festival where the words were wrong but not absurd. Chongyang made it
+   absurd: a grave-sweeping and hill-climbing day, captioned with red packets.
+
+   So the list is now keyed on the festival, and a festival with no entry shows
+   no words at all rather than someone else's. Silence is a smaller lie than the
+   wrong vocabulary — she would have learned three phrases that do not belong to
+   the day she is being told to prepare for.
+
+   Every word here must also exist in data.js under category 19, because the CTA
+   sends her to that lesson. `posts-test.js` asserts both halves: that all ten
+   festivals are covered, and that each curated word is really in the set she
+   will be shown.
+   --------------------------------------------------------------------------- */
+const FESTIVAL_WORDS = {
+  lny:            [['恭喜發財', 'gung1 hei2 faat3 coi4'], ['新年快樂', 'san1 nin2 faai3 lok6'], ['利是', 'lai6 si6']],
+  chingming:      [['清明節', 'cing1 ming4 zit3'], ['拜山', 'baai3 saan1'], ['掃墓', 'sou3 mou6']],
+  buddha:         [['佛誕', 'fat6 daan3'], ['上香', 'soeng5 hoeng1'], ['食齋', 'sik6 zaai1']],
+  bun:            [['太平清醮', 'taai3 ping4 cing1 ziu3'], ['平安包', 'ping4 on1 baau1'], ['搶包山', 'coeng2 baau1 saan1']],
+  dragonboat:     [['端午節', 'dyun1 ng5 zit3'], ['粽', 'zung3'], ['龍舟', 'lung4 zau1']],
+  hungryghost:    [['盂蘭節', 'jyu4 laan4 zit3'], ['燒衣', 'siu1 ji1'], ['上香', 'soeng5 hoeng1']],
+  midautumn:      [['中秋節', 'zung1 cau1 zit3'], ['月餅', 'jyut6 beng2'], ['燈籠', 'dang1 lung4']],
+  chongyang:      [['重陽節', 'cung4 joeng4 zit3'], ['登高', 'dang1 gou1'], ['菊花', 'guk1 faa1']],
+  wintersolstice: [['冬至', 'dung1 zi3'], ['湯圓', 'tong1 jyun2'], ['做冬', 'zou6 dung1']],
+  christmas:      [['聖誕節', 'sing3 daan3 zit3'], ['聖誕樹', 'sing3 daan3 syu6'], ['禮物', 'lai5 mat6']],
+};
 
 /** The banner's own copy, per language. */
 const FESTIVAL_BANNER_UI = {

@@ -55,6 +55,9 @@ const I18N = {
     'discover.empty': 'Nothing here yet — check back soon.',
     'discover.loadFailed': 'Could not load this. Please try again.',
     'discover.readMore': 'Read',
+    // The tick on a card she has already opened. Past tense on purpose: it is a
+    // statement about the item, not an instruction to open it.
+    'discover.read': 'Read',
     'discover.back': '← Discover',
     'discover.source': 'Source',
     'discover.readOriginal': 'Read the full story',
@@ -467,6 +470,7 @@ const I18N = {
     'discover.empty': 'Wala pa rito — bumalik mamaya.',
     'discover.loadFailed': 'Hindi ito ma-load. Subukan muli.',
     'discover.readMore': 'Basahin',
+    'discover.read': 'Nabasa na',
     'discover.back': '← Tuklasin',
     'discover.source': 'Pinagmulan',
     'discover.readOriginal': 'Basahin ang buong balita',
@@ -876,6 +880,7 @@ const I18N = {
     'discover.empty': '这里还没有内容，请稍后再来。',
     'discover.loadFailed': '加载失败，请重试。',
     'discover.readMore': '阅读',
+    'discover.read': '已读',
     'discover.back': '← 发现',
     'discover.source': '来源',
     'discover.readOriginal': '阅读完整报道',
@@ -1284,6 +1289,7 @@ const I18N = {
     'discover.empty': 'Belum ada apa-apa di sini — cek lagi nanti.',
     'discover.loadFailed': 'Gagal memuat. Coba lagi.',
     'discover.readMore': 'Baca',
+    'discover.read': 'Sudah dibaca',
     'discover.back': '← Jelajah',
     'discover.source': 'Sumber',
     'discover.readOriginal': 'Baca berita lengkapnya',

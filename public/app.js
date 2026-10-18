@@ -126,12 +126,10 @@ const STATE = {
   // request; `mine` is her own submissions, which is the only place a reviewer's
   // note is ever shown.
   stories: { list: null, current: null, mine: null, langPicked: false },
-  // The newest post, for the card on Home. `null` means "not asked yet",
-  // `false` means "asked and there is nothing" — the distinction stops Home
-  // re-fetching on every language switch when the feed is legitimately empty.
-  homeLatest: null,
-  // One culture article per day, from /api/posts/daily-culture. Same null /
-  // false pattern as homeLatest.
+  // One culture article per day, from /api/posts/daily-culture. `null` means
+  // "not asked yet", `false` means "asked and there is nothing" — the
+  // distinction stops Home re-fetching on every language switch when there is
+  // legitimately no pick today.
   homeDailyCulture: null,
 };
 
@@ -726,7 +724,6 @@ async function init() {
     renderHomeCards();
     renderHomeDailyCulture();
     renderHomeDiscoverPromo();
-    renderHomeDiscover();
   } catch (err) {
     console.error('Init error:', err);
     document.getElementById('app').insertAdjacentHTML(
@@ -745,9 +742,6 @@ function rerenderForLanguage() {
   renderHomeCards();
   renderHomeDailyCulture();
   renderHomeDiscoverPromo();
-  // The Discover card on Home carries a translated heading and a post title
-  // with per-language fallbacks, so it is rebuilt too.
-  renderHomeDiscover();
   renderCategoryChips();
   renderQuizTypes();
   renderVocabList();
@@ -828,35 +822,6 @@ function toggleHomeCategories() {
 //   * A failure is SILENT. Home must never be broken, or half-drawn, by a feed
 //     that will not load or a statistics call that times out.
 
-/** Today's calendar date in Hong Kong — the day the server counts in. */
-function hktDayKey(now = Date.now()) {
-  return new Date(now + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
-}
-
-/**
- * A small deterministic hash (FNV-1a), so the word of the day is the same word
- * for every device on a given day with no storage and no server call.
- *
- * A plain `dayNumber % length` would be just as deterministic, but it walks the
- * library in order — consecutive days would hand her adjacent words, which
- * reads as a bug rather than a daily pick.
- */
-function hashString(s) {
-  let h = 0x811c9dc5;
-  for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i);
-    h = Math.imul(h, 0x01000193) >>> 0;
-  }
-  return h >>> 0;
-}
-
-/** The word of the day, drawn from the whole library. */
-function wordOfTheDay() {
-  const list = STATE.vocabulary;
-  if (!list || !list.length) return null;
-  return list[hashString('cb-wotd-' + hktDayKey()) % list.length];
-}
-
 /**
  * Where "Continue" goes.
  *
@@ -932,60 +897,11 @@ function continueLearning() {
   goBrowse(continueLevel(STATE.stats));
 }
 
-function renderHomeWord() {
-  const wrap = document.getElementById('home-word');
-  if (!wrap) return;
-  const v = wordOfTheDay();
-  if (!v) {
-    wrap.innerHTML = '';
-    return;
-  }
-  wrap.innerHTML = `
-    <div class="home-word">
-      <div class="home-word-head">${escapeHtml(t('home.wordOfDay'))}</div>
-      <div class="home-word-card" onclick="openVocabModal(${v.id})">
-        <div class="home-word-emoji">${escapeHtml(v.emoji || '📝')}</div>
-        <div class="home-word-main">
-          <div class="home-word-cantonese">${escapeHtml(v.cantonese)}</div>
-          <div class="home-word-jyutping">${escapeHtml(v.jyutping || '')}</div>
-          <div class="home-word-meaning">${escapeHtml(meaning(v))}</div>
-        </div>
-        <button class="vocab-audio-btn" aria-label="${escapeAttr(v.cantonese)}"
-          onclick="event.stopPropagation(); speak('${jsAttr(v.cantonese)}', this)">🔊</button>
-      </div>
-    </div>`;
-}
-
 /**
- * The newest Discover item, so "there is something new" is visible without
- * opening the Discover tab. Renders nothing when the feed is empty, and
- * swallows a failure rather than putting an error on the home screen.
+ * The two synchronous home cards. Called from init() and on a language switch.
  */
-async function renderHomeDiscover() {
-  const wrap = document.getElementById('home-discover');
-  if (!wrap) return;
-  try {
-    if (STATE.homeLatest === null) {
-      const posts = await apiGet('/api/posts?limit=1');
-      STATE.homeLatest = Array.isArray(posts) && posts.length ? posts[0] : false;
-    }
-    if (!STATE.homeLatest) {
-      wrap.innerHTML = '';
-      return;
-    }
-    wrap.innerHTML =
-      `<h4 class="home-section-title">${escapeHtml(t('home.latest'))}</h4>` +
-      postCardHtml(STATE.homeLatest);
-  } catch (err) {
-    console.warn('Could not load the latest post:', err);
-    wrap.innerHTML = '';
-  }
-}
-
-/** The two synchronous home cards. Called from init() and on a language switch. */
 function renderHomeCards() {
   renderHomeResume();
-  renderHomeWord();
 }
 
 /** One culture article per day, chosen by the server. */
@@ -3923,16 +3839,68 @@ function renderPostPager(host, posts) {
     </button>`;
 }
 
+/* ---------------------------------------------------------------------------
+   WHAT SHE HAS ALREADY OPENED.
+
+   Read state lives in localStorage, on the device, and never leaves it. That is
+   not a shortcut around a missing server feature — it is the correct place for
+   this data. A helper has no account (see the note at the top of this file), and
+   this is browsing history: the one category of record that would be most
+   damaging in an employer's hands. Nothing about "has she read the news" needs
+   to reach a server to be useful to her.
+
+   The list holds `post:<slug>` and `story:<slug>` keys, oldest first, capped at
+   READ_CAP. The cap is not tidiness. localStorage is a shared, small, quota-
+   limited bucket, and a news feed that adds twenty keys a day would eventually
+   make setItem throw in the middle of a write — which is the kind of failure
+   that takes out a neighbouring feature rather than the one that caused it.
+
+   Every read is wrapped: private browsing refuses localStorage outright, and a
+   refused write must cost her the tick on a card, not the page she asked for.
+   --------------------------------------------------------------------------- */
+const READ_KEY = 'cb_read';
+const READ_CAP = 400;
+
+function readKeys() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(READ_KEY) || '[]');
+    // Not trusted: the key is in the same bucket as everything else on the
+    // origin, and a value of the wrong shape here must not throw on every card.
+    return Array.isArray(raw) ? raw.filter((k) => typeof k === 'string') : [];
+  } catch { return []; }
+}
+
+function isRead(key) {
+  return readKeys().indexOf(key) !== -1;
+}
+
+function markRead(key) {
+  const list = readKeys();
+  const at = list.indexOf(key);
+  if (at !== -1) list.splice(at, 1); // re-opening moves it to the recent end
+  list.push(key);
+  try {
+    localStorage.setItem(READ_KEY, JSON.stringify(list.slice(-READ_CAP)));
+  } catch { /* private mode — the tick simply never appears */ }
+}
+
+/** The tick that says "you have opened this". Empty when she has not. */
+function readChipHtml(key) {
+  if (!isRead(key)) return '';
+  return ` · <span class="read-chip"><span aria-hidden="true">✓</span> ${escapeHtml(t('discover.read'))}</span>`;
+}
+
 /** One feed card. A button, not a link: it opens the article in the app. */
 function postCardHtml(post) {
   const date = postDate(post.published_at || post.created_at);
   const source = post.source_name ? ` · ${escapeHtml(post.source_name)}` : '';
   const summary = postField(post, 'summary');
+  const read = isRead(`post:${post.slug}`);
   return `
-    <button class="post-card" onclick="openPost('${escapeHtml(post.slug)}')">
+    <button class="post-card${read ? ' is-read' : ''}" onclick="openPost('${escapeHtml(post.slug)}')">
       <span class="post-card-icon">${escapeHtml(post.icon || '📰')}</span>
       <span class="post-card-main">
-        <span class="post-card-meta">${escapeHtml(date)}${source}</span>
+        <span class="post-card-meta">${escapeHtml(date)}${source}${readChipHtml(`post:${post.slug}`)}</span>
         <span class="post-card-title">${escapeHtml(postField(post, 'title'))}</span>
         ${summary ? `<span class="post-card-summary">${escapeHtml(summary)}</span>` : ''}
       </span>
@@ -3952,11 +3920,12 @@ function storyCardHtml(story) {
   const date = postDate(story.published_at);
   const byline = String(story.display_name || '').trim() || t('story.anonymous');
   const meta = [date, byline].filter(Boolean).join(' · ');
+  const read = isRead(`story:${story.slug}`);
   return `
-    <button class="post-card story-card" onclick="openStory('${escapeHtml(story.slug)}')">
+    <button class="post-card story-card${read ? ' is-read' : ''}" onclick="openStory('${escapeHtml(story.slug)}')">
       <span class="post-card-icon">📖</span>
       <span class="post-card-main">
-        <span class="post-card-meta">${escapeHtml(meta)}</span>
+        <span class="post-card-meta">${escapeHtml(meta)}${readChipHtml(`story:${story.slug}`)}</span>
         <span class="post-card-title">${escapeHtml(story.title)}</span>
         ${story.gloss_en ? `<span class="post-card-summary">${escapeHtml(story.gloss_en)}</span>` : ''}
       </span>
@@ -4064,6 +4033,7 @@ async function openStory(slug) {
     const story = await apiGet(`/api/stories/${encodeURIComponent(slug)}`);
     STATE.stories.current = story;
     renderStoryPage(story);
+    markRead(`story:${slug}`);
   } catch (err) {
     console.warn('Could not load the story:', err);
     host.innerHTML = `<p class="discover-empty">${escapeHtml(t('story.notFound'))}</p>`;
@@ -4270,6 +4240,9 @@ async function openPost(slug) {
     const post = await apiGet(`/api/posts/${encodeURIComponent(slug)}`);
     STATE.discover.current = post;
     renderPost(post);
+    // Marked AFTER the article rendered, not when the card was tapped: a tap
+    // that failed to load is not something she has read.
+    markRead(`post:${slug}`);
   } catch (err) {
     console.warn('Could not load the article:', err);
     host.innerHTML = `<p class="discover-empty">${escapeHtml(t('discover.notFound'))}</p>`;

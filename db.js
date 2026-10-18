@@ -1135,7 +1135,7 @@ function vocabValues(v) {
 
 /* Bumped whenever the SEED_* content changes in a way an EXISTING database
    needs to pick up. See migrateContent() below. */
-const CONTENT_VERSION = 7; // v1 = original 64 · v2 = Tier A expansion · v3 = coverage top-up (every category ≥5) · v4 = Simplified Chinese glosses (all 132) · v5 = Restaurant category + 10 entries (all 142 glossed) · v6 = the 9 empty (category x level) combinations filled, +38 entries (all 180 glossed) · v7 = Festivals category (id 19, 節日/Festivals) + 36 vocabulary rows (ids 181–216), all four languages
+const CONTENT_VERSION = 8; // v1 = original 64 · v2 = Tier A expansion · v3 = coverage top-up (every category ≥5) · v4 = Simplified Chinese glosses (all 132) · v5 = Restaurant category + 10 entries (all 142 glossed) · v6 = the 9 empty (category x level) combinations filled, +38 entries (all 180 glossed) · v7 = Festivals category (id 19, 節日/Festivals) + 36 vocabulary rows (ids 181–216), all four languages · v8 = festival coverage completed: +24 rows (ids 217–240) for the five events that had no words at all (Ching Ming, Buddha's Birthday, Chongyang, Winter Solstice, Christmas), plus 龍舟, all four languages
 // NOTE: the Simplified glosses (vocabulary.mandarin), the Indonesian glosses
 // (vocabulary.indonesian) and BOTH per-language category name sets
 // (categories.name_zh, categories.name_id) are NOT applied by migrateContent() —

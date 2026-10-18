@@ -344,6 +344,62 @@ const SEED_VOCABULARY = [  // ---- Beginner ----
   { id: 215, cantonese: '今晚有煙花睇', jyutping: 'gam1 maan5 jau5 jin1 faa1 tai2', english: "There are fireworks tonight", tagalog: 'May paputok mamayang gabi', emoji: '🎆', level: 3, category_id: 19, type: 'sentence', speaker: 'either', tags: 'festival,lny,night' },
   { id: 216, cantonese: '去唔去長洲睇太平清醮？', jyutping: 'heoi3 m4 heoi3 coeng4 zau1 tai2 taai3 ping4 cing1 ziu3', english: 'Are you going to Cheung Chau for the Bun Festival?', tagalog: 'Pupunta ka ba sa Cheung Chau para sa Bun Festival?', emoji: '🏝️', level: 3, category_id: 19, type: 'sentence', speaker: 'either', tags: 'festival,cheungchau,invitation' },
 
+  // ---- v8: the festivals that had NO vocabulary of their own ---------------
+  //
+  // The first 36 entries covered Lunar New Year, Mid-Autumn, Dragon Boat, the
+  // Cheung Chau buns and the Hungry Ghost month. Five of the ten events in
+  // seo.js → HK_FESTIVALS had nothing: Ching Ming, Buddha's Birthday,
+  // Chongyang, Winter Solstice and Christmas. That gap was not visible until
+  // the landing-page banner started naming the next festival, and then it was
+  // very visible — the banner carried one hard-coded array of New Year
+  // greetings and printed 恭喜發財 under a Chongyang heading.
+  //
+  // The fix has two halves and this is the content half: every festival in the
+  // table now has words a learner can actually be taught, tagged with the
+  // festival key (`chingming`, `chongyang`, …) so the banner's curated list and
+  // this set can be checked against each other. `posts-test.js` asserts that
+  // every word the banner shows exists here in category 19.
+  //
+  // Three of these are work-surface words rather than decoration: 拜山 is what
+  // the family calls the Ching Ming outing, 做冬 is the solstice dinner she
+  // will be asked to cook for, and 敬老 is why the employer's parents visit on
+  // Chongyang.
+
+  // --- level 1: the day, and the things it is made of ---
+  { id: 217, cantonese: '清明節', jyutping: 'cing1 ming4 zit3', english: 'Ching Ming Festival (grave-sweeping day)', tagalog: 'Pistang Ching Ming', emoji: '🪦', level: 1, category_id: 19, type: 'word', speaker: 'either', tags: 'festival,chingming,date', usage_note: 'A public holiday in early April. The whole family goes to the grave together, tidies it, and leaves flowers and food.' },
+  { id: 218, cantonese: '拜山', jyutping: 'baai3 saan1', english: 'Visit the family grave (literally "worship the mountain")', tagalog: 'Bisitahin ang libingan', emoji: '🪦', level: 1, category_id: 19, type: 'word', speaker: 'either', tags: 'festival,chingming,event', usage_note: 'The everyday Cantonese for the Ching Ming and Chongyang grave visit. 掃墓 is the same act in written Chinese; nobody says it out loud.' },
+  { id: 219, cantonese: '佛誕', jyutping: 'fat6 daan3', english: "Buddha's Birthday", tagalog: 'Kaarawan ni Buddha', emoji: '🪷', level: 1, category_id: 19, type: 'word', speaker: 'either', tags: 'festival,buddha,date', usage_note: 'A public holiday in May. Devout households go to the temple and bathe a small statue of the infant Buddha.' },
+  { id: 220, cantonese: '蓮花', jyutping: 'lin4 faa1', english: 'Lotus flower', tagalog: 'Bulaklak ng lotus', emoji: '🪷', level: 1, category_id: 19, type: 'word', speaker: 'either', tags: 'festival,buddha,object' },
+  { id: 221, cantonese: '重陽節', jyutping: 'cung4 joeng4 zit3', english: 'Chongyang Festival (Double Ninth)', tagalog: 'Pistang Chongyang', emoji: '⛰️', level: 1, category_id: 19, type: 'word', speaker: 'either', tags: 'festival,chongyang,date', usage_note: 'The ninth day of the ninth lunar month, a public holiday. The custom is to climb a hill — and, in Hong Kong, to sweep the grave a second time in the year.' },
+  { id: 222, cantonese: '菊花', jyutping: 'guk1 faa1', english: 'Chrysanthemum', tagalog: 'Bulaklak na chrysanthemum', emoji: '🌼', level: 1, category_id: 19, type: 'word', speaker: 'either', tags: 'festival,chongyang,object', usage_note: 'The flower of the ninth month, so it belongs to Chongyang. Also the flower left at a grave — which is why it is not a flower you give someone for a birthday.' },
+  { id: 223, cantonese: '冬至', jyutping: 'dung1 zi3', english: 'Winter Solstice', tagalog: 'Winter Solstice', emoji: '🥟', level: 1, category_id: 19, type: 'word', speaker: 'either', tags: 'festival,wintersolstice,date', usage_note: 'A public holiday in late December, and in Cantonese families a bigger meal than New Year. The saying is 冬大過年 — the solstice outranks the new year.' },
+  { id: 224, cantonese: '湯圓', jyutping: 'tong1 jyun2', english: 'Glutinous rice balls in sweet soup', tagalog: 'Bilog na malagkit sa matamis na sabaw', emoji: '🍡', level: 1, category_id: 19, type: 'word', speaker: 'either', tags: 'festival,wintersolstice,food', usage_note: 'Round, so they mean 團圓 — the family being complete. Served at the solstice and at Mid-Autumn.' },
+  { id: 225, cantonese: '聖誕節', jyutping: 'sing3 daan3 zit3', english: 'Christmas', tagalog: 'Pasko', emoji: '🎄', level: 1, category_id: 19, type: 'word', speaker: 'either', tags: 'festival,christmas,date', usage_note: 'A public holiday on 25 and 26 December, and the one festival in this list that is not Chinese. Decorations go up in the shops from November.' },
+  { id: 226, cantonese: '聖誕樹', jyutping: 'sing3 daan3 syu6', english: 'Christmas tree', tagalog: 'Puno ng Pasko', emoji: '🎄', level: 1, category_id: 19, type: 'word', speaker: 'either', tags: 'festival,christmas,object' },
+  { id: 227, cantonese: '禮物', jyutping: 'lai5 mat6', english: 'Present, gift', tagalog: 'Regalo', emoji: '🎁', level: 1, category_id: 19, type: 'word', speaker: 'either', tags: 'festival,christmas,object' },
+  { id: 228, cantonese: '盂蘭節', jyutping: 'jyu4 laan4 zit3', english: 'Hungry Ghost Festival', tagalog: 'Pistang Hungry Ghost', emoji: '👻', level: 1, category_id: 19, type: 'word', speaker: 'either', tags: 'festival,hungryghost,date', usage_note: 'The seventh lunar month, when the dead are said to walk. Not a public holiday — the flat is simply quieter for a month.' },
+
+  // --- level 2: what she is asked to do ---
+  { id: 229, cantonese: '掃墓', jyutping: 'sou3 mou6', english: 'Sweep and tidy the grave', tagalog: 'Maglinis ng libingan', emoji: '🧹', level: 2, category_id: 19, type: 'word', speaker: 'either', tags: 'festival,chingming,event' },
+  { id: 230, cantonese: '上香', jyutping: 'soeng5 hoeng1', english: 'Offer incense', tagalog: 'Magsindi ng insenso', emoji: '🪔', level: 2, category_id: 19, type: 'word', speaker: 'either', tags: 'festival,altar,event', usage_note: 'Three sticks, held in both hands, bowed three times. At the temple and at the home altar on every festival morning.' },
+  { id: 231, cantonese: '食齋', jyutping: 'sik6 zaai1', english: 'Eat vegetarian (for the day)', tagalog: 'Kumain ng gulay lang', emoji: '🥗', level: 2, category_id: 19, type: 'word', speaker: 'either', tags: 'festival,buddha,food', usage_note: "On Buddha's Birthday and the first and fifteenth of the lunar month, many households eat no meat at all. She may be asked to cook it." },
+  { id: 232, cantonese: '登高', jyutping: 'dang1 gou1', english: 'Climb a hill', tagalog: 'Umakyat sa bundok', emoji: '⛰️', level: 2, category_id: 19, type: 'word', speaker: 'either', tags: 'festival,chongyang,event', usage_note: 'The Chongyang custom, and the reason it is a day off: the family goes up a hill, often with a picnic.' },
+  { id: 233, cantonese: '敬老', jyutping: 'ging3 lou5', english: 'Respect the elderly', tagalog: 'Igalang ang matatanda', emoji: '👵', level: 2, category_id: 19, type: 'word', speaker: 'either', tags: 'festival,chongyang,custom', usage_note: 'The other half of Chongyang — it is also Senior Citizens Day, so the employer\'s parents may visit and there will be a lunch.' },
+  { id: 234, cantonese: '做冬', jyutping: 'zou6 dung1', english: 'Have the Winter Solstice family dinner', tagalog: 'Handaan sa Winter Solstice', emoji: '🍲', level: 2, category_id: 19, type: 'word', speaker: 'either', tags: 'festival,wintersolstice,event', usage_note: 'A sit-down dinner at home, often a whole chicken and a big pot of soup. The busiest cooking day of the winter for her.' },
+  { id: 235, cantonese: '太平清醮', jyutping: 'taai3 ping4 cing1 ziu3', english: 'The Cheung Chau Bun Festival (a Taoist purification rite)', tagalog: 'Pistang Bun ng Cheung Chau', emoji: '🏮', level: 2, category_id: 19, type: 'word', speaker: 'either', tags: 'festival,cheungchau,event', usage_note: 'The full name of the festival whose buns are in 平安包. For three days the island eats vegetarian.' },
+
+  // --- level 3: the two or three things she has to be able to ask ---
+  { id: 236, cantonese: '清明節要唔要去拜山？', jyutping: 'cing1 ming4 zit3 jiu3 m4 jiu3 heoi3 baai3 saan1', english: 'Do we need to go to the grave at Ching Ming?', tagalog: 'Kailangan ba nating pumunta sa libingan sa Ching Ming?', emoji: '🪦', level: 3, category_id: 19, type: 'sentence', speaker: 'helper', tags: 'festival,chingming,question' },
+  { id: 237, cantonese: '重陽節我哋去登高', jyutping: 'cung4 joeng4 zit3 ngo5 dei6 heoi3 dang1 gou1', english: 'We go up the hill on Chongyang', tagalog: 'Umaakyat kami sa bundok sa Chongyang', emoji: '⛰️', level: 3, category_id: 19, type: 'sentence', speaker: 'either', tags: 'festival,chongyang,information' },
+  { id: 238, cantonese: '冬至做冬，一家人食飯', jyutping: 'dung1 zi3 zou6 dung1, jat1 gaa1 jan4 sik6 faan6', english: 'At Winter Solstice the whole family has dinner together', tagalog: 'Sa Winter Solstice, sabay kumakain ang buong pamilya', emoji: '🍲', level: 3, category_id: 19, type: 'sentence', speaker: 'either', tags: 'festival,wintersolstice,information' },
+  { id: 239, cantonese: '聖誕節你想去邊度？', jyutping: 'sing3 daan3 zit3 nei5 soeng2 heoi3 bin1 dou6', english: 'Where do you want to go at Christmas?', tagalog: 'Saan mo gustong pumunta sa Pasko?', emoji: '🎄', level: 3, category_id: 19, type: 'sentence', speaker: 'either', tags: 'festival,christmas,question' },
+
+  // Appended out of id order on purpose: the Dragon Boat banner needed a third
+  // word and the category had only the festival's name (端午節) and the food
+  // (粽). 龍舟 is the thing the day is about, so it is the word she will hear
+  // on the television all week. Ids are explicit, so sequence costs nothing.
+  { id: 240, cantonese: '龍舟', jyutping: 'lung4 zau1', english: 'Dragon boat', tagalog: 'Dragon boat', emoji: '🚣', level: 1, category_id: 19, type: 'word', speaker: 'either', tags: 'festival,dragonboat,object', usage_note: 'The long boats with a dragon head and tail, raced at 端午節. The Hong Kong races are at Stanley and Aberdeen.' },
+
   // ---- v6: the 9 empty (category x level) combinations, filled ----------
   // Machine-drafted to the same standard and with the same caveat as Tier A.
   // Rule: no combination empty, floor 4 (generateQuestions needs a pool of 4).
@@ -697,6 +753,32 @@ const MANDARIN_GLOSSES = {
   214:  '记得拿红包',
   215:  '今晚有烟花看',
   216:  '去不去长洲看太平清醮？',
+
+  // --- ids 217-239: the five festivals that had no vocabulary (v8) ---
+  217:  '清明节',
+  218:  '上坟',
+  219:  '佛诞',
+  220:  '莲花',
+  221:  '重阳节',
+  222:  '菊花',
+  223:  '冬至',
+  224:  '汤圆',
+  225:  '圣诞节',
+  226:  '圣诞树',
+  227:  '礼物',
+  228:  '盂兰节',
+  229:  '扫墓',
+  230:  '上香',
+  231:  '吃素',
+  232:  '登高',
+  233:  '敬老',
+  234:  '过冬至',
+  235:  '太平清醮',
+  236:  '清明节要不要去上坟？',
+  237:  '重阳节我们去登高',
+  238:  '冬至做冬，一家人吃饭',
+  239:  '圣诞节你想去哪里？',
+  240:  '龙舟',
 };
 
 SEED_VOCABULARY.forEach((v) => {
@@ -1030,6 +1112,32 @@ const INDONESIAN_GLOSSES = {
   214:  'Ingat ambil angpao',
   215:  'Malam ini ada kembang api',
   216:  'Ikut ke Cheung Chau lihat Bun Festival?',
+
+  // --- ids 217-239: the five festivals that had no vocabulary (v8) ---
+  217:  'Festival Ching Ming (hari ziarah makam)',
+  218:  'Ziarah makam keluarga',
+  219:  'Hari Raya Buddha',
+  220:  'Bunga teratai',
+  221:  'Festival Chongyang',
+  222:  'Bunga krisan',
+  223:  'Titik balik matahari musim dingin',
+  224:  'Bola ketan dalam kuah manis',
+  225:  'Natal',
+  226:  'Pohon Natal',
+  227:  'Hadiah',
+  228:  'Festival Arwah',
+  229:  'Membersihkan makam',
+  230:  'Menyembah dengan dupa',
+  231:  'Makan sayur saja',
+  232:  'Mendaki bukit',
+  233:  'Menghormati orang tua',
+  234:  'Makan malam titik balik musim dingin',
+  235:  'Ritual Cheung Chau Bun',
+  236:  'Perlu ziarah makam saat Ching Ming?',
+  237:  'Kami mendaki bukit saat Chongyang',
+  238:  'Saat titik balik musim dingin, keluarga makan bersama',
+  239:  'Kamu mau ke mana saat Natal?',
+  240:  'Perahu naga',
 };
 
 SEED_VOCABULARY.forEach((v) => {

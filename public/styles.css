@@ -576,9 +576,6 @@ body {
 .home-resume-sub { font-size: 0.82rem; color: var(--c-text-soft); margin-top: 3px; }
 .home-resume-btn { flex: 0 0 auto; }
 
-.home-word { margin-top: 20px; }
-
-.home-word-head,
 .home-section-title {
   display: flex;
   align-items: center;
@@ -594,7 +591,6 @@ body {
 /* A short brand tick before every section label — on Home and on My Progress.
    The pages had rows of identical grey uppercase headings with nothing to mark
    where a section begins or to tell one from another. */
-.home-word-head::before,
 .home-section-title::before,
 .home-categories h4::before,
 .progress-card h4::before {
@@ -605,38 +601,6 @@ body {
   border-radius: 2px;
   background: var(--c-primary);
 }
-
-.home-word-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: var(--c-primary-tint);
-  border: 1px solid #ffd9dd;
-  border-radius: var(--radius);
-  padding: 14px;
-  cursor: pointer;
-  transition: transform 0.12s, box-shadow 0.2s;
-}
-.home-word-card:hover { box-shadow: 0 6px 18px var(--c-shadow-lg); }
-.home-word-card:active { transform: scale(0.985); }
-.home-word-emoji {
-  flex: 0 0 auto;
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  background: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.5rem;
-  line-height: 1;
-}
-.home-word-main { flex: 1; min-width: 0; }
-.home-word-cantonese { font-size: 1.25rem; font-weight: 700; }
-.home-word-jyutping { font-size: 0.85rem; color: var(--c-primary); }
-.home-word-meaning { font-size: 0.85rem; color: var(--c-text-soft); }
-
-#home-discover { margin-top: 24px; }
 
 /* ---- Home categories strip ---- */
 /* ---- Home: Daily Culture (one featured article per day) ---------------- */
@@ -2041,6 +2005,40 @@ body {
   font-size: 1.4rem;
   line-height: 1;
 }
+
+/* ---- "You have opened this" ------------------------------------------------
+   Two signals, because one is not enough. A worded chip carries the meaning in
+   every language and does not depend on colour, and the muted card is what lets
+   her scan a feed she has mostly read for the two items she has not.
+
+   The colour is deliberately NOT the brand red. Red is this app's attention
+   colour everywhere else, so a red tick would read as "new" — the exact
+   opposite. Teal is already the completion colour here (--c-correct), and this
+   pair is that family darkened far enough to clear 4.5:1 on its own tint. */
+:root {
+  --c-read:      #17796d;
+  --c-read-tint: #e1f5ee;
+}
+
+.read-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--c-read-tint);
+  color: var(--c-read);
+  font-size: 0.66rem;
+  font-weight: 700;
+  /* The meta line is uppercase; a chip is a word, not a label. */
+  text-transform: none;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  vertical-align: 1px;
+}
+
+.post-card.is-read .post-card-title { color: var(--c-text-soft); }
+.post-card.is-read .post-card-icon { opacity: 0.55; }
 
 /* ---- News topic filter ----------------------------------------------------
    The News channel grows without bound (the importer runs hourly), so it is

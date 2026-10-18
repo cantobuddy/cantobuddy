@@ -2004,7 +2004,14 @@ const HK_FESTIVALS = [
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Hong Kong's day, as YYYY-MM-DD. The server runs in UTC; the events are local. */
-const hkToday = (now = Date.now()) => new Date(now + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
+// The arithmetic must be on the TIMESTAMP, never on the value itself. A Date on
+// the left of `+` string-concatenates ("Mon Oct 19 … GMT+0800)28800000"); V8 then
+// leniently parses the date prefix and ignores the trailing digits, so the +8h
+// shift is silently dropped and every caller between 16:00 and 24:00 UTC is told
+// it is still yesterday in Hong Kong. Numbers and Dates must behave identically
+// here — the renderers accept either, and the tests render every festival case
+// on demand through this clock.
+const hkToday = (now = Date.now()) => new Date(new Date(now).getTime() + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
 /** Whole days from `date` to `today`. Negative is in the past. */
 const daysUntil = (date, today) => Math.round((Date.parse(`${date}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / DAY_MS);

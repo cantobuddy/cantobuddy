@@ -662,6 +662,46 @@ body {
   font-weight: 600;
   color: var(--c-primary-dark);
 }
+/* The short story about the day. Ordinary reading size — it is the reason the
+   card is taller than a banner, and it should read like an intro, not a caption. */
+.fest-card-desc {
+  margin: 0 0 12px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--c-text);
+}
+/* The custom activity: a tinted tip row with a small tag. The tag is nowrap, the
+   text wraps beside it (min-width:0) — the same 320px discipline as the chips. */
+.fest-card-activity {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  margin: 0 0 12px;
+  padding: 9px 11px;
+  background: var(--c-primary-tint);
+  border-radius: var(--radius);
+  min-width: 0;
+}
+.fest-card-activity-tag {
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  background: var(--c-primary);
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.fest-card-activity .fest-card-activity-text { min-width: 0; font-size: 0.87rem; line-height: 1.4; color: var(--c-text); }
+.fest-card-words-label {
+  margin: 0 0 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--c-text-soft);
+}
 .fest-card-words {
   list-style: none;
   margin: 0 0 12px;

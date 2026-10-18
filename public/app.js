@@ -951,12 +951,24 @@ async function renderHomeFestival() {
       { day: 'numeric', month: 'long', timeZone: 'UTC' }
     );
 
+    // A short story about the day and a custom activity, both keyed on the
+    // festival `key` from the shared payload. t() returns the key when a string
+    // is missing, so a festival with no copy falls back to the words alone.
+    const descKey = `festival.${f.key}.desc`;
+    const actKey = `festival.${f.key}.activity`;
+    const desc = t(descKey);
+    const activity = t(actKey);
+    const hasDesc = desc !== descKey;
+    const hasActivity = activity !== actKey;
+
     wrap.innerHTML = `
       <div class="fest-card" role="region" aria-label="${escapeHtml(t('home.festLabel'))}">
         <p class="fest-card-kicker">${escapeHtml(t('home.festKicker'))}</p>
         <p class="fest-card-title"><span class="fest-card-icon" aria-hidden="true">${escapeHtml(f.icon)}</span>${escapeHtml(name)}</p>
         <p class="fest-card-when">${escapeHtml(when)} · ${escapeHtml(date)}</p>
-        ${f.words.length ? `<ul class="fest-card-words">${f.words.map((w) =>
+        ${hasDesc ? `<p class="fest-card-desc">${escapeHtml(desc)}</p>` : ''}
+        ${hasActivity ? `<p class="fest-card-activity"><span class="fest-card-activity-tag">${escapeHtml(t('home.festActivityLabel'))}</span><span class="fest-card-activity-text">${escapeHtml(activity)}</span></p>` : ''}
+        ${f.words.length ? `<p class="fest-card-words-label">${escapeHtml(t('home.festWordsLabel'))}</p><ul class="fest-card-words">${f.words.map((w) =>
     `<li><span class="fest-yue">${escapeHtml(w.cantonese)}</span><span class="fest-jyut">${escapeHtml(w.jyutping)}</span></li>`).join('')}</ul>` : ''}
         <button type="button" class="btn btn-outline btn-block" onclick="openFestivalWords()">${escapeHtml(t('home.festCta'))}</button>
       </div>`;

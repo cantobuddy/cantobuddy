@@ -148,6 +148,9 @@ async function renderAdminPush() {
       return;
     }
     sum.innerHTML = `<strong>${s.count}</strong> device${s.count === 1 ? '' : 's'} subscribed to notifications.`;
+    if (s.keyPairMatches === false) {
+      sum.innerHTML += ' <strong style="color:#c1121f">⚠ VAPID public and private keys do not match</strong> — every send will fail with 401/403. Regenerate a matching pair (tools/gen-vapid.cjs) and redeploy.';
+    }
     document.getElementById('push-send-result').textContent = '';
     document.getElementById('push-remind-result').textContent = '';
   } catch (e) {
@@ -169,7 +172,16 @@ async function adminSendPush() {
     const r = await apiPost('/api/admin/push/send', { title, body, url, tag });
     if (r.disabled) { res.textContent = 'Push is disabled on the server.'; return; }
     if (r.noSubs) { res.textContent = 'No subscribers yet — nothing to send.'; return; }
-    res.textContent = `Sent ${r.sent != null ? r.sent : 0}, failed ${r.failed != null ? r.failed : 0}, expired/removed ${r.expired != null ? r.expired : 0}.`;
+    let msg = `Sent ${r.sent != null ? r.sent : 0}, failed ${r.failed != null ? r.failed : 0}, expired/removed ${r.expired != null ? r.expired : 0}.`;
+    // If anything failed, say WHY — a 403 usually means the subscription was
+    // created with a different VAPID key than the server is signing with.
+    const firstFail = (r.results || []).find((x) => !x.expired);
+    if (firstFail) {
+      if (firstFail.status) msg += ` First error: HTTP ${firstFail.status}${firstFail.detail ? ' — ' + firstFail.detail : ''}`;
+      else if (firstFail.error) msg += ` First error: ${firstFail.error}`;
+      else if (firstFail.reason) msg += ` First error: ${firstFail.reason}`;
+    }
+    res.textContent = msg;
   } catch (e) {
     res.textContent = '';
     err.textContent = e.message;

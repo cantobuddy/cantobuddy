@@ -1501,6 +1501,7 @@ app.post('/api/admin/push/reminders', requireAdmin, (req, res) => {
 app.get('/api/admin/push/stats', requireAdmin, (req, res) => {
   res.json({
     enabled: push.isEnabled(),
+    keyPairMatches: push.keyPairMatches(),
     count: store.countSubscriptions(),
   });
 });

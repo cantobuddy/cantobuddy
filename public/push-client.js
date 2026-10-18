@@ -20,6 +20,7 @@
   'use strict';
 
   var DISMISS_KEY = 'cb_push_dismissed';
+  var VAPID_KEY = 'cb_push_vapid'; // which VAPID public key this device subscribed with
   var DISMISS_DAYS = 30;
 
   // Inline i18n so SEO pages (no app.js) can localise the banner. Language is
@@ -258,6 +259,9 @@
           return postJSON('/api/push/subscribe', { subscription: sub.toJSON(), source: source() })
             .then(function () { return sub; });
         }).then(function (sub) {
+          // Remember which VAPID key this subscription belongs to, so a later
+          // key rotation can be detected and fixed on the next load.
+          try { localStorage.setItem(VAPID_KEY, cfg.publicKey); } catch (e) {}
           removeBanner();
           showToast(t('thanks'));
           ping(sub.endpoint);
@@ -337,6 +341,18 @@
         return getRegistration().then(function (reg) {
           return getCurrentSub(reg).then(function (sub) {
             if (sub) {
+              // If the server's VAPID key changed since this device subscribed,
+              // the old subscription will be rejected (403) on every send. Drop
+              // it and re-subscribe with the current key.
+              var stored = null;
+              try { stored = localStorage.getItem(VAPID_KEY); } catch (e) {}
+              if (stored && stored !== cfg.publicKey) {
+                try { localStorage.setItem(VAPID_KEY, cfg.publicKey); } catch (e) {}
+                return sub.unsubscribe().then(function () {
+                  if (Notification.permission === 'granted') doSubscribe();
+                  else showInvite();
+                });
+              }
               // Already subscribed: refresh active timestamp and offer "turn off".
               ping(sub.endpoint);
               showPill();

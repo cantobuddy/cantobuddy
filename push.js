@@ -43,7 +43,15 @@ function configure(env = process.env) {
     const pubRaw = b64urlDecode(pub);
     if (pubRaw.length !== 65) throw new Error('public key must be 65 bytes');
     const publicKey = crypto.createPublicKey({ key: rawToSpki(pubRaw), format: 'der', type: 'spki' });
-    config = { privateKey, publicKey, publicKeyRaw: pubRaw, subject };
+    // The VAPID public key and private key MUST be one pair. If they are not,
+    // every send fails 401/403 because the JWT is signed by a key the push
+    // service does not associate with the subscription. Say so loudly at boot —
+    // it is the single most common reason "failed 1" with 0 expired.
+    const derivedPub = crypto.createPublicKey(privateKey).export({ type: 'spki', format: 'der' }).subarray(-65);
+    config = { privateKey, publicKey, publicKeyRaw: pubRaw, subject, keyPairMatches: derivedPub.equals(pubRaw) };
+    if (!config.keyPairMatches) {
+      console.error('  !  VAPID_PUBLIC_KEY does not match VAPID_PRIVATE_KEY — push sends will fail 401/403. Regenerate a matching pair.');
+    }
     return true;
   } catch (e) {
     console.error('  !  Failed to parse VAPID keys:', e.message);
@@ -53,6 +61,7 @@ function configure(env = process.env) {
 }
 
 function isEnabled() { return !!config; }
+function keyPairMatches() { return !!(config && config.keyPairMatches); }
 function getPublicKey() { return config ? b64urlEncode(config.publicKeyRaw) : null; }
 
 // --- VAPID JWT (ES256, raw r||s signature) ---
@@ -76,39 +85,55 @@ const hkdfExpand = (prk, info, L) => hmac(prk, Buffer.concat([info, Buffer.from(
  * Encrypt a message for one subscription (RFC 8291 aes128gcm).
  * Returns the raw HTTP body to POST to the push endpoint.
  */
-function encryptPayload(messageBuf, clientPubRaw, authSecretRaw) {
-  const eph = crypto.generateKeyPairSync('ec', { namedCurve: 'P-256' });
-  const ephPubRaw = (() => {
-    const der = eph.publicKey.export({ type: 'spki', format: 'der' });
-    return der.subarray(der.length - 65);
-  })();
-  const clientPub = crypto.createPublicKey({ key: rawToSpki(clientPubRaw), format: 'der', type: 'spki' });
-  const sharedSecret = crypto.diffieHellman({ privateKey: eph.privateKey, publicKey: clientPub });
+function encryptPayload(messageBuf, clientPubRaw, authSecretRaw, opts = {}) {
+  // The sender's ephemeral ECDH key pair. RFC 8291 calls it (as_private,
+  // as_public); its public half is the `keyid` in the content-coding header AND
+  // the `as_public` fed into key_info — they MUST be the same key. `opts` exists
+  // only for the known-answer test, which injects the RFC's fixed key and salt.
+  const ecdh = crypto.createECDH('prime256v1');
+  if (opts.ephPrivateKey) ecdh.setPrivateKey(opts.ephPrivateKey);
+  else ecdh.generateKeys();
+  const asPublic = ecdh.getPublicKey(); // 65-byte uncompressed point
+  const sharedSecret = ecdh.computeSecret(clientPubRaw);
 
-  const salt = crypto.randomBytes(16);
-  const prk = hmac(authSecretRaw, sharedSecret); // key = auth secret, data = shared secret
+  const salt = opts.salt || crypto.randomBytes(16);
 
-  const context = Buffer.concat([
-    Buffer.from([0x00, 0x01]),
-    Buffer.from([0x00, clientPubRaw.length]), clientPubRaw,
-    Buffer.from([0x00, config.publicKeyRaw.length]), config.publicKeyRaw,
+  // ---- RFC 8291 §3.4 ----
+  // PRK_key = HMAC-SHA-256(auth_secret, ecdh_secret)
+  const prkKey = hmac(authSecretRaw, sharedSecret);
+  // key_info = "WebPush: info" || 0x00 || ua_public || as_public
+  const keyInfo = Buffer.concat([
+    Buffer.from('WebPush: info', 'utf8'),
+    Buffer.from([0x00]),
+    clientPubRaw, // ua_public (the subscription's p256dh)
+    asPublic,     // as_public (this message's ephemeral key)
   ]);
-  const cek = hkdfExpand(prk, Buffer.concat([Buffer.from('Content-Encoding: aes128gcm'), Buffer.from([0x00]), context]), 16);
-  const nonce = hkdfExpand(prk, Buffer.concat([Buffer.from('Content-Encoding: nonce'), Buffer.from([0x00]), context]), 12);
+  // IKM = HKDF-Expand(PRK_key, key_info, 32)
+  const ikm = hkdfExpand(prkKey, keyInfo, 32);
+  // PRK = HMAC-SHA-256(salt, IKM)
+  const prk = hmac(salt, ikm);
+  // CEK = HKDF-Expand(PRK, "Content-Encoding: aes128gcm" || 0x00, 16)
+  const cek = hkdfExpand(prk, Buffer.from('Content-Encoding: aes128gcm\x00', 'latin1'), 16);
+  // NONCE = HKDF-Expand(PRK, "Content-Encoding: nonce" || 0x00, 12)
+  const nonce = hkdfExpand(prk, Buffer.from('Content-Encoding: nonce\x00', 'latin1'), 12);
 
-  // plaintext = 2-byte padding length (0) || message || 0x02
-  const plaintext = Buffer.concat([Buffer.from([0x00, 0x00]), messageBuf, Buffer.from([0x02])]);
+  // ---- RFC 8188: one (final) record = data || 0x02 ----
+  // There is NO leading padding-length field. The 0x02 delimiter is the last
+  // non-zero octet; the receiver finds it by scanning back from the end.
+  const plaintext = Buffer.concat([messageBuf, Buffer.from([0x02])]);
 
   const cipher = crypto.createCipheriv('aes-128-gcm', cek, nonce);
   const encrypted = Buffer.concat([cipher.update(plaintext), cipher.final()]);
   const ciphertext = Buffer.concat([encrypted, cipher.getAuthTag()]);
 
-  const rs = ciphertext.length;
+  // rs (record size) must be >= 18. For a single record, the ciphertext length
+  // is a valid size (the last record may be smaller than rs, and here it is rs).
+  const rs = opts.recordSize || Math.max(ciphertext.length, 18);
   return Buffer.concat([
     salt,
     Buffer.from([(rs >>> 24) & 0xff, (rs >>> 16) & 0xff, (rs >>> 8) & 0xff, rs & 0xff]),
-    Buffer.from([0x41]), // idlen = 65
-    ephPubRaw,
+    Buffer.from([asPublic.length]), // idlen = 65
+    asPublic,
     ciphertext,
   ]);
 }
@@ -144,7 +169,14 @@ async function sendNotification(subscription, payload) {
       body,
     });
     if (res.status === 404 || res.status === 410) return { ok: false, expired: true, status: res.status };
-    if (res.status >= 400) return { ok: false, status: res.status };
+    if (res.status >= 400) {
+      // The push service explains WHY (e.g. "VapidPkHashMismatch" on a key
+      // mismatch, or 400 on a malformed body). Surface a short snippet so an
+      // operator can tell those apart instead of guessing.
+      let detail = '';
+      try { detail = (await res.text()).slice(0, 300); } catch (e) { /* body not readable */ }
+      return { ok: false, status: res.status, detail };
+    }
     return { ok: true, status: res.status };
   } catch (e) {
     return { ok: false, error: e.message };
@@ -184,38 +216,71 @@ async function broadcast(subscriptions, payload) {
  */
 function selfTest() {
   if (!config) return { ok: false, reason: 'no-config' };
-  const client = crypto.generateKeyPairSync('ec', { namedCurve: 'P-256' });
-  const clientPubRaw = (() => {
-    const d = client.publicKey.export({ type: 'spki', format: 'der' });
-    return d.subarray(d.length - 65);
-  })();
-  const auth = crypto.randomBytes(16);
-  const message = Buffer.from(JSON.stringify({ title: 'self-test', body: 'hello', url: '/' }));
-  const body = encryptPayload(message, clientPubRaw, auth);
+  const checks = {};
 
-  const salt = body.subarray(0, 16);
-  const idlen = body[20];
-  const ephPubRaw = body.subarray(21, 21 + idlen);
-  const ciphertext = body.subarray(21 + idlen);
+  // ---- Known-answer test: RFC 8291 Appendix A ------------------------------
+  // These are the RFC's fixed inputs and expected intermediates. If any step of
+  // the derivation drifts, the CEK/NONCE/ciphertext stop matching — which is the
+  // only way to catch a self-consistent-but-wrong implementation (the previous
+  // version round-tripped against itself and passed while being non-compliant).
+  const asPrivate = b64urlDecode('yfWPiYE-n46HLnH0KqZOF1fJJU3MYrct3AELtAQ-oRw');
+  const uaPublic = b64urlDecode('BCVxsr7N_eNgVRqvHtD0zTZsEc6-VV-JvLexhqUzORcxaOzi6-AYWXvTBHm4bjyPjs7Vd8pZGH6SRpkNtoIAiw4');
+  const salt = b64urlDecode('DGv6ra1nlYgDCS1FRnbzlw');
+  const auth = b64urlDecode('BTBZMqHH6r4Tts7J_aSIgg');
+  const message = Buffer.from('When I grow up, I want to be a watermelon');
 
-  const ephPub = crypto.createPublicKey({ key: rawToSpki(ephPubRaw), format: 'der', type: 'spki' });
-  const sharedSecret = crypto.diffieHellman({ privateKey: client.privateKey, publicKey: ephPub });
-  const prk = hmac(auth, sharedSecret);
-  const context = Buffer.concat([
-    Buffer.from([0x00, 0x01]),
-    Buffer.from([0x00, clientPubRaw.length]), clientPubRaw,
-    Buffer.from([0x00, config.publicKeyRaw.length]), config.publicKeyRaw,
-  ]);
-  const cek = hkdfExpand(prk, Buffer.concat([Buffer.from('Content-Encoding: aes128gcm'), Buffer.from([0x00]), context]), 16);
-  const nonce = hkdfExpand(prk, Buffer.concat([Buffer.from('Content-Encoding: nonce'), Buffer.from([0x00]), context]), 12);
+  const ecdh = crypto.createECDH('prime256v1');
+  ecdh.setPrivateKey(asPrivate);
+  const asPublic = ecdh.getPublicKey();
+  checks.asPublic = asPublic.equals(b64urlDecode('BP4z9KsN6nGRTbVYI_c7VJSPQTBtkgcy27mlmlMoZIIgDll6e3vCYLocInmYWAmS6TlzAC8wEqKK6PBru3jl7A8'));
+  const sharedSecret = ecdh.computeSecret(uaPublic);
+  checks.sharedSecret = sharedSecret.equals(b64urlDecode('kyrL1jIIOHEzg3sM2ZWRHDRB62YACZhhSlknJ672kSs'));
 
-  const tag = ciphertext.subarray(ciphertext.length - 16);
-  const enc = ciphertext.subarray(0, ciphertext.length - 16);
-  const decipher = crypto.createDecipheriv('aes-128-gcm', cek, nonce);
-  decipher.setAuthTag(tag);
-  const plaintext = Buffer.concat([decipher.update(enc), decipher.final()]);
-  const recovered = plaintext.subarray(2, plaintext.length - 1).toString();
-  return { ok: plaintext[0] === 0 && plaintext[1] === 0 && plaintext[plaintext.length - 1] === 0x02 && recovered === message.toString() };
+  const prkKey = hmac(auth, sharedSecret);
+  checks.prkKey = prkKey.equals(b64urlDecode('Snr3JMxaHVDXHWJn5wdC52WjpCtd2EIEGBykDcZW32k'));
+  const keyInfo = Buffer.concat([Buffer.from('WebPush: info'), Buffer.from([0x00]), uaPublic, asPublic]);
+  const ikm = hkdfExpand(prkKey, keyInfo, 32);
+  checks.ikm = ikm.equals(b64urlDecode('S4lYMb_L0FxCeq0WhDx813KgSYqU26kOyzWUdsXYyrg'));
+  const prk = hmac(salt, ikm);
+  checks.prk = prk.equals(b64urlDecode('09_eUZGrsvxChDCGRCdkLiDXrReGOEVeSCdCcPBSJSc'));
+  const cek = hkdfExpand(prk, Buffer.from('Content-Encoding: aes128gcm\x00', 'latin1'), 16);
+  checks.cek = cek.equals(b64urlDecode('oIhVW04MRdy2XN9CiKLxTg'));
+  const nonce = hkdfExpand(prk, Buffer.from('Content-Encoding: nonce\x00', 'latin1'), 12);
+  checks.nonce = nonce.equals(b64urlDecode('4h_95klXJ5E_qnoN'));
+
+  const plaintext = Buffer.concat([message, Buffer.from([0x02])]);
+  const cipher = crypto.createCipheriv('aes-128-gcm', cek, nonce);
+  const ciphertext = Buffer.concat([cipher.update(plaintext), cipher.final(), cipher.getAuthTag()]);
+  checks.ciphertext = ciphertext.equals(b64urlDecode('8pfeW0KbunFT06SuDKoJH9Ql87S1QUrdirN6GcG7sFz1y1sqLgVi1VhjVkHsUoEsbI_0LpXMuGvnzQ'));
+
+  // ---- Round-trip through the real encryptPayload --------------------------
+  // Uses a fresh client key + the live config's message path, then decrypts as
+  // the browser would. Proves the header keyid and key_info `as_public` agree.
+  const client = crypto.createECDH('prime256v1');
+  client.generateKeys();
+  const clientPubRaw = client.getPublicKey();
+  const auth2 = crypto.randomBytes(16);
+  const msg2 = Buffer.from(JSON.stringify({ title: 'self-test', body: 'hello', url: '/' }));
+  const body = encryptPayload(msg2, clientPubRaw, auth2);
+
+  const salt2 = body.subarray(0, 16);
+  const idlen2 = body[20];
+  const asPub2 = body.subarray(21, 21 + idlen2);
+  const ct2 = body.subarray(21 + idlen2);
+  const shared2 = client.computeSecret(asPub2);
+  const prkKey2 = hmac(auth2, shared2);
+  const keyInfo2 = Buffer.concat([Buffer.from('WebPush: info'), Buffer.from([0x00]), clientPubRaw, asPub2]);
+  const ikm2 = hkdfExpand(prkKey2, keyInfo2, 32);
+  const prk2 = hmac(salt2, ikm2);
+  const cek2 = hkdfExpand(prk2, Buffer.from('Content-Encoding: aes128gcm\x00', 'latin1'), 16);
+  const nonce2 = hkdfExpand(prk2, Buffer.from('Content-Encoding: nonce\x00', 'latin1'), 12);
+  const decipher = crypto.createDecipheriv('aes-128-gcm', cek2, nonce2);
+  decipher.setAuthTag(ct2.subarray(ct2.length - 16));
+  const pt2 = Buffer.concat([decipher.update(ct2.subarray(0, ct2.length - 16)), decipher.final()]);
+  checks.roundTrip = pt2[pt2.length - 1] === 0x02 && pt2.subarray(0, pt2.length - 1).toString() === msg2.toString();
+
+  const ok = Object.values(checks).every(Boolean);
+  return { ok, checks, reason: ok ? undefined : 'rfc8291-known-answer-mismatch' };
 }
 
-module.exports = { configure, isEnabled, getPublicKey, sendNotification, broadcast, selfTest, makeJwt, encryptPayload };
+module.exports = { configure, isEnabled, keyPairMatches, getPublicKey, sendNotification, broadcast, selfTest, makeJwt, encryptPayload };

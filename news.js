@@ -91,6 +91,11 @@ const SOURCES = [
     home: 'https://newsinfo.inquirer.net',
     lang: 'en',
     url: 'https://newsinfo.inquirer.net/feed',
+    // This feed writes Manila wall-clock time but stamps it `+0000`. Verified
+    // 2026-10-18: at 15:27 HKT the newest item claimed 14:45 +0000 — 7.3 hours
+    // in the future. Subtract the 8h the label is missing. See
+    // correctLocalStampedAsUtc; it turns itself off if the feed is ever fixed.
+    localStampedAsUtc: 480,
   },
   {
     // --- the helper's home country: Indonesia ---
@@ -237,6 +242,58 @@ function parseDate(s) {
 }
 
 /**
+ * Repair a feed that stamps its LOCAL wall-clock time but labels it +0000.
+ *
+ * The Philippine Daily Inquirer does exactly this. On 2026-10-18 at 15:27 HKT
+ * its newest item claimed `Sun, 18 Oct 2026 14:45:58 +0000` — a timestamp 7.3
+ * hours in the FUTURE, which is impossible for an article that already exists.
+ * Manila is +08:00, so the feed had written local time and stamped it UTC.
+ * Antara (+0700) and RTHK (+0800) both label themselves correctly, so this is
+ * one publisher's bug, not a parsing bug: `new Date()` honoured the offset it
+ * was handed, and the offset was a lie.
+ *
+ * Declared per source as `localStampedAsUtc: <minutes to subtract>`, and it
+ * applies ONLY while the feed still claims UTC. The day Inquirer starts
+ * emitting +0800 the pattern stops matching and the correction switches itself
+ * off — which is what stops a fixed feed from being shifted twice.
+ *
+ * @param {string|null} iso    the parsed timestamp
+ * @param {string} raw         the feed's own pubDate string
+ * @param {object} source      one entry of SOURCES
+ * @returns {string|null}
+ */
+function correctLocalStampedAsUtc(iso, raw, source) {
+  const shift = Number(source && source.localStampedAsUtc);
+  if (!shift || !iso) return iso;
+  const claimsUtc = /(?:\+0000|GMT|UTC|Z)$/i.test(String(raw || '').trim());
+  if (!claimsUtc) return iso;
+  const t = Date.parse(iso);
+  return Number.isFinite(t) ? new Date(t - shift * 60000).toISOString() : iso;
+}
+
+/** How far ahead of us a publisher's clock may drift before we stop believing it. */
+const FUTURE_TOLERANCE_MS = 10 * 60 * 1000;
+
+/**
+ * Nothing is published in the future.
+ *
+ * A feed with a wrong clock — or one whose offset we corrected in the wrong
+ * direction — must never put a story ABOVE genuinely newer ones in the feed, or
+ * render as "in 7 hours" on a learner's phone. The tolerance absorbs ordinary
+ * clock skew between us and the publisher; anything beyond it is clamped to
+ * now, which is the earliest moment we could honestly have seen the item.
+ *
+ * @param {string|null} iso
+ * @param {number} [now]
+ * @returns {string|null}
+ */
+function clampFuture(iso, now = Date.now()) {
+  const t = Date.parse(iso);
+  if (!Number.isFinite(t)) return iso;
+  return t > now + FUTURE_TOLERANCE_MS ? new Date(now).toISOString() : iso;
+}
+
+/**
  * "First sentence or two" — the amount of someone else's article we are
  * willing to reproduce. Cut at a sentence boundary where possible, and mark a
  * hard cut with an ellipsis so it never reads as the end of the story.
@@ -271,7 +328,15 @@ function parseRss(xml) {
     // classifier as extra haystack instead (see news-category.js), which is
     // the honest use of a signal we cannot fully trust.
     const tags = tagTexts(block, 'category');
-    return { title, link, description, guid, tags, published_at: parseDate(tagText(block, 'pubDate')) };
+    // `published_raw` is kept beside the ISO form because one feed mislabels its
+    // timezone, and correcting that needs to see what the feed actually said.
+    // See correctLocalStampedAsUtc below.
+    const publishedRaw = tagText(block, 'pubDate');
+    return {
+      title, link, description, guid, tags,
+      published_at: parseDate(publishedRaw),
+      published_raw: publishedRaw,
+    };
   });
 }
 
@@ -351,7 +416,9 @@ async function postsFromSource(source, doFetch) {
       source_url: item.link,
       source_key: `${source.key}:${item.guid}`,
       source_lang: source.lang,
-      published_at: item.published_at,
+      published_at: clampFuture(
+        correctLocalStampedAsUtc(item.published_at, item.published_raw, source)
+      ),
     });
   }
 

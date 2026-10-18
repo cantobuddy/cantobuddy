@@ -290,25 +290,25 @@ app.post('/api/auth/register', registerRateLimit, (req, res) => {
 });
 
 /**
- * POST /api/auth/employer — employer sign-in with a per-employer access code.
+ * POST /api/auth/employer — employer sign-in with a trusted-device token.
  *
- * The first sign-in for a name creates the employer and mints a 6-char access
- * code, returned once in `accessCode`. The employer saves it. Every later sign-in
- * for that name requires the code, so a stranger who merely guesses "Mrs Chan"
- * cannot read the helpers she connected. The consent gate (the invitation a
- * helper accepts) still governs *which* helpers an employer sees — the access
- * code governs *which employer session this is*.
+ * First sign-in (name new): create the employer, mint a device token, return it
+ * ONCE in `deviceToken`. The client stores it and sends it back on later
+ * sign-ins. Re-login (name exists): the device token must match a recognised
+ * device, else `needsLink` tells the UI to use a known device or ask the
+ * operator to open pairing. There is no standing password or access code to
+ * forget — the token in the browser IS the credential.
  */
 app.post('/api/auth/employer', registerRateLimit, (req, res) => {
   const b = req.body || {};
   const name = String(b.name || '').trim();
-  const code = b.code ? String(b.code).trim() : '';
+  const deviceToken = b.deviceToken ? String(b.deviceToken).trim() : '';
 
   if (!name) return res.status(400).json({ error: 'Please enter your name.' });
   if (name.length > 60) return res.status(400).json({ error: 'That name is too long.' });
 
   try {
-    const { user, firstTime, accessCode } = store.loginOrCreateEmployer(name, code);
+    const { user, firstTime, deviceToken: issued } = store.loginOrCreateEmployer(name, deviceToken);
     loginRateLimit.clear(req);
     startSession(req, user);
     return res.json({
@@ -317,11 +317,11 @@ app.post('/api/auth/employer', registerRateLimit, (req, res) => {
       name: user.name,
       email: user.email,
       firstTime: !!firstTime,
-      accessCode: firstTime ? accessCode : undefined,
+      deviceToken: firstTime ? issued : undefined,
     });
   } catch (err) {
-    const status = err.status || (err.needsCode ? 401 : 400);
-    return res.status(status).json({ error: err.message, needsCode: !!err.needsCode });
+    const status = err.status || (err.needsLink ? 401 : 400);
+    return res.status(status).json({ error: err.message, needsLink: !!err.needsLink });
   }
 });
 
@@ -1307,6 +1307,23 @@ app.get('/api/admin/reset-requests', requireAdmin, (req, res) => {
  */
 app.get('/api/admin/people', requireAdmin, (req, res) => {
   res.json(store.getPeopleOverview());
+});
+
+/**
+ * POST /api/admin/employers/:id/open-device-reauth — the operator opens a short
+ * pairing window for an employer who forgot their device token or switched phones.
+ * While it is open, that employer can sign in by name alone on the new device and
+ * it gets linked. No code for the employer to remember; the window is the only
+ * credential the operator grants, and it closes the moment the device links.
+ */
+app.post('/api/admin/employers/:id/open-device-reauth', requireAdmin, (req, res) => {
+  const id = Number(req.params.id);
+  if (!id) return res.status(400).json({ error: 'Unknown employer.' });
+  const minutes = Number((req.body || {}).minutes) || 15;
+  const user = store.getUserById(id);
+  if (!user || user.role !== 'employer') return res.status(404).json({ error: 'No such employer.' });
+  const openUntil = store.openDeviceReauth(id, minutes);
+  return res.json({ ok: true, openUntil });
 });
 
 /** GET /api/admin/learners/:id — full report for one learner, for drill-down. */

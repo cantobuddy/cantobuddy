@@ -2949,6 +2949,7 @@ body {
   color: var(--c-text-soft);
   margin: 8px 0 10px;
 }
+.employer-actions { margin: 0 0 10px; }
 
 .helper-row { border-top: 1px solid var(--c-border); padding: 12px 0 2px; }
 .helper-name { font-weight: 600; font-size: 0.95rem; }

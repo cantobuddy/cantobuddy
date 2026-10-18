@@ -134,9 +134,8 @@ function setAuthMode() {
   document.getElementById('auth-submit').onclick = null;
   document.getElementById('auth-name').setAttribute('autocomplete', 'name');
   document.getElementById('auth-name').disabled = false;
-  document.getElementById('auth-code-field').style.display = 'none';
-  document.getElementById('auth-code-save').style.display = 'none';
-  document.getElementById('auth-code-value').textContent = '';
+  const linkHelp = document.getElementById('auth-link-help');
+  if (linkHelp) linkHelp.style.display = 'none';
   document.getElementById('auth-error').textContent = '';
 }
 
@@ -150,24 +149,21 @@ async function submitAuth(e) {
     errEl.textContent = 'Please enter your name.';
     return;
   }
-  const code = (document.getElementById('auth-code').value || '').trim();
+  // The device token this browser was given on first sign-in. Null on a browser
+  // that has never signed in as this employer — in which case the server either
+  // links this device (operator opened pairing) or reports needsLink.
+  const deviceToken = localStorage.getItem('cb_emp_device') || '';
 
   const submit = document.getElementById('auth-submit');
   submit.disabled = true;
 
   try {
-    const r = await apiPost('/api/auth/employer', { name, code });
-    // First sign-in: the server mints a one-time access code. Show it and stop —
-    // the employer must save it before we take them into the dashboard.
-    if (r.firstTime && r.accessCode) {
-      document.getElementById('auth-code-save').style.display = '';
-      document.getElementById('auth-code-value').textContent = r.accessCode;
-      document.getElementById('auth-code-field').style.display = 'none';
-      document.getElementById('auth-name').disabled = true;
-      submit.disabled = false;
-      submit.textContent = 'I have saved my code';
-      submit.onclick = () => { document.getElementById('auth-form').reset(); checkSession(); };
-      return;
+    const r = await apiPost('/api/auth/employer', { name, deviceToken });
+    // First sign-in, or a device just linked via an open pairing window: the
+    // server returns a fresh device token exactly once. Store it so the next
+    // sign-in on this browser is silent.
+    if (r.firstTime && r.deviceToken) {
+      try { localStorage.setItem('cb_emp_device', r.deviceToken); } catch {}
     }
     document.getElementById('auth-form').reset();
     // Route through checkSession() rather than calling showDashboard()
@@ -175,10 +171,14 @@ async function submitAuth(e) {
     // instead of a dashboard that was not theirs.
     await checkSession();
   } catch (err) {
-    if (err.needsCode || (err.body && err.body.needsCode)) {
-      document.getElementById('auth-code-field').style.display = '';
-      document.getElementById('auth-hint').textContent =
-        'Welcome back. Enter your access code to continue.';
+    const needsLink = err.needsLink || (err.body && err.body.needsLink);
+    if (needsLink) {
+      const help = document.getElementById('auth-link-help');
+      const msg = document.getElementById('auth-link-message');
+      if (help && msg) {
+        help.style.display = '';
+        msg.textContent = err.message || 'This device is not recognised.';
+      }
     }
     errEl.textContent = err.message || (err.body && err.body.error) || 'Something went wrong.';
   } finally {

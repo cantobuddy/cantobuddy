@@ -643,6 +643,24 @@ function fmtDate(iso) {
   return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+/** A transient confirmation. The admin shell has no toast element, so make one. */
+function adminToast(msg) {
+  let el = document.getElementById('admin-toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'admin-toast';
+    el.style.cssText =
+      'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);' +
+      'background:rgba(28,28,30,.92);color:#fff;padding:10px 16px;border-radius:8px;' +
+      'font-size:14px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.25);transition:opacity .3s';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.opacity = '1';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.style.opacity = '0'; }, 2600);
+}
+
 function pct(score, max) {
   return max > 0 ? Math.round((score / max) * 100) : 0;
 }
@@ -681,6 +699,7 @@ function employerCard(e) {
     `joined ${fmtDate(e.created_at)}`,
     e.last_login_at ? `last login ${fmtDate(e.last_login_at)}` : 'never signed in',
     `${e.invitations_sent} invitation(s)${e.invitations_pending ? ` · ${e.invitations_pending} pending` : ''}`,
+    `${e.device_count || 0} trusted device(s)`,
   ];
   if (e.disconnected_count) meta.push(`${e.disconnected_count} disconnected`);
 
@@ -694,6 +713,10 @@ function employerCard(e) {
         </div>`).join('')
     : '<div class="helper-none">No helpers connected yet.</div>';
 
+  const deviceChip = e.reauth_open
+    ? ' <span class="status-chip status-accepted">pairing open</span>'
+    : '';
+
   return `
     <div class="employer-card">
       <div class="employer-head">
@@ -703,9 +726,32 @@ function employerCard(e) {
         </div>
         <div class="employer-count">${e.helper_count} helper(s)</div>
       </div>
-      <div class="employer-meta">${meta.join(' · ')}</div>
+      <div class="employer-meta">${meta.join(' · ')}${deviceChip}</div>
+      <div class="employer-actions">
+        <button class="btn btn-outline btn-sm" onclick="openDeviceReauth(${e.id})">Allow new device</button>
+      </div>
       ${helpers}
     </div>`;
+}
+
+/**
+ * Open a 15-minute pairing window so an employer who forgot their device (or
+ * switched phones) can sign in by name alone on the new device and have it
+ * linked. This is the only recovery that needs the employer to remember nothing,
+ * and it is deliberately an operator action rather than self-service.
+ */
+async function openDeviceReauth(employerId) {
+  if (!confirm(
+    'Open a 15-minute window so this employer can sign in on a new device?\n\n' +
+    'They will sign in with their name on that device; no code needed. The window closes as soon as they do.'
+  )) return;
+  try {
+    await apiPost(`/api/admin/employers/${employerId}/open-device-reauth`, { minutes: 15 });
+    adminToast('Pairing window open — ask them to sign in now');
+    await renderAdminPeople();
+  } catch (err) {
+    alert('Could not open pairing: ' + (err.message || 'error'));
+  }
 }
 
 async function renderAdminPeople() {

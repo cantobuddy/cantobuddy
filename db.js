@@ -229,8 +229,28 @@ db.exec(`
     status        TEXT NOT NULL DEFAULT 'active',
     learner_id    INTEGER REFERENCES learners(id) ON DELETE SET NULL,
     last_login_at TEXT,
-    created_at    TEXT
+    created_at    TEXT,
+    access_code_hash         TEXT,
+    device_reauth_open_until TEXT
   );
+
+  /* Trusted devices for employer sign-in.
+     The portal signs an employer in by NAME plus a device token held in that
+     browser's localStorage. There is no standing password or access code to
+     forget: the token IS the credential, and it is bound to the one browser the
+     employer normally uses. A brand-new device (no token) cannot read helpers
+     until the operator opens a short pairing window from /admin — that is the
+     only escape hatch, and it is deliberate, so a stranger who merely guesses
+     "Mrs Chan" on a foreign machine gets nothing. */
+  CREATE TABLE IF NOT EXISTS employer_devices (
+    id           INTEGER PRIMARY KEY,
+    employer_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token_hash   TEXT NOT NULL,
+    label        TEXT NOT NULL DEFAULT '',
+    created_at   TEXT,
+    last_seen_at TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_emp_devices_employer ON employer_devices(employer_id);
 
   /* An employer invites a helper by sharing a link. No email is sent — there
      is no mail provider in this app — so the code in the URL *is* the delivery
@@ -646,6 +666,33 @@ function migrateSchema() {
      requires it. Stored hashed, never shown again. */
   if (addColumnIfMissing('users', 'access_code_hash', 'TEXT')) {
     changes.push('users.access_code_hash');
+  }
+  if (addColumnIfMissing('users', 'device_reauth_open_until', 'TEXT')) {
+    changes.push('users.device_reauth_open_until');
+  }
+
+  /* Device-based employer sign-in migration.
+     Before this change the portal required a per-employer access code that was
+     shown once and never recoverable, so a forgotten code meant permanent
+     lock-out. Sign-in is now name + a device token stored in the browser. To
+     avoid stranding every existing employer at deploy, any employer who has no
+     trusted device yet is given a 90-day pairing window: their next name-only
+     sign-in on their own browser links that device and closes the window. The
+     window is the only reason a foreign machine typing the name gets in during
+     the gap, and it shuts the moment the real employer signs in once. */
+  if (!db.prepare("SELECT value FROM meta WHERE key = 'employer_device_migration'").get()) {
+    const openUntil = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
+    const migrated = db
+      .prepare(
+        `UPDATE users
+           SET device_reauth_open_until = ?
+         WHERE role = 'employer'
+           AND device_reauth_open_until IS NULL
+           AND id NOT IN (SELECT DISTINCT employer_id FROM employer_devices)`
+      )
+      .run(openUntil);
+    db.prepare("INSERT OR REPLACE INTO meta (key, value) VALUES ('employer_device_migration', '1')").run();
+    if (migrated.changes) changes.push(`opened device pairing for ${migrated.changes} existing employer(s)`);
   }
 
   /* Referral attribution.
@@ -1670,6 +1717,18 @@ const S = {
   updateUser: db.prepare('UPDATE users SET name = ?, email = ?, role = ?, status = ? WHERE id = ?'),
   setUserAccessCode: db.prepare('UPDATE users SET access_code_hash = ? WHERE id = ?'),
   touchUserLogin: db.prepare('UPDATE users SET last_login_at = ? WHERE id = ?'),
+
+  // --- employer trusted devices ---
+  getDevicesByEmployer: db.prepare(
+    'SELECT id, employer_id, token_hash, label, created_at, last_seen_at FROM employer_devices WHERE employer_id = ? ORDER BY id DESC'
+  ),
+  countDevicesByEmployer: db.prepare('SELECT COUNT(*) AS n FROM employer_devices WHERE employer_id = ?'),
+  insertDevice: db.prepare(
+    'INSERT INTO employer_devices (employer_id, token_hash, label, created_at, last_seen_at) VALUES (?, ?, ?, ?, ?)'
+  ),
+  touchDevice: db.prepare('UPDATE employer_devices SET last_seen_at = ? WHERE id = ?'),
+  deleteDevicesByEmployer: db.prepare('DELETE FROM employer_devices WHERE employer_id = ?'),
+  updateUserReauth: db.prepare('UPDATE users SET device_reauth_open_until = ? WHERE id = ?'),
   countActiveAdmins: db.prepare("SELECT COUNT(*) AS n FROM users WHERE role = 'admin' AND status = 'active'"),
   deleteUser: db.prepare('DELETE FROM users WHERE id = ?'),
 
@@ -2544,41 +2603,33 @@ function createUser({ username, password, role = 'learner', name = '', email = n
 /**
  * Find or create the employer account for a name, and sign them in.
  *
- * There is no password. The consent gate in this product is the INVITATION, not
- * a credential: an employer sees a helper only after she accepts a code the
- * employer generated, and she can revoke it in one tap. A password added
- * friction without adding protection, and the people it locked out were the
- * ones we most wanted to reach.
+ * Sign-in is NAME + a device token stored in that browser's localStorage. There
+ * is no password and no standing access code to forget — the token IS the
+ * credential, bound to the one browser the employer normally uses. A stranger
+ * who guesses "Mrs Chan" on a foreign machine gets nothing, because they hold no
+ * token for that account.
  *
- * The name is the identity, so typing an existing name returns that employer —
- * which is what makes "sign in on a new phone" work with nothing to remember.
- * `username` is derived from the name so the UNIQUE constraint still applies;
- * the stored hash is an unguessable random value that is never checked against
- * anything, because nothing ever logs in with a password again. It is random
- * rather than empty so that a stray row can never be authenticated by guessing
- * an empty password.
- */
-/**
- * Employer sign-in, now with a per-employer access code.
- *
- * Returns either:
- *   { user, firstTime: true,  accessCode }  — account just created; the caller
- *                                             must show `accessCode` ONCE and ask
- *                                             the employer to save it.
- *   { user, firstTime: false }              — re-login succeeded.
+ * Returns one of:
+ *   { user, firstTime: true,  deviceToken }  — account just created, OR a device
+ *                                              was linked via an open pairing
+ *                                              window. `deviceToken` is returned
+ *                                              ONCE; the caller must store it.
+ *   { user, firstTime: false }               — re-login with a recognised device.
  *
  * Behaviour:
- *   - First sign-in (name does not exist): create the employer, mint a 6-char
- *     access code, store it hashed, and hand it back. No code is required to
- *     create — that is the "nothing to remember" first step.
- *   - Re-login (name exists): the code is required. Absent code → throw with
- *     `needsCode = true` so the UI can prompt for it. Wrong code → throw.
- *
- * Before this change the portal signed an employer in by NAME ONLY, so anyone who
- * could guess an employer's name could read the helpers she had connected. The
- * access code closes that hole while keeping "no email, no password to lose".
+ *   - Name does not exist → create the employer, mint a device token, store its
+ *     hash, hand the token back. Nothing to remember.
+ *   - Name exists + a token matching a stored device → success.
+ *   - Name exists + no / unmatched token + the operator has opened a pairing
+ *     window (device_reauth_open_until in the future) → link THIS device: mint a
+ *     token, store it, return it as firstTime, and close the window. This is the
+ *     recovery path for a forgotten token or a new phone, and it asks the
+ *     employer to remember nothing.
+ *   - Name exists + no / unmatched token + no open window → throw needsLink so
+ *     the UI can tell the employer to use a known device or ask the operator to
+ *     open pairing.
  */
-function loginOrCreateEmployer(rawName, rawCode) {
+function loginOrCreateEmployer(rawName, rawDeviceToken) {
   const name = String(rawName || '').trim().replace(/\s+/g, ' ').slice(0, 60);
   if (!name) throw new Error('A name is required.');
 
@@ -2587,21 +2638,30 @@ function loginOrCreateEmployer(rawName, rawCode) {
     if (existing.status && existing.status !== 'active') {
       throw new Error('That account is not active.');
     }
-    // Re-login: the access code is now mandatory.
-    const code = String(rawCode || '').trim();
-    if (!code) {
-      const err = new Error('Enter your access code.');
-      err.needsCode = true;
-      err.status = 401;
-      throw err;
+
+    const token = String(rawDeviceToken || '').trim();
+    // Re-login with a recognised device token.
+    if (token && verifyDeviceToken(existing.id, token)) {
+      S.touchUserLogin.run(new Date().toISOString(), existing.id);
+      return { user: getUserById(existing.id), firstTime: false };
     }
-    if (!existing.access_code_hash || !verifyPassword(code, existing.access_code_hash)) {
-      const err = new Error('That access code is not correct.');
-      err.status = 401;
-      throw err;
+
+    // No token, or one we don't recognise. If the operator has opened a pairing
+    // window, link this device now — the recovery path for a forgotten token or
+    // a new phone that needs the employer to remember nothing.
+    if (isDeviceReauthOpen(existing.id)) {
+      const deviceToken = mintDeviceToken(existing.id);
+      S.touchUserLogin.run(new Date().toISOString(), existing.id);
+      closeDeviceReauth(existing.id);
+      return { user: getUserById(existing.id), firstTime: true, deviceToken };
     }
-    S.touchUserLogin.run(new Date().toISOString(), existing.id);
-    return { user: getUserById(existing.id), firstTime: false };
+
+    const err = new Error(
+      'This device is not recognised. Sign in on a device you have used before, or ask the operator to allow a new device.'
+    );
+    err.needsLink = true;
+    err.status = 401;
+    throw err;
   }
 
   const now = new Date().toISOString();
@@ -2627,9 +2687,54 @@ function loginOrCreateEmployer(rawName, rawCode) {
     now
   );
   const id = Number(info.lastInsertRowid);
-  const accessCode = generateAccessCode();
-  S.setUserAccessCode.run(hashPassword(accessCode), id);
-  return { user: getUserById(id), firstTime: true, accessCode };
+  const deviceToken = mintDeviceToken(id);
+  return { user: getUserById(id), firstTime: true, deviceToken };
+}
+
+/** Mint a fresh device token, store its hash, and return the plaintext once. */
+function mintDeviceToken(employerId) {
+  const token = crypto.randomBytes(24).toString('base64url');
+  S.insertDevice.run(
+    employerId,
+    hashPassword(token),
+    '',
+    new Date().toISOString(),
+    new Date().toISOString()
+  );
+  return token;
+}
+
+/** True when the presented token matches a stored device for this employer. */
+function verifyDeviceToken(employerId, token) {
+  const devices = S.getDevicesByEmployer.all(employerId);
+  for (const d of devices) {
+    if (verifyPassword(token, d.token_hash)) {
+      S.touchDevice.run(new Date().toISOString(), d.id);
+      return true;
+    }
+  }
+  return false;
+}
+
+function countDevices(employerId) {
+  return S.countDevicesByEmployer.get(employerId).n;
+}
+
+/** Open a pairing window for `minutes` so an unrecognised device can link. */
+function openDeviceReauth(employerId, minutes) {
+  const until = new Date(Date.now() + (Number(minutes) || 15) * 60000).toISOString();
+  S.updateUserReauth.run(until, employerId);
+  return until;
+}
+
+function isDeviceReauthOpen(employerId) {
+  const u = S.getUserById.get(employerId);
+  if (!u || !u.device_reauth_open_until) return false;
+  return Date.parse(u.device_reauth_open_until) > Date.now();
+}
+
+function closeDeviceReauth(employerId) {
+  S.updateUserReauth.run(null, employerId);
 }
 
 function updateUser(id, patch) {
@@ -3758,6 +3863,8 @@ function getPeopleOverview() {
       disconnected_count: all.filter((l) => l.revoked_at).length,
       invitations_sent: S.countInvitationsByEmployer.get(u.id).n,
       invitations_pending: S.countPendingInvitationsByEmployer.get(u.id).n,
+      device_count: countDevices(u.id),
+      reauth_open: isDeviceReauthOpen(u.id),
       helpers: active.map((l) => ({
         link_id: l.id,
         learner_id: l.learner_id,
@@ -4365,6 +4472,12 @@ module.exports = {
   countActiveAdmins,
   createUser,
   loginOrCreateEmployer,
+  mintDeviceToken,
+  verifyDeviceToken,
+  countDevices,
+  openDeviceReauth,
+  isDeviceReauthOpen,
+  closeDeviceReauth,
   updateUser,
   deleteUser,
   syncEnvAdmin,

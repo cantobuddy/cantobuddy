@@ -49,11 +49,11 @@
         <span><strong>New here?</strong> How to get your helper started →</span>
       </a>
 
-      <!-- No email and no password. An employer types their name and is in; the
-           machine remembers them next time. Sending a helper an invitation link
-           and connecting through it is what establishes the consent
-           relationship — that one-time code is the real gate, so requiring a
-           password here only lost people before they ever saw the dashboard. -->
+      <!-- No email, no password, and no access code to forget. The employer types
+           their name; the browser quietly holds a device token, so re-signing in
+           on the same phone or laptop just works. Sending a helper the invite
+           link and having her accept it is what establishes consent — that is the
+           real gate, and it is the only thing that ever reads the helper's data. -->
       <form id="auth-form" onsubmit="submitAuth(event)">
         <div class="form-field">
           <label for="auth-name">Your Name</label>
@@ -62,20 +62,11 @@
           <p class="form-hint">This is how your helper will see you on her screen.</p>
         </div>
 
-        <!-- Shown after the first sign-in, when the server hands back a one-time
-             access code. The employer must save it; it is never shown again. -->
-        <div id="auth-code-save" class="form-field" style="display:none">
-          <label>Save this access code</label>
-          <div class="access-code-box" id="auth-code-value"></div>
-          <p class="form-hint">Write it down or screenshot it. You will need it to sign
-             in again on another phone. It cannot be recovered.</p>
-        </div>
-
-        <!-- Shown on re-login, when the server asks for the stored code. -->
-        <div class="form-field" id="auth-code-field" style="display:none">
-          <label for="auth-code">Access code</label>
-          <input type="text" id="auth-code" placeholder="6 characters" autocomplete="off"
-                 maxlength="8" spellcheck="false" />
+        <!-- Shown when the server returns needsLink: the browser presenting no
+             recognised device token. The fix is to use a device already signed
+             in before, or ask the operator to allow this one. -->
+        <div id="auth-link-help" class="form-field form-note" style="display:none">
+          <p id="auth-link-message"></p>
         </div>
 
         <div id="auth-error" class="form-error"></div>

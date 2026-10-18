@@ -602,18 +602,94 @@ body {
   background: var(--c-primary);
 }
 
+/* ---- Home: Coming up — the next festival, at most three days out ---------
+   Above Today's Culture because it is the only card on this screen with a
+   deadline. It is absent on most days of the year; that is the feature, not a
+   gap — see the note on the three-day window in seo.js.
+
+   The red rail and the warm wash are the same signal the landing page uses, so
+   a learner who has seen the panel on /learn recognises the card here. */
+#home-festival { margin-top: 20px; }
+#home-festival:empty { margin-top: 0; }
+
+.fest-card {
+  background: linear-gradient(135deg, var(--c-primary-tint), var(--c-surface) 70%);
+  border: 1px solid var(--c-border);
+  border-left: 5px solid var(--c-primary);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+.fest-card-kicker {
+  margin: 0 0 6px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--c-primary-dark);
+}
+.fest-card-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 2px;
+  font-size: 1.02rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--c-text);
+}
+.fest-card-icon { flex: 0 0 auto; font-size: 1.2rem; line-height: 1; }
+.fest-card-when {
+  margin: 0 0 10px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--c-primary-dark);
+}
+.fest-card-words {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.fest-card-words li {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 5px 10px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: 999px;
+  /* Without this a chip whose jyutping cannot break would overflow the row
+     instead of wrapping — the 320px failure mode in gotcha form. */
+  min-width: 0;
+}
+.fest-yue {
+  font-family: var(--font-cn);
+  font-size: 0.95rem;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--c-text);
+}
+.fest-jyut {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.68rem;
+  color: var(--c-text-soft);
+}
+
 /* ---- Home categories strip ---- */
 /* ---- Home: Daily Culture (one featured article per day) ---------------- */
-.home-daily-culture {
+#home-daily-culture {
   margin-top: 20px;
 }
-.home-daily-culture .home-section-title::before { content: '🏛️'; }
+#home-daily-culture:empty { margin-top: 0; }
+#home-daily-culture .home-section-title::before { content: '🏛️'; }
 
 /* ---- Home: Discover promo (three channel cards) ------------------------ */
-.home-discover-promo {
+#home-discover-promo {
   margin-top: 20px;
 }
-.home-discover-promo .home-section-title::before { content: '🌏'; }
+#home-discover-promo .home-section-title::before { content: '🌏'; }
 .discover-promo-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

@@ -850,7 +850,7 @@ p.lede{font-size:17px;color:var(--muted);margin:0 0 26px;max-width:64ch}
   border:1px solid #f3c2c7;border-radius:999px;padding:7px 14px}
 .fest-yue{font-family:"Noto Sans SC","PingFang HK","Microsoft JhengHei",sans-serif;
   font-size:18px;font-weight:500;white-space:nowrap}
-.fest-jy{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;color:var(--muted)}
+.fest-jyut{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;color:var(--muted)}
 @media (max-width:560px){.fest-banner-words li{flex:1 1 auto}}
 .cta-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px 22px;
   display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;margin:26px 0}
@@ -1972,16 +1972,17 @@ const newsTopicLabel = (lang, key) =>
    lunar, which means their Gregorian date moves every year — Lunar New Year
    falls anywhere between 21 January and 20 February. A lunar-calendar library
    would be the correct general answer and is far more code than this is worth:
-   the app needs to answer one question ("is a festival in the next seven
+   the app needs to answer one question ("is a festival in the next three
    days?"), for roughly a dozen known events, and the answers are published in
    advance by the Hong Kong government. So the table is maintained by hand, one
    line per year per festival, and it is honest about being hand-maintained.
 
-   THE WINDOW SEVEN DAYS. Long enough that someone who checks on Monday sees
-   everything that week, short enough that "this week" still means something.
-   A window measured in days rather than in "the current festival" means the
-   banner appears while there is still time to prepare, which is the only time
-   it is useful.
+   THE WINDOW IS THREE DAYS, and it used to be seven. Seven days is a calendar,
+   not a prompt: it put a banner on the front page for a quarter of every month,
+   which is often enough that it stops being read. Three days is the point at
+   which the household is actually preparing — the shopping, the cooking, the
+   day off being arranged — and it is short enough that the card means
+   "something is happening" rather than "there is a festival this month".
 
    `key` is also the tag the vocabulary carries, and the lookup into
    FESTIVAL_WORDS below, which is what the banner actually prints. The banner
@@ -2011,12 +2012,12 @@ const daysUntil = (date, today) => Math.round((Date.parse(`${date}T00:00:00Z`) -
 /**
  * Festivals starting within the next `window` days, soonest first.
  *
- * The window is measured from TODAY, so an event three days away is "this
- * week" and an event ten days away is not — which is the honest reading of
- * the request: a banner for something two weeks out is not "coming up", it
- * is a calendar, and it would sit there so often that it stops being read.
+ * The window is measured from TODAY, so an event three days away is "coming
+ * up" and an event four days away is not — which is the honest reading of the
+ * request: a card for something a week out is not a prompt, it is a calendar,
+ * and it would sit there so often that it stops being read.
  */
-function upcomingFestivals(now = Date.now(), window = 7) {
+function upcomingFestivals(now = Date.now(), window = 3) {
   const today = hkToday(now);
   const out = [];
   for (const f of HK_FESTIVALS) {
@@ -2028,27 +2029,56 @@ function upcomingFestivals(now = Date.now(), window = 7) {
   return out.sort((a, b) => a.inDays - b.inDays);
 }
 
+/**
+ * The next festival within the window, as DATA rather than as markup.
+ *
+ * The front page draws this itself (public/app.js), because the app shell is a
+ * client-rendered PWA and a server-rendered panel cannot be injected into it.
+ * That makes one thing load-bearing: "which festival, and how many days away"
+ * must be decided in exactly ONE place, or the landing page and the app will
+ * disagree on the day a window opens or closes. So festivalBanner() below
+ * renders FROM this, and GET /api/festival serves it.
+ *
+ * `date` is formatted here rather than in the client because it is a date in
+ * HONG KONG, not in the reader's timezone, and the server already owns that
+ * distinction (see hkToday).
+ */
+function upcomingFestivalPayload(now = Date.now()) {
+  const soon = upcomingFestivals(now);
+  if (!soon.length) return null;
+  // The soonest festival only. Two cards stacked would compete with each other,
+  // and the first is the one she needs to prepare for.
+  const f = soon[0];
+  return {
+    key: f.key,
+    name_en: f.name_en,
+    name_zh: f.name_zh,
+    icon: f.icon,
+    startsOn: f.startsOn,
+    inDays: f.inDays,
+    date: new Date(`${f.startsOn}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', timeZone: 'UTC' }),
+    words: (FESTIVAL_WORDS[f.key] || []).map(([cantonese, jyutping]) => ({ cantonese, jyutping })),
+  };
+}
+
 /** The panel shown on the landing page, or '' when no festival is near. */
 function festivalBanner(lang, now = Date.now()) {
-  const soon = upcomingFestivals(now);
-  if (!soon.length) return '';
+  const f = upcomingFestivalPayload(now);
+  if (!f) return '';
   const prefix = LANG_PREFIX[lang] || '';
-  // The soonest festival only. Two panels stacked would compete with each
-  // other, and the first is the one she needs to prepare for.
-  const f = soon[0];
   const ui = FESTIVAL_BANNER_UI[lang] || FESTIVAL_BANNER_UI.en;
   const when = f.inDays === 0 ? ui.today : f.inDays === 1 ? ui.tomorrow : ui.inDays.replace('{n}', String(f.inDays));
-  const date = new Date(`${f.startsOn}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', timeZone: 'UTC' });
-
-  const words = FESTIVAL_WORDS[f.key] || [];
+  const name = f.key === 'christmas' || f.key === 'wintersolstice'
+    ? f.name_en
+    : (L[lang] === L.zh ? f.name_zh : f.name_en);
 
   return `<div class="fest-banner" role="region" aria-label="${esc(ui.label)}">
   <p class="fest-banner-kicker">${esc(ui.kicker)}</p>
-  <h2 class="fest-banner-title">${esc(f.icon)} ${esc(f.key === 'christmas' || f.key === 'wintersolstice' ? f.name_en : (L[lang] === L.zh ? f.name_zh : f.name_en))}</h2>
-  <p class="fest-banner-when">${esc(when)} · ${esc(date)}</p>
+  <h2 class="fest-banner-title">${esc(f.icon)} ${esc(name)}</h2>
+  <p class="fest-banner-when">${esc(when)} · ${esc(f.date)}</p>
   <p class="fest-banner-body">${esc(ui.body.replace('{festival}', f.name_en))}</p>
-  ${words.length ? `<ul class="fest-banner-words">
-    ${words.map(([c, j]) => `<li><span class="fest-yue">${esc(c)}</span><span class="fest-jyut">${esc(j)}</span></li>`).join('\n    ')}
+  ${f.words.length ? `<ul class="fest-banner-words">
+    ${f.words.map((w) => `<li><span class="fest-yue">${esc(w.cantonese)}</span><span class="fest-jyut">${esc(w.jyutping)}</span></li>`).join('\n    ')}
   </ul>` : ''}
   <a class="cta" href="${prefix}/learn/festivals">${esc(ui.cta)}</a>
 </div>`;
@@ -3184,4 +3214,4 @@ function mount(app) {
   console.log(`  SEO:          ${SITE_ORIGIN}/sitemap.xml  (${store.listVocabulary({ enabledOnly: true }).length} words, ${store.listEnabledCategories().length} categories, ${LANGS.length} languages)`);
 }
 
-module.exports = { mount, SITE_ORIGIN, slugify, buildWordIndex, wordSlugMap, LANG_PREFIX, LANGS, ROUTE_FAMILIES, HK_FESTIVALS, upcomingFestivals, festivalBanner };
+module.exports = { mount, SITE_ORIGIN, slugify, buildWordIndex, wordSlugMap, LANG_PREFIX, LANGS, ROUTE_FAMILIES, HK_FESTIVALS, upcomingFestivals, upcomingFestivalPayload, festivalBanner };

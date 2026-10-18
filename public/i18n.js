@@ -164,9 +164,16 @@ const I18N = {
     'home.resumeDone': 'You practised today — nice work',
     'home.resumeStart': 'Start your streak today',
     'home.resumeContinue': 'Continue',
-    'home.wordOfDay': 'Word of the day',
-    'home.latest': 'New on Discover',
     'home.dailyCulture': "Today's Culture",
+    // The "coming up" card, shown for three days before a festival and on the
+    // day itself. The wording is deliberately about PREPARING — she is told
+    // what is about to happen to the household, not given a calendar entry.
+    'home.festLabel': 'Festival coming up',
+    'home.festKicker': 'Coming up',
+    'home.festToday': 'Today',
+    'home.festTomorrow': 'Tomorrow',
+    'home.festInDays': 'In {n} days',
+    'home.festCta': 'Practise the festival words',
 
     // browse
     'browse.backHome': '← Home',
@@ -568,9 +575,13 @@ const I18N = {
     'home.resumeDone': 'Nagpraktis ka na ngayon — magaling',
     'home.resumeStart': 'Simulan ang sunod-sunod mo ngayon',
     'home.resumeContinue': 'Ituloy',
-    'home.wordOfDay': 'Salita ng araw',
-    'home.latest': 'Bago sa Tuklasin',
     'home.dailyCulture': 'Kultura ngayong araw',
+    'home.festLabel': 'Papalapit na pista',
+    'home.festKicker': 'Papalapit',
+    'home.festToday': 'Ngayon',
+    'home.festTomorrow': 'Bukas',
+    'home.festInDays': 'Sa {n} araw',
+    'home.festCta': 'Sanayin ang mga salita sa pista',
 
     // browse
     'browse.backHome': '← Simula',
@@ -979,9 +990,13 @@ const I18N = {
     'home.resumeDone': '今天已经练习了，做得好',
     'home.resumeStart': '今天开始你的连续记录',
     'home.resumeContinue': '继续',
-    'home.wordOfDay': '每日一词',
-    'home.latest': '发现新内容',
     'home.dailyCulture': '今日文化',
+    'home.festLabel': '即将到来的节日',
+    'home.festKicker': '即将到来',
+    'home.festToday': '今天',
+    'home.festTomorrow': '明天',
+    'home.festInDays': '{n} 天后',
+    'home.festCta': '练习节日用语',
 
     // browse
     'browse.backHome': '← 首页',
@@ -1387,9 +1402,13 @@ const I18N = {
     'home.resumeDone': 'Kamu sudah berlatih hari ini — bagus',
     'home.resumeStart': 'Mulai rentetanmu hari ini',
     'home.resumeContinue': 'Lanjutkan',
-    'home.wordOfDay': 'Kata hari ini',
-    'home.latest': 'Baru di Jelajah',
     'home.dailyCulture': 'Budaya hari ini',
+    'home.festLabel': 'Hari raya akan datang',
+    'home.festKicker': 'Segera',
+    'home.festToday': 'Hari ini',
+    'home.festTomorrow': 'Besok',
+    'home.festInDays': 'Dalam {n} hari',
+    'home.festCta': 'Latihan kata hari raya',
 
     // browse
     'browse.backHome': '← Beranda',

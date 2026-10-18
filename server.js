@@ -614,6 +614,23 @@ app.get('/api/posts/daily-culture', (req, res) => {
   res.json(pick);
 });
 
+/**
+ * GET /api/festival — the next festival within three days, or null.
+ *
+ * The front page draws the "coming up" card from this. The window, the choice
+ * of festival and the Hong Kong date are all decided in seo.js, because the
+ * landing pages draw the same panel server-side and the two must not disagree
+ * on the day a window opens or closes. This route only serialises that answer.
+ *
+ * A five-minute cache rather than none: the answer changes at midnight Hong
+ * Kong time, so five minutes of staleness costs nothing, while a card that
+ * never expires is exactly how a "coming up" banner outlives the festival.
+ */
+app.get('/api/festival', (req, res) => {
+  res.setHeader('Cache-Control', 'public, max-age=300');
+  res.json({ festival: seo.upcomingFestivalPayload() });
+});
+
 app.get('/api/posts/:slug', (req, res) => {
   const post = store.getPostBySlug(req.params.slug);
   // A draft is a 404 to a learner, exactly as if it did not exist.

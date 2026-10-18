@@ -131,6 +131,10 @@ const STATE = {
   // distinction stops Home re-fetching on every language switch when there is
   // legitimately no pick today.
   homeDailyCulture: null,
+  // The next festival, from /api/festival. Same `null` / `false` distinction as
+  // above: most of the year there is no festival within the window, and that
+  // "no" must not be re-asked on every language switch.
+  homeFestival: null,
 };
 
 // ---- TTS (Cantonese text-to-speech) with selectable practice voices --------
@@ -722,6 +726,7 @@ async function init() {
     // card simply does not appear.
     await fetchLearnerStats();
     renderHomeCards();
+    renderHomeFestival();
     renderHomeDailyCulture();
     renderHomeDiscoverPromo();
   } catch (err) {
@@ -740,6 +745,7 @@ async function init() {
 function rerenderForLanguage() {
   renderHomeCategories();
   renderHomeCards();
+  renderHomeFestival();
   renderHomeDailyCulture();
   renderHomeDiscoverPromo();
   renderCategoryChips();
@@ -902,6 +908,67 @@ function continueLearning() {
  */
 function renderHomeCards() {
   renderHomeResume();
+}
+
+/**
+ * The "coming up" card: the next festival, at most three days out.
+ *
+ * It sits ABOVE Today's Culture because it is the only card on this screen with
+ * a deadline. It is empty on most days of the year, which is the point: a
+ * banner that is always there is furniture, and furniture is not read.
+ *
+ * The server decides WHICH festival and how many days away (seo.js →
+ * upcomingFestivalPayload, served at /api/festival), because the landing pages
+ * draw the same panel server-side. Two renderers, one decision — otherwise the
+ * app and the site disagree on the day a window opens or closes, which is the
+ * only day anyone would notice.
+ */
+async function renderHomeFestival() {
+  const wrap = document.getElementById('home-festival');
+  if (!wrap) return;
+  try {
+    if (STATE.homeFestival === null) {
+      const res = await apiGet('/api/festival');
+      STATE.homeFestival = (res && res.festival) || false;
+    }
+    const f = STATE.homeFestival;
+    if (!f) {
+      wrap.innerHTML = '';
+      return;
+    }
+    const when = f.inDays === 0 ? t('home.festToday')
+      : f.inDays === 1 ? t('home.festTomorrow')
+        : t('home.festInDays').replace('{n}', String(f.inDays));
+    // A Chinese reader gets the Chinese name; everyone else gets the English
+    // one, which is what the household says out loud anyway.
+    const name = currentLang() === 'zh' ? f.name_zh : f.name_en;
+    // The date is formatted HERE, from the ISO day, rather than taken from the
+    // server's pre-formatted string: "18 October" is not a date in a four-
+    // language app. The server still owns WHICH day it is (that is the part the
+    // landing pages must agree on); naming the month is a UI concern.
+    const date = new Date(`${f.startsOn}T00:00:00Z`).toLocaleDateString(
+      ({ en: 'en-GB', fil: 'fil-PH', zh: 'zh-CN', id: 'id-ID' })[currentLang()] || 'en-GB',
+      { day: 'numeric', month: 'long', timeZone: 'UTC' }
+    );
+
+    wrap.innerHTML = `
+      <div class="fest-card" role="region" aria-label="${escapeHtml(t('home.festLabel'))}">
+        <p class="fest-card-kicker">${escapeHtml(t('home.festKicker'))}</p>
+        <p class="fest-card-title"><span class="fest-card-icon" aria-hidden="true">${escapeHtml(f.icon)}</span>${escapeHtml(name)}</p>
+        <p class="fest-card-when">${escapeHtml(when)} · ${escapeHtml(date)}</p>
+        ${f.words.length ? `<ul class="fest-card-words">${f.words.map((w) =>
+    `<li><span class="fest-yue">${escapeHtml(w.cantonese)}</span><span class="fest-jyut">${escapeHtml(w.jyutping)}</span></li>`).join('')}</ul>` : ''}
+        <button type="button" class="btn btn-outline btn-block" onclick="openFestivalWords()">${escapeHtml(t('home.festCta'))}</button>
+      </div>`;
+  } catch (err) {
+    console.warn('Could not load the festival:', err);
+    wrap.innerHTML = '';
+  }
+}
+
+/** The card's button: the Festivals category, in the app. */
+function openFestivalWords() {
+  openCategory(19);
 }
 
 /** One culture article per day, chosen by the server. */

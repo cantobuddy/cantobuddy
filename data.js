@@ -1591,6 +1591,257 @@ const SEED_POSTS = [
 <h2>If it all goes wrong</h2>
 <p><strong>唔好意思，我唔知道</strong> — "Sorry, I didn't know." It works for a swept floor, a broken cup, and a wrong greeting. Say it early and plainly. What turns a small mistake into a real one is discovering it later and saying nothing.</p>`,
   },
+
+  {
+    slug: 'pointing-and-beckoning',
+    channel: 'culture',
+    icon: '🖐️',
+    status: 'published',
+    published_at: '2026-10-18T14:00:00.000Z',
+    title_en: 'Pointing and Beckoning: Two Gestures People Read Before You Speak',
+    title_zh: '「指人」和「招手」：别人会先看你的手',
+    summary_en:
+      'Pointing your index finger at someone, and beckoning with an upward palm, are the two small gestures most likely to be read as rude in Hong Kong. Neither requires a word — which is why both are worth learning before you use them.',
+    summary_zh: '用手指指着别人、以及手掌向上地招手，是香港最容易被看作无礼的两个小动作。它们不用说话就能传达意思，所以更值得先学会。',
+    body_en: `<p>Two hand gestures do more damage in a Hong Kong household than anything you can say by accident. Both are small, both are things you do without thinking, and both are read instantly by people who will never mention them to you.</p>
+<h2>Do not point at people with your index finger</h2>
+<p><strong>食指</strong> (sik6 zi2) — the index finger — is for food. Using it on a person, particularly an older person, reads as rude, and in some households it is also the finger used to scold. The local way to point is with the whole open hand and a tilt of the head: "that one, there". If you must single someone out, point with your open hand, never with one finger.</p>
+<h2>Beckon with the palm down</h2>
+<p><strong>招手</strong> (ziu1 sau1) — the "come here" gesture — is done with the <strong>palm facing down</strong> and the fingers curled slightly inward, the hand moving toward you in small waves. The palm-up version, fingers curling in one by one, is what you use on an animal, and using it on a person is worse than careless — it reads as dismissive.</p>
+<h2>What to say instead</h2>
+<p>Words cost nothing and need no gesture at all. To call someone over:</p>
+<ul>
+  <li><strong>過嚟</strong> (gwo3 lei4) — "come here." The everyday form, fine with anyone you know well.</li>
+  <li><strong>唔好意思</strong> (m4 hou2 ji3 si1) — said first, before anything you need. It is the most useful phrase in the app, and it carries you through a hand you are not sure about.</li>
+</ul>
+<h2>Why this one is worth the effort</h2>
+<p>Gestures are read before words arrive. A helper who points a finger at the grandmother is remembered for that, not for anything she said. The fix is a habit — open hand, palm down — and after a month you will not have to think about it.</p>
+<p>Families differ in how strict they are about both gestures, and almost nobody will tell you. When you are unsure, the default is the same one that works for everything else in this app: keep the hand open, and ask.</p>`,
+  },
+
+  {
+    slug: 'dont-ask-where-they-live',
+    channel: 'culture',
+    icon: '🏠',
+    status: 'published',
+    published_at: '2026-10-18T14:10:00.000Z',
+    title_en: '查家宅: The Questions You Do Not Ask When You Just Met Someone',
+    title_zh: '「查家宅」：刚认识的人，这些问题不要问',
+    summary_en:
+      '查家宅 — sizing up someone’s household — is what Hong Kong calls asking where you live, whether you bought or rent, and what you earn. Here are those questions, why they land badly, and what to ask instead.',
+    summary_zh: '「查家宅」在香港指打听住哪里、买房还是租房、赚多少这一类问题。这篇列出这些问题，说明它们为什么会让人不舒服，以及该聊什么。',
+    body_en: `<p><strong>查家宅</strong> (caa4 gaa1 zaak6) means, literally, checking someone’s household — asking the questions that work out what someone is worth. In Hong Kong it is not a compliment, and it is one of the clearest social rules a newcomer can learn: at a first meeting, these questions do not get asked.</p>
+<h2>The list</h2>
+<ul>
+  <li><strong>你住喺邊度？</strong> (nei5 zyu6 hai2 bin1 dou6?) — "Where do you live?"</li>
+  <li><strong>租嘅定係買嘅？</strong> — "Do you rent, or did you buy it?"</li>
+  <li><strong>人工有幾多？</strong> — "How much is your salary?"</li>
+  <li><strong>呢個幾多錢？</strong> (ni1 go3 gei2 do1 cin2?) — "How much was that?"</li>
+  <li><strong>你間屋有幾大？</strong> — "How big is your flat?"</li>
+</ul>
+<p>One of these is a question. All five together are an interview — and that is how it feels to be asked them. The problem is not the topic. It is that a first meeting is not the place for it, and the questions carry an obvious ranking behind them.</p>
+<h2>What the questions are really saying</h2>
+<p>People read them as: <em>you are being measured.</em> In a city where a flat is the biggest thing in most people’s lives, asking about it first is asking about the most sensitive number there is. Salary is the same question in a different coat.</p>
+<h2>What to say instead</h2>
+<p>Safe ground is everything around the household rather than inside it:</p>
+<ul>
+  <li>Where they are <strong>from</strong>, and how long they have been in Hong Kong.</li>
+  <li>The weather, the commute, the food — 傾偈 (king1 gai2), chatting, the way conversations actually open here.</li>
+  <li>Anything about work that is not a number: what the day looks like, what the job is called.</li>
+</ul>
+<p>If you must know something — and sometimes you genuinely do, for instance which stop to get off at — ask once, plainly, and let it go. <strong>唔好意思，我唔知道</strong> (m4 hou2 ji3 si1, ngo5 m4 zi1 dou6) covers the reverse mistake too: if you have already asked, the answer is to say so and move on, not to explain.</p>
+<p>Families and offices differ in how exact the rule is, and the safest reading is the strict one: nobody has ever been thought rude for not asking.</p>`,
+  },
+
+  {
+    slug: 'who-pays-the-bill',
+    channel: 'culture',
+    icon: '🧾',
+    status: 'published',
+    published_at: '2026-10-18T14:20:00.000Z',
+    title_en: 'Stop Fighting Over the Bill: How Paying Works Here',
+    title_zh: '不要每次都在「抢埋单」：在香港怎么付钱才得体',
+    summary_en:
+      '搶埋單 — fighting to pay the whole bill — reads as warmth in some places and as pressure in Hong Kong. Here is the actual local custom: AA or taking turns, and why the loud fight is the version that loses.',
+    summary_zh: '「抢埋单」在有些地方是热情，在香港却是一种压力。这里讲本地真正的做法：AA制或轮流请客，以及为什么大声争付反而失礼。',
+    body_en: `<p>The bill arrives, and someone reaches for it. Someone else grabs it first. Both are now standing, holding the folder, and neither is having a good time. In Hong Kong this is a well-known failure with a name: <strong>搶埋單</strong> (coeng2 maai4 daan1), fighting to pay the bill.</p>
+<h2>The mistake</h2>
+<p>In many places, fighting for the bill is how you show generosity. Here it is more often read the other way: <strong>the person who was not allowed to pay has been made small.</strong> Done repeatedly, it stops being a gesture and becomes a problem — the other person either feels pressured to reciprocate, or starts quietly avoiding meals with you.</p>
+<h2>What is actually customary</h2>
+<ul>
+  <li><strong>AA</strong> — splitting the bill is completely normal here, colleagues and friends included, and nobody thinks twice about it.</li>
+  <li><strong>輪流請</strong> — taking turns. Someone pays this time; someone pays next time. The obligation is tracked quietly, and it is the most common pattern in any regular group.</li>
+  <li><strong>One person pays, properly.</strong> If you invited someone out, you pay. That is the clean case, and there is no fight to have.</li>
+</ul>
+<h2>The words that solve it</h2>
+<ul>
+  <li><strong>唔使，唔使</strong> (m4 sai2, m4 sai2) — "no, no, there is no need." The polite refusal, said with a smile, ends the fight without anyone losing.</li>
+  <li><strong>今次我請，下次你請</strong> — "this round is mine, next round is yours." Say it once, calmly. It turns the fight into a plan.</li>
+</ul>
+<p>If someone insists on paying and you can see they mean it, let them — and then <em>be the one who suggests the next one.</em> Repaying quietly, over several meals, is the local version of the same generosity.</p>
+<h2>The one hard rule</h2>
+<p>Watch the person on the other side of the table. If the bill would visibly strain someone — a junior colleague, a friend between jobs — do not let them split it evenly. Cover it, and say nothing. What is remembered is not the amount; it is that nobody had to do arithmetic at dinner.</p>
+<p>Groups differ, and some families fight over the bill every time and enjoy it. When you are unsure, the safe default is the AA default: it is never rude to offer to pay your way.</p>`,
+  },
+
+  {
+    slug: 'no-arms-around-shoulders',
+    channel: 'culture',
+    icon: '🧍',
+    status: 'published',
+    published_at: '2026-10-18T14:30:00.000Z',
+    title_en: 'Keep Your Hands to Yourself: 搭膊頭 and the Rules of Distance',
+    title_zh: '身体界限：不要随意「搭膊头」',
+    summary_en:
+      '搭膊頭 — an arm around the shoulders — is friendly in some countries and far too familiar in a Hong Kong workplace. Here is where the line sits, and the saying behind it.',
+    summary_zh: '「搭膊头」（搭着别人的肩膀）在有些地方表示友好，在香港的职场上却太过随便。这篇讲这条界线在哪里，以及背后的说法。',
+    body_en: `<p><strong>搭膊頭</strong> (daap3 bok3 tau4) — throwing an arm around someone’s shoulders, or a heavy pat on the shoulder as you walk past — is a gesture of warmth in a lot of the world. In a Hong Kong workplace, formal setting, or a household you work in, it more often reads as <strong>too familiar</strong>, as though the other person had been claimed.</p>
+<h2>Where the line sits</h2>
+<ul>
+  <li><strong>Not in the workplace.</strong> With colleagues, managers, employers — especially people you have just met — it reads as over-familiar, and some find it faintly patronising.</li>
+  <li><strong>Not with anyone significantly older.</strong> Touching an elder’s shoulder or back, even kindly, is something to avoid. Older people in particular may be unreceptive to physical contact from a helper they have known for a week.</li>
+  <li><strong>Not as an apology.</strong> Reaching for someone’s arm or shoulder while saying sorry makes the apology bigger, not smaller, in a culture where the apology is supposed to be words.</li>
+</ul>
+<h2>The saying behind it</h2>
+<p>There is also an older belief many families still hold: a hand on someone’s shoulder can press down their luck — some say it can cost a gambler the table. You do not have to believe it to let it steer your hands. What matters is that <strong>the people around you may believe it</strong>, and the gesture costs you nothing to leave out.</p>
+<h2>What replaces it</h2>
+<p>Nothing at all. Hong Kong manages warmth at arm’s length: a nod, a smile, a 唔好意思 (m4 hou2 ji3 si1) when you need to get past someone, and food — which is where affection actually goes. When you want to show care, do it with the work: the meal ready on time, the thing you fixed without being asked, the chair you pulled out.</p>
+<p>Families differ, of course — some are hands-on, and close colleagues do slap each other’s shoulders. When you are unsure, the default is the distance-keeping one. Nobody has ever been thought cold for giving someone room.</p>`,
+  },
+
+  {
+    slug: 'public-manners',
+    channel: 'culture',
+    icon: '🚇',
+    status: 'published',
+    published_at: '2026-10-18T14:40:00.000Z',
+    title_en: 'Manners in Public: Queues, the MTR, and What to Call People',
+    title_zh: '公共场合礼仪：排队、车厢和称呼',
+    summary_en:
+      'Queueing, letting people off before you board, keeping the carriage quiet, not claiming extra seats with your bags, and calling a woman 靚女 — the public rules nobody announces, in one place.',
+    summary_zh: '排队、先下后上、车厢里保持安静、不用袋子占座，以及称呼女性为「靓女」——那些没人宣布的公共规则，一次讲清。',
+    body_en: `<p>Most of the public rules in Hong Kong are unspoken, which is exactly why they are worth reading once. None of them is complicated; all of them are the kind of thing that gets noticed.</p>
+<h2>Queue, and let people off first</h2>
+<p><strong>排隊</strong> (paai4 deoi2) — queueing — is close to a religion here. At the MTR, the bank, the market stall and the doctor’s, you join the back of the line and wait. Cutting is remembered.</p>
+<p>At the train doors the rule is <strong>先落後上</strong> (sin1 lok6 hau6 soeng5) — those getting off go first, then those getting on. Pushing in while people are still stepping out is one of the few behaviours that gets spoken about out loud.</p>
+<h2>The carriage</h2>
+<ul>
+  <li><strong>No phone calls.</strong> Take the call if you must, but keep it short and quiet — a loud conversation in a crowded carriage is the classic complaint.</li>
+  <li><strong>No video without earphones.</strong> Anything you play, you wear. This one is enforced socially and instantly.</li>
+  <li><strong>One seat per person.</strong> Your bag, your shopping and your luggage go on your lap or the floor — not the seat beside you. At eight in the morning there is somebody standing who could use it.</li>
+</ul>
+<h2>What to call people</h2>
+<p>Addressing a woman — a shop assistant, a waitress, someone in a uniform — you will hear <strong>靚女</strong> (leng3 neoi2), and it is the ordinary polite form here, the equivalent of "miss". For men it is 先生; in a casual shop or market you may also hear 阿哥 and 阿姐.</p>
+<p>If you need anything, lead with it: <strong>唔好意思</strong> (m4 hou2 ji3 si1) — "excuse me" — works on everyone, in every situation, and is the only phrase you strictly need.</p>
+<h2>When you get it wrong</h2>
+<p>Nobody will correct you. Sit in the seat you should have kept clear, or call out across a carriage, and what you get is a look. The rule that covers all of it is simple: <strong>do what is easiest for the most people</strong> — and <strong>唔好意思，我唔知道</strong> (m4 hou2 ji3 si1, ngo5 m4 zi1 dou6) when you realise you got it wrong.</p>`,
+  },
+
+  {
+    slug: 'gifts-you-should-not-give',
+    channel: 'culture',
+    icon: '🎁',
+    status: 'published',
+    published_at: '2026-10-18T14:50:00.000Z',
+    title_en: 'Gifts You Should Not Give: Clocks, Pears, and the Wrong Colours',
+    title_zh: '送礼禁忌：别送钟，别送梨',
+    summary_en:
+      '鐘 sounds like 送終 and 梨 sounds like 離 — two gifts whose names say something nobody means. Plus the colours to keep off the wrapping paper.',
+    summary_zh: '「钟」谐音「送终」，「梨」谐音「离」——名字会替你说出你没说的意思。还有包装纸上要避开的颜色。',
+    body_en: `<p>Gift-giving in Hong Kong runs on homophones. A gift’s name can say something the giver never intended, and two of them are famous enough that families check for them by reflex.</p>
+<h2>Do not give a clock</h2>
+<p><strong>鐘</strong> (zung1), a clock, sounds exactly like <strong>終</strong> — as in <strong>送終</strong> (sung3 zung1), to see someone out at the end of their life. A clock on the wall says it, in someone’s home, quietly, every day. Do not give one, at any age and for any occasion.</p>
+<h2>Do not give pears</h2>
+<p><strong>梨</strong> (lei4), a pear, sounds exactly like <strong>離</strong> (lei4) — to part, to separate. A gift of pears, especially between a couple, says the relationship is ending. Do not give them, and do not cut them up in front of people either.</p>
+<h2>Keep the wrapping quiet</h2>
+<p>White and black are the colours of mourning and do not belong on a gift; many families would add blue to that list. Red is the safe, warm choice, and gold and pink are welcome. If you are wrapping something for the family you work for, red or gold is never a mistake.</p>
+<h2>If a clock is unavoidable</h2>
+<p>The old workaround, for the rare case where a clock must change hands: the receiver <strong>pays you one dollar for it</strong>, so the clock is bought rather than given, and the saying loses its grip. Families who care about the custom do this without discussion. Families who do not will simply wonder why you are holding out your hand.</p>
+<h2>The wider point</h2>
+<p>These are not superstitions you have to believe. They are words, and words land whether or not the speaker meant them. When you are choosing something for someone else’s home — especially someone older, or a couple — the safe habit is to ask what they would like, rather than to surprise them.</p>`,
+  },
+
+  {
+    slug: 'new-year-taboos',
+    channel: 'culture',
+    icon: '🧨',
+    status: 'published',
+    published_at: '2026-10-18T15:00:00.000Z',
+    title_en: 'New Year Taboos: The Third Day, and Why Nobody Buys Shoes',
+    title_zh: '新年禁忌：赤口不拜年，正月不买鞋',
+    summary_en:
+      'Two rules that run for the whole first lunar month, not just the first day: the third day is 赤口, a day for quarrels, and shoes stay in the shop until the month is over.',
+    summary_zh: '有两条规矩管着整个农历正月，不只是初一：年初三是「赤口」，容易口角；而鞋店，正月里最好别买鞋。',
+    body_en: `<p>Most New Year rules people know about the first day. These two run for the whole of the first lunar month (<strong>正月</strong>, zing1 jyut6), and both are the kind of thing a household will quietly observe.</p>
+<h2>年初三：赤口</h2>
+<p>The third day of the new year is called <strong>赤口</strong> (cek3 hau2) — "red mouth", a day on which quarrels start easily. Traditionally you do not go visiting, and you keep out of arguments; the day is for staying in and keeping the peace.</p>
+<p>What this means for you in practice: families differ, but a good many simply do not go out on the third day. If your family does, fine. If they do not, do not plan anything for that day, and if someone in the house is short-tempered, let it pass.</p>
+<h2>正月裡不買鞋</h2>
+<p>Shoes stay unbought until the new year’s first month is over, because <strong>鞋</strong> (haai4) sounds like <strong>邪</strong> (haai4) — bad luck, evil — and buying shoes in the first month is said to buy a year of it. Some families give a second reason: it also sounds like <strong>唉</strong> (aai4), sighing, and nobody wants a year of that either.</p>
+<p>You will meet this one mainly when you are asked to run an errand. If a family member asks for shoes in January, mention it once — some households will still buy them and simply not care, and the answer then is to do as they ask. Nothing here is enforced; all of it is preference.</p>
+<h2>The one habit that covers both</h2>
+<p>Ask early, and casually, how the family keeps the new year — which day they stay in, what they will not do. <strong>唔好意思，我唔知道</strong> (m4 hou2 ji3 si1, ngo5 m4 zi1 dou6) is the honest opening, and it works far better than guessing correctly by accident.</p>`,
+  },
+
+  {
+    slug: 'funeral-etiquette',
+    channel: 'culture',
+    icon: '🤍',
+    status: 'published',
+    published_at: '2026-10-18T15:10:00.000Z',
+    title_en: 'At a Funeral in Hong Kong: What to Wear, What to Say, and 帛金',
+    title_zh: '香港丧礼：穿什么、说什么、帛金怎么给',
+    summary_en:
+      'Dress plain, give an odd amount, say 有心 instead of 多謝 and 慢行 instead of 再見 — and spend the coin from the 吉儀 packet before you get home.',
+    summary_zh: '穿素色、帛金给单数、说「有心」不说「多谢」、道别说「慢行」不说「再见」——还有，「吉仪」里那枚硬币，回家前就要花掉。',
+    body_en: `<p>If the family you work for has a funeral, you may be asked to attend, or to help with the preparations. The customs here are specific, they are not announced, and getting them wrong is the kind of thing that is remembered kindly but never forgotten. This is what is expected.</p>
+<h2>What to wear</h2>
+<p>Plain or black. No bright colours, no patterns, nothing red — red is for weddings. If you have nothing black, the darkest plain clothes you own will do; nobody will inspect you.</p>
+<h2>帛金: the money</h2>
+<p>You bring a white envelope with money in it — <strong>帛金</strong> (baak6 gam1). The amount must be an <strong>odd number</strong>: one hundred and one dollars is the usual way to give a hundred, with one dollar added to make it single. Never round it up to an even number.</p>
+<p>Hand it over quietly when you arrive, to whoever is receiving. Do not count it out in the open, and do not comment on the amount in either direction.</p>
+<h2>What to say — and what not to</h2>
+<ul>
+  <li>Receiving the family’s return gift, say <strong>有心</strong> (jau5 sam1) — "thank you for the thought." <strong>Not</strong> 多謝, which is for gifts.</li>
+  <li>Taking your leave, say <strong>慢行</strong> (maan6 haang4) — "walk slowly", take care — or let the family say <strong>唔送</strong> (m4 sung3), "I will not see you out." <strong>再見</strong> (zoi3 gin3) is not used here.</li>
+</ul>
+<h2>吉儀: the packet you are given</h2>
+<p>Before you leave you will be handed a small packet — <strong>吉儀</strong> (gat1 ji4) — containing a tissue, some sweets, and a one-dollar coin.</p>
+<p><strong>Spend the coin the same day.</strong> Buy something small with it, or give it away. It must not come home, and it must not go into your wallet and stay there — the saying is that money kept from a funeral carries the bad luck back into the house. The tissue and the sweets are yours to keep; it is the coin that has to move on.</p>
+<h2>The hundred days after</h2>
+<p>A household that has had a funeral (<strong>白事</strong>, baak6 si6) observes <strong>百日</strong> (baak3 zat6) — a hundred days. During that time the family avoids visiting other people’s homes and stays away from weddings and other happy occasions. If you work for a household in that period, help them keep it: no bringing home party news, no planning visits.</p>
+<h2>If you are unsure</h2>
+<p>Customs differ between families — some give a different 吉儀, and some observe the hundred days strictly while others observe them loosely. The safe default when nobody has told you: dress plain, stay quiet, follow whatever the person beside you does, and say <strong>唔好意思，我唔知道</strong> (m4 hou2 ji3 si1, ngo5 m4 zi1 dou6) if you are asked something you cannot answer. At a funeral, as everywhere else in this app, the worst mistake is the one you hide.</p>`,
+  },
+
+  {
+    slug: 'lucky-words-and-taboos',
+    channel: 'culture',
+    icon: '🧿',
+    status: 'published',
+    published_at: '2026-10-18T15:20:00.000Z',
+    title_en: 'Why the Almanac Is Called 通勝: Hong Kong’s Lucky Words',
+    title_zh: '为什么通书叫「通胜」：香港人的意头',
+    summary_en:
+      '通書 becomes 通勝, an empty shop is 吉舖, and you never say 食完 — Hong Kong swaps words whose SOUNDS carry loss, emptiness or death, and it has a name: 意頭. Here are the swaps you will actually hear.',
+    summary_zh: '通書要叫「通胜」，空舖要叫「吉舖」，飯不能說「食完」——香港人避開讀音像「輸、空、完」的字，改說吉利話，這叫「意頭」。這篇講最常見的幾個。',
+    body_en: `<p><strong>意頭</strong> (ji3 tau4) means, roughly, the lucky meaning behind a thing — whether a word, a name, a time of day or a gift is good to say and good to do. It is the reason a Cantonese speaker will look at you, choose a different word, and say that one instead. Nobody announces this; you pick it up or you do not. These are the ones you will hear.</p>
+<h2>Words that mean money</h2>
+<p><strong>書</strong> (syu1), a book, sounds exactly like <strong>輸</strong> (syu1), to lose. So the Chinese almanac is not called 通書 — it is <strong>通勝</strong> (tung1 sing3), win. If a family is checking the almanac for a good date — a wedding, moving house, opening a shop — the word you use is 通勝, never 通書.</p>
+<p>The same trade applies to <strong>絲瓜</strong> (si1 gwaa1), the loofah. Because 絲 is said to sound like 輸, the vegetable is sold and cooked as <strong>勝瓜</strong> (sing3 gwaa1). Order it as 絲瓜 and you may be corrected.</p>
+<h2>Words that mean empty</h2>
+<p><strong>空</strong> (hung1), empty, sounds exactly like <strong>凶</strong> (hung1), misfortune. So a shop that is empty is never called 空舖 — it is <strong>吉舖</strong> (gat1 pou3), the lucky shop. That is why the "to let" signs in the street read 吉舖. An empty shop is exactly what a landlord wants to fill, so the word must not say empty.</p>
+<p>The same thinking reaches the dinner table. <strong>食完飯</strong> (sik6 jyun4 faan6) — "have finished eating" — puts 完, finished, right next to rice, because 完 means there is nothing left, and a household with no rice is a household short of money. Say <strong>食咗飯</strong> (sik6 zo2 faan6) — "have eaten" — or simply 食飽 (sik6 baau2), "eaten full". Both are safe; 食完 is the one to drop.</p>
+<h2>Words about children</h2>
+<p>There is a strong habit of <strong>not praising a child out loud.</strong> "This child is so healthy, has never been ill a day in his life" is exactly the sentence not to say — the fear is that saying it aloud tells illness where to find the child, and it arrives to prove you wrong.</p>
+<p>The same caution covers calling a baby fat. Do not do it, and do not joke about it — the worry is not the word but what a spirit might make of the complaint, and what it might then take away.</p>
+<p>What you say instead is the reverse: a small kindness in words, nothing more. If you must comment, comment on the present moment — 「好得意」(hou2 dak1 ji3), cute — and leave the future alone. When you are unsure, say nothing; a helper who is quiet about a child is never faulted for it.</p>
+<h2>The green hat</h2>
+<p>In Chinese folk association, <strong>綠帽</strong> (luk6 mou3) — a green hat — means a man whose wife has been unfaithful. The colour is a punishment, not a fashion: under laws from the Ming and Qing dynasties a husband in that position was made to wear a green headscarf, and the colour has carried the meaning ever since.</p>
+<p>So: <strong>if you are buying clothes or a cap for a male member of the household, do not pick green.</strong> A green bag or a green shirt is fine; a green cap, especially, is not. Nobody will explain why the green cap was a mistake — you will only notice it is never worn.</p>
+<h2>The one habit that covers all of it</h2>
+<p>意頭 is preference, not law, and families differ in how much they observe. The habit worth keeping is simply to <strong>notice which words the family uses, and copy them.</strong> When you are not sure, follow the person next to you, and if you have already said the wrong one — <strong>唔好意思，我唔知道</strong> (m4 hou2 ji3 si1, ngo5 m4 zi1 dou6), said early, is always the right answer.</p>`,
+  },
 ];
 
 module.exports = {

@@ -2911,9 +2911,31 @@ ${alts}
     return d > m ? d : m;
   }, SITE_STRUCTURE_DATE);
   const newestDiscoverItem = newestPost > newestStory ? newestPost : newestStory;
+
+  // IMPORTED NEWS IS DELIBERATELY NOT LISTED HERE.
+  //
+  // The hub's lastmod above still counts it, because /discover really does
+  // render the news — that date is honest. What changes is the per-article
+  // entries: `db.pruneNewsPast` deletes imported news after 72h, so every
+  // imported news URL in the sitemap is GUARANTEED to become a 404 within three
+  // days. At the time of writing that was 796 of 1,797 entries, and Search
+  // Console reports those as "Not found (404)" while trusting the sitemap less
+  // for it.
+  //
+  // The filter is `channel === 'news' && origin === 'auto'` rather than just
+  // the channel, because that is exactly the set the pruner deletes. A news
+  // post the OPERATOR wrote is never pruned, so it is evergreen and belongs in
+  // the sitemap like any other.
+  //
+  // The pages are not hidden: they still render, still return 200, and are
+  // still linked from /discover and the app, so Google finds them the ordinary
+  // way. They are simply not ADVERTISED as canonical in a file whose job is to
+  // list what will still exist tomorrow.
+  const evergreenPosts = feedPosts.filter((p) => !(p.channel === 'news' && p.origin === 'auto'));
+
   for (const prefix of Object.values(LANG_PREFIX)) {
     add(`${prefix}/discover`, '0.7', 'daily', hreflangLinks((l) => `${LANG_PREFIX[l]}/discover`), newestDiscoverItem);
-    for (const p of feedPosts) {
+    for (const p of evergreenPosts) {
       const d = postDateShort(p.published_at || p.updated_at || p.created_at);
       add(`${prefix}/discover/${p.slug}`, '0.6', 'monthly',
         hreflangLinks((l) => `${LANG_PREFIX[l]}/discover/${p.slug}`), d || SITE_STRUCTURE_DATE);

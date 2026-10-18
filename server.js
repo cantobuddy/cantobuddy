@@ -15,6 +15,7 @@ const store = require('./db');
 const SqliteSessionStore = require('./session-store');
 const seo = require('./seo');
 const news = require('./news');
+const push = require('./push');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -35,6 +36,11 @@ if (!process.env.SESSION_SECRET) {
   console.warn('  !  SESSION_SECRET is not set — generated a random key for this boot.');
   console.warn('     Everyone is signed out on restart. Set SESSION_SECRET in production.');
 }
+
+// Web Push (VAPID). If the VAPID_* env vars are absent, push silently stays
+// disabled — the invite UI hides itself and the endpoints still answer, they just
+// no-op. Set VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY / VAPID_SUBJECT on Render.
+push.configure(process.env);
 
 // Behind a reverse proxy (Render, Fly, Koyeb, Cloud Run, Cloudflare Tunnel…)
 // this makes client IPs and secure cookies behave correctly.
@@ -491,7 +497,15 @@ app.get('/api/categories', (req, res) => {
 app.post('/api/categories', requireAdmin, (req, res) => {
   const b = req.body || {};
   if (!b.name_en) return res.status(400).json({ error: 'English name is required.' });
-  res.status(201).json(store.createCategory(b));
+  const cat = store.createCategory(b);
+  if (!cat) return res.status(400).json({ error: 'Could not create the category.' });
+  notifySubscribers({
+    title: 'New lessons: ' + (cat.name_en || 'a new topic'),
+    body: 'We just added a new topic to practise on CantoBuddy.',
+    url: '/',
+    tag: 'category',
+  }).catch((e) => console.error('category notify failed:', e.message));
+  res.status(201).json(cat);
 });
 
 // Reorder categories — must be declared BEFORE '/api/categories/:id'
@@ -623,12 +637,29 @@ app.post('/api/admin/posts', requireAdmin, (req, res) => {
   }
   const post = store.createPost(b);
   if (!post) return res.status(400).json({ error: 'Could not create the post.' });
+  if (post.status === 'published') {
+    notifySubscribers({
+      title: post.title_en || 'New update',
+      body: (post.summary_en || 'Something new on CantoBuddy').slice(0, 200),
+      url: '/discover',
+      tag: 'post-' + (post.slug || ''),
+    }).catch((e) => console.error('post notify failed:', e.message));
+  }
   res.status(201).json(post);
 });
 
 app.put('/api/admin/posts/:id', requireAdmin, (req, res) => {
+  const before = store.getPostById(req.params.id);
   const post = store.updatePost(req.params.id, req.body || {});
   if (!post) return res.status(404).json({ error: 'Not found' });
+  if (before && before.status !== 'published' && post.status === 'published') {
+    notifySubscribers({
+      title: post.title_en || 'New update',
+      body: (post.summary_en || 'Something new on CantoBuddy').slice(0, 200),
+      url: '/discover',
+      tag: 'post-' + (post.slug || ''),
+    }).catch((e) => console.error('post notify failed:', e.message));
+  }
   res.json(post);
 });
 
@@ -1326,10 +1357,18 @@ app.patch('/api/admin/stories/:id', requireAdmin, (req, res) => {
   const status = String(b.status || '');
   const current = store.getStoryForModeration(req.params.id);
   if (!current) return res.status(400).json({ error: 'Unknown story, or unknown status.' });
-  const note = b.note != null ? b.note : current.reviewer_note;
-  const row = store.setStoryStatus(req.params.id, status, note);
-  if (!row) return res.status(400).json({ error: 'Unknown story, or unknown status.' });
-  res.json(row);
+    const note = b.note != null ? b.note : current.reviewer_note;
+    const row = store.setStoryStatus(req.params.id, status, note);
+    if (!row) return res.status(400).json({ error: 'Unknown story, or unknown status.' });
+    if (current.status !== 'published' && row.status === 'published') {
+      notifySubscribers({
+        title: 'New community story',
+        body: 'A new story from our community is live on CantoBuddy.',
+        url: '/stories',
+        tag: 'story-' + (row.slug || ''),
+      }).catch((e) => console.error('story notify failed:', e.message));
+    }
+    res.json(row);
 });
 
 /**
@@ -1350,6 +1389,120 @@ app.put('/api/admin/stories/:id', requireAdmin, (req, res) => {
 app.delete('/api/admin/stories/:id', requireAdmin, (req, res) => {
   if (!store.deleteStory(req.params.id)) return res.status(404).json({ error: 'No such story.' });
   res.json({ ok: true });
+});
+
+// ---------------------------------------------------------------------------
+// Web Push — opt-in browser notifications
+// ---------------------------------------------------------------------------
+
+/**
+ * Send a notification to every stored subscription. Pure orchestration: pulls the
+ * list from the DB, hands it to the crypto sender, and prunes any subscription
+ * that the push service reports as gone (404/410). Returns the counts.
+ */
+async function notifySubscribers(payload) {
+  if (!push.isEnabled()) return { disabled: true, sent: 0, failed: 0, expired: 0 };
+  const subs = store.listSubscriptions().map((r) => ({
+    endpoint: r.endpoint,
+    keys: { p256dh: r.p256dh, auth: r.auth },
+  }));
+  if (!subs.length) return { sent: 0, failed: 0, expired: 0, noSubs: true };
+  const res = await push.broadcast(subs, payload);
+  if (res.expired > 0) {
+    for (const e of res.results) if (e.expired) store.removeSubscription(e.endpoint);
+  }
+  return res;
+}
+
+/** Mark quiet devices reminded and nudge them to practise. Fire-and-forget. */
+function runPracticeReminders(days) {
+  if (!push.isEnabled()) return { disabled: true };
+  const subs = store.listStaleForReminder(days);
+  if (!subs.length) return { sent: 0 };
+  // Mark first so an interrupted run cannot double-send.
+  for (const s of subs) store.markReminded(s.endpoint);
+  const subList = subs.map((r) => ({ endpoint: r.endpoint, keys: { p256dh: r.p256dh, auth: r.auth } }));
+  const payload = {
+    title: 'A quick Cantonese review?',
+    body: 'A few minutes a day keeps the words in your head. Open CantoBuddy and practise a few cards.',
+    url: '/',
+    tag: 'reminder',
+  };
+  push.broadcast(subList, payload)
+    .then((res) => {
+      if (res.expired > 0) for (const e of res.results) if (e.expired) store.removeSubscription(e.endpoint);
+    })
+    .catch((e) => console.error('practice reminder send failed:', e.message));
+  return { queued: subList.length };
+}
+
+const PUSH_REMINDER_DAYS = Number(process.env.PUSH_REMINDER_DAYS) || 3;
+// Daily practice-reminder sweep. On a free-tier host this only fires while the
+// process is awake; the admin "Send reminders now" button covers the rest.
+setInterval(() => runPracticeReminders(PUSH_REMINDER_DAYS), 24 * 60 * 60 * 1000).unref?.();
+
+// --- public endpoints: the opt-in invite calls these from the browser ---
+app.get('/api/push/config', (req, res) => {
+  res.json({ enabled: push.isEnabled(), publicKey: push.getPublicKey() });
+});
+
+app.post('/api/push/subscribe', (req, res) => {
+  const sub = req.body && req.body.subscription;
+  if (!sub || !sub.endpoint || !sub.keys || !sub.keys.p256dh || !sub.keys.auth) {
+    return res.status(400).json({ error: 'Invalid subscription.' });
+  }
+  const saved = store.insertSubscription({
+    endpoint: sub.endpoint,
+    p256dh: sub.keys.p256dh,
+    auth: sub.keys.auth,
+    learnerId: req.body && req.body.learnerId ? Number(req.body.learnerId) : null,
+    source: 'web',
+  });
+  if (!saved) return res.status(500).json({ error: 'Could not save subscription.' });
+  res.status(201).json({ ok: true });
+});
+
+app.post('/api/push/unsubscribe', (req, res) => {
+  const { endpoint } = req.body || {};
+  if (!endpoint) return res.status(400).json({ error: 'Missing endpoint.' });
+  store.removeSubscription(endpoint);
+  res.json({ ok: true });
+});
+
+// Called by the app on each page load so last_active_at stays fresh and the
+// reminder job knows who has gone quiet. No auth — the endpoint is the token.
+app.post('/api/push/ping', (req, res) => {
+  const { endpoint } = req.body || {};
+  if (endpoint) store.updateLastActive(endpoint);
+  res.json({ ok: true });
+});
+
+// --- admin endpoints ---
+app.post('/api/admin/push/send', requireAdmin, async (req, res) => {
+  const b = req.body || {};
+  if (!b.title || !String(b.title).trim()) return res.status(400).json({ error: 'A title is required.' });
+  const payload = {
+    title: String(b.title).slice(0, 100),
+    body: (b.body || '').slice(0, 200),
+    url: b.url || '/',
+    tag: b.tag || 'admin',
+  };
+  const result = await notifySubscribers(payload);
+  res.json(result);
+});
+
+app.post('/api/admin/push/reminders', requireAdmin, (req, res) => {
+  const days = Number(req.body && req.body.days) || PUSH_REMINDER_DAYS;
+  res.json(runPracticeReminders(days));
+});
+
+// Subscriber totals for the admin Push tab. No PII — just how many devices are
+// opted in and whether push is even configured on the server.
+app.get('/api/admin/push/stats', requireAdmin, (req, res) => {
+  res.json({
+    enabled: push.isEnabled(),
+    count: store.countSubscriptions(),
+  });
 });
 
 // ---------------------------------------------------------------------------

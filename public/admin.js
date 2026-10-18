@@ -130,6 +130,63 @@ function switchTab(tab) {
   document.querySelectorAll('.admin-tab-content').forEach((c) => {
     c.classList.toggle('active', c.id === 'tab-' + tab);
   });
+  if (tab === 'push') renderAdminPush();
+}
+
+// ---- Push notifications -----------------------------------------------------
+// Browser push to opted-in learners. Summary + two sender actions, all hitting
+// the admin push routes in server.js. Auth is the same session cookie the rest
+// of the admin uses.
+async function renderAdminPush() {
+  const sum = document.getElementById('admin-push-summary');
+  if (!sum) return;
+  try {
+    const s = await apiGet('/api/admin/push/stats');
+    if (!s.enabled) {
+      sum.innerHTML = 'Push is <strong>not configured</strong> on the server (no VAPID keys). ' +
+        'Set <code>VAPID_PUBLIC_KEY</code> / <code>VAPID_PRIVATE_KEY</code> and restart to enable.';
+      return;
+    }
+    sum.innerHTML = `<strong>${s.count}</strong> device${s.count === 1 ? '' : 's'} subscribed to notifications.`;
+    document.getElementById('push-send-result').textContent = '';
+    document.getElementById('push-remind-result').textContent = '';
+  } catch (e) {
+    sum.textContent = 'Could not load push stats: ' + e.message;
+  }
+}
+
+async function adminSendPush() {
+  const title = (document.getElementById('push-title').value || '').trim();
+  const err = document.getElementById('push-send-error');
+  const res = document.getElementById('push-send-result');
+  err.textContent = '';
+  res.textContent = 'Sending…';
+  if (!title) { err.textContent = 'A title is required.'; res.textContent = ''; return; }
+  const body = (document.getElementById('push-body').value || '').trim();
+  const url = (document.getElementById('push-url').value || '').trim() || '/';
+  const tag = (document.getElementById('push-tag').value || '').trim() || 'admin';
+  try {
+    const r = await apiPost('/api/admin/push/send', { title, body, url, tag });
+    if (r.disabled) { res.textContent = 'Push is disabled on the server.'; return; }
+    if (r.noSubs) { res.textContent = 'No subscribers yet — nothing to send.'; return; }
+    res.textContent = `Sent ${r.sent != null ? r.sent : 0}, failed ${r.failed != null ? r.failed : 0}, expired/removed ${r.expired != null ? r.expired : 0}.`;
+  } catch (e) {
+    res.textContent = '';
+    err.textContent = e.message;
+  }
+}
+
+async function adminSendReminders() {
+  const days = Number(document.getElementById('push-remind-days').value) || 3;
+  const res = document.getElementById('push-remind-result');
+  res.textContent = 'Sending…';
+  try {
+    const r = await apiPost('/api/admin/push/reminders', { days });
+    if (r.disabled) { res.textContent = 'Push is disabled on the server.'; return; }
+    res.textContent = `Queued ${r.queued != null ? r.queued : 0} reminder(s).`;
+  } catch (e) {
+    res.textContent = 'Error: ' + e.message;
+  }
 }
 
 // ---- Load data --------------------------------------------------------------

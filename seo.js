@@ -461,6 +461,14 @@ const PRIVACY = {
         ],
       },
       {
+        h: 'Push notifications',
+        p: [
+          'With your permission, CantoBuddy can send browser notifications — gentle reminders to practise, and a note when a new story arrives. Nothing is sent until you tap "Turn on"; you are never subscribed without asking.',
+          'To deliver a notification, your browser hands us a token (an endpoint address plus two short keys). We store it only so the message reaches you. It is not linked to your name, your feedback, or anything else you do in the app, and we never read its contents.',
+          'You can turn notifications off at any time: tap "Turn off" on the notification pill in the app, or block notifications for this site in your browser settings. Turning them off deletes the token from our server, so no further messages can be sent to that device.',
+        ],
+      },
+      {
         h: 'What we never do',
         p: [
           'We do not sell your personal information.',
@@ -545,6 +553,14 @@ const PRIVACY = {
           'Ibig sabihin nito, nakikita ng Google, at ng mga advertiser na katrabaho nito, ang iyong IP address, uri ng browser, at kung aling mga pahina ang tinitingnan mo sa site na ito. Ito ay pagbabago mula sa iba pang bahagi ng app na ito, na ginawa para hindi ka subaybayan, at mas gusto naming sabihin ito nang tapat kaysa ilihim.',
           'Maaari mong kontrolin ang personalised advertising sa iyong Google Ads Settings, at maaari kang mag-opt out sa third-party advertising cookies sa pamamagitan ng aboutads.info o youronlinechoices.eu. Kung nasa European Economic Area, United Kingdom, o Switzerland ka, may lalabas na consent prompt bago gamitin ang advertising cookies, at ang pagtanggi dito ay hindi humahadlang sa paggamit mo ng app.',
           'Kung ayaw mo ng anumang advertising, mapipigilan din ng browser extension na nagba-block ng advertising ang pag-load ng AdSense script, at gumagana pa rin nang normal ang app.',
+        ],
+      },
+      {
+        h: 'Mga push notification',
+        p: [
+          'Kung pumayag ka, maaaring magpadala ang CantoBuddy ng mga browser notification — banayad na paalala na mag-practice, at abiso kapag may bagong kuwento. Walang ipapadala hangga\'t hindi mo tinatap ang "I-on"; hindi ka sasali nang hindi nagtatanong.',
+          'Upang maihatid ang notification, ibinibigay ng iyong browser sa amin ang isang token (isang endpoint address at dalawang maikling key). Iniimbak namin ito para lang dumating ang mensahe sa iyo. Hindi ito nakaugnay sa iyong pangalan, feedback, o anumang iba mong ginagawa sa app, at hindi namin binabasa ang laman nito.',
+          'Maaari mong patayin ang mga notification anumang oras: i-tap ang "I-off" sa notification pill sa app, o harangin ang mga notification para sa site na ito sa settings ng iyong browser. Kapag pinatay, buburahin ang token mula sa aming server, kaya wala nang mensahe ang maidadalang sa device na iyon.',
         ],
       },
       {
@@ -635,6 +651,14 @@ const PRIVACY = {
         ],
       },
       {
+        h: '推送通知',
+        p: [
+          '在获得你的许可后，CantoBuddy 可以发送浏览器通知——温和的练习提醒，以及新故事上线时的提示。在你点击「开启」之前，我们不会发送任何内容；没有询问就不会订阅。',
+          '为了送达通知，你的浏览器会交给我们一个令牌（一个端点地址和两串短密钥）。我们保存它只是为了把消息送到你手上。它不会与你的名字、你的反馈，或你在应用里的任何其他行为关联，我们也从不读取它的内容。',
+          '你可以随时关闭通知：在应用内点击通知浮标上的「关闭」，或在浏览器设置中屏蔽本站的通知。关闭后，令牌会从我们的服务器上删除，因此该设备将不再收到任何消息。',
+        ],
+      },
+      {
         h: '我们绝不会做的事',
         p: [
           '我们不会出售你的个人信息。',
@@ -719,6 +743,14 @@ const PRIVACY = {
           'Artinya, Google dan pengiklan yang bekerja dengannya dapat melihat alamat IP Anda, jenis browser, dan halaman mana yang Anda buka di situs ini. Ini berbeda dari bagian lain aplikasi ini yang dirancang untuk tidak melacak Anda, dan kami lebih memilih menyatakannya terus terang daripada menyembunyikannya.',
           'Anda dapat mengatur iklan yang dipersonalisasi di Setelan Iklan Google, dan Anda dapat menolak cookie iklan pihak ketiga melalui aboutads.info atau youronlinechoices.eu. Jika Anda berada di Kawasan Ekonomi Eropa, Inggris Raya, atau Swiss, akan muncul permintaan persetujuan sebelum cookie iklan digunakan, dan menolaknya tidak menghalangi Anda memakai aplikasi.',
           'Jika Anda sama sekali tidak ingin iklan, ekstensi browser yang memblokir iklan juga akan menghentikan skrip AdSense dimuat, dan aplikasi tetap berjalan normal tanpa itu.',
+        ],
+      },
+      {
+        h: 'Notifikasi push',
+        p: [
+          'Dengan izin Anda, CantoBuddy dapat mengirim notifikasi peramban — pengingat lembut untuk berlatih, dan kabar bila ada cerita baru. Tidak ada yang dikirim sebelum Anda mengetuk "Aktifkan"; Anda tidak pernah diikutsertakan tanpa ditanya.',
+          'Untuk mengirim notifikasi, peramban Anda memberi kami token (alamat endpoint ditambah dua kunci pendek). Kami menyimpannya hanya agar pesan sampai kepada Anda. Token itu tidak dihubungkan dengan nama, umpan balik, atau hal lain yang Anda lakukan di aplikasi, dan kami tidak pernah membaca isinya.',
+          'Anda dapat mematikan notifikasi kapan saja: ketuk "Matikan" pada pil notifikasi di aplikasi, atau blokir notifikasi untuk situs ini di pengaturan peramban Anda. Mematikananya menghapus token dari server kami, sehingga tidak ada lagi pesan yang dapat dikirim ke perangkat tersebut.',
         ],
       },
       {
@@ -1074,6 +1106,7 @@ ${o.body}
   </div>
 </footer>
 ${VISIT_BEACON}
+<script src="/push-client.js" defer></script>
 </body>
 </html>`;
 }

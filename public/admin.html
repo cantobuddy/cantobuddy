@@ -66,6 +66,9 @@
       <button class="admin-tab" data-tab="feedback" onclick="switchTab('feedback')">💬 Feedback<span
         id="admin-feedback-badge" class="tab-badge" style="display:none"></span></button>
       <button class="admin-tab" data-tab="posts" onclick="switchTab('posts')">📰 Posts</button>
+      <!-- Push notifications: a separate surface from Posts because broadcasting
+           goes to opted-in browser subscribers (learners), not the Discover feed. -->
+      <button class="admin-tab" data-tab="push" onclick="switchTab('push')">🔔 Push</button>
       <!-- Stories. Sits next to Feedback because both are queues of things a
            stranger wrote that a human has to read — but this one is different
            in kind: an item here is INVISIBLE TO EVERYONE until it is approved
@@ -287,6 +290,66 @@
       </div>
 
       <div id="admin-posts-list" class="admin-list"></div>
+    </div>
+
+    <!-- ---- push tab ---- -->
+    <!-- Browser push to opted-in learners. Two jobs: a one-off broadcast (e.g. an
+         announcement or a nudge to read a new story) and the recurring practice
+         reminder, which can also be fired by hand here for the daily sweep the
+         free-tier server misses while asleep. -->
+    <div id="tab-push" class="admin-tab-content">
+      <div class="admin-toolbar">
+        <h3>Push notifications</h3>
+        <button class="btn btn-outline btn-sm" onclick="renderAdminPush()">↻ Refresh</button>
+      </div>
+      <p class="admin-hint" id="admin-push-summary"></p>
+
+      <div class="admin-card">
+        <h4 class="admin-subhead">Send to all subscribers</h4>
+        <p class="admin-hint">
+          Goes to everyone who turned on notifications in their browser. Used for
+          announcements or to point learners at a new story or category. Keep it rare.
+        </p>
+        <div class="form-field">
+          <label for="push-title">Title *</label>
+          <input type="text" id="push-title" maxlength="100" placeholder="A new story just arrived" />
+        </div>
+        <div class="form-field">
+          <label for="push-body">Message</label>
+          <textarea id="push-body" rows="3" maxlength="200" placeholder="Open CantoBuddy to read it."></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label for="push-url">Open link</label>
+            <input type="text" id="push-url" maxlength="200" placeholder="/" />
+            <p class="form-hint">Where the tap lands. Default is the app home.</p>
+          </div>
+          <div class="form-field">
+            <label for="push-tag">Group tag</label>
+            <input type="text" id="push-tag" maxlength="40" placeholder="admin" />
+            <p class="form-hint">Same tag replaces a prior card instead of stacking.</p>
+          </div>
+        </div>
+        <div id="push-send-error" class="form-error"></div>
+        <button class="btn btn-primary" id="push-send-btn" onclick="adminSendPush()">Send now</button>
+        <span id="push-send-result" class="admin-result"></span>
+      </div>
+
+      <div class="admin-card">
+        <h4 class="admin-subhead">Practice reminders</h4>
+        <p class="admin-hint">
+          Nudges quiet learners to practise. The server runs this daily, but only
+          while it is awake — fire it by hand to cover the gaps.
+        </p>
+        <div class="form-row" style="align-items:end">
+          <div class="form-field">
+            <label for="push-remind-days">Quiet for (days)</label>
+            <input type="number" id="push-remind-days" min="1" max="60" value="3" />
+          </div>
+          <button class="btn btn-primary" id="push-remind-btn" onclick="adminSendReminders()">Send reminders now</button>
+          <span id="push-remind-result" class="admin-result"></span>
+        </div>
+      </div>
     </div>
 
     <!-- ---- stories tab ---- -->

@@ -797,5 +797,8 @@
      relative "app.js" would resolve to /join/app.js and 404. -->
 <script src="/i18n.js"></script>
 <script src="/app.js"></script>
+<!-- Opt-in push notifications (also loaded by the SEO landing pages). Self-
+     contained, so it works whether or not app.js is present. -->
+<script src="/push-client.js" defer></script>
 </body>
 </html>

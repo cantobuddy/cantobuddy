@@ -518,6 +518,29 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_stories_queue  ON stories(status, created_at DESC);
   CREATE INDEX IF NOT EXISTS idx_stories_feed   ON stories(status, published_at DESC);
   CREATE INDEX IF NOT EXISTS idx_stories_author ON stories(learner_id, created_at DESC);
+
+  /* Web Push subscriptions.
+
+     A subscription is a browser's device token (endpoint) plus the two keys the
+     server needs to encrypt a message to it — NOTHING the learner typed. last_active_at
+     is touched on every app/landing-page load so the practice-reminder job can find
+     devices that have gone quiet, and last_reminded_at stops the same device being
+     nudged again before it has had a chance to come back. learner_id is optional and
+     only used to tie a reminder to a known device; it is never required. */
+  CREATE TABLE IF NOT EXISTS push_subscriptions (
+    id               INTEGER PRIMARY KEY,
+    endpoint         TEXT NOT NULL UNIQUE,
+    p256dh           TEXT NOT NULL,
+    auth             TEXT NOT NULL,
+    learner_id       INTEGER REFERENCES learners(id) ON DELETE SET NULL,
+    source           TEXT NOT NULL DEFAULT 'web',
+    last_active_at   TEXT,
+    last_reminded_at TEXT,
+    created_at       TEXT NOT NULL,
+    updated_at       TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_push_last_active ON push_subscriptions(last_active_at);
+  CREATE INDEX IF NOT EXISTS idx_push_reminded   ON push_subscriptions(last_reminded_at);
 `);
 
 // ---------------------------------------------------------------------------
@@ -1938,7 +1961,86 @@ const S = {
     SELECT slug, published_at, updated_at FROM stories
      WHERE status = 'published' ORDER BY published_at DESC
   `),
+
+  // --- Web Push subscriptions ---
+  listPushSubscriptions: db.prepare('SELECT * FROM push_subscriptions ORDER BY created_at DESC'),
+  getPushSubscription: db.prepare('SELECT * FROM push_subscriptions WHERE endpoint = ?'),
+  upsertPushSubscription: db.prepare(`
+    INSERT INTO push_subscriptions (endpoint, p256dh, auth, learner_id, source, last_active_at, created_at, updated_at)
+    VALUES (@endpoint, @p256dh, @auth, @learner_id, @source, @now, @now, @now)
+    ON CONFLICT(endpoint) DO UPDATE SET
+      p256dh = excluded.p256dh,
+      auth = excluded.auth,
+      learner_id = COALESCE(excluded.learner_id, push_subscriptions.learner_id),
+      last_active_at = excluded.last_active_at,
+      updated_at = excluded.now
+  `),
+  deletePushSubscription: db.prepare('DELETE FROM push_subscriptions WHERE endpoint = ?'),
+  countPushSubscriptions: db.prepare('SELECT COUNT(*) AS n FROM push_subscriptions'),
+  touchPushSubscription: db.prepare('UPDATE push_subscriptions SET last_active_at = ?, updated_at = ? WHERE endpoint = ?'),
+  markPushReminded: db.prepare('UPDATE push_subscriptions SET last_reminded_at = ?, updated_at = ? WHERE endpoint = ?'),
+  stalePushSubscriptions: db.prepare(`
+    SELECT * FROM push_subscriptions
+     WHERE last_active_at IS NOT NULL AND last_active_at < ?
+       AND (last_reminded_at IS NULL OR last_reminded_at < ?)
+  `),
 };
+
+// ---------------------------------------------------------------------------
+// Web Push subscriptions
+// ---------------------------------------------------------------------------
+function insertSubscription({ endpoint, p256dh, auth, learnerId = null, source = 'web' }) {
+  if (!endpoint) return null;
+  const now = new Date().toISOString();
+  try {
+    S.upsertPushSubscription.run({
+      endpoint,
+      p256dh,
+      auth,
+      learner_id: learnerId ? Number(learnerId) : null,
+      source,
+      now,
+    });
+    return S.getPushSubscription.get(endpoint);
+  } catch (e) {
+    console.error('insertSubscription failed:', e.message);
+    return null;
+  }
+}
+
+function removeSubscription(endpoint) {
+  return S.deletePushSubscription.run(endpoint).changes > 0;
+}
+
+function listSubscriptions() {
+  return S.listPushSubscriptions.all();
+}
+
+function updateLastActive(endpoint) {
+  if (!endpoint) return;
+  const now = new Date().toISOString();
+  S.touchPushSubscription.run(now, now, endpoint);
+}
+
+// Devices that have not interacted for `days` and were not reminded recently —
+// used by the practice-reminder job so a quiet helper gets a gentle nudge.
+function listStaleForReminder(days) {
+  const since = Math.max(1, Number(days) || 3);
+  const cutoff = new Date(Date.now() - since * 86400000).toISOString();
+  const remindCutoff = new Date(Date.now() - since * 86400000).toISOString();
+  return S.stalePushSubscriptions.all(cutoff, remindCutoff);
+}
+
+function markReminded(endpoint) {
+  if (!endpoint) return;
+  const now = new Date().toISOString();
+  S.markPushReminded.run(now, now, endpoint);
+}
+
+function countSubscriptions() {
+  const row = S.countPushSubscriptions.get();
+  return row ? Number(row.n) || 0 : 0;
+}
 
 // ---------------------------------------------------------------------------
 // Categories
@@ -4229,6 +4331,16 @@ module.exports = {
   listPublishedStories,
   getPublishedStoryBySlug,
   listStoriesForModeration,
+
+  // Web Push — opt-in browser subscriptions. The endpoint is a device token, not
+  // anything the learner typed; last_active_at drives the reminder job.
+  insertSubscription,
+  removeSubscription,
+  listSubscriptions,
+  countSubscriptions,
+  updateLastActive,
+  listStaleForReminder,
+  markReminded,
   getStoryForModeration,
   getStoryCounts,
   setStoryStatus,

@@ -2803,6 +2803,21 @@ body {
   font-size: 1rem;
 }
 
+.admin-card {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  margin: 14px 0 8px;
+  max-width: 680px;
+}
+
+.admin-result {
+  margin-left: 12px;
+  font-size: 0.85rem;
+  color: var(--c-text-soft);
+}
+
 .employer-card {
   background: var(--c-surface);
   border: 1px solid var(--c-border);

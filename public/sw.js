@@ -7,7 +7,7 @@
 // Bump this whenever index.html / app.js / i18n.js / styles.css / the icons
 // change. The app shell is cached cache-first, so without a version bump
 // installed PWAs would keep serving the previous build from cache.
-const CACHE = 'cantobuddy-v71';
+const CACHE = 'cantobuddy-v73';
 
 // Which paths are server-rendered SEO documents rather than app-shell assets.
 // Kept as one matcher so it can be asserted against `LANG_PREFIX` in seo.js —
@@ -148,4 +148,73 @@ self.addEventListener('fetch', (event) => {
           .catch(() => caches.match('/index.html'))
     )
   );
+});
+
+// ---- Push: show the notification the server sent ----
+// The server sends an RFC 8291 /aes128gcm payload (see push.js). The browser
+// decrypts it automatically before calling us; `event.data` is already the
+// plaintext JSON we posted. Always guard for a null payload so a malformed or
+// empty push does not throw and kill the event.
+self.addEventListener('push', (event) => {
+  let payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch (e) {
+    // Not JSON — fall back to treating it as a plain-text body.
+    payload = { body: event.data ? event.data.text() : '' };
+  }
+
+  const title = payload.title || 'CantoBuddy';
+  const options = {
+    body: payload.body || '',
+    tag: payload.tag || undefined,
+    // `data.url` is where the learner lands when they tap. Defaults to the
+    // learner home so a tap always opens something real.
+    data: { url: payload.url || '/' },
+    // A small badge helps on Android lock screens; the icon is the PWA icon.
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
+    // Group related notifications (e.g. practice reminders) under one tag so a
+    // learner is not spammed with ten stacked cards.
+    renotify: payload.tag ? true : false,
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// ---- Notification click: open or focus the destination ----
+self.addEventListener('notificationclick', (event) => {
+  event.preventDefault();
+  const targetUrl = (event.notification.data && event.notification.data.url) || '/';
+  event.notification.close();
+
+  event.waitUntil(
+    self.clients
+      .matchAll({ type: 'window', includeUncontrolled: true })
+      .then((clientList) => {
+        // If a tab to the right place is already open, just focus it.
+        for (const client of clientList) {
+          if ('focus' in client) {
+            // Prefer an exact-URL match; otherwise reuse the first window.
+            client.navigate(targetUrl);
+            return client.focus();
+          }
+        }
+        // No suitable window — open a new one.
+        if (self.clients.openWindow) {
+          return self.clients.openWindow(targetUrl);
+        }
+      })
+  );
+});
+
+// ---- Subscription expired server-side: let the app re-subscribe ----
+// When a push service drops our subscription (e.g. Chrome rotates keys), the
+// browser fires this. The service worker cannot re-subscribe on its own because
+// the VAPID application-server key only lives in the app (fetched from
+// /api/push/config). The app's push-client already re-subscribes on every load,
+// so we just acknowledge the event. We keep a handler so the event does not
+// surface as an unhandled rejection in the SW.
+self.addEventListener('pushsubscriptionchange', (event) => {
+  event.waitUntil(Promise.resolve());
 });

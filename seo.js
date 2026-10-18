@@ -2905,11 +2905,23 @@ ${alts}
   // its own the moment either kind is published. Taking only the posts was
   // correct until the stories section was added to this page; after that, a
   // newly published story changed the page without changing its date.
-  const feedPosts = store.listPosts({ status: 'published', limit: 200 });
-  const newestPost = feedPosts.reduce((m, p) => {
-    const d = postDateShort(p.published_at || p.updated_at || p.created_at);
-    return d > m ? d : m;
-  }, SITE_STRUCTURE_DATE);
+  // TWO queries, not one, and the reason is a bug this nearly shipped.
+  //
+  // A single `listPosts({ status:'published', limit: 200 })` is ordered by date
+  // across BOTH channels. Once the news feed is busy it fills the whole window,
+  // so the editorial posts — the ones that never expire — get pushed out of it.
+  // With ~200 news rows live, the sitemap was listing 5 of the 10 culture
+  // posts. Asking each channel on its own terms cannot starve either one.
+  const culturePosts = store.listPosts({ status: 'published', channel: 'culture', limit: 200 });
+  const newsPosts = store.listPosts({ status: 'published', channel: 'news', limit: 500 });
+
+  const newestOf = (list) =>
+    list.reduce((m, p) => {
+      const d = postDateShort(p.published_at || p.updated_at || p.created_at);
+      return d > m ? d : m;
+    }, SITE_STRUCTURE_DATE);
+
+  const newestPost = newestOf([...culturePosts, ...newsPosts]);
   const newestDiscoverItem = newestPost > newestStory ? newestPost : newestStory;
 
   // IMPORTED NEWS IS DELIBERATELY NOT LISTED HERE.
@@ -2922,16 +2934,16 @@ ${alts}
   // Console reports those as "Not found (404)" while trusting the sitemap less
   // for it.
   //
-  // The filter is `channel === 'news' && origin === 'auto'` rather than just
-  // the channel, because that is exactly the set the pruner deletes. A news
-  // post the OPERATOR wrote is never pruned, so it is evergreen and belongs in
-  // the sitemap like any other.
+  // The filter is `origin === 'auto'` rather than just the channel, because
+  // that is exactly the set the pruner deletes. A news post the OPERATOR wrote
+  // is never pruned, so it is evergreen and belongs in the sitemap like any
+  // other.
   //
   // The pages are not hidden: they still render, still return 200, and are
   // still linked from /discover and the app, so Google finds them the ordinary
   // way. They are simply not ADVERTISED as canonical in a file whose job is to
   // list what will still exist tomorrow.
-  const evergreenPosts = feedPosts.filter((p) => !(p.channel === 'news' && p.origin === 'auto'));
+  const evergreenPosts = [...culturePosts, ...newsPosts.filter((p) => p.origin !== 'auto')];
 
   for (const prefix of Object.values(LANG_PREFIX)) {
     add(`${prefix}/discover`, '0.7', 'daily', hreflangLinks((l) => `${LANG_PREFIX[l]}/discover`), newestDiscoverItem);

@@ -144,6 +144,9 @@ const I18N = {
     'home.title': 'Learn Cantonese',
     'home.subtitle': 'for daily life in Hong Kong',
     'home.desc': 'Practical words and phrases with audio, pictures, and quizzes. Start at your level!',
+    // The hero is a link now. This is its accessible name, not visible text —
+    // without it a screen reader reads the whole paragraph as the link label.
+    'home.heroCta': 'Start learning',
     'home.freeChip': 'Free for helpers',
     'home.beginner': 'Beginner',
     'home.intermediate': 'Intermediate',
@@ -558,6 +561,7 @@ const I18N = {
     'home.title': 'Mag-aral ng Cantonese',
     'home.subtitle': 'para sa araw-araw na buhay sa Hong Kong',
     'home.desc': 'Mga praktikal na salita at parirala na may audio, larawan, at pagsusulit. Magsimula sa iyong antas!',
+    'home.heroCta': 'Simulan ang pag-aaral',
     'home.freeChip': 'Libre para sa mga helper',
     'home.beginner': 'Baguhan',
     'home.intermediate': 'Katamtaman',
@@ -973,6 +977,7 @@ const I18N = {
     'home.title': '学粤语',
     'home.subtitle': '香港日常生活用语',
     'home.desc': '实用的词和句子，配有发音、图片和测验。从你的水平开始！',
+    'home.heroCta': '开始学习',
     'home.freeChip': '家佣免费使用',
     'home.beginner': '入门',
     'home.intermediate': '中级',
@@ -1385,6 +1390,7 @@ const I18N = {
     'home.title': 'Belajar bahasa Kanton',
     'home.subtitle': 'untuk kehidupan sehari-hari di Hong Kong',
     'home.desc': 'Kata dan frasa praktis dengan audio, gambar, dan kuis. Mulai dari tingkat Anda!',
+    'home.heroCta': 'Mulai belajar',
     'home.freeChip': 'Gratis untuk asisten rumah tangga',
     'home.beginner': 'Pemula',
     'home.intermediate': 'Menengah',

@@ -162,14 +162,34 @@
 
   <!-- ---- HOME VIEW ---- -->
   <section id="view-home" class="view active">
-    <div class="hero">
+    <!-- The hero is the way INTO learning, not a poster. It was a plain <div>:
+         the most prominent thing on the first screen read as a call to action
+         ("Start at your level!") and did nothing when tapped.
+
+         It is an <a>, and the anchor earns its place three times over:
+           - with JS, the inline handler cancels the default and opens the
+             in-app Categories view, so she never leaves the app;
+           - WITHOUT JS — or if app.js fails to load — href="/learn" is a real
+             page that works, so the tap is never a dead end;
+           - it is the one crawlable link into the vocabulary index from the
+             home page, which the app otherwise renders entirely into "/".
+         A <button> cannot legally wrap an <h1> (phrasing content only); an <a>
+         may contain flow content, so this is the valid choice as well as the
+         better one.
+
+         aria-label, not the visible text: the anchor's name would otherwise be
+         the whole paragraph. Screen readers get "Start learning, link" and meet
+         the heading separately. data-i18n-attr keeps the label translated
+         without touching the contents. -->
+    <a class="hero" href="/learn" onclick="goCategories(); return false;"
+       data-i18n="home.heroCta" data-i18n-attr="aria-label" aria-label="Start learning">
       <!-- Trust chip. The one fact that decides whether a helper gives this app
            a second minute is that it costs nothing — so it is the first thing on
            the page rather than a line in a footer. -->
       <span class="hero-chip" data-i18n="home.freeChip">Free for helpers</span>
       <h1 class="hero-title"><span data-i18n="home.title">Learn Cantonese</span> <span class="hero-sub" data-i18n="home.subtitle">for daily life in Hong Kong</span></h1>
       <p class="hero-desc" data-i18n="home.desc">Practical words and phrases with audio, pictures, and quizzes. Start at your level!</p>
-    </div>
+    </a>
 
     <!-- ---- Returning-learner cards ------------------------------------
          Both are filled by JS and both are EMPTY for a device that has never

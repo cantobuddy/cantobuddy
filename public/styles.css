@@ -354,6 +354,10 @@ body {
    visitor sees the flattest thing on the screen. It is now a brand block — the
    one place on Home that owns the colour, so the page has a top to it. */
 .hero {
+  /* An <a> now, not a <div>: the reset matters. Without display:block the
+     anchor is inline and the padding collapses; without text-decoration and
+     color the whole block goes blue and underlined. */
+  display: block;
   position: relative;
   overflow: hidden;
   text-align: center;
@@ -361,7 +365,21 @@ body {
   border-radius: var(--radius-lg);
   background: linear-gradient(140deg, #ef4a56 0%, #c1121f 100%);
   color: #fff;
+  text-decoration: none;
   box-shadow: 0 8px 22px rgba(193, 18, 31, 0.22);
+  /* It looks tappable because it is, so it has to move like the other cards. */
+  cursor: pointer;
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+
+.hero:hover { box-shadow: 0 10px 26px rgba(193, 18, 31, 0.3); }
+.hero:active { transform: scale(0.99); }
+
+/* Keyboard users get the same affordance as a finger. Offset so the ring is
+   not clipped by the block's own rounded edge. */
+.hero:focus-visible {
+  outline: 3px solid var(--c-text);
+  outline-offset: 3px;
 }
 
 /* A soft highlight so the block is not a flat rectangle. Decorative only. */

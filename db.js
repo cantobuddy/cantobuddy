@@ -562,6 +562,74 @@ function addColumnIfMissing(table, column, definition) {
   return true;
 }
 
+/**
+ * Shift imported news rows that are dated in the FUTURE back into the past.
+ *
+ * WHY. The Philippine Daily Inquirer's RSS writes Manila wall-clock time and
+ * labels it `+0000`, so every import before 2026-10-18 stored those rows eight
+ * hours ahead of the truth. A future timestamp does not merely look odd — it
+ * sorts ABOVE genuinely newer stories, so the newest Inquirer article sat on
+ * top of the whole News channel for hours after it stopped being news.
+ *
+ * news.js now corrects the timestamp at the source (correctLocalStampedAsUtc),
+ * but the importer only ever INSERTs: rows already on disk kept their wrong
+ * dates and would have stayed mis-ordered until the 3-day window removed them.
+ * This is that repair, and it runs once.
+ *
+ * IDEMPOTENT TWICE OVER. The `published_at > now` test is the real guard —
+ * after the shift those rows are in the past and no longer match, so running it
+ * again does nothing. The meta flag only stops the scan from repeating on every
+ * boot. That ordering matters: if the flag were the only guard, clearing it
+ * would shift the rows a second time.
+ *
+ * Deliberately narrow — channel 'news', origin 'auto', the one source that
+ * mislabels, and only rows that are impossible. A hand-written post is never
+ * touched, and neither is a source that dates itself correctly.
+ *
+ * @param {object} [opts]
+ * @param {number} [opts.shiftMinutes] how much the label is short by
+ * @param {number} [opts.toleranceMinutes] clock drift still considered sane
+ * @returns {{shifted:number}}
+ */
+function repairFutureDatedNews(opts = {}) {
+  const shiftMs = (opts.shiftMinutes === undefined ? 480 : opts.shiftMinutes) * 60000;
+  const tolMs = (opts.toleranceMinutes === undefined ? 10 : opts.toleranceMinutes) * 60000;
+  const nowMs = Date.now();
+
+  // Filtered in JS rather than SQL: published_at is an ISO string, and
+  // comparing it lexicographically in SQL only works while every row happens to
+  // be in the same format. Date.parse does not care.
+  const rows = db
+    .prepare(
+      `SELECT id, published_at FROM posts
+        WHERE channel = 'news' AND origin = 'auto' AND source_key LIKE 'ph:%'`
+    )
+    .all();
+
+  const upd = db.prepare('UPDATE posts SET published_at = ? WHERE id = ?');
+  let shifted = 0;
+  db.exec('BEGIN');
+  try {
+    for (const row of rows) {
+      const t = Date.parse(row.published_at);
+      if (!Number.isFinite(t) || t <= nowMs + tolMs) continue;
+      // Subtract the missing offset, but never leave the row in the future: a
+      // row further ahead than the shift itself would otherwise survive the
+      // repair still future-dated, and the meta flag would stop a second pass
+      // from ever fixing it. Observed skew is ~7.3h against an 8h shift, so
+      // this clamp is a safety net, not the normal path.
+      const shiftedMs = Math.min(t - shiftMs, nowMs);
+      upd.run(new Date(shiftedMs).toISOString(), Number(row.id));
+      shifted += 1;
+    }
+    db.exec('COMMIT');
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
+  return { shifted };
+}
+
 function migrateSchema() {
   const changes = [];
 
@@ -940,6 +1008,16 @@ function migrateSchema() {
 
   // The single seeded admin predates the email/status columns.
   db.exec("UPDATE users SET status = 'active' WHERE status IS NULL OR status = ''");
+
+  /* ---- news rows dated in the future -------------------------------------- */
+  /* One-time repair for the Inquirer's mislabelled timezone. See
+     repairFutureDatedNews for why the `published_at > now` test, not this flag,
+     is the real idempotency guard. */
+  if (!db.prepare("SELECT value FROM meta WHERE key = 'news_future_dates_repaired'").get()) {
+    const { shifted } = repairFutureDatedNews();
+    db.prepare("INSERT OR REPLACE INTO meta (key, value) VALUES ('news_future_dates_repaired', '1')").run();
+    if (shifted) changes.push(`shifted ${shifted} future-dated Inquirer post(s) back 8h`);
+  }
 
   return changes;
 }
@@ -4338,6 +4416,7 @@ module.exports = {
   getPostCounts,
   getNewsCategoryCounts,
   backfillNewsCategories,
+  repairFutureDatedNews,
   createPost,
   updatePost,
   deletePost,

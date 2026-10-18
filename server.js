@@ -578,8 +578,8 @@ app.delete('/api/scenarios/:id', requireAdmin, (req, res) => {
 // ---------------------------------------------------------------------------
 
 app.get('/api/posts', (req, res) => {
-  const { channel, limit, category } = req.query;
-  res.json(store.listPosts({ channel: channel || null, status: 'published', limit, category: category || null }));
+  const { channel, limit, category, source } = req.query;
+  res.json(store.listPosts({ channel: channel || null, status: 'published', limit, category: category || null, source: source || null }));
 });
 
 /**

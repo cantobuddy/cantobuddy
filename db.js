@@ -1782,6 +1782,7 @@ const S = {
      WHERE status = ?
        AND (? IS NULL OR channel = ?)
        AND (? IS NULL OR category = ?)
+       AND (? IS NULL OR source_key LIKE ?)
      ORDER BY COALESCE(published_at, created_at) DESC, id DESC
      LIMIT ?
   `),
@@ -1809,6 +1810,7 @@ const S = {
        AND (? IS NULL OR channel = ?)
        AND (origin != 'auto' OR COALESCE(published_at, created_at) >= ?)
        AND (? IS NULL OR category = ?)
+       AND (? IS NULL OR source_key LIKE ?)
      ORDER BY COALESCE(published_at, created_at) DESC, id DESC
      LIMIT ?
   `),
@@ -1841,6 +1843,18 @@ const S = {
       WHERE status = 'published' AND channel = 'news'
         AND (origin != 'auto' OR COALESCE(published_at, created_at) >= ?)
       GROUP BY category`
+  ),
+  /* Same scope as countPublishedNewsByCategory, but grouped by the feed that
+     produced the item (rthk / ph / id). The source_key is stored as
+     "<source>:<guid>", so the prefix before the colon is the region key. */
+  countPublishedNewsBySource: db.prepare(
+    `SELECT substr(source_key, 1, instr(source_key, ':') - 1) AS src, COUNT(*) AS n
+       FROM posts
+      WHERE status = 'published' AND channel = 'news'
+        AND (origin != 'auto' OR COALESCE(published_at, created_at) >= ?)
+        AND source_key IS NOT NULL AND source_key != ''
+        AND instr(source_key, ':') > 0
+      GROUP BY src`
   ),
   /* Everything still unclassified, newest last so a backfill reads the rows in
      a stable order. The classifier is a pure function of the row, so the order
@@ -1973,7 +1987,7 @@ const S = {
       auth = excluded.auth,
       learner_id = COALESCE(excluded.learner_id, push_subscriptions.learner_id),
       last_active_at = excluded.last_active_at,
-      updated_at = excluded.now
+      updated_at = excluded.updated_at
   `),
   deletePushSubscription: db.prepare('DELETE FROM push_subscriptions WHERE endpoint = ?'),
   countPushSubscriptions: db.prepare('SELECT COUNT(*) AS n FROM push_subscriptions'),
@@ -2939,13 +2953,17 @@ function uniquePostSlug(base, excludeId = null) {
 }
 
 /** The learner-facing feed — published only, newest first. */
-function listPosts({ channel = null, status = 'published', limit = 50, category = null, maxAgeDays } = {}) {
+function listPosts({ channel = null, status = 'published', limit = 50, category = null, source = null, maxAgeDays } = {}) {
   const ch = POST_CHANNELS.includes(channel) ? channel : null;
   const st = POST_STATUSES.includes(status) ? status : 'published';
   // A category is only meaningful for news; asking for one on the culture
   // channel is a caller mistake, not a filter, so it is dropped rather than
   // silently returning nothing.
   const cat = ch === 'news' && newsCategory.isValidCategory(category) ? category : null;
+  // A source filter narrows news by its origin feed (rthk / ph / id). The
+  // stored source_key is "<source>:<guid>", so matching the prefix finds one
+  // feed. Unknown values are ignored so a stale chip cannot zero the list.
+  const src = ch === 'news' && ['rthk', 'ph', 'id'].includes(source) ? `${source}:%` : null;
   const n = Math.min(Math.max(Math.floor(Number(limit)) || 50, 1), 200);
   // Read-time retention, so the guarantee holds even if the sweep has not run
   // yet on a freshly booted instance. Two limits on WHAT expires, both from the
@@ -2956,9 +2974,11 @@ function listPosts({ channel = null, status = 'published', limit = 50, category 
   // The prune uses the same pair, so the feed and the table cannot disagree.
   const windowDays = newsRetentionDays(maxAgeDays);
   const cutoff = ch === 'news' && windowDays > 0 ? beforeIso(windowDays) : null;
+  // The source clause is `(? IS NULL OR source_key LIKE ?)` — two placeholders,
+  // so the pattern is passed twice (null when there is no filter).
   return cutoff
-    ? S.listPostsInWindow.all(st, ch, ch, cutoff, cat, cat, n)
-    : S.listPosts.all(st, ch, ch, cat, cat, n);
+    ? S.listPostsInWindow.all(st, ch, ch, cutoff, cat, cat, src, src, n)
+    : S.listPosts.all(st, ch, ch, cat, cat, src, src, n);
 }
 
 /** The operator view — every status. */
@@ -2990,7 +3010,7 @@ function getPostCounts() {
  * row and the list underneath it can never disagree.
  */
 function getNewsCategoryCounts() {
-  const counts = { all: 0 };
+  const counts = { all: 0, regions: { rthk: 0, ph: 0, id: 0 } };
   for (const key of newsCategory.NEWS_CATEGORY_KEYS) counts[key] = 0;
   // The same cut the feed reads through, so a chip count is the number of
   // stories actually waiting under it. With the window disabled the cutoff has
@@ -3003,6 +3023,9 @@ function getNewsCategoryCounts() {
     const key = newsCategory.isValidCategory(row.category) ? row.category : 'other';
     counts[key] += row.n;
     counts.all += row.n;
+  }
+  for (const row of S.countPublishedNewsBySource.all(cutoff)) {
+    if (counts.regions[row.src] != null) counts.regions[row.src] = row.n;
   }
   return counts;
 }

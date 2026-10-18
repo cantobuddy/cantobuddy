@@ -70,6 +70,23 @@ const NEWS_CATEGORY_ORDER = [
 /** The taxonomy keys only, for the places that ask "is this a real topic?". */
 const NEWS_CATEGORY_KEYS = NEWS_CATEGORY_ORDER.map((c) => c.key);
 
+/**
+ * The News channel's second filter axis: where the story came from. Each key is
+ * the prefix of a stored `source_key` ("rthk:…", "ph:…", "id:…"), so the value
+ * is what the server filters on and the i18n key is what a helper reads.
+ * `all` is the unfiltered channel. This is deliberately separate from the topic
+ * row: a Filipino helper may want Philippine news *about work*, and the two
+ * filters combine.
+ */
+const NEWS_REGION_ORDER = [
+  { key: 'all', i18n: 'discover.regionAll' },
+  { key: 'ph', i18n: 'discover.regionPh' },
+  { key: 'id', i18n: 'discover.regionId' },
+];
+
+/** The real region keys only (no `all`), for validating a stored selection. */
+const NEWS_REGION_KEYS = NEWS_REGION_ORDER.map((r) => r.key).filter((k) => k !== 'all');
+
 const STATE = {
   vocabulary: [],
   categories: [],
@@ -97,6 +114,7 @@ const STATE = {
   discover: {
     channel: 'culture',
     category: null,
+    region: null,
     posts: { culture: null, news: null },
     counts: null,
     shown: NEWS_PAGE_SIZE,
@@ -3735,6 +3753,7 @@ function sanitizePostHtml(html) {
 function showChannel(channel) {
   STATE.discover.channel = ['news', 'stories'].includes(channel) ? channel : 'culture';
   STATE.discover.category = null;
+  STATE.discover.region = null;
   STATE.discover.shown = NEWS_PAGE_SIZE;
   renderDiscover();
 }
@@ -3742,14 +3761,20 @@ function showChannel(channel) {
 /** Which topic the News channel is narrowed to, or null for all of it. */
 const newsCategoryKey = () => (STATE.discover.channel === 'news' && STATE.discover.category ? STATE.discover.category : null);
 
+/** Which source region the News channel is narrowed to, or null for all. */
+const newsRegionKey = () => (STATE.discover.channel === 'news' && STATE.discover.region ? STATE.discover.region : null);
+
 /**
  * The cache key for the list on screen. A filtered News view is a DIFFERENT
  * list, not a subset — sharing one cache entry would mean the "All news" tab
- * silently showed only the filtered slice after she had visited a topic.
+ * silently showed only the filtered slice after she had visited a topic or a
+ * region. Both filters are part of the key.
  */
 const postsCacheKey = () => {
   const cat = newsCategoryKey();
-  return cat ? `news:${cat}` : STATE.discover.channel;
+  const region = newsRegionKey();
+  if (!cat && !region) return STATE.discover.channel;
+  return `news:${cat || 'all'}:${region || 'all'}`;
 };
 
 /** Narrows the News channel to one topic. 'all' clears the filter. */
@@ -3757,6 +3782,15 @@ function showNewsCategory(cat) {
   const next = cat && cat !== 'all' && NEWS_CATEGORY_KEYS.includes(cat) ? cat : null;
   if (STATE.discover.category === next) return; // already showing this — no refetch
   STATE.discover.category = next;
+  STATE.discover.shown = NEWS_PAGE_SIZE;
+  renderDiscover();
+}
+
+/** Narrows the News channel to one source region. 'all' clears the filter. */
+function showNewsRegion(src) {
+  const next = src && src !== 'all' && NEWS_REGION_KEYS.includes(src) ? src : null;
+  if (STATE.discover.region === next) return; // already showing this — no refetch
+  STATE.discover.region = next;
   STATE.discover.shown = NEWS_PAGE_SIZE;
   renderDiscover();
 }
@@ -3809,6 +3843,48 @@ function renderNewsFilters() {
   host.hidden = false;
 }
 
+/** One region chip. Mirrors newsFilterChip but targets showNewsRegion. */
+function newsRegionChip(key, label, count, active) {
+  const n = count == null ? '' : ` <span class="chip-count">${count}</span>`;
+  return `<button type="button" class="chip news-filter-chip${active ? ' active' : ''}"
+            aria-pressed="${active ? 'true' : 'false'}"
+            onclick="showNewsRegion('${key}')">${escapeHtml(label)}${n}</button>`;
+}
+
+/**
+ * The region filter row (Hong Kong / Philippines / Indonesia), News channel
+ * only. Counts ride on the same /api/posts/categories response under `regions`,
+ * so a number can never disagree with the list a tap would show. `all` is the
+ * channel total, which is the count of every published news item in the window.
+ */
+function renderNewsRegionFilters() {
+  const host = document.getElementById('discover-region-filters');
+  if (!host) return;
+  if (STATE.discover.channel !== 'news') {
+    host.hidden = true;
+    host.innerHTML = '';
+    return;
+  }
+  const counts = STATE.discover.counts;
+  const regions = counts && counts.regions;
+  const rows = [];
+  for (const r of NEWS_REGION_ORDER) {
+    const count = regions
+      ? (r.key === 'all' ? (counts.all || 0) : (regions[r.key] || 0))
+      : null;
+    rows.push(newsRegionChip(
+      r.key,
+      t(r.i18n),
+      count,
+      r.key === 'all' ? !STATE.discover.region : STATE.discover.region === r.key
+    ));
+  }
+  host.innerHTML =
+    `<span class="discover-filters-label">${escapeHtml(t('discover.regionLabel'))}</span>` +
+    `<div class="discover-filters-row">${rows.join('')}</div>`;
+  host.hidden = false;
+}
+
 /** Loads the per-topic counts once, then draws the chips. */
 async function loadNewsFilters() {
   if (STATE.discover.counts) return;
@@ -3821,6 +3897,7 @@ async function loadNewsFilters() {
     return;
   }
   renderNewsFilters();
+  renderNewsRegionFilters();
 }
 
 /**
@@ -3912,6 +3989,7 @@ async function renderDiscover() {
   if (pager) { pager.hidden = true; pager.innerHTML = ''; }
 
   renderNewsFilters();
+  renderNewsRegionFilters();
   if (channel === 'news') loadNewsFilters();
 
   if (channel === 'stories') return renderStoryList(feed);
@@ -3925,8 +4003,10 @@ async function renderDiscover() {
     feed.innerHTML = `<div class="discover-loading">…</div>`;
     try {
       const cat = newsCategoryKey();
+      const region = newsRegionKey();
       const q = new URLSearchParams({ channel });
       if (cat) q.set('category', cat);
+      if (region) q.set('source', region);
       posts = await apiGet(`/api/posts?${q.toString()}`);
       STATE.discover.posts[key] = posts;
     } catch (err) {
@@ -3936,9 +4016,10 @@ async function renderDiscover() {
     }
   }
 
-  // The learner may have switched tabs or topics while this was in flight;
-  // drawing the old list now would overwrite the new one.
-  if (STATE.discover.channel !== channel || newsCategoryKey() !== (key.includes(':') ? key.split(':')[1] : null)) return;
+  // The learner may have switched tabs, topics or regions while this was in
+  // flight; drawing the old list now would overwrite the new one. Recomputing
+  // the cache key from current state catches every one of those at once.
+  if (STATE.discover.channel !== channel || postsCacheKey() !== key) return;
 
   feed.innerHTML = posts.length
     ? posts.slice(0, Math.max(STATE.discover.shown, 0)).map(postCardHtml).join('')

@@ -65,6 +65,10 @@ const I18N = {
     // find what she came for. Labels are per language on purpose — these are
     // topic names a reader chooses by, not untranslated interface furniture.
     'discover.filterLabel': 'Show only',
+    'discover.regionLabel': 'News from',
+    'discover.regionAll': 'Everywhere',
+    'discover.regionPh': 'Philippines',
+    'discover.regionId': 'Indonesia',
     'discover.catAll': 'All news',
     'discover.catHongkong': 'Hong Kong',
     'discover.catWork': 'Work & your rights',
@@ -470,6 +474,10 @@ const I18N = {
     'discover.newsNote': 'Mga headline at maikling buod mula sa mga pinagmulan sa Pilipinas, Indonesia at Hong Kong. Nasa link ang buong balita.',
     // News categories
     'discover.filterLabel': 'Ipakita lang ang',
+    'discover.regionLabel': 'Balita mula sa',
+    'discover.regionAll': 'Kahit saan',
+    'discover.regionPh': 'Pilipinas',
+    'discover.regionId': 'Indonesia',
     'discover.catAll': 'Lahat ng balita',
     'discover.catHongkong': 'Hong Kong',
     'discover.catWork': 'Trabaho at karapatan',
@@ -875,6 +883,10 @@ const I18N = {
     'discover.newsNote': '标题与简短摘要来自菲律宾、印尼和香港的媒体，完整报道见链接。',
     // 新闻分类
     'discover.filterLabel': '只看',
+    'discover.regionLabel': '新闻来自',
+    'discover.regionAll': '全部地区',
+    'discover.regionPh': '菲律宾',
+    'discover.regionId': '印尼',
     'discover.catAll': '全部新闻',
     'discover.catHongkong': '香港',
     'discover.catWork': '工作与权益',
@@ -1279,6 +1291,10 @@ const I18N = {
     'discover.newsNote': 'Judul dan ringkasan singkat dari sumber Indonesia, Filipina, dan Hong Kong. Berita lengkapnya ada di tautan.',
     // Kategori berita
     'discover.filterLabel': 'Tampilkan hanya',
+    'discover.regionLabel': 'Berita dari',
+    'discover.regionAll': 'Semua daerah',
+    'discover.regionPh': 'Filipina',
+    'discover.regionId': 'Indonesia',
     'discover.catAll': 'Semua berita',
     'discover.catHongkong': 'Hong Kong',
     'discover.catWork': 'Kerja & hak Anda',

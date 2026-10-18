@@ -165,6 +165,11 @@ async function sendNotification(subscription, payload) {
         'Content-Type': 'application/octet-stream',
         'Content-Encoding': 'aes128gcm',
         Authorization: `WebPush ${jwt}`,
+        // VAPID also requires the application server's public key in Crypto-Key.
+        // Chrome/FCM can infer it, but Mozilla's push service rejects the request
+        // with 403 ("crypto-key header had no public application server key")
+        // without it. Format per the error: p256ecdsa=<base64url(public key)>.
+        'Crypto-Key': `p256ecdsa=${b64urlEncode(config.publicKeyRaw)}`,
       },
       body,
     });

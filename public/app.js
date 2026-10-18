@@ -2919,6 +2919,36 @@ function shareToWhatsApp(text, url) {
   window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank', 'noopener');
 }
 
+/**
+ * Open Facebook's share dialog for a URL.
+ *
+ * The sharer endpoint is what a link to facebook.com resolves to anyway; doing
+ * it from a button keeps the row one behaviour per icon. The URL already
+ * carries the referral code from shareUrl(), so a share that starts here is
+ * still attributed to whoever sent it.
+ */
+function shareToFacebook(url) {
+  window.open(
+    `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
+    '_blank',
+    'noopener'
+  );
+}
+
+/**
+ * Share a culture post to Instagram.
+ *
+ * Instagram has no web share URL — there is nothing to open, and a button that
+ * claimed to "open Instagram" would do nothing on a desktop. What actually
+ * works is the CARD: on a phone, the OS share sheet (which this hands the card
+ * to) offers Instagram among its targets; on a desktop there is no sheet, so
+ * the card is downloaded and the text copied, and the toast says exactly that
+ * rather than pretending a share happened.
+ */
+function shareToInstagram(args) {
+  return sharePicture({ ...args, toastKey: 'share.igSaved' });
+}
+
 /** Share a single vocabulary word. */
 function shareWord(id) {
   const v = STATE.vocabulary.find((x) => x.id === id);
@@ -2960,6 +2990,20 @@ const WHATSAPP_ICON_SVG = `
   <svg class="share-glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
     <path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Z" fill="none" stroke="currentColor" stroke-width="2"/>
     <path d="M8.6 7.6c.3-.1.6 0 .8.3l.8 1.3c.1.3.1.6-.1.8l-.5.5c-.2.2-.2.4-.1.6.5.9 1.3 1.7 2.2 2.2.2.1.4.1.6-.1l.5-.5c.2-.2.5-.3.8-.1l1.3.8c.3.2.4.5.3.8-.3 1-1.3 1.7-2.4 1.6-2.8-.3-5.2-2.7-5.5-5.5-.1-1.1.6-2.1 1.6-2.4Z" fill="currentColor"/>
+  </svg>`;
+
+/** Facebook glyph — the "f". Brand shapes are recognisable before any label. */
+const FACEBOOK_ICON_SVG = `
+  <svg class="share-glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <path d="M13.8 21v-8h2.6l.4-3h-3V7.9c0-.9.2-1.4 1.4-1.4H17V3.7c-.3 0-1.3-.1-2.4-.1-2.4 0-4 1.4-4 4.1V10H8v3h2.6v8h3.2Z" fill="currentColor"/>
+  </svg>`;
+
+/** Instagram glyph — the camera mark. */
+const INSTAGRAM_ICON_SVG = `
+  <svg class="share-glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <rect x="3.2" y="3.2" width="17.6" height="17.6" rx="5" fill="none" stroke="currentColor" stroke-width="2"/>
+    <circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="2"/>
+    <circle cx="17" cy="7" r="1.3" fill="currentColor"/>
   </svg>`;
 
 /** Fill every `data-share-icon` placeholder with the share glyph. */
@@ -3251,7 +3295,7 @@ function shareCardBlob(spec) {
  *      browser that cannot share files
  * The second is not a failure: she still ends up with both halves of the post.
  */
-async function sharePicture({ spec, text, url, filename }) {
+async function sharePicture({ spec, text, url, filename, toastKey }) {
   const clean = String(text || '').trim();
   const blob = await shareCardBlob(spec);
   if (!blob) return shareOrCopy({ title: 'CantoBuddy', text: clean, url });
@@ -3273,7 +3317,7 @@ async function sharePicture({ spec, text, url, filename }) {
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 10000);
     await navigator.clipboard.writeText(`${clean}\n${url}`);
-    showToast(t('share.cardSaved'));
+    showToast(t(toastKey || 'share.cardSaved'));
   } catch {
     showToast(t('share.failed'));
   }
@@ -3295,6 +3339,36 @@ function shareRowHtml(actions) {
               </button>`
     )
     .join('')}</div>`;
+}
+
+/**
+ * The culture post's share strip: three social icons, no words, no message box.
+ *
+ * Icons only, because the brand shapes carry the meaning before any label is
+ * read — and the title/aria-label carries the brand name for anyone who cannot
+ * see the glyph. There is deliberately no "leave a message" affordance: a post
+ * is shared OUT, not discussed here.
+ *
+ * Facebook opens its share dialog; WhatsApp opens a chat; Instagram has no web
+ * share URL at all, so it shares the CARD (see shareToInstagram) — which on a
+ * phone surfaces Instagram inside the OS share sheet.
+ */
+function socialRowHtml(post) {
+  const btn = (kind, icon, labelKey) => `
+        <button type="button" class="social-row-btn social-row-btn--${kind}"
+                data-share="${kind}"
+                title="${escapeHtml(t(labelKey))}" aria-label="${escapeHtml(t(labelKey))}"
+                onclick="shareArticle('${post.slug}', '${kind}')">${icon}</button>`;
+  return `<div class="social-row" role="group" aria-label="${escapeHtml(t('share.shareThis'))}">${btn(
+    'facebook',
+    FACEBOOK_ICON_SVG,
+    'share.shareOnFacebook'
+  )}${btn('instagram', INSTAGRAM_ICON_SVG, 'share.shareOnInstagram')}${btn(
+    'whatsapp',
+    WHATSAPP_ICON_SVG,
+    'share.shareOnWhatsApp'
+  )}
+      </div>`;
 }
 
 // ---- The six card layouts --------------------------------------------------
@@ -3501,8 +3575,22 @@ async function shareArticle(slug, mode) {
   if (!post) return;
   const text = t('share.articleText').replace('{title}', postField(post, 'title'));
   const url = shareUrl(`/discover/${slug}`);
-  if (mode === 'chat') return shareToWhatsApp(text, url);
-  await sharePicture({ spec: articleSpec(post), text, url, filename: `cantobuddy-${slug}.png` });
+  if (mode === 'chat' || mode === 'whatsapp') return shareToWhatsApp(text, url);
+  if (mode === 'facebook') return shareToFacebook(url);
+  if (mode === 'instagram') {
+    return shareToInstagram({
+      spec: articleSpec(post),
+      text,
+      url,
+      filename: `cantobuddy-${slug}.png`,
+    });
+  }
+  await sharePicture({
+    spec: articleSpec(post),
+    text,
+    url,
+    filename: `cantobuddy-${slug}.png`,
+  });
 }
 
 /**
@@ -4357,10 +4445,12 @@ function renderPost(post) {
     ${summary ? `<p class="post-summary">${escapeHtml(summary)}</p>` : ''}
     <div class="post-content">${body}</div>
     ${source}
-    ${shareRowHtml([
-      { label: t('share.chatBtn'), icon: WHATSAPP_ICON_SVG, onclick: `shareArticle('${post.slug}', 'chat')`, variant: 'wa' },
-      { label: t('share.pictureBtn'), icon: '🖼️', onclick: `shareArticle('${post.slug}')` },
-    ])}`;
+    ${post.channel === 'culture'
+      ? socialRowHtml(post)
+      : shareRowHtml([
+          { label: t('share.chatBtn'), icon: WHATSAPP_ICON_SVG, onclick: `shareArticle('${post.slug}', 'chat')`, variant: 'wa' },
+          { label: t('share.pictureBtn'), icon: '🖼️', onclick: `shareArticle('${post.slug}')` },
+        ])}`;
 }
 
 // ---- Employer connections --------------------------------------------------

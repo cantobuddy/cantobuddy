@@ -3801,6 +3801,40 @@ body {
 }
 .share-row-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+/* ---- Social icons on a culture post -----------------------------------------
+   Three icon-only buttons, one per network, under a culture article. Icons
+   only: the brand shapes are recognised before any label is read, and the
+   brand name lives in the title/aria-label rather than on the button face.
+   44px keeps them a real touch target at 320px. */
+.social-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+.social-row-btn {
+  width: 44px;
+  height: 44px;
+  min-width: 0;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--c-border);
+  background: var(--c-surface);
+  color: var(--c-text-soft);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.social-row-btn .share-glyph { width: 19px; height: 19px; display: block; }
+.social-row-btn:active { transform: scale(0.95); }
+.social-row-btn--facebook { color: #1877f2; }
+.social-row-btn--instagram { color: #c13584; }
+.social-row-btn--whatsapp { color: #1faa54; }
+
 /* ---- Share hub ---------------------------------------------------------
    The Share page lists the different things a helper can show a friend, each
    with its own picture. Cards rather than buttons because the picture IS the

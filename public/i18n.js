@@ -486,6 +486,7 @@ const I18N = {
     'footer.mandarin': '中文',
     'footer.indonesian': 'Bahasa Indonesia',
     'footer.guide': "Learn Cantonese: the beginner's guide",
+    'footer.holidays': 'Statutory holidays for domestic helpers 2026 & 2027',
     'footer.privacy': 'Privacy',
   },
 
@@ -918,6 +919,7 @@ const I18N = {
     'footer.mandarin': '中文',
     'footer.indonesian': 'Bahasa Indonesia',
     'footer.guide': 'Mag-aral ng Cantonese: gabay para sa baguhan',
+    'footer.holidays': 'Mga statutory holiday ng domestic helper 2026 at 2027',
     'footer.privacy': 'Privacy',
   },
 
@@ -1363,6 +1365,7 @@ const I18N = {
     'footer.mandarin': '中文版',
     'footer.indonesian': '印尼语版',
     'footer.guide': '粤语入门：初学者完整指南',
+    'footer.holidays': '家傭法定假日 2026 與 2027',
     'footer.privacy': '隐私政策',
   },
 
@@ -1804,6 +1807,7 @@ const I18N = {
     'footer.mandarin': '中文',
     'footer.indonesian': 'Bahasa Indonesia',
     'footer.guide': 'Belajar bahasa Kanton: panduan untuk pemula',
+    'footer.holidays': 'Cuti statutory asisten rumah tangga 2026 & 2027',
     'footer.privacy': 'Privasi',
   },
 };

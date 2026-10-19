@@ -33,12 +33,19 @@
  *    asserts every href resolves, so a typo fails a test rather than shipping a
  *    404 into the index.
  *
- * `body` is HTML (a small, fixed subset: <p>, <h2>, <ul>, <ol>, <li>, <a>,
- * <strong>, <em>). `faq` becomes BOTH a visible block and FAQPage structured
- * data, so the same text serves the reader and the crawler.
+ * `body` is HTML (a small, fixed subset: <p>, <h2>, <h3>, <ul>, <ol>, <li>,
+ * <a>, <strong>, <em>, and <table> with its rows for the holidays guide).
+ * `faq` becomes BOTH a visible block and FAQPage structured data, so the same
+ * text serves the reader and the crawler.
  */
 
 const UPDATED = '2026-10-06';
+
+// Statutory-holiday dates for domestic helpers, 2026 and 2027. Kept in its own
+// module because the table is GENERATED from that data: the dates and the
+// surrounding explanation cannot drift apart, and the data validates itself at
+// require time (a wrong date must fail loudly, not ship quietly).
+const { HOLIDAY_GUIDE, holidaysGuideBody } = require('./holidays');
 
 const GUIDES = [
   /* ===================================================================== */
@@ -1128,6 +1135,25 @@ const GUIDES = [
       { href: '/guide/cantonese-for-elderly-care', label: { en: 'Cantonese for elderly care' } },
       { href: '/for-employers', label: { en: 'For employers' } },
     ],
+  },
+  /* ===================================================================== */
+  {
+    ...HOLIDAY_GUIDE,
+    // Fresher than UPDATED on purpose: every date was re-checked against the
+    // Labour Department's own 2026 and 2027 pages on 2026-10-20, and that is
+    // the day this guide's content actually stands as of.
+    updated: '2026-10-20',
+    related: [
+      { href: '/guide/learn-cantonese', label: { en: "Learn Cantonese: the complete beginner's guide" } },
+      { href: '/guide/learn-cantonese-for-domestic-helpers', label: { en: 'How to learn Cantonese as a domestic helper' } },
+      { href: '/guide/cantonese-for-elderly-care', label: { en: 'Cantonese for elderly care' } },
+    ],
+    body: {
+      en: holidaysGuideBody('en'),
+      fil: holidaysGuideBody('fil'),
+      zh: holidaysGuideBody('zh'),
+      id: holidaysGuideBody('id'),
+    },
   },
 ];
 

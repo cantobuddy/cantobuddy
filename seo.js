@@ -834,6 +834,14 @@ h1{font-size:clamp(26px,4.6vw,36px);line-height:1.25;margin:0 0 10px;letter-spac
 h1 .sub{display:block;font-size:.62em;font-weight:500;color:var(--muted);margin-top:6px}
 h2{font-size:21px;margin:34px 0 12px}
 p.lede{font-size:17px;color:var(--muted);margin:0 0 26px;max-width:64ch}
+/* Statutory-holiday tables. Element selectors only — the sanitiser strips every
+   attribute, so a class put here could never reach the markup. */
+table{width:100%;border-collapse:collapse;margin:18px 0 26px;font-size:15px}
+th,td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}
+th{background:#fff;font-weight:700}
+tbody tr:nth-child(even){background:#fff}
+td:first-child{white-space:nowrap}
+@media (max-width:560px){table{font-size:14px}th,td{padding:8px 9px}td:first-child{white-space:normal}}
 /* The coming-up festival. Red rather than neutral because it is the one thing
    on this page that changes with the calendar: a reader who arrives in October
    sees a different panel from one who arrives in February, and the colour has
@@ -2335,7 +2343,12 @@ function postDateShort(iso) {
  * applies in sanitizePostHtml(), applied again here because the two render the
  * same column through different code paths.
  */
-const BODY_TAGS = new Set(['P', 'H2', 'H3', 'UL', 'OL', 'LI', 'STRONG', 'EM', 'B', 'I', 'BR', 'BLOCKQUOTE', 'A']);
+// TABLE and its parts are in the allowlist for the statutory-holidays guide: a
+// list of dates is a table, and the alternative — 30 hand-written <li>s — reads
+// worse and is harder to check. Attributes are still stripped wholesale, so
+// an allowed <table> carries no class, no style and no colspan.
+const BODY_TAGS = new Set(['P', 'H2', 'H3', 'UL', 'OL', 'LI', 'STRONG', 'EM', 'B', 'I', 'BR', 'BLOCKQUOTE', 'A',
+  'TABLE', 'THEAD', 'TBODY', 'TR', 'TD', 'TH']);
 
 function sanitizeBodyHtml(html) {
   return String(html || '')

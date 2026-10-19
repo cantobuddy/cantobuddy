@@ -2922,38 +2922,46 @@ function shareToWhatsApp(text, url) {
 /**
  * Share to Facebook.
  *
- * WHY NOT JUST A SHARER LINK: Meta's `sharer.php` answers **HTTP 400 /
- * "You are not logged in"** to a signed-out visitor (verified Oct 2026), and
- * `dialog/share` needs an app id this project does not have. So a bare sharer
- * link opens an error page for most people — which is exactly the "it doesn't
- * work" report this function now answers.
+ * WHY THE CARD AND NOT A BARE URL: a shared plain URL does not reach
+ * Facebook's composer. On Android the app takes the link, opens its FEED, and
+ * no post is ever prepared — the exact report of 2026-10-19: "after click, it
+ * will not prepare a post and auto start facebook app". A shared IMAGE
+ * behaves the opposite way: the app opens its composer with the picture and
+ * the text already in place. So this hands over the same card the picture
+ * button uses, which is both the reliable path and the better-looking post.
  *
- * The path that works for everyone is the one the phone already trusts: the
- * OS share sheet, which offers the Facebook app directly and needs no app
- * registration. It is tried FIRST, synchronously inside the click (an awaited
- * call would arrive after the user gesture and be blocked). sharer.php stays
- * as the desktop fallback for a browser already signed in to Facebook, and
- * the clipboard as the last resort when a popup is blocked — nothing here
- * pretends a share happened when it did not.
+ * WHY THE SHARER IS ONLY A FALLBACK: Meta's `sharer.php` answers **HTTP 400**
+ * and, in a real browser, refuses a signed-out visitor with "You are not
+ * logged in" — verified against the endpoint on 2026-10-19. `dialog/share`
+ * needs an app id this project does not have. So the sharer prepares a proper
+ * post (with a link preview) only in a browser already signed in to Facebook,
+ * and the clipboard is the last resort when even the popup is blocked.
  */
-async function shareToFacebook(text, url) {
-  if (typeof navigator.share === 'function') {
+async function shareToFacebook(args) {
+  const clean = String(args.text || '').trim();
+
+  // 1. The share sheet, WITH the card as an image. On a phone this is the
+  //    only route that prepares a post inside the Facebook app.
+  const file = await shareCardFile({ spec: args.spec, filename: args.filename });
+  if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
     try {
-      await navigator.share({ title: 'CantoBuddy', text, url });
+      await navigator.share({ files: [file], text: clean, url: args.url });
       return;
     } catch (err) {
       if (err && err.name === 'AbortError') return; // she changed her mind
-      // NotAllowedError / anything else: fall through to Facebook's dialog.
+      // anything else: fall through to Facebook's own dialog
     }
   }
+
+  // 2. Facebook's own share dialog — prepares the post with a link preview.
   const pop = window.open(
-    `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
+    `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(args.url)}`,
     '_blank',
     'noopener'
   );
   if (!pop) {
     try {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(`${clean}\n${args.url}`);
       showToast(t('share.fbCopied'));
     } catch {
       showToast(t('share.failed'));
@@ -3313,6 +3321,18 @@ function shareCardBlob(spec) {
 }
 
 /**
+ * The rendered card as a File, or null if it could not be drawn.
+ *
+ * Factored out of sharePicture so both the picture button and the Facebook
+ * button can hand the same PNG to the platform.
+ */
+async function shareCardFile({ spec, filename }) {
+  const blob = await shareCardBlob(spec);
+  if (!blob) return null;
+  return new File([blob], filename, { type: 'image/png' });
+}
+
+/**
  * Hand a rendered card to the platform.
  *
  * Three paths, in order of preference:
@@ -3602,7 +3622,14 @@ async function shareArticle(slug, mode) {
   const text = t('share.articleText').replace('{title}', postField(post, 'title'));
   const url = shareUrl(`/discover/${slug}`);
   if (mode === 'chat' || mode === 'whatsapp') return shareToWhatsApp(text, url);
-  if (mode === 'facebook') return shareToFacebook(text, url);
+  if (mode === 'facebook') {
+    return shareToFacebook({
+      spec: articleSpec(post),
+      text,
+      url,
+      filename: `cantobuddy-${slug}.png`,
+    });
+  }
   if (mode === 'instagram') {
     return shareToInstagram({
       spec: articleSpec(post),

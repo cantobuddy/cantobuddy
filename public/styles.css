@@ -2258,6 +2258,18 @@ body {
 .post-article { padding-bottom: 24px; }
 
 .post-hero { text-align: center; padding: 6px 0 18px; }
+/* Icon on the left, the share row on the right: a flex bar, so the icons sit
+   at the top-right corner without ever overlapping the title, and the whole
+   thing still fits at 320px where an absolutely-positioned row would collide
+   with a long centred headline. */
+.post-hero-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.post-hero-share { flex: 0 0 auto; }
+.post-hero-share .social-row { margin-top: 0; gap: 12px; }
 .post-hero-icon {
   display: inline-flex;
   align-items: center;

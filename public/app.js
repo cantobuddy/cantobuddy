@@ -2920,19 +2920,45 @@ function shareToWhatsApp(text, url) {
 }
 
 /**
- * Open Facebook's share dialog for a URL.
+ * Share to Facebook.
  *
- * The sharer endpoint is what a link to facebook.com resolves to anyway; doing
- * it from a button keeps the row one behaviour per icon. The URL already
- * carries the referral code from shareUrl(), so a share that starts here is
- * still attributed to whoever sent it.
+ * WHY NOT JUST A SHARER LINK: Meta's `sharer.php` answers **HTTP 400 /
+ * "You are not logged in"** to a signed-out visitor (verified Oct 2026), and
+ * `dialog/share` needs an app id this project does not have. So a bare sharer
+ * link opens an error page for most people — which is exactly the "it doesn't
+ * work" report this function now answers.
+ *
+ * The path that works for everyone is the one the phone already trusts: the
+ * OS share sheet, which offers the Facebook app directly and needs no app
+ * registration. It is tried FIRST, synchronously inside the click (an awaited
+ * call would arrive after the user gesture and be blocked). sharer.php stays
+ * as the desktop fallback for a browser already signed in to Facebook, and
+ * the clipboard as the last resort when a popup is blocked — nothing here
+ * pretends a share happened when it did not.
  */
-function shareToFacebook(url) {
-  window.open(
+async function shareToFacebook(text, url) {
+  if (typeof navigator.share === 'function') {
+    try {
+      await navigator.share({ title: 'CantoBuddy', text, url });
+      return;
+    } catch (err) {
+      if (err && err.name === 'AbortError') return; // she changed her mind
+      // NotAllowedError / anything else: fall through to Facebook's dialog.
+    }
+  }
+  const pop = window.open(
     `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
     '_blank',
     'noopener'
   );
+  if (!pop) {
+    try {
+      await navigator.clipboard.writeText(url);
+      showToast(t('share.fbCopied'));
+    } catch {
+      showToast(t('share.failed'));
+    }
+  }
 }
 
 /**
@@ -3576,7 +3602,7 @@ async function shareArticle(slug, mode) {
   const text = t('share.articleText').replace('{title}', postField(post, 'title'));
   const url = shareUrl(`/discover/${slug}`);
   if (mode === 'chat' || mode === 'whatsapp') return shareToWhatsApp(text, url);
-  if (mode === 'facebook') return shareToFacebook(url);
+  if (mode === 'facebook') return shareToFacebook(text, url);
   if (mode === 'instagram') {
     return shareToInstagram({
       spec: articleSpec(post),
@@ -4438,7 +4464,10 @@ function renderPost(post) {
 
   host.innerHTML = `
     <div class="post-hero">
-      <div class="post-hero-icon">${escapeHtml(post.icon || '🏮')}</div>
+      <div class="post-hero-top">
+        <div class="post-hero-icon">${escapeHtml(post.icon || '🏮')}</div>
+        ${post.channel === 'culture' ? `<div class="post-hero-share">${socialRowHtml(post)}</div>` : ''}
+      </div>
       <h1 class="post-title">${escapeHtml(postField(post, 'title'))}</h1>
       ${date ? `<div class="post-date">${escapeHtml(date)}</div>` : ''}
     </div>

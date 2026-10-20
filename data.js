@@ -1842,6 +1842,100 @@ const SEED_POSTS = [
 <h2>The one habit that covers all of it</h2>
 <p>意頭 is preference, not law, and families differ in how much they observe. The habit worth keeping is simply to <strong>notice which words the family uses, and copy them.</strong> When you are not sure, follow the person next to you, and if you have already said the wrong one — <strong>唔好意思，我唔知道</strong> (m4 hou2 ji3 si1, ngo5 m4 zi1 dou6), said early, is always the right answer.</p>`,
   },
+  {
+    // Added 2026-10-21 at the operator's request, digested from a general
+    // expat guide and rewritten for this app's reader: she is often the one
+    // COOKING for the table, so the customs are given in both directions —
+    // serving a family, and being a guest at one. The chopstick rules are NOT
+    // repeated here; chopsticks-five-rules owns them and is linked instead.
+    slug: 'hong-kong-table-customs',
+    channel: 'culture',
+    icon: '🍵',
+    status: 'published',
+    published_at: '2026-10-20T22:30:00.000Z',
+    title_en: 'At a Hong Kong Table: Tea, Shared Plates, and What to Leave Behind',
+    title_zh: '香港飯桌：茶、共菜，還有那口要剩下來的飯',
+    summary_en: "Almost nothing at a Hong Kong table is a taboo. The customs that actually matter are about tea, sharing, and one plate you should not finish — and they matter whether you are cooking for the family or eating with them.",
+    summary_zh: '在香港的餐桌上，幾乎沒有什麼是禁忌。真正重要的規矩只有幾條：茶怎麼倒、共菜怎麼夾，還有哪一口飯不該吃光——這些對要做飯給一家人吃的你，同樣適用。',
+    body_en: `<p>Food in Hong Kong is a social event, and the customs around it are gentler than most guidebooks make them sound. Very few of them are taboos. These are the ones that actually happen at a Hong Kong table — the one you may be cooking for, and the one you may one day be invited to.</p>
+<h2>Tea: filling the cup is the whole job</h2>
+<p>The one rule that matters: <strong>when a cup is empty, fill it</strong> — and while you are up, fill everyone else's too. Topping up only your own is the thing people notice.</p>
+<p>It works in both directions. When someone pours for <em>you</em>, <strong>tap two fingers on the table</strong> to say thank you without stopping the conversation. That small tap is Hong Kong's answer to calling 唔該 across a noisy table, and an older person will do it to you.</p>
+<p>You rarely see tea in a takeaway cup here. It is a sit-down drink, and a meal is not finished until the tea has been poured.</p>
+<h2>Everything comes to the middle</h2>
+<p>Dishes are placed in the middle of the table and shared. You do not get your own plate of food the way you would at home in the Philippines or Indonesia — you take a little from the shared dish onto your rice, several times over the meal.</p>
+<ul>
+<li><strong>Take from the side nearest you.</strong> Reaching across is what the serving spoons are for.</li>
+<li><strong>Use the serving spoons</strong>, or the thick end of the serving chopsticks, to move food onto someone else's bowl.</li>
+<li><strong>Do not dig</strong> through a dish looking for the piece you want.</li>
+</ul>
+<p>The rest of the chopstick rules — including the one that genuinely upsets an older relative — are in <a href="/discover/chopsticks-five-rules">Chopsticks: Five Things That Are Done, and One That Is Not</a>.</p>
+<h2>If you are the one serving</h2>
+<p>In many households the helper serves the food and eats afterwards, alone or with the children. If that is your arrangement, the same customs are what make you look like someone who understands the family: <strong>fill the elders' cups first</strong>, put the serving spoons out with the dishes, and set the rice bowls down without asking who wants what.</p>
+<p>You are not expected to eat at the table, and you are not expected to refuse if you are asked. Both happen in different houses, and neither is a comment on you.</p>
+<h2>As a guest: two small things</h2>
+<ul>
+<li><strong>Let the host start.</strong> Wait until the eldest person present picks up their chopsticks, or until someone says <strong>開飯</strong> (hoi1 faan6) — "the meal is starting" — then begin.</li>
+<li><strong>Leave a little on your plate.</strong> Finishing everything says the host did not give you enough. An empty bowl is a small failure of hospitality, not a compliment to the cook.</li>
+</ul>
+<p>Eating everything is the right instinct almost everywhere else in the world. This is the one table where it is better to leave a spoonful of rice.</p>
+<h2>If chopsticks defeat you</h2>
+<p>Ask for a fork — <strong>唔該，有叉嗎？</strong> (m4 goi1, jau5 caa1 maa3) — and almost every restaurant will bring one without comment. Using them well is a kindness that will be noticed, but a helper who can eat neatly with a fork has committed no rudeness. Nobody at the table is keeping score.</p>
+<h2>Useful to know</h2>
+<p>茶 (<strong>caa4</strong>) — tea. 添茶 (<strong>tim1 caa4</strong>) — to top up the tea. 開飯 (<strong>hoi1 faan6</strong>) — the meal is starting, said before the first bite. 慢慢食 (<strong>maan6 maan6 sik6</strong>) — take your time eating, said to a guest. The rest of the table and kitchen words are in the Kitchen and Restaurant categories.</p>`,
+  },
+  {
+    // Added 2026-10-21 at the operator's request, digested from a general
+    // expat guide and rewritten in this app's own words. The source's
+    // "more than a fifth of all medical consultations" figure could not be
+    // traced to a primary source, so it is deliberately NOT asserted here.
+    // What IS asserted is checkable: the Chinese Medicine Council under the
+    // Chinese Medicine Ordinance (Cap. 549), degree-level registration, and
+    // the Chinese Medicine Hospital that opened in phases from 2025.
+    // The safety section is the point of the post — a helper is often the
+    // person holding both the hospital tablets and the herb bundle.
+    slug: 'chinese-medicine-in-hong-kong',
+    channel: 'culture',
+    icon: '🌿',
+    status: 'published',
+    published_at: '2026-10-20T23:15:00.000Z',
+    title_en: 'Chinese Medicine in Hong Kong: Ordinary, Regulated, and Usually in Your Kitchen',
+    title_zh: '香港的中醫：很日常、有規管，而且常常在你的廚房',
+    summary_en: "In Hong Kong, Chinese medicine is not the 'alternative' to seeing a doctor — it is one of the ordinary options, regulated by law and often the reason your kitchen smells of herbs. Here is how it works, and the three rules to get right.",
+    summary_zh: '在香港，中醫不是「西醫以外」的另類選擇——它是正規醫療的一部分，受法律規管，而且常常就是你廚房裡那股草藥味的來源。這裡說明它如何運作，以及三條必須守住的規矩。',
+    body_en: `<p>In Hong Kong, Chinese medicine is not the alternative to seeing a doctor. It is one of the ordinary things people do, and often they do it <em>as well as</em> hospital medicine rather than instead of it. If the family says they are going to <strong>睇中醫</strong> — to see a Chinese medicine practitioner — that is a normal medical appointment, not a superstition and not a last resort.</p>
+<h2>It is regulated by law</h2>
+<p>A practitioner must be registered, and registration is not easy. The regulator is the Chinese Medicine Council of Hong Kong, a statutory body set up under the Chinese Medicine Ordinance (Cap. 549). A registered practitioner has completed an approved university degree in Chinese medicine and passed a licensing examination, and the Council has the power to strike a practitioner off its register for misconduct.</p>
+<p>In 2025 the city's first Chinese Medicine Hospital opened in phases — a large government project where Chinese and Western medicine work side by side under one roof. That tells you how seriously this medicine is taken here.</p>
+<h2>Where you will meet it first: the kitchen</h2>
+<p>Long before anyone books a consultation, Chinese medicine arrives in your kitchen — usually as a job for you.</p>
+<ul>
+<li><strong>老火湯</strong> (<strong>lou5 fo2 tong1</strong>) — a clear soup simmered gently for two or three hours. Many families believe a particular soup suits a particular season or a particular body, and you may be asked to keep one going on the stove all afternoon.</li>
+<li><strong>涼茶</strong> (<strong>loeng4 caa4</strong>) — herbal tea, bought at a small shop when someone feels <strong>熱氣</strong> (<strong>jit6 hei3</strong>), "heaty" — a sore throat, a mouth ulcer, one fried dinner too many. It is extremely bitter. That is the point of it, and nobody offers you a sip to be polite.</li>
+<li><strong>中藥</strong> (<strong>zung1 joek6</strong>) — a prescription of dried roots, leaves and bark, dispensed as a paper bundle and boiled at home into a dark liquid. This is the part you may be asked to do yourself.</li>
+</ul>
+<p>Households here commonly use both systems at once: a GP for one complaint, a Chinese medicine practitioner for another, sometimes for the same person in the same week. Nobody sees that as a contradiction.</p>
+<h2>Boiling herbs: what the job actually is</h2>
+<p>The herbs come from the practitioner's shop in a paper bundle with a sheet of instructions — how many times to boil, how much to drink, and when. <strong>Follow that sheet, not your instincts.</strong> The usual method is:</p>
+<ul>
+<li><strong>Rinse</strong> the herbs briefly, cover them with water and <strong>soak for about 30 minutes</strong>.</li>
+<li>Bring to the boil, then <strong>simmer until about one bowl of liquid</strong> is left. Pour it off and keep the herbs.</li>
+<li><strong>Boil the same herbs a second time</strong> the next day. Most prescriptions are boiled twice, and the second boil is a dose in its own right — not a weaker left-over to be thrown away.</li>
+</ul>
+<p>Use a <strong>clay pot or a ceramic pot</strong>, never a metal one, and never the pot dinner is cooked in. The dose is drunk <strong>warm</strong>, at the times written on the sheet.</p>
+<h2>Three rules that are not negotiable</h2>
+<ul>
+<li><strong>A prescription belongs to one person.</strong> The herbs are chosen for one body, on one day. Never move herbs from one bundle to another — not even within the same family, not even if two people have "the same cold".</li>
+<li><strong>Never give a decoction to a pregnant woman or a small child</strong> unless the practitioner wrote it for her, or for them. If you are asked to, say plainly that the family should check with the practitioner first.</li>
+<li><strong>Herbs are medicine, and they interact.</strong> They can change the way blood-pressure tablets, blood thinners and diabetes medicine work. If someone in the household takes hospital medicine <em>and</em> herbs, the doctor and the practitioner should each know about the other — and if you are the person who sees both in the same kitchen, say so to the family.</li>
+</ul>
+<h2>Emergencies do not wait for herbs</h2>
+<p>Chest pain, difficulty breathing, heavy bleeding, a bad fall, anything sudden: go to the hospital's accident and emergency department, or call <strong>999</strong>. Herbal medicine is for the slow complaints it is good at. No family will thank you for patiently simmering a prescription while someone is turning blue.</p>
+<h2>Useful phrases</h2>
+<p><strong>我想睇中醫</strong> (ngo5 soeng2 tai2 zung1 ji1) — I would like to see a Chinese medicine practitioner. <strong>呢啲中藥點煎？</strong> (ni1 di1 zung1 joek6 dim2 zin1) — how do I boil these herbs? <strong>係咪要先浸吓？</strong> (hai6 mai6 jiu3 sin1 zam3 haa5) — do they need soaking first? <strong>一日煎幾多次？</strong> (jat1 jat6 zin1 gei2 do1 ci3) — how many boils a day? For the words you would need when someone in the house is simply unwell, the phrases in <a href="/guide/cantonese-for-elderly-care">Cantonese for Elderly Care</a> are the ones that get used.</p>
+<h2>Useful to know</h2>
+<p>中醫 (<strong>zung1 ji1</strong>) — Chinese medicine; 中醫師 (<strong>zung1 ji1 si1</strong>) — a Chinese medicine practitioner. 中藥 (<strong>zung1 joek6</strong>) — a prescription of Chinese herbs. 煎 (<strong>zin1</strong>) — to boil a decoction. 涼茶 (<strong>loeng4 caa4</strong>) — herbal tea. 老火湯 (<strong>lou5 fo2 tong1</strong>) — slow-simmered clear soup. 熱氣 (<strong>jit6 hei3</strong>) — "heaty", the state herbal tea is taken for. 把脈 (<strong>baa2 mak6</strong>) — taking the pulse, the diagnosis you will watch at every consultation.</p>`,
+  },
 ];
 
 module.exports = {

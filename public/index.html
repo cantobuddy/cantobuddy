@@ -25,7 +25,26 @@
        this file — both have to carry it or half the site would be ad-free.
        AdSense is loaded with `async`, so it never blocks first paint. -->
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6845142564408798"
-          crossorigin="anonymous"></script>
+         crossorigin="anonymous"></script>
+
+  <!-- Google Analytics (GA4), measurement G-877054DW3X.
+       Same two-places rule as the AdSense tag above: express.static serves
+       THIS file for "/", so it shadows every page seo.js renders, and the SEO
+       pages never pass through this file. Both carry the snippet or half the
+       site is invisible to analytics. seo.js emits the identical block from
+       GA_MEASUREMENT_ID so the two cannot drift.
+
+       `async`, so it never blocks first paint. GA4 anonymises IP addresses when
+       it processes them — which is why the privacy policy can say so — and it
+       is disclosed, named, with its opt-out route, in the "Statistics" section
+       of the policy, exactly as AdSense is. -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-877054DW3X"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-877054DW3X');
+  </script>
 
   <!-- Canonical. Absolute, and pointing at the real domain on purpose: this
        same document is also reachable at cantobuddy.onrender.com, and without

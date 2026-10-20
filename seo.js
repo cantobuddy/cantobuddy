@@ -91,6 +91,31 @@ const ADSENSE_CLIENT = 'ca-pub-6845142564408798';
 const ADSENSE_SNIPPET =
   `<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}" crossorigin="anonymous"></script>`;
 
+/**
+ * Google Analytics 4. Same reasoning as ADSENSE_CLIENT above: a measurement id
+ * is public by design (it ships in the markup and anyone can read it with View
+ * Source), so an env var would only be a way for the tag to vanish silently on
+ * a fresh deploy. It is hardcoded, and it is hardcoded TWICE on purpose —
+ * see the note in public/index.html: that file shadows every page rendered
+ * here, so the snippet has to be emitted in both places or half the site is
+ * invisible to analytics.
+ *
+ * Two lines, `async` on the loader so first paint is never blocked. The
+ * `config` call is on its own line because that is what GA4's own snippet
+ * does, and because putting the measurement id in a second, differently-named
+ * place is how the two drift apart.
+ */
+const GA_MEASUREMENT_ID = 'G-877054DW3X';
+const GA_SNIPPET = [
+  `<script async src="https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}"></script>`,
+  '<script>',
+  'window.dataLayer = window.dataLayer || [];',
+  'function gtag(){dataLayer.push(arguments);}',
+  "gtag('js', new Date());",
+  `gtag('config', '${GA_MEASUREMENT_ID}');`,
+  '</script>',
+].join('\n  ');
+
 
 // ---------------------------------------------------------------------------
 // Small helpers
@@ -405,13 +430,21 @@ const LANGS = ['en', 'fil', 'zh', 'id'];
    sees the reader's IP and user agent. That is disclosed plainly below, named,
    with the opt-out route. Pretending otherwise would be the dishonest version.
 
+   Google Analytics (GA4) joined it on 2026-10-21 and is disclosed the same way,
+   in its own "Statistics" section in all four trees. Two third-party scripts,
+   one rule: name it, say what it sees, give the way out. Both snippets are
+   loaded in BOTH public/index.html (because express.static serves that file
+   for "/" and it shadows everything generated here) and in the head template
+   below — so a policy that describes a script the page does not actually load
+   would be the version of this bug that nobody catches.
+
    Kept as data, one object per language, so the four trees cannot drift and a
    new tree cannot be added without this page appearing in it.
    ------------------------------------------------------------------------- */
 const PRIVACY = {
   en: {
     title: 'Privacy Policy',
-    updated: 'Last updated: 17 October 2026',
+    updated: 'Last updated: 21 October 2026',
     lede: 'CantoBuddy is a free Cantonese practice app for domestic helpers in Hong Kong. This page explains, in plain language, what the app records, what it does not, and how to have it deleted.',
     sections: [
       {
@@ -461,6 +494,14 @@ const PRIVACY = {
         ],
       },
       {
+        h: 'Statistics',
+        p: [
+          'This site also uses Google Analytics (GA4) to count visits. To do that, Google loads a script on the page, which places a cookie in your browser and sends Google the pages you view, roughly where you are (by country or city, not by street address), what kind of device and browser you use, and how you arrived at the site.',
+          'The Analytics cookie is not tied to your name or to the random device identifier this app uses for your progress. It cannot read your quiz answers, your words, your feedback, or anything else you have written here. IP anonymisation is switched on, so the full address is not stored.',
+          'This is a change from the rest of the app, which is built not to track you, and we would rather say so plainly. If you would rather not be counted, a browser extension that blocks analytics — or turning Google Analytics off in your browser settings — stops the script, and the app works normally without it. Nothing is lost but the count.',
+        ],
+      },
+      {
         h: 'Push notifications',
         p: [
           'With your permission, CantoBuddy can send browser notifications — gentle reminders to practise, and a note when a new story arrives. Nothing is sent until you tap "Turn on"; you are never subscribed without asking.',
@@ -506,7 +547,7 @@ const PRIVACY = {
 
   fil: {
     title: 'Patakaran sa Privacy',
-    updated: 'Huling na-update: 17 Oktubre 2026',
+    updated: 'Huling na-update: 21 Oktubre 2026',
     lede: 'Ang CantoBuddy ay isang libreng app para sa pagsasanay ng Cantonese para sa mga domestic helper sa Hong Kong. Ipinaliwanag sa page na ito, sa simpleng pananalita, kung ano ang itinatala ng app, kung ano ang hindi nito itinatala, at paano ito ipapabura.',
     sections: [
       {
@@ -556,6 +597,14 @@ const PRIVACY = {
         ],
       },
       {
+        h: 'Estadistika',
+        p: [
+          'Gumagamit din ang site na ito ng Google Analytics (GA4) para bilangin ang pagbisita. Para gawin iyon, naglo-load ang Google ng script sa pahina, na naglalagay ng cookie sa iyong browser at ipinapadala sa Google ang mga pahinang tinitingnan mo, ang tinatayang lugar mo (ayon sa bansa o lungsod, hindi sa eksaktong address), ang uri ng device at browser mo, at kung paano ka nakarating sa site.',
+          'Ang cookie ng Google Analytics ay hindi nakaugnay sa pangalan mo o sa random na device identifier na ginagamit ng app na ito para sa progreso mo. Hindi nito mababasa ang iyong mga sagot sa pagsusulit, ang iyong mga salita, ang iyong feedback, o anumang isinulat mo dito. Naka-on ang IP anonymisation nito, kaya ang buong address ay hindi iniimbak.',
+          'Ito ay pagbabago mula sa iba pang bahagi ng app na ito, na ginawa para hindi ka subaybayan, at mas gusto naming sabihin ito nang tapat. Kung ayaw mong mabilang, mapipigilan ng browser extension na nagba-block ng analytics — o ang pag-off sa Google Analytics sa settings ng iyong browser — ang script, at gumagana pa rin nang normal ang app. Walang nawawala kundi ang bilang.',
+        ],
+      },
+      {
         h: 'Mga push notification',
         p: [
           'Kung pumayag ka, maaaring magpadala ang CantoBuddy ng mga browser notification — banayad na paalala na mag-practice, at abiso kapag may bagong kuwento. Walang ipapadala hangga\'t hindi mo tinatap ang "I-on"; hindi ka sasali nang hindi nagtatanong.',
@@ -601,7 +650,7 @@ const PRIVACY = {
 
   zh: {
     title: '隐私政策',
-    updated: '最后更新：2026 年 10 月 17 日',
+    updated: '最后更新：2026 年 10 月 21 日',
     lede: 'CantoBuddy 是给香港外佣免费使用的粤语练习应用。本页用平实的语言说明：应用记录什么、不记录什么，以及如何删除这些记录。',
     sections: [
       {
@@ -651,6 +700,14 @@ const PRIVACY = {
         ],
       },
       {
+        h: '统计',
+        p: [
+          '本站同时使用 Google Analytics（GA4）统计访问量。为此，Google 会在页面加载一段脚本，在您的浏览器中放置 Cookie，并把您浏览的页面、您的大致位置（按国家或城市，而非街道地址）、您使用的设备与浏览器类型，以及您如何到达本站等资料传送给 Google。',
+          '该 Analytics Cookie 不会与您的姓名关联，也不会与本应用用来保存学习进度的随机设备标识符关联。它无法读取您的测验答案、您学习的字词、您的反馈，或您在此写下的任何内容。其 IP 匿名化功能已启用，因此完整地址不会被保存。',
+          '这与本应用其他部分「刻意不跟踪您」的设计并不相同，我们选择坦白说明。若您不希望被统计，使用拦截分析脚本的浏览器扩展（或在浏览器设置中停用 Google Analytics）即可阻止该脚本，应用在没有它的情况下依然正常运行——失去的只是一个统计数字。',
+        ],
+      },
+      {
         h: '推送通知',
         p: [
           '在获得你的许可后，CantoBuddy 可以发送浏览器通知——温和的练习提醒，以及新故事上线时的提示。在你点击「开启」之前，我们不会发送任何内容；没有询问就不会订阅。',
@@ -696,7 +753,7 @@ const PRIVACY = {
 
   id: {
     title: 'Kebijakan Privasi',
-    updated: 'Terakhir diperbarui: 17 Oktober 2026',
+    updated: 'Terakhir diperbarui: 21 Oktober 2026',
     lede: 'CantoBuddy adalah aplikasi latihan bahasa Kanton gratis untuk asisten rumah tangga di Hong Kong. Halaman ini menjelaskan dengan bahasa sederhana apa yang dicatat aplikasi, apa yang tidak dicatat, dan cara meminta penghapusannya.',
     sections: [
       {
@@ -743,6 +800,14 @@ const PRIVACY = {
           'Artinya, Google dan pengiklan yang bekerja dengannya dapat melihat alamat IP Anda, jenis browser, dan halaman mana yang Anda buka di situs ini. Ini berbeda dari bagian lain aplikasi ini yang dirancang untuk tidak melacak Anda, dan kami lebih memilih menyatakannya terus terang daripada menyembunyikannya.',
           'Anda dapat mengatur iklan yang dipersonalisasi di Setelan Iklan Google, dan Anda dapat menolak cookie iklan pihak ketiga melalui aboutads.info atau youronlinechoices.eu. Jika Anda berada di Kawasan Ekonomi Eropa, Inggris Raya, atau Swiss, akan muncul permintaan persetujuan sebelum cookie iklan digunakan, dan menolaknya tidak menghalangi Anda memakai aplikasi.',
           'Jika Anda sama sekali tidak ingin iklan, ekstensi browser yang memblokir iklan juga akan menghentikan skrip AdSense dimuat, dan aplikasi tetap berjalan normal tanpa itu.',
+        ],
+      },
+      {
+        h: 'Statistik',
+        p: [
+          'Situs ini juga menggunakan Google Analytics (GA4) untuk menghitung kunjungan. Untuk itu, Google memuat sebuah skrip di halaman, yang menempatkan cookie di browser Anda dan mengirim ke Google halaman-halaman yang Anda lihat, perkiraan lokasi Anda (menurut negara atau kota, bukan alamat lengkap), jenis perangkat dan browser yang Anda pakai, serta bagaimana Anda sampai ke situs ini.',
+          'Cookie Google Analytics tidak terkait dengan nama Anda maupun dengan pengenal perangkat acak yang dipakai aplikasi ini untuk menyimpan kemajuan Anda. Skrip itu tidak dapat membaca jawaban kuis Anda, kata-kata yang Anda pelajari, umpan balik Anda, atau apa pun yang Anda tulis di sini. Fitur anonimisasi IP-nya aktif, sehingga alamat lengkap tidak disimpan.',
+          'Ini berbeda dari bagian lain aplikasi ini yang memang dirancang untuk tidak melacak Anda, dan kami lebih memilih menyatakannya terus terang. Jika Anda tidak ingin dihitung, ekstensi browser yang memblokir analitik — atau mematikan Google Analytics di pengaturan peramban Anda — akan menghentikan skrip tersebut, dan aplikasi tetap berjalan normal. Yang hilang hanyalah angka statistiknya.',
         ],
       },
       {
@@ -1118,6 +1183,7 @@ function page(o) {
   ${o.noindex ? '<meta name="robots" content="noindex, follow" />' : '<meta name="robots" content="index, follow" />'}
   ${GOOGLE_VERIFICATION ? `<meta name="google-site-verification" content="${esc(GOOGLE_VERIFICATION)}" />` : ''}
   ${ADSENSE_SNIPPET}
+  ${GA_SNIPPET}
   ${alt}
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="CantoBuddy" />

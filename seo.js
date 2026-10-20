@@ -834,14 +834,64 @@ h1{font-size:clamp(26px,4.6vw,36px);line-height:1.25;margin:0 0 10px;letter-spac
 h1 .sub{display:block;font-size:.62em;font-weight:500;color:var(--muted);margin-top:6px}
 h2{font-size:21px;margin:34px 0 12px}
 p.lede{font-size:17px;color:var(--muted);margin:0 0 26px;max-width:64ch}
-/* Statutory-holiday tables. Element selectors only — the sanitiser strips every
-   attribute, so a class put here could never reach the markup. */
-table{width:100%;border-collapse:collapse;margin:18px 0 26px;font-size:15px}
-th,td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}
-th{background:#fff;font-weight:700}
-tbody tr:nth-child(even){background:#fff}
-td:first-child{white-space:nowrap}
-@media (max-width:560px){table{font-size:14px}th,td{padding:8px 9px}td:first-child{white-space:normal}}
+/* Date tables (the statutory-holidays guide).
+ *
+ * Scoped to <article> on purpose: the level pages' vocabulary table is NOT in
+ * an article, and an earlier unscoped table{} block here quietly added
+ * vertical rules to it. The body sanitiser strips every attribute, so none of
+ * this can rely on a class reaching the markup — element and structural
+ * selectors only.
+ *
+ * A guide whose body is mostly a table also wants the full column: the 70ch
+ * measure that makes prose readable turns three columns of dates and sentences
+ * into a squeezed strip with a dead gutter beside it. The :has() exception is
+ * progressive — without it the page keeps 70ch and the warm table below still
+ * applies. */
+article:has(table){max-width:none}
+article table{width:100%;border-collapse:collapse;margin:22px 0 32px;font-size:15.5px}
+article table th{background:#fff5f5;color:#c1121f;font-size:12px;font-weight:700;
+  letter-spacing:.06em;text-transform:uppercase;text-align:left;padding:11px 14px;
+  border-bottom:2px solid #f3c2c7}
+article table td{padding:12px 14px;border:0;border-bottom:1px solid var(--line);
+  vertical-align:top;line-height:1.55}
+article table tbody tr:last-child td{border-bottom:0}
+article table tbody tr:nth-child(even){background:#fffafa}
+/* The date is what a reader scans for, so it carries the weight; the name
+   labels it; the note explains it. */
+article table td:first-child{white-space:nowrap;font-weight:700}
+article table td:nth-child(2){font-weight:600}
+article table td:nth-child(3){color:var(--muted);font-size:14.5px}
+article table a{color:var(--red);text-decoration:none;border-bottom:1px solid rgba(230,57,70,.3)}
+/* Year headings are the spine of this page, so they get the app's warm tick. */
+article:has(table) h2{font-size:19px;margin:38px 0 14px;padding-bottom:9px;border-bottom:2px solid #f3c2c7}
+/* The facts strip: the first list in a table-bearing article is the one
+   holidays.js generates (the "See also" links come later). Three or four
+   cards, so a phone reader gets the shape of their entitlement before the
+   first table. */
+article:has(table) ul:first-of-type{list-style:none;padding:0;margin:0 0 28px;
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
+article:has(table) ul:first-of-type li{background:#fff;border:1px solid #f3c2c7;border-radius:12px;
+  padding:12px 14px;font-size:14px;line-height:1.5;color:var(--muted)}
+article:has(table) ul:first-of-type li strong{display:block;color:var(--ink);font-size:15.5px;margin-bottom:2px}
+@media (max-width:560px){
+  /* Three columns of dates and sentences do not survive a 390px screen, so
+     each row becomes a small stack, name first: "Labour Day / Friday, 1 May
+     2026 / …". No colspan or class is needed — order and display do it. */
+  article table,article table tbody{display:block}
+  article table{margin:18px 0 26px;font-size:15px}
+  article table thead{display:none}
+  article table tr{display:flex;flex-direction:column;border-bottom:1px solid var(--line);padding:10px 0}
+  article table tbody tr:last-child{border-bottom:0}
+  article table tbody tr:nth-child(even){background:transparent}
+  article table td{border:0;padding:3px 0}
+  /* Repeated with the pseudo-class: the desktop rule that keeps a date on one
+     line is MORE specific than a bare td, so without this the December row's
+     two dates stay on one nowrap line and push the table 68px wide. */
+  article table td:first-child{white-space:normal}
+  article table td:nth-child(2){order:-1;font-size:16px}
+  article table td:first-child{color:var(--red);font-weight:600;font-size:14.5px}
+  article table td:nth-child(3){font-size:14px;margin-top:2px}
+}
 /* The coming-up festival. Red rather than neutral because it is the one thing
    on this page that changes with the calendar: a reader who arrives in October
    sees a different panel from one who arrives in February, and the colour has

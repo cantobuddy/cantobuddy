@@ -187,6 +187,14 @@ const UI = {
   en: {
     lede:
       'Fifteen paid days off a year, and they are yours by law. Every domestic helper in Hong Kong is entitled to statutory holidays — 15 in 2026 and 15 in 2027 — no matter how many hours you work or how long you have been employed. Every date is listed below, with what to do when a holiday lands on your rest day.',
+    // Rendered as a card strip above the first table: the shape of the
+    // entitlement before the dates, for a reader who arrived on a phone.
+    facts: [
+      ['15 days a year', 'In 2026 and in 2027. They are yours by law, whatever your working hours.'],
+      ['From your first day', 'There is no waiting period and no minimum length of service.'],
+      ['Paid', 'After 3 months of employment, at your average daily wage, by your next payday.'],
+      ['Never lost', 'A holiday that lands on your rest day moves to another day — it is not cancelled.'],
+    ],
     tableDate: 'Date',
     tableHoliday: 'Public holiday',
     tableNote: 'What to know',
@@ -211,6 +219,12 @@ const UI = {
   fil: {
     lede:
       'Labing-limang bayad na araw ng pahinga sa isang taon, at bunga ito ng batas. Ang bawat domestic helper sa Hong Kong ay may karapatan sa mga statutory holiday — 15 sa 2026 at 15 sa 2027 — gaano man karami ang oras ng trabaho o tagal ng pananatili. Nakatala sa ibaba ang bawat petsa, kung ano ang gagawin kapag ang pista ay nasa rest day mo.',
+    facts: [
+      ['15 araw kada taon', 'Sa 2026 at 2027. Karapatan ito ayon sa batas, gaano man ang oras ng trabaho mo.'],
+      ['Simula sa unang araw', 'Walang hinihintay na panahon at walang minimum na tagal ng serbisyo.'],
+      ['Bayad', 'Makalipas ang 3 buwang trabaho, sa average na sahod sa araw, bago ang susunod na payday.'],
+      ['Hindi nawawala', 'Kung ang pista ay nasa rest day, lilipat ito sa ibang araw — hindi kukupas.'],
+    ],
     tableDate: 'Petsa',
     tableHoliday: 'Pista',
     tableNote: 'Ano ang dapat malaman',
@@ -235,6 +249,12 @@ const UI = {
   zh: {
     lede:
       '一年十五天有薪假期，這是法律賦予你的權利。在香港，每位家庭傭工均可享有法定假日 —— 2026 年與 2027 年各 15 天 —— 不論每週工時長短或受僱時間多久。以下列出每一個日期，以及當假期適逢休息日時應該怎樣處理。',
+    facts: [
+      ['每年 15 天', '2026 與 2027 年均為 15 天。這是法律賦予的權利，與工時長短無關。'],
+      ['入職第一天起', '沒有試用期，亦無最短服務期要求。'],
+      ['有薪', '受僱滿 3 個月後，按每日平均工資計算，並須於下一個支薪日或之前發放。'],
+      ['不會作廢', '假期適逢休息日會順延至另一天，不會被取消。'],
+    ],
     tableDate: '日期',
     tableHoliday: '假日',
     tableNote: '備註',
@@ -259,6 +279,12 @@ const UI = {
   id: {
     lede:
       'Lima belas hari libur berbayar setahun, dan itu hak Anda menurut undang-undang. Setiap asisten rumah tangga di Hong Kong berhak atas cuti statutory — 15 di 2026 dan 15 di 2027 — berapa pun jam kerja atau lama Anda bekerja. Semua tanggal tercantum di bawah, beserta apa yang harus dilakukan saat hari libur jatuh pada hari istirahat Anda.',
+    facts: [
+      ['15 hari setahun', 'Pada 2026 dan 2027. Ini hak Anda menurut hukum, berapa pun jam kerja Anda.'],
+      ['Sejak hari pertama', 'Tidak ada masa tenggang dan tidak ada masa kerja minimum.'],
+      ['Dibayar', 'Setelah 3 bulan bekerja, dengan upah harian rata-rata, paling lambat hari gajian berikutnya.'],
+      ['Tidak hilang', 'Libur yang jatuh di hari istirahat dipindahkan ke hari lain — tidak dibatalkan.'],
+    ],
     tableDate: 'Tanggal',
     tableHoliday: 'Hari libur',
     tableNote: 'Yang perlu diketahui',
@@ -414,7 +440,26 @@ function validate() {
   if (!HOLIDAYS[2026].some((h) => h.id === 'easter-monday')) problems.push('2026 must include Easter Monday (new from 2026)');
   if (!HOLIDAYS[2027].some((h) => h.id === 'lny-4')) problems.push('2027 must include the fourth day of Lunar New Year');
   if (HOLIDAYS[2027].some((h) => h.id === 'lny-2')) problems.push('2027 must NOT list the second day of Lunar New Year (it falls on a Sunday)');
-  if (problems.length) throw new Error('holidays.js data is wrong:/n  - ' + problems.join('\n  - '));
+  // The facts strip is prose in four languages, and a missing one is silent:
+  // the page just renders three cards instead of four. Same rule as the dates.
+  const LANGS = ['en', 'fil', 'zh', 'id'];
+  const factsCount = UI.en.facts.length;
+  for (const l of LANGS) {
+    const u = UI[l];
+    if (!u || !Array.isArray(u.facts) || u.facts.length !== factsCount) {
+      problems.push(`${l} must carry the same ${factsCount} facts as en, found ${u && u.facts ? u.facts.length : 'none'}`);
+      continue;
+    }
+    for (const [i, f] of u.facts.entries()) {
+      if (!Array.isArray(f) || f.length !== 2 || !f[0] || !f[1]) {
+        problems.push(`${l} fact ${i} must be a [bold, rest] pair of non-empty strings, found ${JSON.stringify(f)}`);
+      }
+    }
+    if ((u.rules || []).length !== UI.en.rules.length) {
+      problems.push(`${l} must carry ${UI.en.rules.length} rules, found ${(u.rules || []).length}`);
+    }
+  }
+  if (problems.length) throw new Error('holidays.js data is wrong:\n  - ' + problems.join('\n  - '));
 }
 
 validate();
@@ -462,12 +507,16 @@ ${rows}
 function holidaysGuideBody(lang) {
   const u = UI[lang] || UI.en;
   const tables = YEARS.map((y) => yearTable(y, lang)).join('\n');
+  const facts = u.facts.map(([strong, rest]) => `<li><strong>${esc(strong)}</strong>${esc(rest)}</li>`).join('\n');
   const rules = u.rules.map((r) => `<li>${esc(r)}</li>`).join('\n');
   const sources = SOURCES.map(
-    (s, i) => `<li><a href="${esc(s[lang] || s.en)}" rel="noopener noreferrer">${esc(u.sources[i] || s.en)}</a></li>`
+    (s, i) => `<li><a href="${esc(s[lang] || s.en)}" rel="noopener noreferrer">${esc(u.sources[i] || s.en)}</li></li>`
   ).join('\n');
   return [
     `<p>${esc(u.lede)}</p>`,
+    // Must stay the FIRST list in the body: the CSS picks the facts strip out
+    // as `article:has(table) ul:first-of-type`.
+    `<ul>\n${facts}\n</ul>`,
     tables,
     `<h2>${esc(u.rulesHeading)}</h2>`,
     `<ul>\n${rules}\n</ul>`,

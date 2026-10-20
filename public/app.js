@@ -4489,11 +4489,25 @@ function renderPost(post) {
        </div>`
     : '';
 
+  // The share strip appears on EVERY post, in both channels. It used to be
+  // culture-only, on the reasoning that a news item is somebody else's
+  // journalism and should be shared as a link rather than a card. The operator
+  // asked for it on news too, and the numbers agree with her: the row is three
+  // icons either way, and the card it builds is drawn from the title and
+  // summary that a news row already has. POST_CHANNELS is ['culture', 'news']
+  // — see db.js — so "every post" and "both channels" are the same statement
+  // here, which is why there is no channel test left in this function at all.
+  //
+  // The layout is the same on a post of either channel: the strip in the
+  // hero's top-right corner, and again at the foot of the article. Ask for it
+  // twice on purpose — a reader who reaches the end of a piece has just
+  // decided it was worth reading, which is the moment she is most likely to
+  // pass it on.
   host.innerHTML = `
     <div class="post-hero">
       <div class="post-hero-top">
         <div class="post-hero-icon">${escapeHtml(post.icon || '🏮')}</div>
-        ${post.channel === 'culture' ? `<div class="post-hero-share">${socialRowHtml(post)}</div>` : ''}
+        <div class="post-hero-share">${socialRowHtml(post)}</div>
       </div>
       <h1 class="post-title">${escapeHtml(postField(post, 'title'))}</h1>
       ${date ? `<div class="post-date">${escapeHtml(date)}</div>` : ''}
@@ -4501,12 +4515,7 @@ function renderPost(post) {
     ${summary ? `<p class="post-summary">${escapeHtml(summary)}</p>` : ''}
     <div class="post-content">${body}</div>
     ${source}
-    ${post.channel === 'culture'
-      ? socialRowHtml(post)
-      : shareRowHtml([
-          { label: t('share.chatBtn'), icon: WHATSAPP_ICON_SVG, onclick: `shareArticle('${post.slug}', 'chat')`, variant: 'wa' },
-          { label: t('share.pictureBtn'), icon: '🖼️', onclick: `shareArticle('${post.slug}')` },
-        ])}`;
+    ${socialRowHtml(post)}`;
 }
 
 // ---- Employer connections --------------------------------------------------

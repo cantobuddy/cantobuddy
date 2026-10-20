@@ -57,11 +57,18 @@
     <!-- tabs -->
     <!-- Order asked for by the operator: Reports, People, Vocabulary,
          Categories, Progress, Feedback. The last three are the broadcast and
-         moderation queues, which stay after them in this order. -->
+         moderation queues, which stay after them in this order.
+
+         Reports is also the LANDING TAB (asked for on 2026-10-20): the
+         `active` classes below are on the Reports button and #tab-reports,
+         not on Vocabulary. loadAdminData() calls renderAdminReport() on every
+         login, so the panel already has its data when it is first shown. If a
+         seventh tab is ever added before Reports, the landing tab does not
+         follow it — it stays where these two `active` classes say it is. -->
     <div class="admin-tabs">
-      <button class="admin-tab" data-tab="reports" onclick="switchTab('reports')">📈 Reports</button>
+      <button class="admin-tab active" data-tab="reports" onclick="switchTab('reports')">📈 Reports</button>
       <button class="admin-tab" data-tab="people" onclick="switchTab('people')">👥 People</button>
-      <button class="admin-tab active" data-tab="vocab" onclick="switchTab('vocab')">📚 Vocabulary</button>
+      <button class="admin-tab" data-tab="vocab" onclick="switchTab('vocab')">📚 Vocabulary</button>
       <button class="admin-tab" data-tab="categories" onclick="switchTab('categories')">📁 Categories</button>
       <button class="admin-tab" data-tab="progress" onclick="switchTab('progress')">📊 Progress</button>
       <!-- The badge is the count of unanswered items, so the operator sees there
@@ -82,7 +89,7 @@
     </div>
 
     <!-- ---- vocab tab ---- -->
-    <div id="tab-vocab" class="admin-tab-content active">
+    <div id="tab-vocab" class="admin-tab-content">
       <div class="admin-toolbar">
         <h3>Vocabulary List</h3>
         <button class="btn btn-primary" onclick="openVocabForm()">+ Add Word</button>
@@ -132,7 +139,7 @@
     </div>
 
     <!-- ---- reports tab ---- -->
-    <div id="tab-reports" class="admin-tab-content">
+    <div id="tab-reports" class="admin-tab-content active">
       <div class="admin-toolbar">
         <h3>Statistics &amp; reporting</h3>
         <button class="btn btn-outline btn-sm" onclick="renderAdminReport()">↻ Refresh</button>

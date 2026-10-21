@@ -60,6 +60,7 @@ app.set('trust proxy', 1);
 // Express strips the mount prefix from req.url, so the game's own routes stay
 // `/api/create`, `/api/events` … while the browser sees `/games/uno/api/...`.
 app.use('/games/uno', require('./uno').handle);
+app.use('/games/bigtwo', require('./bigtwo').handle);
 
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true }));

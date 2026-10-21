@@ -50,10 +50,11 @@ const I18N = {
     'games.family': 'With family',
     'games.soon': 'Coming soon',
     'games.bigtwoName': 'Big Two',
-    'games.bigtwoDesc': 'The Hong Kong table game — 鋤大D, with the same room codes.',
+    'games.bigtwoDesc': 'The Hong Kong table game — 鋤大D. 2 is the biggest card, spades the strongest suit.',
+    'games.twoToFour': '2–4 players',
     'games.matchName': 'Word match',
     'games.matchDesc': 'Race a partner to match the Cantonese word with its meaning.',
-    'games.note': 'More games are on the way. UNO is the first — try it and tell us what to build next.',
+    'games.note': 'Two games are live now — UNO and Big Two. Tell us what to build next.',
 
 
     // discover — the culture + news feed
@@ -526,10 +527,11 @@ const I18N = {
     'games.family': 'Kasama ang pamilya',
     'games.soon': 'Malapit na',
     'games.bigtwoName': 'Big Two',
-    'games.bigtwoDesc': 'Ang laro sa mesa sa Hong Kong — 鋤大D, parehong code ng kuwarto.',
+    'games.bigtwoDesc': 'Ang laro sa mesa sa Hong Kong — 鋤大D. Ang 2 ang pinakamalaking baraha, spades ang pinakamalakas na suit.',
+    'games.twoToFour': '2–4 na manlalaro',
     'games.matchName': 'Tugma ng salita',
     'games.matchDesc': 'Magkarera sa kasama para itugma ang salitang Cantonese sa kahulugan.',
-    'games.note': 'Marami pang laro ang darating. Ang UNO ang una — subukan at sabihin kung ano ang susunod.',
+    'games.note': 'Dalawang laro na ang live — UNO at Big Two. Sabihin kung ano ang susunod.',
 
 
     // discover — ang feed ng kultura at balita
@@ -986,10 +988,11 @@ const I18N = {
     'games.family': '和家人一起',
     'games.soon': '即将上线',
     'games.bigtwoName': '锄大D',
-    'games.bigtwoDesc': '香港的桌上游戏——锄大D，用同样的配对码。',
+    'games.bigtwoDesc': '香港的桌上游戏——锄大D。2 最大，黑桃最大。',
+    'games.twoToFour': '2–4 人',
     'games.matchName': '词语配对',
     'games.matchDesc': '和伙伴比赛，把粤语词和它的意思配对起来。',
-    'games.note': '更多游戏在路上。UNO 是第一个——先试试，再告诉我们下一个想玩什么。',
+    'games.note': '现在有两个游戏——UNO 和大老二。告诉我们下一个想玩什么。',
 
 
     // discover — 文化与新闻
@@ -1445,10 +1448,11 @@ const I18N = {
     'games.family': 'Bersama keluarga',
     'games.soon': 'Segera hadir',
     'games.bigtwoName': 'Big Two',
-    'games.bigtwoDesc': 'Permainan meja Hong Kong — 鋤大D, dengan kode ruang yang sama.',
+    'games.bigtwoDesc': 'Permainan meja Hong Kong — 鋤大D. Kartu 2 paling besar, sekop suit terkuat.',
+    'games.twoToFour': '2–4 pemain',
     'games.matchName': 'Cocokkan kata',
     'games.matchDesc': 'Berlomba dengan pasangan mencocokkan kata Kanton dengan artinya.',
-    'games.note': 'Masih ada game lain menyusul. UNO yang pertama — coba dulu, lalu bilang mau apa berikutnya.',
+    'games.note': 'Dua permainan sudah aktif — UNO dan Big Two. Bilang mau apa berikutnya.',
 
 
     // discover — umpan budaya dan berita

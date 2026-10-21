@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f4f5fa">
+<meta name="robots" content="noindex">
+<title>Big Two · CantoBuddy</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%231f9d63'/><rect x='26' y='22' width='34' height='48' rx='6' fill='white' transform='rotate(-12 43 46)'/><rect x='44' y='30' width='34' height='48' rx='6' fill='white' transform='rotate(8 61 54)'/><text x='61' y='64' font-size='26' font-family='Arial' font-weight='bold' fill='%231f9d63' text-anchor='middle'>2</text></svg>">
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  :root{
+    --red:#e63946; --green:#1f9d63; --gold:#c9971b;
+    --ink:#161922; --muted:#6f7683; --line:#e6e8ef;
+    --bg:#f4f5fa; --panel:#ffffff; --felt:#1f6b4f;
+    --shadow:0 10px 30px rgba(23,26,35,.08);
+    --cw:clamp(42px,12.4vw,62px);      /* one card's width */
+    --ov:-0.52;                         /* overlap, as a fraction of --cw — 13
+                                           cards have to fit a 320px phone */
+  }
+  html,body{height:100%}
+  body{
+    margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"PingFang SC","Microsoft YaHei",sans-serif;
+    color:var(--ink);background:var(--bg);
+    background-image:
+      radial-gradient(60vw 60vw at 6% -10%, rgba(31,157,99,.13), transparent 62%),
+      radial-gradient(50vw 50vw at 100% 0%, rgba(201,151,27,.12), transparent 60%),
+      radial-gradient(60vw 60vw at 50% 112%, rgba(43,108,240,.09), transparent 60%);
+    background-attachment:fixed;
+    overscroll-behavior:none;
+  }
+  button{font:inherit;color:inherit;border:none;background:none;cursor:pointer}
+  input{font:inherit;color:inherit}
+  .hidden{display:none !important}
+
+  /* ---------------------------------------------------------- lobby */
+  #lobby{min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px 18px 40px}
+  .backlink{
+    align-self:flex-start;display:inline-flex;align-items:center;gap:6px;color:var(--muted);
+    font-size:13px;font-weight:600;text-decoration:none;padding:8px 12px;border-radius:12px;background:#fff;
+    border:1px solid var(--line);box-shadow:0 4px 12px rgba(23,26,35,.05);margin-bottom:auto;
+  }
+  .brand{display:flex;gap:5px;margin:14px 0}
+  .brand i{
+    width:40px;height:54px;border-radius:8px;display:grid;place-items:center;
+    font-style:normal;font-weight:800;color:#fff;font-size:19px;letter-spacing:-.5px;
+    box-shadow:0 8px 18px rgba(0,0,0,.16);
+  }
+  .brand i:nth-child(1){background:#2b2f3a;transform:rotate(-10deg)}
+  .brand i:nth-child(2){background:var(--red);transform:rotate(-2deg) translateY(-6px)}
+  .brand i:nth-child(3){background:var(--gold);transform:rotate(6deg)}
+  h1{margin:6px 0 6px;font-size:26px;letter-spacing:-.5px;text-align:center}
+  .sub{margin:0 0 20px;color:var(--muted);font-size:14px;text-align:center;line-height:1.6;max-width:340px}
+  .panel{
+    width:100%;max-width:380px;background:var(--panel);border-radius:24px;
+    padding:20px;box-shadow:var(--shadow);border:1px solid rgba(255,255,255,.7);
+  }
+  label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin:0 0 7px;letter-spacing:.3px}
+  .field{
+    width:100%;padding:13px 14px;border-radius:14px;border:1.5px solid var(--line);
+    background:#fafbfe;font-size:16px;outline:none;transition:.15s;
+  }
+  .field:focus{border-color:var(--green);background:#fff}
+  .avatars{display:flex;gap:8px;flex-wrap:wrap}
+  .avatars button{
+    width:44px;height:44px;border-radius:14px;background:#f6f7fb;border:1.5px solid var(--line);
+    font-size:21px;display:grid;place-items:center;transition:.15s;
+  }
+  .avatars button.on{border-color:var(--green);background:#eaf7f0;transform:scale(1.04)}
+  .btn{
+    width:100%;padding:14px;border-radius:15px;background:#fff;border:1.5px solid var(--line);
+    font-weight:700;font-size:15px;transition:.15s;box-shadow:0 4px 12px rgba(23,26,35,.05);
+  }
+  .btn:active{transform:scale(.985)}
+  .btn.primary{
+    background:linear-gradient(135deg,#1f9d63,#33b97c);color:#fff;border-color:transparent;
+    box-shadow:0 10px 22px rgba(31,157,99,.28);margin-top:18px;
+  }
+  .divider{display:flex;align-items:center;gap:10px;margin:18px 0 12px;color:#9aa1ae;font-size:12px}
+  .divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line)}
+  .join-row{display:flex;gap:8px}
+  .join-row .field{flex:1;text-transform:uppercase;letter-spacing:3px;font-weight:700;text-align:center}
+  .join-row .btn{width:auto;padding:13px 20px}
+  .err{margin:12px 0 0;color:var(--red);font-size:12.5px;min-height:16px;text-align:center}
+  .tips{list-style:none;padding:0;margin:22px 0 0;max-width:360px;font-size:12px;color:var(--muted);line-height:1.7}
+  .tips li{padding-left:16px;position:relative}
+  .tips li::before{content:"•";position:absolute;left:2px;color:var(--green)}
+
+  /* ----------------------------------------------------------- room */
+  #room{min-height:100dvh;display:flex;flex-direction:column;padding:10px 14px 0;max-width:1000px;margin:0 auto}
+  .topbar{display:flex;align-items:center;gap:8px;padding:4px 0 10px;flex-wrap:nowrap}
+  .codechip{
+    display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);
+    padding:7px 12px;border-radius:13px;box-shadow:0 4px 12px rgba(23,26,35,.05);cursor:pointer;
+  }
+  .codechip small{display:block;font-size:9.5px;color:var(--muted);letter-spacing:.4px;line-height:1.2}
+  .codechip b{font-size:16px;letter-spacing:3px;line-height:1.1}
+  .roundchip{font-size:12px;color:var(--muted);font-weight:600}
+  .spacer{flex:1}
+  .status{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--muted)}
+  .dot{width:7px;height:7px;border-radius:50%;background:#c3c8d2;display:inline-block}
+  .dot.on{background:#2fbf71;box-shadow:0 0 0 3px rgba(47,191,113,.18)}
+  .iconbtn{
+    width:36px;height:36px;border-radius:11px;background:#fff;border:1px solid var(--line);
+    display:grid;place-items:center;font-size:15px;box-shadow:0 4px 12px rgba(23,26,35,.05);
+  }
+
+  /* opponents */
+  .seats{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;padding:2px 0 10px}
+  .seat{
+    display:flex;align-items:center;gap:7px;background:#fff;border:1.5px solid var(--line);
+    border-radius:15px;padding:7px 10px;min-width:96px;box-shadow:0 4px 12px rgba(23,26,35,.05);
+    transition:.2s;position:relative;
+  }
+  .seat .av{font-size:20px;line-height:1}
+  .seat .nm{font-size:11.5px;font-weight:700;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .seat .cnt{font-size:10px;color:var(--muted);font-weight:600}
+  .seat.turn{border-color:var(--green);background:#effaf4;box-shadow:0 0 0 3px rgba(31,157,99,.12)}
+  .seat.off{opacity:.5}
+  .seat.out{opacity:.55;text-decoration:line-through}
+  .seat .win{font-size:10px;color:var(--gold);font-weight:800}
+
+  /* the trick */
+  .table{
+    flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+    position:relative;min-height:150px;padding:8px 0;
+  }
+  .table::before{
+    content:"";position:absolute;inset:0 3%;border-radius:26px;
+    background:radial-gradient(ellipse at 50% 40%, rgba(31,107,79,.10), rgba(31,107,79,.04));
+    border:1px solid rgba(31,107,79,.12);
+  }
+  .trick-line{position:relative;display:flex;align-items:center;justify-content:center;min-height:calc(var(--cw) * 1.5)}
+  .trick-cards{display:flex;gap:4px;align-items:center}
+  .trick-meta{position:relative;text-align:center;font-size:12px;color:var(--muted);line-height:1.5}
+  .trick-meta b{color:var(--ink)}
+  .lead-hint{
+    position:relative;background:#fff;border:1px dashed rgba(31,157,99,.5);color:var(--green);
+    border-radius:14px;padding:14px 18px;font-size:13px;font-weight:600;text-align:center;max-width:280px;
+  }
+  .passes{display:flex;gap:5px;justify-content:center;flex-wrap:wrap;position:relative}
+  .passes span{background:#fff;border:1px solid var(--line);border-radius:9px;padding:3px 8px;font-size:10.5px;color:var(--muted)}
+
+  /* me + hand */
+  .me-bar{display:flex;align-items:center;gap:7px;padding:0 4px 4px;font-size:12px}
+  .me-bar .nm{font-weight:800}
+  .me-bar .tag{background:#eaf7f0;color:var(--green);font-size:10px;font-weight:800;padding:2px 7px;border-radius:8px}
+  .hand-wrap{padding:14px 2px 4px;overflow:visible}
+  .hand{display:flex;justify-content:center;align-items:flex-end;padding-top:16px}
+  .card{
+    position:relative;flex:0 0 auto;width:var(--cw);height:calc(var(--cw) * 1.46);
+    border-radius:9px;background:#fff;border:1px solid #d9dde6;
+    box-shadow:0 4px 10px rgba(23,26,35,.13);transition:transform .13s ease, box-shadow .13s;
+    display:flex;flex-direction:column;justify-content:space-between;padding:3px 4px;
+    user-select:none;
+  }
+  .hand .card + .card{margin-left:calc(var(--cw) * var(--ov))}
+  .hand .card.pick{cursor:pointer}
+  .hand .card.pick:active{transform:translateY(-6px)}
+  .hand .card.sel{transform:translateY(-16px);box-shadow:0 10px 18px rgba(31,157,99,.3),0 0 0 2.5px var(--green);z-index:5}
+  .hand .card.hint{box-shadow:0 0 0 2.5px var(--gold)}
+  .card .rk{font-size:calc(var(--cw) * .27);font-weight:800;line-height:1}
+  .card .st{font-size:calc(var(--cw) * .3);line-height:1;align-self:flex-end}
+  .card.red{color:var(--red)}
+  .card.blk{color:#22262f}
+  .trick-cards .card{box-shadow:0 6px 14px rgba(23,26,35,.16)}
+
+  /* actions */
+  .actions{display:flex;gap:8px;padding:6px 2px calc(10px + env(safe-area-inset-bottom));align-items:center}
+  .act{
+    flex:1;padding:14px 12px;border-radius:15px;background:#fff;font-weight:800;font-size:14px;
+    border:1.5px solid var(--line);box-shadow:0 5px 14px rgba(23,26,35,.07);transition:.15s;
+  }
+  .act:active{transform:scale(.97)}
+  .act:disabled{opacity:.4;box-shadow:none}
+  .act.go{background:linear-gradient(135deg,#1f9d63,#33b97c);color:#fff;border-color:transparent;box-shadow:0 10px 20px rgba(31,157,99,.26)}
+  .act.ghost{flex:0 0 auto;padding:14px 18px}
+  .act.selcount{font-size:12px;font-weight:600;color:var(--muted);flex:0 0 auto;padding:0 4px}
+
+  /* feed */
+  .feed{
+    position:fixed;right:14px;bottom:14px;width:290px;max-height:52vh;background:rgba(255,255,255,.97);
+    backdrop-filter:blur(14px);border-radius:18px;box-shadow:0 18px 44px rgba(23,26,35,.18);
+    border:1px solid var(--line);display:flex;flex-direction:column;z-index:40;overflow:hidden;
+  }
+  .feed-head{display:flex;align-items:center;gap:6px;padding:10px 12px;border-bottom:1px solid var(--line);font-size:12px;font-weight:700}
+  .feed-body{flex:1;overflow-y:auto;padding:8px 12px;font-size:12.5px;line-height:1.75}
+  .feed-body .lg{color:#4b5160;display:flex;gap:6px;margin:3px 0}
+  .feed-body .lg i{font-style:normal;opacity:.45;flex:0 0 auto;font-size:10.5px;padding-top:2px}
+  .mini{display:inline-flex;gap:2px;vertical-align:middle;margin:0 2px}
+  .mini b{
+    display:inline-block;font-size:10px;font-weight:800;line-height:1.35;padding:0 3px;
+    border:1px solid #dfe3ec;border-radius:4px;background:#fff;
+  }
+  .mini b.r{color:var(--red)}
+
+  /* overlay + toast */
+  .overlay{
+    position:fixed;inset:0;background:rgba(20,23,30,.5);backdrop-filter:blur(6px);z-index:60;
+    display:grid;place-items:center;padding:20px;animation:fade .2s;
+  }
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .modal{
+    background:#fff;border-radius:24px;padding:24px;width:100%;max-width:330px;text-align:center;
+    box-shadow:0 30px 60px rgba(0,0,0,.25);animation:up .25s cubic-bezier(.3,1.4,.5,1);
+  }
+  @keyframes up{from{transform:translateY(16px) scale(.96);opacity:0}to{transform:none;opacity:1}}
+  .modal h2{margin:0 0 6px;font-size:20px}
+  .modal p{margin:0 0 16px;color:var(--muted);font-size:13px;line-height:1.6}
+  .big-av{font-size:54px;line-height:1;margin-bottom:4px}
+  .confetti{position:fixed;inset:0;pointer-events:none;z-index:70;overflow:hidden}
+  .confetti i{position:absolute;top:-16px;width:8px;height:15px;border-radius:2px;animation:fall linear forwards;opacity:.95}
+  @keyframes fall{to{transform:translateY(112vh) rotate(720deg);opacity:.85}}
+  .toast{
+    position:fixed;left:50%;top:16px;transform:translateX(-50%) translateY(-20px);background:var(--ink);color:#fff;
+    padding:10px 16px;border-radius:12px;font-size:13px;opacity:0;transition:.25s;z-index:99;
+    pointer-events:none;max-width:90vw;text-align:center;
+  }
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  @media(min-width:900px){
+    :root{--cw:76px}
+    .hand .card + .card{margin-left:calc(var(--cw) * -0.42)}
+    .seat{min-width:120px}
+  }
+  @media(min-width:1100px){
+    #room{margin-right:326px}
+    .feed{top:10px;bottom:auto;right:12px;height:calc(100dvh - 20px);max-height:none}
+  }
+  @media(max-width:899px){
+    .feed{width:calc(100vw - 24px);right:12px;bottom:12px;max-height:46vh}
+  }
+  @media(max-width:560px){
+    #room{padding:8px 10px 0}
+    .roundchip{display:none}
+    .status span:last-child{display:none}
+    .seat{min-width:0;padding:6px 8px;gap:5px}
+    .seat .nm{max-width:52px;font-size:11px}
+    .act{padding:13px 10px;font-size:13px}
+    .act.ghost{padding:13px 14px}
+  }
+  @media(max-height:680px){
+    .seat{padding:5px 8px}
+    .table{min-height:120px}
+    .hand-wrap{padding-top:10px}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================ LOBBY ============================ -->
+<main id="lobby">
+  <a class="backlink" href="/?view=games" id="backLink">← <span data-k="backToApp"></span></a>
+  <div class="brand"><i>大</i><i>老</i><i>二</i></div>
+  <h1 data-k="title"></h1>
+  <p class="sub" data-k="sub"></p>
+
+  <div class="panel">
+    <label data-k="nameLabel"></label>
+    <input id="nameInput" class="field" maxlength="12" autocomplete="off">
+
+    <label style="margin-top:16px" data-k="avatarLabel"></label>
+    <div id="avatarPicker" class="avatars"></div>
+
+    <button id="createBtn" class="btn primary" data-k="createBtn"></button>
+
+    <div class="divider"><span data-k="divider"></span></div>
+    <div class="join-row">
+      <input id="codeInput" class="field" maxlength="4" placeholder="ABCD" autocomplete="off" autocapitalize="characters">
+      <button id="joinBtn" class="btn" data-k="joinBtn"></button>
+    </div>
+    <p id="lobbyErr" class="err"></p>
+  </div>
+
+  <ul class="tips">
+    <li data-k="tip1"></li>
+    <li data-k="tip2"></li>
+  </ul>
+</main>
+
+<!-- ============================ ROOM ============================ -->
+<section id="room" class="hidden">
+  <div class="topbar">
+    <div class="codechip" id="codeChip">
+      <div>
+        <small data-k="codeChipLabel"></small>
+        <b id="codeText">----</b>
+      </div>
+      <span style="font-size:15px">🔗</span>
+    </div>
+    <div class="roundchip" id="roundChip"></div>
+    <div class="spacer"></div>
+    <div class="status"><span class="dot" id="liveDot"></span><span id="liveText"></span></div>
+    <button class="iconbtn" id="soundBtn">🔔</button>
+    <button class="iconbtn" id="feedBtn">📜</button>
+    <button class="iconbtn" id="leaveBtn">⎋</button>
+  </div>
+
+  <div class="seats" id="seats"></div>
+
+  <div class="table">
+    <div id="trickArea" class="trick-line"></div>
+    <div class="trick-meta" id="trickMeta"></div>
+    <div class="passes" id="passes"></div>
+  </div>
+
+  <div class="me-bar">
+    <span id="myAv">🙂</span>
+    <span class="nm" id="myName"></span>
+    <span class="tag" id="myTag"></span>
+    <span class="spacer"></span>
+    <span style="font-size:11.5px;color:var(--muted)" id="myCount"></span>
+  </div>
+
+  <div class="hand-wrap"><div class="hand" id="hand"></div></div>
+
+  <div class="actions">
+    <button class="act" id="passBtn"></button>
+    <button class="act go" id="playBtn"></button>
+    <button class="act ghost" id="startBtn" style="display:none"></button>
+  </div>
+</section>
+
+<!-- ============================ FEED ============================ -->
+<aside class="feed hidden" id="feed">
+  <div class="feed-head">
+    <span data-k="feedHead"></span>
+    <span class="spacer"></span>
+    <button id="feedClose" style="font-size:14px;color:#9aa1ae">✕</button>
+  </div>
+  <div class="feed-body" id="feedBody"></div>
+</aside>
+
+<div class="toast" id="toast"></div>
+<div id="modalRoot"></div>
+
+<script>
+/* ============================================================
+   Language.
+
+   Same hand-off as the UNO table: the learner's language is already in
+   `cb_lang` on this origin, so there is no query string and no extra
+   request. Four dictionaries — the same four the app ships — and an
+   unknown key falls back to English instead of rendering "undefined".
+
+   Card names are NOT here. A card is a rank and a suit, which read the
+   same in every language (J Q K A 2 and ♦ ♣ ♥ ♠), so they are drawn,
+   not translated. Only the COMBINATIONS get words, because "full house"
+   genuinely differs between the four.
+   ============================================================ */
+const STR = {
+  en: {
+    backToApp: 'CantoBuddy', title: 'Big Two',
+    sub: 'The Hong Kong card game — 2 is the highest card and spades are the strongest suit. Make a room and send the code to your family.',
+    nameLabel: 'Your name', avatarLabel: 'Pick an avatar', createBtn: 'Create a room',
+    divider: 'I already have a code', joinBtn: 'Join',
+    tip1: '2–4 players · 13 cards each · the 2 is the biggest card',
+    tip2: 'You can pass, but whoever played last leads the next hand',
+    codeChipLabel: 'Room code · tap to share',
+    liveOnline: 'Live', liveReconnecting: 'Reconnecting',
+    feedHead: 'What happened',
+    turnYou: 'Your turn', turnTheirs: '{name} is thinking…',
+    leadHint: 'Your lead — play any combination',
+    youLead: 'You lead the next hand',
+    trickOf: '{name} played a {type}',
+    passesLabel: '{n} passed',
+    cardsLeft: '{n} cards', noCards: 'out',
+    playBtn: 'Play', passBtn: 'Pass',
+    selected: '{n} selected',
+    startBtn: 'Start game', waitingHost: 'Waiting for the host to start…',
+    waitingPlayers: 'Waiting for more players…',
+    seatEmpty: 'Empty seat',
+    mustInclude: 'Your first play must include the {card}',
+    logRoom: 'Room {code} created',
+    logJoin: '{name} joined',
+    logLeave: '{name} left',
+    logDeal: 'Round {round}: {name} opens with {card}',
+    logPlay: '{name} played a {type}',
+    logPass: '{name} passed',
+    logTrick: '{name} takes the hand',
+    logWin: '{name} wins the round!',
+    logAutoPass: '{name} was away and passed',
+    logAutoPlay: '{name} was away and played {card}',
+    logLobby: 'Back to the lobby',
+    typeSingle: 'single', typePair: 'pair', typeTriple: 'three of a kind',
+    typeStraight: 'straight', typeFlush: 'flush', typeFullhouse: 'full house',
+    typeQuads: 'four of a kind', typeStraightflush: 'straight flush',
+    winTitle: 'You win!', winSub: 'You got rid of all your cards first.',
+    loseTitle: '{name} wins', loseSub: 'Better luck in the next round.',
+    againBtn: 'Play again', backToHub: 'Back to the games',
+    errNotStarted: 'The game has not started yet.',
+    errNotYourTurn: 'It is not your turn.',
+    errNotInHand: 'You do not hold that card.',
+    errInvalidCombo: 'Those cards do not make a combination.',
+    errDoesNotBeat: 'That does not beat what is on the table.',
+    errMustIncludeLowest: 'Your first play must include the lowest card.',
+    errMustPlay: 'You cannot pass — you lead this hand.',
+    errOnlyHost: 'Only the host can start.',
+    errNeedTwoPlayers: 'You need at least two players.',
+    errAlreadyPlaying: 'A game is already running.',
+    errRoomNotFound: 'No room with that code.',
+    errRoomFull: 'That room is full.',
+    errNameRequired: 'Please type a name.',
+    errNameTaken: 'Someone in the room already uses that name.',
+    errTooManyRooms: 'Too many games right now — try again later.',
+    errSessionExpired: 'The room closed. Make a new one.',
+    errNothingSelected: 'Pick at least one card.',
+    errDuplicateCard: 'That card was picked twice.',
+    errUnknown: 'Something went wrong — try again.',
+  },
+  fil: {
+    backToApp: 'CantoBuddy', title: 'Big Two',
+    sub: 'Ang larong baraha ng Hong Kong — ang 2 ang pinakamalakas na baraha at spades ang pinakamalakas na suit. Gumawa ng kuwarto at ipadala ang code sa pamilya.',
+    nameLabel: 'Pangalan mo', avatarLabel: 'Pumili ng avatar', createBtn: 'Gumawa ng kuwarto',
+    divider: 'May code na ako', joinBtn: 'Sumali',
+    tip1: '2–4 na manlalaro · 13 baraha bawat isa · ang 2 ang pinakamalaki',
+    tip2: 'Puwedeng mag-pass, pero ang huling naglaro ang mangunguna sa susunod',
+    codeChipLabel: 'Code ng kuwarto · i-tap para i-share',
+    liveOnline: 'Live', liveReconnecting: 'Kumokonekta ulit',
+    feedHead: 'Nangyari',
+    turnYou: 'Ikaw ang lalaro', turnTheirs: 'Nag-iisip si {name}…',
+    leadHint: 'Ikaw ang mangunguna — maglaro ng kahit anong kombinasyon',
+    youLead: 'Ikaw ang mangunguna sa susunod',
+    trickOf: 'Si {name} ang naglaro ng {type}',
+    passesLabel: '{n} ang nag-pass',
+    cardsLeft: '{n} baraha', noCards: 'tapos na',
+    playBtn: 'Ilaro', passBtn: 'Pass',
+    selected: '{n} ang napili',
+    startBtn: 'Simulan', waitingHost: 'Hinihintay na simulan ng host…',
+    waitingPlayers: 'Naghihintay ng iba pang manlalaro…',
+    seatEmpty: 'Walang tao',
+    mustInclude: 'Kailangang kasama ang {card} sa unang laro mo',
+    logRoom: 'Nagawa ang kuwarto {code}',
+    logJoin: 'Sumali si {name}',
+    logLeave: 'Umalis si {name}',
+    logDeal: 'Round {round}: si {name} ang nanguna sa {card}',
+    logPlay: 'Naglaro ng {type} si {name}',
+    logPass: 'Nag-pass si {name}',
+    logTrick: 'Nakuha ni {name} ang hand',
+    logWin: 'Nanalo si {name}!',
+    logAutoPass: 'Wala si {name} kaya nag-pass',
+    logAutoPlay: 'Wala si {name} kaya naglaro ng {card}',
+    logLobby: 'Bumalik sa lobby',
+    typeSingle: 'isang baraha', typePair: 'pares', typeTriple: 'tatlong magkapareho',
+    typeStraight: 'straight', typeFlush: 'flush', typeFullhouse: 'full house',
+    typeQuads: 'apat na magkapareho', typeStraightflush: 'straight flush',
+    winTitle: 'Nanalo ka!', winSub: 'Naubos mo ang baraha mo bago pa ang iba.',
+    loseTitle: 'Nanalo si {name}', loseSub: 'Bawi na lang sa susunod.',
+    againBtn: 'Maglaro ulit', backToHub: 'Bumalik sa mga laro',
+    errNotStarted: 'Hindi pa nagsisimula ang laro.',
+    errNotYourTurn: 'Hindi pa turn mo.',
+    errNotInHand: 'Wala sa kamay mo ang barahang iyon.',
+    errInvalidCombo: 'Hindi kombinasyon ang mga barahang iyon.',
+    errDoesNotBeat: 'Hindi nito matatalo ang nasa mesa.',
+    errMustIncludeLowest: 'Kailangang kasama ang pinakamaliit na baraha sa unang laro.',
+    errMustPlay: 'Hindi ka puwedeng mag-pass — ikaw ang mangunguna.',
+    errOnlyHost: 'Ang host lang ang puwedeng magsimula.',
+    errNeedTwoPlayers: 'Kailangan ng dalawang manlalaro.',
+    errAlreadyPlaying: 'May laro nang tumatakbo.',
+    errRoomNotFound: 'Walang kuwartong may ganyang code.',
+    errRoomFull: 'Puno na ang kuwartong iyon.',
+    errNameRequired: 'Maglagay ng pangalan.',
+    errNameTaken: 'May gumagamit na ng pangalang iyon.',
+    errTooManyRooms: 'Masyadong maraming laro ngayon — subukan ulit mamaya.',
+    errSessionExpired: 'Sarado na ang kuwarto. Gumawa ng bago.',
+    errNothingSelected: 'Pumili ng kahit isang baraha.',
+    errDuplicateCard: 'Napili nang dalawang beses ang barahang iyon.',
+    errUnknown: 'May naging mali — subukan ulit.',
+  },
+  zh: {
+    backToApp: 'CantoBuddy', title: '大老二',
+    sub: '香港经典纸牌游戏——2 最大，黑桃最大。开一个房间，把房间码发给家人。',
+    nameLabel: '你的名字', avatarLabel: '选一个头像', createBtn: '开一个房间',
+    divider: '我已经有房间码', joinBtn: '加入',
+    tip1: '2–4 人 · 每人 13 张 · 2 是最大的牌',
+    tip2: '可以过牌，但最后出牌的人带下一手',
+    codeChipLabel: '房间码 · 点按分享',
+    liveOnline: '连线中', liveReconnecting: '重新连线',
+    feedHead: '刚刚发生',
+    turnYou: '轮到你了', turnTheirs: '{name} 正在想…',
+    leadHint: '你先出牌——出任何一种牌型',
+    youLead: '下一手你先出',
+    trickOf: '{name} 出了{type}',
+    passesLabel: '{n} 人过牌',
+    cardsLeft: '{n} 张', noCards: '出完',
+    playBtn: '出牌', passBtn: '过牌',
+    selected: '已选 {n} 张',
+    startBtn: '开始游戏', waitingHost: '等待房主开始…',
+    waitingPlayers: '等待更多人加入…',
+    seatEmpty: '空位',
+    mustInclude: '第一手必须包含 {card}',
+    logRoom: '房间 {code} 已建立',
+    logJoin: '{name} 加入了',
+    logLeave: '{name} 离开了',
+    logDeal: '第 {round} 局：{name} 以 {card} 开局',
+    logPlay: '{name} 出了{type}',
+    logPass: '{name} 过牌',
+    logTrick: '{name} 赢得这一手',
+    logWin: '{name} 赢了这一局！',
+    logAutoPass: '{name} 不在，自动过牌',
+    logAutoPlay: '{name} 不在，自动出了 {card}',
+    logLobby: '回到房间',
+    typeSingle: '单张', typePair: '对子', typeTriple: '三条',
+    typeStraight: '顺子', typeFlush: '同花', typeFullhouse: '葫芦',
+    typeQuads: '四条', typeStraightflush: '同花顺',
+    winTitle: '你赢了！', winSub: '你比别人先出完所有的牌。',
+    loseTitle: '{name} 赢了', loseSub: '下一局再来。',
+    againBtn: '再来一局', backToHub: '回到游戏',
+    errNotStarted: '游戏还没开始。',
+    errNotYourTurn: '还没轮到你。',
+    errNotInHand: '你手上没有这张牌。',
+    errInvalidCombo: '这几张牌不成牌型。',
+    errDoesNotBeat: '这手牌压不过桌上的牌。',
+    errMustIncludeLowest: '第一手必须包含最小的那张牌。',
+    errMustPlay: '不能过牌——这一手由你先出。',
+    errOnlyHost: '只有房主可以开始。',
+    errNeedTwoPlayers: '至少要两个人才可以开始。',
+    errAlreadyPlaying: '游戏已经开始了。',
+    errRoomNotFound: '没有这个房间码。',
+    errRoomFull: '这个房间满了。',
+    errNameRequired: '请填一个名字。',
+    errNameTaken: '房间里已经有人用这个名字。',
+    errTooManyRooms: '现在开房太多——请稍后再试。',
+    errSessionExpired: '房间已关闭，请重新开一个。',
+    errNothingSelected: '至少选一张牌。',
+    errDuplicateCard: '这张牌被选了两次。',
+    errUnknown: '出了点问题——请再试一次。',
+  },
+  id: {
+    backToApp: 'CantoBuddy', title: 'Big Two',
+    sub: 'Permainan kartu Hong Kong — kartu 2 paling besar dan sekop suit terkuat. Buat ruangan dan kirim kodenya ke keluarga.',
+    nameLabel: 'Nama kamu', avatarLabel: 'Pilih avatar', createBtn: 'Buat ruangan',
+    divider: 'Saya sudah punya kode', joinBtn: 'Gabung',
+    tip1: '2–4 pemain · 13 kartu masing-masing · kartu 2 paling besar',
+    tip2: 'Boleh lewat, tapi yang terakhir main memimpin putaran berikutnya',
+    codeChipLabel: 'Kode ruangan · ketuk untuk bagikan',
+    liveOnline: 'Langsung', liveReconnecting: 'Menyambung ulang',
+    feedHead: 'Yang terjadi',
+    turnYou: 'Giliranmu', turnTheirs: '{name} sedang berpikir…',
+    leadHint: 'Kamu memimpin — mainkan kombinasi apa saja',
+    youLead: 'Kamu memimpin putaran berikutnya',
+    trickOf: '{name} memainkan {type}',
+    passesLabel: '{n} lewat',
+    cardsLeft: '{n} kartu', noCards: 'habis',
+    playBtn: 'Main', passBtn: 'Lewat',
+    selected: '{n} dipilih',
+    startBtn: 'Mulai', waitingHost: 'Menunggu host memulai…',
+    waitingPlayers: 'Menunggu pemain lain…',
+    seatEmpty: 'Kursi kosong',
+    mustInclude: 'Mainan pertama harus termasuk {card}',
+    logRoom: 'Ruangan {code} dibuat',
+    logJoin: '{name} bergabung',
+    logLeave: '{name} keluar',
+    logDeal: 'Ronde {round}: {name} membuka dengan {card}',
+    logPlay: '{name} memainkan {type}',
+    logPass: '{name} lewat',
+    logTrick: '{name} mengambil putaran',
+    logWin: '{name} menang!',
+    logAutoPass: '{name} tidak ada dan lewat',
+    logAutoPlay: '{name} tidak ada dan memainkan {card}',
+    logLobby: 'Kembali ke lobi',
+    typeSingle: 'kartu tunggal', typePair: 'pasangan', typeTriple: 'tiga kartu sama',
+    typeStraight: 'straight', typeFlush: 'flush', typeFullhouse: 'full house',
+    typeQuads: 'empat kartu sama', typeStraightflush: 'straight flush',
+    winTitle: 'Kamu menang!', winSub: 'Kamu menghabiskan kartumu lebih dulu.',
+    loseTitle: '{name} menang', loseSub: 'Coba lagi di ronde berikutnya.',
+    againBtn: 'Main lagi', backToHub: 'Kembali ke permainan',
+    errNotStarted: 'Permainan belum dimulai.',
+    errNotYourTurn: 'Belum giliranmu.',
+    errNotInHand: 'Kartu itu tidak ada di tanganmu.',
+    errInvalidCombo: 'Kartu-kartu itu bukan kombinasi.',
+    errDoesNotBeat: 'Itu tidak mengalahkan kartu di meja.',
+    errMustIncludeLowest: 'Mainan pertama harus termasuk kartu terkecil.',
+    errMustPlay: 'Tidak bisa lewat — kamu memimpin putaran ini.',
+    errOnlyHost: 'Hanya host yang bisa memulai.',
+    errNeedTwoPlayers: 'Butuh minimal dua pemain.',
+    errAlreadyPlaying: 'Permainan sudah berjalan.',
+    errRoomNotFound: 'Tidak ada ruangan dengan kode itu.',
+    errRoomFull: 'Ruangan itu penuh.',
+    errNameRequired: 'Tulis nama dulu.',
+    errNameTaken: 'Nama itu sudah dipakai di ruangan ini.',
+    errTooManyRooms: 'Terlalu banyak permainan sekarang — coba lagi nanti.',
+    errSessionExpired: 'Ruangan sudah ditutup. Buat yang baru.',
+    errNothingSelected: 'Pilih minimal satu kartu.',
+    errDuplicateCard: 'Kartu itu dipilih dua kali.',
+    errUnknown: 'Ada yang salah — coba lagi.',
+  },
+};
+
+const LANG = (function () {
+  const saved = (localStorage.getItem('cb_lang') || '').toLowerCase();
+  if (STR[saved]) return saved;
+  const nav = (navigator.language || 'en').toLowerCase();
+  if (nav.indexOf('zh') === 0) return 'zh';
+  if (nav.indexOf('id') === 0) return 'id';
+  if (nav.indexOf('tl') === 0 || nav.indexOf('fil') === 0) return 'fil';
+  return 'en';
+})();
+
+function t(key, vars) {
+  const d = STR[LANG] || STR.en;
+  let s = d[key];
+  if (s === undefined) s = STR.en[key];
+  if (s === undefined) return key;
+  if (vars) {
+    for (const k in vars) s = s.split('{' + k + '}').join(vars[k]);
+  }
+  return s;
+}
+
+/**
+ * The invite link is /games/bigtwo/ABCD. `BASE` must therefore end at
+ * /games/bigtwo/ whether or not a code is in the path — and it must strip the
+ * SEGMENT, not a fixed number of characters (a fixed slice once produced
+ * `/games/bigtwo` and sent every API call to `/games/bigtwoapi/…`).
+ */
+const BASE = (function () {
+  let p = location.pathname;
+  if (!p.endsWith('/')) {
+    const seg = p.split('/').pop();
+    p = /^[A-Z0-9]{4}$/.test(seg) ? p.slice(0, -seg.length) : p + '/';
+  }
+  return p;
+})();
+
+const $ = (s) => document.querySelector(s);
+const SOUND_KEY = 'bt.sound';
+const SESSION_KEY = 'bt.session';
+
+/* --------------------------------------------------------------- state */
+let S = null;              // the last state from the server
+let token = null;
+let code = null;
+let es = null;
+let picked = new Set();    // card ids the player has tapped
+let sound = localStorage.getItem(SOUND_KEY) !== 'off';
+let lastLogLen = 0;
+
+/* --------------------------------------------------------------- utils */
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+}
+
+const RANK_LABEL = { 11: 'J', 12: 'Q', 13: 'K', 14: 'A', 15: '2' };
+const SUIT_GLYPH = ['♦', '♣', '♥', '♠'];
+const rankLabel = (r) => RANK_LABEL[r] || String(r);
+const isRed = (suit) => suit === 0 || suit === 2;
+const cardText = (c) => rankLabel(c.rank) + SUIT_GLYPH[c.suit];
+
+function beep(freq, dur = 0.08, type = 'sine', gain = 0.05) {
+  if (!sound) return;
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    if (!beep.ctx) beep.ctx = new Ctx();
+    const ctx = beep.ctx;
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = type;
+    o.frequency.value = freq;
+    g.gain.value = gain;
+    o.connect(g); g.connect(ctx.destination);
+    o.start();
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dur);
+    o.stop(ctx.currentTime + dur + 0.02);
+  } catch (e) { /* audio is a nicety, never a failure */ }
+}
+
+function toast(msg) {
+  const el = $('#toast');
+  el.textContent = msg;
+  el.classList.add('on');
+  clearTimeout(toast.tm);
+  toast.tm = setTimeout(() => el.classList.remove('on'), 2200);
+}
+
+function errorText(code) {
+  const key = 'err' + String(code || '').charAt(0).toUpperCase() + String(code || '').slice(1);
+  const d = STR[LANG] || STR.en;
+  return d[key] || STR.en[key] || t('errUnknown');
+}
+
+/* --------------------------------------------------------------- lobby */
+const AVATARS = ['🙂', '😄', '😎', '🥳', '🐯', '🐼', '🐨', '🦊', '🌸', '⭐', '🍜', '🎧'];
+let myAvatar = AVATARS[0];
+
+function renderAvatars() {
+  const box = $('#avatarPicker');
+  box.innerHTML = AVATARS.map((a) =>
+    `<button type="button" data-a="${a}" class="${a === myAvatar ? 'on' : ''}">${a}</button>`).join('');
+  box.querySelectorAll('button').forEach((b) => {
+    b.onclick = () => { myAvatar = b.dataset.a; renderAvatars(); };
+  });
+}
+
+function paintStatic() {
+  document.querySelectorAll('[data-k]').forEach((el) => { el.textContent = t(el.dataset.k); });
+  document.title = t('title') + ' · CantoBuddy';
+  document.documentElement.lang = LANG === 'fil' ? 'tl' : LANG;
+  $('#nameInput').placeholder = LANG === 'fil' ? 'hal. Maria / Nanay' : LANG === 'zh' ? '例如：阿明' : 'e.g. Maria / Mum';
+  $('#codeChip').title = t('codeChipLabel');
+  $('#soundBtn').textContent = sound ? '🔔' : '🔇';
+}
+
+function myName() {
+  return ($('#nameInput').value || '').trim().slice(0, 12);
+}
+
+function saveSession() {
+  localStorage.setItem(SESSION_KEY, JSON.stringify({ code, token, name: S ? S.you.name : '', avatar: myAvatar }));
+}
+
+function loadSession() {
+  try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch (e) { return null; }
+}
+
+async function post(path, body) {
+  // BASE already ends in '/', so the path must not start with one — a double
+  // slash is not always normalised and the request 404s in a way that looks
+  // like a missing route.
+  const r = await fetch(BASE + String(path).replace(/^\//, ''), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body || {}),
+  });
+  let data = {};
+  try { data = await r.json(); } catch (e) { /* empty */ }
+  return { status: r.status, body: data };
+}
+
+function showLobbyError(msg) {
+  $('#lobbyErr').textContent = msg || '';
+}
+
+async function createRoom() {
+  const name = myName();
+  if (!name) { showLobbyError(t('errNameRequired')); $('#nameInput').focus(); return; }
+  const r = await post('/api/create', { name, avatar: myAvatar });
+  if (r.status !== 200) { showLobbyError(errorText(r.body.error)); return; }
+  enterRoom(r.body);
+}
+
+async function joinRoom() {
+  const name = myName();
+  const c = ($('#codeInput').value || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
+  if (!name) { showLobbyError(t('errNameRequired')); $('#nameInput').focus(); return; }
+  if (c.length !== 4) { showLobbyError(errorText('roomNotFound')); return; }
+  const r = await post('/api/join', { code: c, name, avatar: myAvatar });
+  if (r.status !== 200) { showLobbyError(errorText(r.body.error)); return; }
+  enterRoom(r.body);
+}
+
+function enterRoom(res) {
+  token = res.token;
+  code = res.code;
+  myAvatar = res.avatar || myAvatar;
+  showLobbyError('');
+  $('#lobby').classList.add('hidden');
+  $('#room').classList.remove('hidden');
+  $('#codeText').textContent = code;
+  saveSession();
+  connect();
+}
+
+/* --------------------------------------------------------------- stream */
+function connect() {
+  if (es) { try { es.close(); } catch (e) { /* gone */ } }
+  es = new EventSource(BASE + 'api/events?token=' + encodeURIComponent(token));
+  es.onopen = () => setLive(true);
+  es.onerror = () => setLive(false);
+  es.onmessage = (ev) => {
+    let data;
+    try { data = JSON.parse(ev.data); } catch (e) { return; }
+    if (data.fatal === 'expired') {
+      localStorage.removeItem(SESSION_KEY);
+      toast(errorText('sessionExpired'));
+      setTimeout(() => { location.href = BASE; }, 1200);
+      return;
+    }
+    setLive(true);
+    applyState(data);
+  };
+}
+
+function setLive(ok) {
+  $('#liveDot').classList.toggle('on', !!ok);
+  $('#liveText').textContent = ok ? t('liveOnline') : t('liveReconnecting');
+}
+
+function applyState(st) {
+  const prevTurn = S ? S.turn : null;
+  S = st;
+  // Drop selections for cards that have left the hand.
+  const ids = new Set(st.you.hand.map((c) => c.id));
+  picked.forEach((id) => { if (!ids.has(id)) picked.delete(id); });
+  renderAll();
+  if (prevTurn !== st.turn && st.turn === st.you.id && st.state === 'playing') beep(660, 0.09, 'triangle');
+  if (st.log.length > lastLogLen && lastLogLen) {
+    const last = st.log[st.log.length - 1];
+    if (last && last.k === 'play') beep(420, 0.06, 'square', 0.035);
+    if (last && last.k === 'win') beep(880, 0.25, 'sine', 0.06);
+  }
+  lastLogLen = st.log.length;
+}
+
+/* -------------------------------------------------------------- render */
+function renderAll() {
+  if (!S) return;
+  renderSeats();
+  renderTrick();
+  renderHand();
+  renderActions();
+  renderFeed();
+  renderOverlay();
+  $('#roundChip').textContent = S.round ? '#' + S.round : '';
+  $('#myName').textContent = S.you.name;
+  $('#myAv').textContent = S.you.avatar;
+  $('#myTag').textContent = S.you.isTurn && S.state === 'playing' ? t('turnYou') : '';
+  $('#myCount').textContent = t('cardsLeft', { n: S.you.hand.length });
+}
+
+function renderSeats() {
+  const box = $('#seats');
+  const others = S.players.filter((p) => p.id !== S.you.id);
+  if (!others.length) {
+    box.innerHTML = `<div class="seat"><span class="av">🪑</span><span class="nm">${esc(t('seatEmpty'))}</span></div>`;
+    return;
+  }
+  box.innerHTML = others.map((p) => {
+    const cls = ['seat'];
+    if (p.isTurn) cls.push('turn');
+    if (!p.connected) cls.push('off');
+    if (p.finished || p.count === 0) cls.push('out');
+    const count = p.count === 0 ? t('noCards') : t('cardsLeft', { n: p.count });
+    return `<div class="${cls.join(' ')}">
+      <span class="av">${p.avatar}</span>
+      <span>
+        <span class="nm">${esc(p.name)}</span>
+        <span class="cnt" style="display:block">${count}</span>
+      </span>
+    </div>`;
+  }).join('');
+}
+
+function cardEl(card, cls) {
+  const el = document.createElement('div');
+  el.className = 'card ' + (isRed(card.suit) ? 'red' : 'blk') + (cls ? ' ' + cls : '');
+  el.dataset.id = card.id;
+  el.innerHTML = `<span class="rk">${rankLabel(card.rank)}</span><span class="st">${SUIT_GLYPH[card.suit]}</span>`;
+  return el;
+}
+
+function renderTrick() {
+  const area = $('#trickArea');
+  const meta = $('#trickMeta');
+  const passes = $('#passes');
+  area.innerHTML = '';
+  passes.innerHTML = '';
+
+  if (S.state === 'lobby') {
+    // A lone host is not waiting for "the host" — she is the host.
+    const lone = S.players.length < 2;
+    area.innerHTML = `<div class="lead-hint">${esc(lone ? t('waitingPlayers') : t('waitingHost'))}</div>`;
+    meta.textContent = '';
+    return;
+  }
+
+  if (!S.trick) {
+    const youLead = S.turn === S.you.id;
+    area.innerHTML = `<div class="lead-hint">${esc(youLead ? t('leadHint') : t('youLead'))}</div>`;
+    meta.innerHTML = S.turn === S.you.id ? '' : `<b>${esc(S.turnName)}</b>`;
+  } else {
+    const row = document.createElement('div');
+    row.className = 'trick-cards';
+    S.trick.cards.forEach((c) => row.appendChild(cardEl(c)));
+    area.appendChild(row);
+    meta.innerHTML = esc(t('trickOf', { name: S.trick.byName, type: t('type' + S.trick.type.charAt(0).toUpperCase() + S.trick.type.slice(1)) }));
+  }
+
+  // The opening rule, said out loud: without it the first refused play reads as
+  // a bug ("why can I not play my 2?"). `S.opening` is only ever sent to the
+  // player who has to obey it.
+  if (S.opening) {
+    const card = S.you.hand.find((c) => c.id === S.opening);
+    if (card) {
+      const hint = document.createElement('div');
+      hint.style.cssText = 'position:relative;margin-top:6px;font-size:11.5px;color:#a56a00;font-weight:700;text-align:center';
+      hint.textContent = t('mustInclude', { card: cardText(card) });
+      meta.appendChild(hint);
+    }
+  }
+
+  if (S.passes > 0) {
+    passes.innerHTML = `<span>${esc(t('passesLabel', { n: S.passes }))}</span>`;
+  }
+}
+
+function renderHand() {
+  const box = $('#hand');
+  box.innerHTML = '';
+  if (S.state === 'lobby') return;
+  const hint = S.opening; // the card that must be in the first play, if it is mine
+  S.you.hand.forEach((card) => {
+    const cls = [];
+    if (S.you.isTurn && S.state === 'playing') cls.push('pick');
+    if (picked.has(card.id)) cls.push('sel');
+    if (hint && hint === card.id) cls.push('hint');
+    const el = cardEl(card, cls.join(' '));
+    el.onclick = () => togglePick(card.id);
+    box.appendChild(el);
+  });
+}
+
+function togglePick(id) {
+  if (!S || S.state !== 'playing' || !S.you.isTurn) return;
+  if (picked.has(id)) picked.delete(id); else picked.add(id);
+  renderHand();
+  renderActions();
+  beep(520, 0.03, 'sine', 0.02);
+}
+
+function renderActions() {
+  const play = $('#playBtn');
+  const pass = $('#passBtn');
+  const start = $('#startBtn');
+  const myTurn = S.state === 'playing' && S.you.isTurn;
+
+  if (S.state === 'lobby') {
+    play.style.display = 'none';
+    pass.style.display = 'none';
+    if (S.you.canStart) {
+      start.style.display = '';
+      start.textContent = t('startBtn');
+    } else {
+      start.style.display = 'none';
+    }
+    return;
+  }
+
+  start.style.display = 'none';
+  play.style.display = '';
+  pass.style.display = '';
+  play.textContent = picked.size ? t('playBtn') + ' · ' + t('selected', { n: picked.size }) : t('playBtn');
+  play.disabled = !myTurn || picked.size === 0;
+  pass.textContent = t('passBtn');
+  // You cannot pass on a hand you lead: there is nothing to beat.
+  pass.disabled = !myTurn || !S.trick;
+}
+
+function miniCards(cards) {
+  return '<span class="mini">' + cards.map((c) =>
+    `<b class="${isRed(c.suit) ? 'r' : ''}">${rankLabel(c.rank)}${SUIT_GLYPH[c.suit]}</b>`).join('') + '</span>';
+}
+
+function typeName(type) {
+  return t('type' + type.charAt(0).toUpperCase() + type.slice(1));
+}
+
+function logText(ev) {
+  switch (ev.k) {
+    case 'roomCreated': return esc(t('logRoom', { code: ev.code }));
+    case 'join': return esc(t('logJoin', { name: ev.name }));
+    case 'leave': return esc(t('logLeave', { name: ev.name }));
+    case 'roundStart':
+      return esc(t('logDeal', { round: ev.round, name: ev.opener, card: cardText(ev.card) }));
+    case 'play':
+      return esc(t('logPlay', { name: ev.who, type: typeName(ev.type) })) + miniCards(ev.cards);
+    case 'pass': return esc(t('logPass', { name: ev.who }));
+    case 'trickWon': return esc(t('logTrick', { name: ev.who }));
+    case 'win': return esc(t('logWin', { name: ev.name }));
+    case 'autoPass': return esc(t('logAutoPass', { name: ev.name }));
+    case 'autoPlay': return esc(t('logAutoPlay', { name: ev.name, card: cardText(ev.cards[0]) }));
+    case 'backToLobby': return esc(t('logLobby'));
+    default: return '';
+  }
+}
+
+function clock(ts) {
+  const d = new Date(ts);
+  return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+}
+
+function renderFeed() {
+  const box = $('#feedBody');
+  box.innerHTML = S.log.map((ev) => {
+    const txt = logText(ev);
+    if (!txt) return '';
+    return `<div class="lg"><i>${clock(ev.t)}</i><span>${txt}</span></div>`;
+  }).join('');
+  box.scrollTop = box.scrollHeight;
+}
+
+/* --------------------------------------------------------------- actions */
+async function play() {
+  if (!picked.size) return;
+  const ids = [...picked];
+  const r = await post('/api/action', { token, type: 'play', cardIds: ids });
+  if (r.status !== 200) { toast(errorText(r.body.error)); return; }
+  picked.clear();
+  renderHand();
+  renderActions();
+}
+
+async function pass() {
+  const r = await post('/api/action', { token, type: 'pass' });
+  if (r.status !== 200) { toast(errorText(r.body.error)); return; }
+  picked.clear();
+}
+
+async function startGame() {
+  const r = await post('/api/action', { token, type: 'start' });
+  if (r.status !== 200) { toast(errorText(r.body.error)); return; }
+  picked.clear();
+}
+
+async function leave() {
+  try { await post('/api/action', { token, type: 'leave' }); } catch (e) { /* gone */ }
+  localStorage.removeItem(SESSION_KEY);
+  if (es) { try { es.close(); } catch (e) { /* gone */ } }
+  location.href = '/?view=games';
+}
+
+/* ------------------------------------------------------------- overlay */
+function confetti() {
+  const box = document.createElement('div');
+  box.className = 'confetti';
+  const colors = ['#e63946', '#f0b429', '#1f9d63', '#2b6cf0', '#c9971b'];
+  for (let i = 0; i < 44; i++) {
+    const p = document.createElement('i');
+    p.style.left = Math.random() * 100 + 'vw';
+    p.style.background = colors[i % colors.length];
+    p.style.animationDuration = (1.6 + Math.random() * 1.4) + 's';
+    p.style.animationDelay = (Math.random() * 0.5) + 's';
+    box.appendChild(p);
+  }
+  document.body.appendChild(box);
+  setTimeout(() => box.remove(), 3600);
+}
+
+function renderOverlay() {
+  const root = $('#modalRoot');
+  if (S.state !== 'ended' || !S.winner) {
+    if (root.dataset.kind === 'end') { root.innerHTML = ''; delete root.dataset.kind; }
+    return;
+  }
+  if (root.dataset.kind === 'end') return; // already shown for this state
+  const win = S.players.find((p) => p.id === S.winner);
+  const iWon = S.winner === S.you.id;
+  root.dataset.kind = 'end';
+  root.innerHTML = `
+    <div class="overlay">
+      <div class="modal">
+        <div class="big-av">${iWon ? '🏆' : (win ? win.avatar : '🙂')}</div>
+        <h2>${esc(iWon ? t('winTitle') : t('loseTitle', { name: win ? win.name : '' }))}</h2>
+        <p>${esc(iWon ? t('winSub') : t('loseSub'))}</p>
+        ${S.you.canStart ? `<button class="btn primary" id="againBtn">${esc(t('againBtn'))}</button>` : ''}
+        <button class="btn" id="hubBtn" style="margin-top:8px">${esc(t('backToHub'))}</button>
+      </div>
+    </div>`;
+  const again = document.getElementById('againBtn');
+  if (again) again.onclick = () => { $('#modalRoot').innerHTML = ''; delete $('#modalRoot').dataset.kind; startGame(); };
+  document.getElementById('hubBtn').onclick = () => { location.href = '/?view=games'; };
+  if (iWon) confetti();
+}
+
+/* ----------------------------------------------------------------- boot */
+function initLobby() {
+  paintStatic();
+  renderAvatars();
+  const sess = loadSession();
+  if (sess && sess.name) $('#nameInput').value = sess.name;
+  if (sess && sess.avatar) { myAvatar = sess.avatar; renderAvatars(); }
+
+  // A share link is /games/bigtwo/ABCD — pre-fill the code.
+  const m = location.pathname.match(/\/([A-Z0-9]{4})\/?$/);
+  if (m) $('#codeInput').value = m[1];
+
+  $('#createBtn').onclick = createRoom;
+  $('#joinBtn').onclick = joinRoom;
+  $('#codeInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') joinRoom(); });
+  $('#nameInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') createRoom(); });
+
+  $('#playBtn').onclick = play;
+  $('#passBtn').onclick = pass;
+  $('#startBtn').onclick = startGame;
+  $('#leaveBtn').onclick = leave;
+  $('#soundBtn').onclick = () => {
+    sound = !sound;
+    localStorage.setItem(SOUND_KEY, sound ? 'on' : 'off');
+    $('#soundBtn').textContent = sound ? '🔔' : '🔇';
+  };
+  $('#feedBtn').onclick = () => $('#feed').classList.toggle('hidden');
+  $('#feedClose').onclick = () => $('#feed').classList.add('hidden');
+  $('#codeChip').onclick = async () => {
+    const url = location.origin + BASE + code;
+    try { await navigator.clipboard.writeText(url); toast(url); }
+    catch (e) { toast(url); }
+  };
+
+  // Resume a session if the room still knows us.
+  if (sess && sess.token) {
+    fetch(BASE + 'api/state?token=' + encodeURIComponent(sess.token))
+      .then((r) => (r.ok ? r.json() : null))
+      .then((st) => {
+        if (!st) { localStorage.removeItem(SESSION_KEY); return; }
+        token = sess.token;
+        code = st.code;
+        enterRoom({ token: sess.token, code: st.code, name: st.you.name, avatar: st.you.avatar });
+      })
+      .catch(() => { /* stay in the lobby */ });
+  }
+}
+
+initLobby();
+</script>
+</body>
+</html>

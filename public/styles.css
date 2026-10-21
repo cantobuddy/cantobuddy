@@ -1062,6 +1062,8 @@ a.game-card:active { transform: scale(0.985); }
 }
 .game-art i:nth-child(2) { background: #f0b429; transform: none; margin-top: -5px; }
 .game-art i:nth-child(3) { background: #2b6cf0; transform: rotate(9deg); }
+/* A suit glyph needs a bigger size than a digit to read at 15px wide. */
+.game-art i.suit { font-size: 11px; line-height: 1; }
 
 .game-art-soon {
   font-size: 26px;

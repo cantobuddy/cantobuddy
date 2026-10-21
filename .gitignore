@@ -32,6 +32,12 @@ upload-to-github/
 # Local deploy helper (contains no secrets — reads GITHUB_TOKEN from env)
 tools/
 
+# Review screenshots written by the *-shot.js scripts. Scratch output, never
+# deployed (tools/deploy-to-github.js has an explicit FILES list) and never
+# reviewed as source — but without this line `git status` shows ~130 PNGs and a
+# real change is impossible to spot.
+ui-preview/
+
 # Local secrets — the GitHub deploy token lives here, never in the repo
 .env
 .env.*

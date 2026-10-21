@@ -784,6 +784,61 @@ body {
   line-height: 1.35;
 }
 
+/* ---- Home: Games promo -------------------------------------------------
+   The promotion for the new Games tab. It borrows the Games hub's own
+   `.game-card` so the card tapped here is the card seen there — the only
+   overrides are size: on Home it sits between two other sections, so the art
+   shrinks and the card tightens rather than becoming the loudest thing on a
+   screen whose job is still learning. */
+#home-games-promo {
+  margin-top: 20px;
+}
+#home-games-promo .home-section-title::before { content: '🎮'; }
+.games-promo-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* Sits beside the section title, not above it — one line, no extra height. */
+.games-promo-badge {
+  flex: 0 0 auto;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--c-primary);
+  color: #fff;
+  font-size: 0.55rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.games-promo-lead {
+  font-size: 0.78rem;
+  color: var(--c-text-soft);
+  line-height: 1.45;
+  margin: -4px 0 10px;
+}
+#home-games-promo .games-grid {
+  display: grid;
+  gap: 8px;
+}
+#home-games-promo .game-card {
+  padding: 10px 12px;
+  gap: 11px;
+}
+#home-games-promo .game-art {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+}
+#home-games-promo .game-art i {
+  width: 12px;
+  height: 17px;
+  font-size: 7px;
+}
+#home-games-promo .game-art i.suit { font-size: 9px; }
+#home-games-promo .game-name { font-size: 0.85rem; }
+#home-games-promo .game-desc { font-size: 0.68rem; line-height: 1.35; }
+
 .home-categories {
   margin-top: 24px;
 }
@@ -2139,6 +2194,35 @@ a.game-card:active { transform: scale(0.985); }
   font-weight: 600;
   transition: color 0.15s;
   min-height: 64px;
+  /* Anchors the "New" badge. It is absolute so the badge cannot widen the tab
+     and take pixels from the other four — the bar is measured to the pixel at
+     320px (tools/nav-shot.js). */
+  position: relative;
+}
+
+/* "New" tag on a tab. Small, high-contrast, and sat on the icon rather than
+   beside the label: a second word under the label would add a line and push
+   the bar taller, which costs more than the badge gains.
+
+   Anchored to .nav-icon (which is position:relative) and hung off its top-right
+   corner. An earlier version anchored to the button and spilled 8px into the
+   next tab at 320px — measured, not guessed. */
+.nav-icon { position: relative; }
+.nav-badge {
+  position: absolute;
+  top: -6px;
+  right: -10px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: var(--c-primary);
+  color: #fff;
+  font-size: 0.5rem;
+  font-weight: 800;
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  pointer-events: none;
+  white-space: nowrap;
 }
 
 .nav-btn.active { color: var(--c-primary); }

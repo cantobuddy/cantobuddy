@@ -749,6 +749,7 @@ async function init() {
     renderHomeFestival();
     renderHomeDailyCulture();
     renderHomeDiscoverPromo();
+  renderHomeGamesPromo();
 
     // A view named in the URL, so a page outside the SPA can send her back to a
     // specific screen. The Games tab needs this: the game is a real page at
@@ -774,6 +775,7 @@ function rerenderForLanguage() {
   renderHomeFestival();
   renderHomeDailyCulture();
   renderHomeDiscoverPromo();
+  renderHomeGamesPromo();
   renderCategoryChips();
   renderQuizTypes();
   renderVocabList();
@@ -1049,6 +1051,50 @@ function renderHomeDiscoverPromo() {
         <span class="discover-promo-label">${escapeHtml(c.label)}</span>
         <span class="discover-promo-desc">${escapeHtml(c.desc)}</span>
       </button>`).join('') +
+    `</div>`;
+}
+
+/**
+ * The Games promotion on the home screen. Two live games, reusing the same
+ * `.game-card` markup the Games hub uses, so the card she taps here is the card
+ * she sees there. Rendered by JS — not markup — so a language switch re-reads
+ * the strings, which static [data-i18n] text would not do.
+ */
+function renderHomeGamesPromo() {
+  const wrap = document.getElementById('home-games-promo');
+  if (!wrap) return;
+  const games = [
+    {
+      href: '/games/uno',
+      art: '<i>U</i><i>N</i><i>O</i>',
+      name: 'UNO',
+      desc: t('games.unoDesc'),
+    },
+    {
+      href: '/games/bigtwo',
+      art: '<i>2</i><i class="suit">♠</i><i class="suit">♥</i>',
+      name: t('games.bigtwoName'),
+      desc: t('games.bigtwoDesc'),
+    },
+  ];
+  wrap.innerHTML =
+    `<div class="games-promo">` +
+      `<div class="games-promo-head">` +
+        `<h4 class="home-section-title">${escapeHtml(t('games.promoTitle'))}</h4>` +
+        `<span class="games-promo-badge">${escapeHtml(t('games.promoBadge'))}</span>` +
+      `</div>` +
+      `<p class="games-promo-lead">${escapeHtml(t('games.promoLead'))}</p>` +
+      `<div class="games-grid">` +
+      games.map((g) => `
+        <a class="game-card game-card-live" href="${g.href}">
+          <span class="game-art" aria-hidden="true">${g.art}</span>
+          <span class="game-body">
+            <span class="game-name">${escapeHtml(g.name)}</span>
+            <span class="game-desc">${escapeHtml(g.desc)}</span>
+          </span>
+          <span class="game-go" aria-hidden="true">›</span>
+        </a>`).join('') +
+      `</div>` +
     `</div>`;
 }
 

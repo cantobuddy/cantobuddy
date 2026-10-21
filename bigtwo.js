@@ -247,6 +247,13 @@ function createRoom(hostName, hostAvatar) {
     /** The opening play must contain this card (the lowest one dealt). */
     opening: null,    // { playerId, cardId }
     log: [],
+    /**
+     * Chat and emoji, newest last. Deliberately SEPARATE from `log`: the log is
+     * structured game events the client names in its own language, while these
+     * are sentences a player actually typed and must be shown verbatim. Capped
+     * at 60 so a long session cannot grow without bound.
+     */
+    chat: [],
     winner: null,
     round: 0,
     createdAt: now(),
@@ -441,6 +448,7 @@ function stateFor(room, viewer) {
       isHost: p.id === room.hostId,
     })),
     log: room.log.slice(-18),
+    chat: room.chat.slice(-20),
   };
 }
 
@@ -606,6 +614,30 @@ async function handle(req, res) {
       if (r.error) return json(res, 400, r);
       broadcast(room, { type: 'pass', by: player.name });
       return json(res, 200, r);
+    }
+
+    // ---- chat and emoji -------------------------------------------------
+    // Big Two had no way to talk across the table, which is a real gap for a
+    // game whose pitch is "send the room code to your family". These two mirror
+    // uno.js exactly — same caps, same trim, same broadcast — so the two games
+    // behave as one app.
+    if (type === 'chat') {
+      const text = String(body.text || '').slice(0, 140).trim();
+      if (!text) return json(res, 400, { error: 'emptyMessage' });
+      room.chat.push({ t: now(), id: player.id, name: player.name, avatar: player.avatar, text, kind: 'chat' });
+      if (room.chat.length > 60) room.chat.shift();
+      broadcast(room, { type: 'chat' });
+      return json(res, 200, { ok: true });
+    }
+
+    if (type === 'shout') {
+      const emoji = String(body.emoji || '👏').slice(0, 12);
+      room.chat.push({
+        t: now(), id: player.id, name: player.name, avatar: player.avatar, text: emoji, kind: 'shout',
+      });
+      if (room.chat.length > 60) room.chat.shift();
+      broadcast(room, { type: 'shout', by: player.name, emoji });
+      return json(res, 200, { ok: true });
     }
 
     if (type === 'leave') {

@@ -48,7 +48,11 @@
   }
   .brand i:nth-child(1){background:#2b2f3a;transform:rotate(-10deg)}
   .brand i:nth-child(2){background:var(--red);transform:rotate(-2deg) translateY(-6px)}
-  .brand i:nth-child(3){background:var(--gold);transform:rotate(6deg)}
+  /* The third tile is the letter D. A Latin capital at 19px is only ~14px tall
+     where a Chinese glyph fills its whole 19px em box, so it reads as a small
+     tile beside two big ones. Scaled up to match the ink height, not the font
+     size — same visual weight, three tiles that look like one logo. */
+  .brand i:nth-child(3){background:var(--gold);transform:rotate(6deg);font-size:25px}
   h1{margin:6px 0 6px;font-size:26px;letter-spacing:-.5px;text-align:center}
   .sub{margin:0 0 20px;color:var(--muted);font-size:14px;text-align:center;line-height:1.6;max-width:340px}
   .panel{
@@ -197,6 +201,7 @@
   .act:disabled{opacity:.4;box-shadow:none}
   .act.go{background:linear-gradient(135deg,#1f9d63,#33b97c);color:#fff;border-color:transparent;box-shadow:0 10px 20px rgba(31,157,99,.26)}
   .act.ghost{flex:0 0 auto;padding:14px 18px}
+  .act.emoji{flex:0 0 auto;padding:14px 13px;font-size:17px}
   .act.selcount{font-size:12px;font-weight:600;color:var(--muted);flex:0 0 auto;padding:0 4px}
 
   /* feed */
@@ -209,6 +214,16 @@
   .feed-body{flex:1;overflow-y:auto;padding:8px 12px;font-size:12.5px;line-height:1.75}
   .feed-body .lg{color:#4b5160;display:flex;gap:6px;margin:3px 0}
   .feed-body .lg i{font-style:normal;opacity:.45;flex:0 0 auto;font-size:10.5px;padding-top:2px}
+  /* Chat bubbles, same shape as the UNO table's. `mine` is tinted so a player
+     can find her own words in a busy family room without reading every name. */
+  .bubble{margin:6px 0;display:flex;gap:6px}
+  .bubble .tx{background:#f1f3f9;border-radius:12px;padding:6px 10px;max-width:200px;word-break:break-word}
+  .bubble.mine .tx{background:#e9f0ff}
+  .bubble .who{font-size:10.5px;color:var(--muted);margin-bottom:2px}
+  .shout .tx{background:linear-gradient(135deg,#fff3d6,#ffe6b8);font-weight:800;color:#a56a00}
+  .feed-foot{display:flex;gap:6px;padding:8px;border-top:1px solid var(--line)}
+  .feed-foot input{flex:1;border:1px solid var(--line);border-radius:11px;padding:9px 11px;font-size:13px;outline:none;background:#fafbfe}
+  .feed-foot button{background:var(--blue);color:#fff;border-radius:11px;padding:0 14px;font-weight:700;font-size:13px}
   .mini{display:inline-flex;gap:2px;vertical-align:middle;margin:0 2px}
   .mini b{
     display:inline-block;font-size:10px;font-weight:800;line-height:1.35;padding:0 3px;
@@ -265,6 +280,7 @@
     .seat .nm{max-width:52px;font-size:11px}
     .act{padding:13px 10px;font-size:13px}
     .act.ghost{padding:13px 14px}
+    .act.emoji{padding:13px 11px;font-size:16px}
   }
   @media(max-height:680px){
     .seat{padding:5px 8px}
@@ -284,7 +300,10 @@
 <!-- ============================ LOBBY ============================ -->
 <main id="lobby">
   <a class="backlink" href="/?view=games" id="backLink">← <span data-k="backToApp"></span></a>
-  <div class="brand"><i>大</i><i>老</i><i>二</i></div>
+  <!-- The game's own name as three tiles. It is 鋤大D — the Cantonese name, and
+       the one the rest of the app uses — not 大老二, which is the Mandarin-style
+       name. A player who knows the game looks for 鋤大D. -->
+  <div class="brand"><i>鋤</i><i>大</i><i>D</i></div>
   <h1 data-k="title"></h1>
   <p class="sub" data-k="sub"></p>
 
@@ -351,6 +370,9 @@
     <button class="act" id="passBtn"></button>
     <button class="act go" id="playBtn"></button>
     <button class="act ghost" id="startBtn" style="display:none"></button>
+    <!-- Same random-emoji shout as the UNO table. A family game needs a way to
+         react without typing, and the two tables should feel like one app. -->
+    <button class="act emoji" id="emojiBtn">😀</button>
   </div>
 </section>
 
@@ -362,6 +384,10 @@
     <button id="feedClose" style="font-size:14px;color:#9aa1ae">✕</button>
   </div>
   <div class="feed-body" id="feedBody"></div>
+  <div class="feed-foot">
+    <input id="chatInput" maxlength="140" autocomplete="off">
+    <button id="chatSend" data-k="sendBtn"></button>
+  </div>
 </aside>
 
 <div class="toast" id="toast"></div>
@@ -392,7 +418,9 @@ const STR = {
     codeChipLabel: 'Room code · tap to share',
     soundTitle: 'Sound', feedTitle: 'Table log', leaveTitle: 'Leave the room',
     liveOnline: 'Live', liveReconnecting: 'Reconnecting',
-    feedHead: 'What happened',
+    feedHead: 'Table chat & log',
+    chatPlaceholder: 'Say something…',
+    sendBtn: 'Send',
     turnYou: 'Your turn', turnTheirs: '{name} is thinking…',
     leadHint: 'Your lead — play any combination',
     youLead: 'You lead the next hand',
@@ -440,6 +468,7 @@ const STR = {
     errSessionExpired: 'The room closed. Make a new one.',
     errNothingSelected: 'Pick at least one card.',
     errDuplicateCard: 'That card was picked twice.',
+    errEmptyMessage: 'Type something first.',
     errUnknown: 'Something went wrong — try again.',
   },
   fil: {
@@ -452,7 +481,9 @@ const STR = {
     codeChipLabel: 'Code ng kuwarto · i-tap para i-share',
     soundTitle: 'Tunog', feedTitle: 'Talaan ng laro', leaveTitle: 'Umalis sa kuwarto',
     liveOnline: 'Live', liveReconnecting: 'Kumokonekta ulit',
-    feedHead: 'Nangyari',
+    feedHead: 'Chat at talaan',
+    chatPlaceholder: 'Magsalita…',
+    sendBtn: 'Ipadala',
     turnYou: 'Ikaw ang lalaro', turnTheirs: 'Nag-iisip si {name}…',
     leadHint: 'Ikaw ang mangunguna — maglaro ng kahit anong kombinasyon',
     youLead: 'Ikaw ang mangunguna sa susunod',
@@ -500,10 +531,11 @@ const STR = {
     errSessionExpired: 'Sarado na ang kuwarto. Gumawa ng bago.',
     errNothingSelected: 'Pumili ng kahit isang baraha.',
     errDuplicateCard: 'Napili nang dalawang beses ang barahang iyon.',
+    errEmptyMessage: 'Magsulat muna ng kahit ano.',
     errUnknown: 'May naging mali — subukan ulit.',
   },
   zh: {
-    backToApp: 'CantoBuddy', title: '大老二',
+    backToApp: 'CantoBuddy', title: '鋤大D',
     sub: '香港经典纸牌游戏——2 最大，黑桃最大。开一个房间，把房间码发给家人。',
     nameLabel: '你的名字', avatarLabel: '选一个头像', createBtn: '开一个房间',
     divider: '我已经有房间码', joinBtn: '加入', codePlaceholder: '输入房间码',
@@ -512,7 +544,9 @@ const STR = {
     codeChipLabel: '房间码 · 点按分享',
     soundTitle: '音效', feedTitle: '牌局记录', leaveTitle: '离开房间',
     liveOnline: '连线中', liveReconnecting: '重新连线',
-    feedHead: '刚刚发生',
+    feedHead: '牌桌动态',
+    chatPlaceholder: '说点什么…',
+    sendBtn: '发送',
     turnYou: '轮到你了', turnTheirs: '{name} 正在想…',
     leadHint: '你先出牌——出任何一种牌型',
     youLead: '下一手你先出',
@@ -560,6 +594,7 @@ const STR = {
     errSessionExpired: '房间已关闭，请重新开一个。',
     errNothingSelected: '至少选一张牌。',
     errDuplicateCard: '这张牌被选了两次。',
+    errEmptyMessage: '先写点什么再发。',
     errUnknown: '出了点问题——请再试一次。',
   },
   id: {
@@ -572,7 +607,9 @@ const STR = {
     codeChipLabel: 'Kode ruangan · ketuk untuk bagikan',
     soundTitle: 'Suara', feedTitle: 'Catatan permainan', leaveTitle: 'Keluar dari ruang',
     liveOnline: 'Langsung', liveReconnecting: 'Menyambung ulang',
-    feedHead: 'Yang terjadi',
+    feedHead: 'Obrolan & catatan',
+    chatPlaceholder: 'Katakan sesuatu…',
+    sendBtn: 'Kirim',
     turnYou: 'Giliranmu', turnTheirs: '{name} sedang berpikir…',
     leadHint: 'Kamu memimpin — mainkan kombinasi apa saja',
     youLead: 'Kamu memimpin putaran berikutnya',
@@ -620,6 +657,7 @@ const STR = {
     errSessionExpired: 'Ruangan sudah ditutup. Buat yang baru.',
     errNothingSelected: 'Pilih minimal satu kartu.',
     errDuplicateCard: 'Kartu itu dipilih dua kali.',
+    errEmptyMessage: 'Tulis sesuatu dulu.',
     errUnknown: 'Ada yang salah — coba lagi.',
   },
 };
@@ -753,6 +791,7 @@ function paintStatic() {
   // Join without typing anything and be told the room does not exist. An
   // instruction cannot be mistaken for data.
   $('#codeInput').placeholder = t('codePlaceholder');
+  $('#chatInput').placeholder = t('chatPlaceholder');
   $('#codeChip').title = t('codeChipLabel');
   // All three topbar controls are icon-only, so each needs a tooltip and an
   // accessible name — set here because paintStatic() is what runs on a language
@@ -1046,12 +1085,21 @@ function clock(ts) {
 
 function renderFeed() {
   const box = $('#feedBody');
-  box.innerHTML = S.log.map((ev) => {
-    const txt = logText(ev);
-    if (!txt) return '';
-    return `<div class="lg"><i>${clock(ev.t)}</i><span>${txt}</span></div>`;
+  // Log and chat are merged and sorted by time, so a message appears where it
+  // happened in the game rather than in a separate block below the events.
+  const items = [];
+  (S.log || []).forEach((l) => items.push({ t: l.t, kind: 'log', text: logText(l) }));
+  (S.chat || []).forEach((c) => items.push({ t: c.t, kind: c.kind, ...c }));
+  items.sort((a, b) => a.t - b.t);
+  const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 60;
+  box.innerHTML = items.map((it) => {
+    if (it.kind === 'log') return it.text
+      ? `<div class="lg"><i>${clock(it.t)}</i><span>${it.text}</span></div>` : '';
+    if (it.kind === 'shout') return `<div class="bubble shout"><div><div class="who">${esc(it.name)}</div><div class="tx">${esc(it.text)}</div></div></div>`;
+    const mine = it.id === S.you.id;
+    return `<div class="bubble${mine ? ' mine' : ''}"><div><div class="who">${esc(it.name)}</div><div class="tx">${esc(it.text)}</div></div></div>`;
   }).join('');
-  box.scrollTop = box.scrollHeight;
+  if (atBottom) box.scrollTop = box.scrollHeight;
 }
 
 /* --------------------------------------------------------------- actions */
@@ -1075,6 +1123,21 @@ async function startGame() {
   const r = await post('/api/action', { token, type: 'start' });
   if (r.status !== 200) { toast(errorText(r.body.error)); return; }
   picked.clear();
+}
+
+/**
+ * Send a chat line. Cleared the moment it is sent, not when the server
+ * confirms — the input must never sit there holding words the player already
+ * let go of, which is what happens if the round-trip is slow and she taps
+ * again. The broadcast that comes back re-renders the feed with the message.
+ */
+async function sendChat() {
+  const inp = $('#chatInput');
+  const txt = inp.value.trim();
+  if (!txt) return;
+  inp.value = '';
+  const r = await post('/api/action', { token, type: 'chat', text: txt });
+  if (r.status !== 200) { toast(errorText(r.body.error)); inp.value = txt; }
 }
 
 async function leave() {
@@ -1153,8 +1216,21 @@ function initLobby() {
     localStorage.setItem(SOUND_KEY, sound ? 'on' : 'off');
     renderSoundIcon();
   };
-  $('#feedBtn').onclick = () => $('#feed').classList.toggle('hidden');
+  $('#feedBtn').onclick = () => {
+    $('#feed').classList.toggle('hidden');
+    // Opening the panel should land on the newest line, not leave the player
+    // scrolling to it — there is real content in here now, not just a log.
+    const b = $('#feedBody');
+    if (!$('#feed').classList.contains('hidden')) setTimeout(() => { b.scrollTop = b.scrollHeight; }, 30);
+  };
   $('#feedClose').onclick = () => $('#feed').classList.add('hidden');
+  $('#chatSend').onclick = sendChat;
+  $('#chatInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendChat(); });
+  $('#emojiBtn').onclick = () => {
+    const list = ['😀', '😂', '😱', '🔥', '👏', '🤔', '😭', '🎉'];
+    const em = list[Math.floor(Math.random() * list.length)];
+    post('/api/action', { token, type: 'shout', emoji: em }).catch(() => {});
+  };
   $('#codeChip').onclick = async () => {
     const url = location.origin + BASE + code;
     try { await navigator.clipboard.writeText(url); toast(url); }

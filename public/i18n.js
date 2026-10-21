@@ -34,6 +34,7 @@ const I18N = {
     'nav.home': 'Home',
     'nav.learn': 'Learn',
     'nav.games': 'Games',
+    'nav.gamesNew': 'New',
     'nav.quiz': 'Quiz',
     'nav.progress': 'Progress',
     'nav.feedback': 'Feedback',
@@ -54,6 +55,9 @@ const I18N = {
     'games.twoToFour': '2–4 players',
     'games.matchName': 'Word match',
     'games.matchDesc': 'Race a partner to match the Cantonese word with its meaning.',
+    'games.promoTitle': 'Play together, online',
+    'games.promoLead': 'UNO and Big Two — one room code, no account, no install.',
+    'games.promoBadge': 'New',
     'games.note': 'Two games are live now — UNO and Big Two. Tell us what to build next.',
 
 
@@ -513,6 +517,7 @@ const I18N = {
     'nav.home': 'Simula',
     'nav.learn': 'Mag-aral',
     'nav.games': 'Laro',
+    'nav.gamesNew': 'Bago',
     'nav.quiz': 'Pagsusulit',
     'nav.progress': 'Progreso',
     'nav.feedback': 'Puna',
@@ -531,6 +536,9 @@ const I18N = {
     'games.twoToFour': '2–4 na manlalaro',
     'games.matchName': 'Tugma ng salita',
     'games.matchDesc': 'Magkarera sa kasama para itugma ang salitang Cantonese sa kahulugan.',
+    'games.promoTitle': 'Maglaro nang sama-sama, online',
+    'games.promoLead': 'UNO at Big Two — isang code ng kuwarto, walang account.',
+    'games.promoBadge': 'Bago',
     'games.note': 'Dalawang laro na ang live — UNO at Big Two. Sabihin kung ano ang susunod.',
 
 
@@ -974,6 +982,7 @@ const I18N = {
     'nav.home': '首页',
     'nav.learn': '学习',
     'nav.games': '游戏',
+    'nav.gamesNew': '新',
     'nav.quiz': '测验',
     'nav.progress': '进度',
     'nav.feedback': '反馈',
@@ -987,12 +996,15 @@ const I18N = {
     'games.online': '在线联机',
     'games.family': '和家人一起',
     'games.soon': '即将上线',
-    'games.bigtwoName': '锄大D',
-    'games.bigtwoDesc': '香港的桌上游戏——锄大D。2 最大，黑桃最大。',
+    'games.bigtwoName': '鋤大D',
+    'games.bigtwoDesc': '香港的桌上游戏——鋤大D。2 最大，黑桃最大。',
     'games.twoToFour': '2–4 人',
     'games.matchName': '词语配对',
     'games.matchDesc': '和伙伴比赛，把粤语词和它的意思配对起来。',
-    'games.note': '现在有两个游戏——UNO 和大老二。告诉我们下一个想玩什么。',
+    'games.promoTitle': '一起在线玩牌',
+    'games.promoLead': 'UNO 和鋤大D——一个房间码，无需账号。',
+    'games.promoBadge': '新',
+    'games.note': '现在有两个游戏——UNO 和鋤大D。告诉我们下一个想玩什么。',
 
 
     // discover — 文化与新闻
@@ -1434,6 +1446,7 @@ const I18N = {
     'nav.home': 'Beranda',
     'nav.learn': 'Belajar',
     'nav.games': 'Game',
+    'nav.gamesNew': 'Baru',
     'nav.quiz': 'Kuis',
     'nav.progress': 'Kemajuan',
     'nav.feedback': 'Masukan',
@@ -1452,6 +1465,9 @@ const I18N = {
     'games.twoToFour': '2–4 pemain',
     'games.matchName': 'Cocokkan kata',
     'games.matchDesc': 'Berlomba dengan pasangan mencocokkan kata Kanton dengan artinya.',
+    'games.promoTitle': 'Main bersama, online',
+    'games.promoLead': 'UNO dan Big Two — satu kode ruang, tanpa akun.',
+    'games.promoBadge': 'Baru',
     'games.note': 'Dua permainan sudah aktif — UNO dan Big Two. Bilang mau apa berikutnya.',
 
 

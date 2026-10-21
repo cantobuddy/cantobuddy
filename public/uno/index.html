@@ -78,6 +78,9 @@
   .divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line)}
   .join-row{display:flex;gap:8px}
   .join-row .field{flex:1 1 auto;min-width:0;letter-spacing:6px;text-align:center;font-weight:800;text-transform:uppercase;font-size:18px}
+  /* The placeholder is an INSTRUCTION, not a sample code — undo the code styling
+     (uppercase, wide spacing, bold) or "Enter code" itself reads as a code. */
+  .join-row .field::placeholder{text-transform:none;letter-spacing:0;font-weight:600;font-size:13px;color:#a7aeba}
   .join-row .btn{flex:0 0 auto;width:auto;padding:0 22px;background:var(--ink);color:#fff;white-space:nowrap}
   .err{color:var(--red);font-size:13px;margin:10px 0 0;min-height:18px;text-align:center}
   .tips{margin:20px 0 0;padding:0;list-style:none;color:var(--muted);font-size:12.5px;line-height:2;text-align:center;max-width:340px}
@@ -320,7 +323,7 @@
 
     <div class="divider"><span data-k="divider"></span></div>
     <div class="join-row">
-      <input id="codeInput" class="field" maxlength="4" placeholder="ABCD" autocomplete="off" autocapitalize="characters">
+      <input id="codeInput" class="field" maxlength="4" autocomplete="off" autocapitalize="characters">
       <button id="joinBtn" class="btn" data-k="joinBtn"></button>
     </div>
     <p id="lobbyErr" class="err"></p>
@@ -422,7 +425,7 @@ const STR = {
     sub: 'Make a room and send the 4-letter code to your family. Phone, tablet or laptop — chat while you play.',
     nameLabel: 'Your name', namePlaceholder: 'e.g. Maria / Mum / Lola',
     avatarLabel: 'Pick an avatar', createBtn: 'Create a room',
-    divider: 'I already have a code', joinBtn: 'Join',
+    divider: 'I already have a code', joinBtn: 'Join', codePlaceholder: 'Enter code',
     tip1: '2–8 players · the draw pile reshuffles itself · you reconnect if the signal drops',
     tip2: 'Play on the same WiFi or with family far away',
     codeChipLabel: 'Room code · tap to share', codeChipTitle: 'Copy the invite link',
@@ -490,7 +493,7 @@ const STR = {
     sub: 'Gumawa ng kuwarto at ipadala ang 4-letrang code sa pamilya mo. Telepono, tablet o laptop — mag-chat habang naglalaro.',
     nameLabel: 'Pangalan mo', namePlaceholder: 'hal. Maria / Nanay / Lola',
     avatarLabel: 'Pumili ng avatar', createBtn: 'Gumawa ng kuwarto',
-    divider: 'May code na ako', joinBtn: 'Sumali',
+    divider: 'May code na ako', joinBtn: 'Sumali', codePlaceholder: 'Ilagay ang code',
     tip1: '2–8 manlalaro · kusang nagsha-shuffle ang pile · makakabalik ka kapag nawalan ng signal',
     tip2: 'Puwede sa iisang WiFi o sa pamilyang malayo',
     codeChipLabel: 'Code ng kuwarto · pindutin para i-share', codeChipTitle: 'Kopyahin ang link ng imbitasyon',
@@ -558,7 +561,7 @@ const STR = {
     sub: '开个房间，把 4 位配对码发给家人。手机、平板、电脑都能进，边聊边打。',
     nameLabel: '你的昵称', namePlaceholder: '比如：爸爸 / 小雨 / 外婆',
     avatarLabel: '挑个头像', createBtn: '创建房间',
-    divider: '已经有配对码', joinBtn: '加入',
+    divider: '已经有配对码', joinBtn: '加入', codePlaceholder: '输入配对码',
     tip1: '2–8 人 · 牌堆自动洗牌 · 掉线能自动接回',
     tip2: '同一 WiFi 也能玩，发给外地家人也行',
     codeChipLabel: '配对码 · 点我分享', codeChipTitle: '点击复制邀请链接',
@@ -576,7 +579,7 @@ const STR = {
     colorTitle: '指定颜色', colorBody: '下一张牌必须接这个颜色', cancel: '取消',
     winSelf: '你赢啦！', winOther: '{name} 赢了', winBody: '第 {r} 局结束 · 累计 🏆 {w}',
     hostNext: '等房主开下一局…', viewTable: '看看牌桌',
-    toastNotYourTurn: '还没轮到你', toastCantPlay: '颜色和数字都不同，打不出去',
+    toastNotYourTurn: '还没轮到你', toastCantPlay: '颜色和数字都对不上，换一张吧',
     toastCopied: '邀请已复制，发给家人吧', promptCopy: '复制这个链接发给家人：',
     confirmLeave: '确定离开房间？', toastExpired: '会话已失效，请重新加入',
     errCode: '配对码是 4 位，比如 7K2M',
@@ -606,7 +609,7 @@ const STR = {
     errNotStarted: '牌局还没开始',
     errNotYourTurn: '还没轮到你',
     errCardNotInHand: '这张牌不在你手上',
-    errCardNotPlayable: '这张牌现在打不出去',
+    errCardNotPlayable: '这张牌现在不能打',
     errOnlyHost: '只有房主可以做这个',
     errNeedTwoPlayers: '至少要有 2 个人才能开始',
     errAlreadyPlaying: '牌局进行中',
@@ -626,7 +629,7 @@ const STR = {
     sub: 'Buat ruang dan kirim kode 4 huruf ke keluarga. Ponsel, tablet, atau laptop — ngobrol sambil main.',
     nameLabel: 'Nama kamu', namePlaceholder: 'mis. Maria / Ibu / Nenek',
     avatarLabel: 'Pilih avatar', createBtn: 'Buat ruang',
-    divider: 'Saya sudah punya kode', joinBtn: 'Gabung',
+    divider: 'Saya sudah punya kode', joinBtn: 'Gabung', codePlaceholder: 'Masukkan kode',
     tip1: '2–8 pemain · tumpukan diacak otomatis · kamu tersambung lagi kalau sinyal putus',
     tip2: 'Bisa di WiFi yang sama atau dengan keluarga yang jauh',
     codeChipLabel: 'Kode ruang · ketuk untuk bagikan', codeChipTitle: 'Salin tautan undangan',
@@ -791,6 +794,9 @@ function paintStatic() {
   // Attributes cannot carry a data-k, so the six that need one are named here.
   const attr = (sel, name, key) => { const el = $(sel); if (el) el.setAttribute(name, t(key)); };
   attr('#nameInput', 'placeholder', 'namePlaceholder');
+  // NOT a sample code: the field is 4 chars, bold, uppercase and widely spaced,
+  // so "ABCD" looked like a code already filled in.
+  attr('#codeInput', 'placeholder', 'codePlaceholder');
   attr('#chatInput', 'placeholder', 'chatPlaceholder');
   attr('#codeChip', 'title', 'codeChipTitle');
   attr('#soundBtn', 'title', 'soundTitle');

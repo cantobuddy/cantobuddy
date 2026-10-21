@@ -80,6 +80,9 @@
   .divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line)}
   .join-row{display:flex;gap:8px}
   .join-row .field{flex:1;text-transform:uppercase;letter-spacing:3px;font-weight:700;text-align:center}
+  /* The placeholder is an INSTRUCTION, not a sample code — undo the code styling
+     (uppercase, wide spacing, bold) or "Enter code" itself reads as a code. */
+  .join-row .field::placeholder{text-transform:none;letter-spacing:0;font-weight:600;font-size:13px;color:#a7aeba}
   .join-row .btn{width:auto;padding:13px 20px}
   .err{margin:12px 0 0;color:var(--red);font-size:12.5px;min-height:16px;text-align:center}
   .tips{list-style:none;padding:0;margin:22px 0 0;max-width:360px;font-size:12px;color:var(--muted);line-height:1.7}
@@ -296,7 +299,7 @@
 
     <div class="divider"><span data-k="divider"></span></div>
     <div class="join-row">
-      <input id="codeInput" class="field" maxlength="4" placeholder="ABCD" autocomplete="off" autocapitalize="characters">
+      <input id="codeInput" class="field" maxlength="4" autocomplete="off" autocapitalize="characters">
       <button id="joinBtn" class="btn" data-k="joinBtn"></button>
     </div>
     <p id="lobbyErr" class="err"></p>
@@ -321,9 +324,9 @@
     <div class="roundchip" id="roundChip"></div>
     <div class="spacer"></div>
     <div class="status"><span class="dot" id="liveDot"></span><span id="liveText"></span></div>
-    <button class="iconbtn" id="soundBtn">🔔</button>
-    <button class="iconbtn" id="feedBtn">📜</button>
-    <button class="iconbtn" id="leaveBtn">⎋</button>
+    <button class="iconbtn" id="soundBtn"><span id="soundIcon"></span></button>
+    <button class="iconbtn" id="feedBtn"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 11.8a7.6 7.6 0 0 1-7.6 7.6H9.4L4.5 22v-4.6a7.6 7.6 0 1 1 16-5.6z"/></svg></button>
+    <button class="iconbtn" id="leaveBtn"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4.5h3.5A1.5 1.5 0 0 1 19 6v12a1.5 1.5 0 0 1-1.5 1.5H14"/><path d="M9.5 8 5.5 12l4 4"/><path d="M5.5 12H15"/></svg></button>
   </div>
 
   <div class="seats" id="seats"></div>
@@ -383,10 +386,11 @@ const STR = {
     backToApp: 'CantoBuddy', title: 'Big Two',
     sub: 'The Hong Kong card game — 2 is the highest card and spades are the strongest suit. Make a room and send the code to your family.',
     nameLabel: 'Your name', avatarLabel: 'Pick an avatar', createBtn: 'Create a room',
-    divider: 'I already have a code', joinBtn: 'Join',
+    divider: 'I already have a code', joinBtn: 'Join', codePlaceholder: 'Enter code',
     tip1: '2–4 players · 13 cards each · the 2 is the biggest card',
     tip2: 'You can pass, but whoever played last leads the next hand',
     codeChipLabel: 'Room code · tap to share',
+    soundTitle: 'Sound', feedTitle: 'Table log', leaveTitle: 'Leave the room',
     liveOnline: 'Live', liveReconnecting: 'Reconnecting',
     feedHead: 'What happened',
     turnYou: 'Your turn', turnTheirs: '{name} is thinking…',
@@ -442,10 +446,11 @@ const STR = {
     backToApp: 'CantoBuddy', title: 'Big Two',
     sub: 'Ang larong baraha ng Hong Kong — ang 2 ang pinakamalakas na baraha at spades ang pinakamalakas na suit. Gumawa ng kuwarto at ipadala ang code sa pamilya.',
     nameLabel: 'Pangalan mo', avatarLabel: 'Pumili ng avatar', createBtn: 'Gumawa ng kuwarto',
-    divider: 'May code na ako', joinBtn: 'Sumali',
+    divider: 'May code na ako', joinBtn: 'Sumali', codePlaceholder: 'Ilagay ang code',
     tip1: '2–4 na manlalaro · 13 baraha bawat isa · ang 2 ang pinakamalaki',
     tip2: 'Puwedeng mag-pass, pero ang huling naglaro ang mangunguna sa susunod',
     codeChipLabel: 'Code ng kuwarto · i-tap para i-share',
+    soundTitle: 'Tunog', feedTitle: 'Talaan ng laro', leaveTitle: 'Umalis sa kuwarto',
     liveOnline: 'Live', liveReconnecting: 'Kumokonekta ulit',
     feedHead: 'Nangyari',
     turnYou: 'Ikaw ang lalaro', turnTheirs: 'Nag-iisip si {name}…',
@@ -501,10 +506,11 @@ const STR = {
     backToApp: 'CantoBuddy', title: '大老二',
     sub: '香港经典纸牌游戏——2 最大，黑桃最大。开一个房间，把房间码发给家人。',
     nameLabel: '你的名字', avatarLabel: '选一个头像', createBtn: '开一个房间',
-    divider: '我已经有房间码', joinBtn: '加入',
+    divider: '我已经有房间码', joinBtn: '加入', codePlaceholder: '输入房间码',
     tip1: '2–4 人 · 每人 13 张 · 2 是最大的牌',
     tip2: '可以过牌，但最后出牌的人带下一手',
     codeChipLabel: '房间码 · 点按分享',
+    soundTitle: '音效', feedTitle: '牌局记录', leaveTitle: '离开房间',
     liveOnline: '连线中', liveReconnecting: '重新连线',
     feedHead: '刚刚发生',
     turnYou: '轮到你了', turnTheirs: '{name} 正在想…',
@@ -560,10 +566,11 @@ const STR = {
     backToApp: 'CantoBuddy', title: 'Big Two',
     sub: 'Permainan kartu Hong Kong — kartu 2 paling besar dan sekop suit terkuat. Buat ruangan dan kirim kodenya ke keluarga.',
     nameLabel: 'Nama kamu', avatarLabel: 'Pilih avatar', createBtn: 'Buat ruangan',
-    divider: 'Saya sudah punya kode', joinBtn: 'Gabung',
+    divider: 'Saya sudah punya kode', joinBtn: 'Gabung', codePlaceholder: 'Masukkan kode',
     tip1: '2–4 pemain · 13 kartu masing-masing · kartu 2 paling besar',
     tip2: 'Boleh lewat, tapi yang terakhir main memimpin putaran berikutnya',
     codeChipLabel: 'Kode ruangan · ketuk untuk bagikan',
+    soundTitle: 'Suara', feedTitle: 'Catatan permainan', leaveTitle: 'Keluar dari ruang',
     liveOnline: 'Langsung', liveReconnecting: 'Menyambung ulang',
     feedHead: 'Yang terjadi',
     turnYou: 'Giliranmu', turnTheirs: '{name} sedang berpikir…',
@@ -666,6 +673,19 @@ let picked = new Set();    // card ids the player has tapped
 let sound = localStorage.getItem(SOUND_KEY) !== 'off';
 let lastLogLen = 0;
 
+/* The topbar icons are stroked SVGs, not emoji — same set as the UNO table, so
+   the two games read as one app. Emoji were also a portability risk: this bar
+   used to carry the Escape symbol U+238B for Leave, and a phone whose fonts
+   lack that codepoint drew a slashed-circle placeholder. An inline SVG cannot
+   fall back to anything. */
+const ICON_SOUND_ON = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.2l4.3 3.5V6L7.2 9.5H4z"/><path d="M15.4 9a4.2 4.2 0 0 1 0 6"/><path d="M18 6.6a7.6 7.6 0 0 1 0 10.8"/></svg>';
+const ICON_SOUND_OFF = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.2l4.3 3.5V6L7.2 9.5H4z"/><path d="M16 9.8l4.4 4.4M20.4 9.8 16 14.2"/></svg>';
+
+function renderSoundIcon() {
+  const el = $('#soundIcon');
+  if (el) el.innerHTML = sound ? ICON_SOUND_ON : ICON_SOUND_OFF;
+}
+
 /* --------------------------------------------------------------- utils */
 function esc(s) {
   return String(s).replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
@@ -728,8 +748,20 @@ function paintStatic() {
   document.title = t('title') + ' · CantoBuddy';
   document.documentElement.lang = LANG === 'fil' ? 'tl' : LANG;
   $('#nameInput').placeholder = LANG === 'fil' ? 'hal. Maria / Nanay' : LANG === 'zh' ? '例如：阿明' : 'e.g. Maria / Mum';
+  // NOT a sample code. The field is 4 chars, bold, uppercase and widely spaced,
+  // so "ABCD" read as a code that was already filled in — a player could tap
+  // Join without typing anything and be told the room does not exist. An
+  // instruction cannot be mistaken for data.
+  $('#codeInput').placeholder = t('codePlaceholder');
   $('#codeChip').title = t('codeChipLabel');
-  $('#soundBtn').textContent = sound ? '🔔' : '🔇';
+  // All three topbar controls are icon-only, so each needs a tooltip and an
+  // accessible name — set here because paintStatic() is what runs on a language
+  // switch. Same three keys as the UNO table.
+  for (const [sel, key] of [['#soundBtn', 'soundTitle'], ['#feedBtn', 'feedTitle'], ['#leaveBtn', 'leaveTitle']]) {
+    $(sel).title = t(key);
+    $(sel).setAttribute('aria-label', t(key));
+  }
+  renderSoundIcon();
 }
 
 function myName() {
@@ -1119,7 +1151,7 @@ function initLobby() {
   $('#soundBtn').onclick = () => {
     sound = !sound;
     localStorage.setItem(SOUND_KEY, sound ? 'on' : 'off');
-    $('#soundBtn').textContent = sound ? '🔔' : '🔇';
+    renderSoundIcon();
   };
   $('#feedBtn').onclick = () => $('#feed').classList.toggle('hidden');
   $('#feedClose').onclick = () => $('#feed').classList.add('hidden');

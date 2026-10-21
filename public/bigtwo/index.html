@@ -131,7 +131,12 @@
     border:1px solid rgba(31,107,79,.12);
   }
   .trick-line{position:relative;display:flex;align-items:center;justify-content:center;min-height:calc(var(--cw) * 1.5)}
-  .trick-cards{display:flex;gap:4px;align-items:center}
+  .trick-cards{display:flex;gap:5px;align-items:center;
+    /* The played cards read at a larger size than the hand — they are the thing
+       everyone is looking at. Setting --cw here scales the whole card face,
+       corner index included; a five-card trick still fits a 320px phone
+       (5 × 54 + gaps = 292px). */
+    --cw:clamp(54px,17vw,84px);}
   .trick-meta{position:relative;text-align:center;font-size:12px;color:var(--muted);line-height:1.5}
   .trick-meta b{color:var(--ink)}
   .lead-hint{
@@ -145,22 +150,36 @@
   .me-bar{display:flex;align-items:center;gap:7px;padding:0 4px 4px;font-size:12px}
   .me-bar .nm{font-weight:800}
   .me-bar .tag{background:#eaf7f0;color:var(--green);font-size:10px;font-weight:800;padding:2px 7px;border-radius:8px}
+  /* An empty pill is not invisible — it still paints its background, which read
+     as a mysterious green blob next to the name whenever it was not her turn. */
+  .me-bar .tag:empty{display:none}
   .hand-wrap{padding:14px 2px 4px;overflow:visible}
   .hand{display:flex;justify-content:center;align-items:flex-end;padding-top:16px}
   .card{
     position:relative;flex:0 0 auto;width:var(--cw);height:calc(var(--cw) * 1.46);
     border-radius:9px;background:#fff;border:1px solid #d9dde6;
     box-shadow:0 4px 10px rgba(23,26,35,.13);transition:transform .13s ease, box-shadow .13s;
-    display:flex;flex-direction:column;justify-content:space-between;padding:3px 4px;
-    user-select:none;
+    user-select:none;overflow:hidden;
   }
   .hand .card + .card{margin-left:calc(var(--cw) * var(--ov))}
   .hand .card.pick{cursor:pointer}
   .hand .card.pick:active{transform:translateY(-6px)}
   .hand .card.sel{transform:translateY(-16px);box-shadow:0 10px 18px rgba(31,157,99,.3),0 0 0 2.5px var(--green);z-index:5}
   .hand .card.hint{box-shadow:0 0 0 2.5px var(--gold)}
-  .card .rk{font-size:calc(var(--cw) * .27);font-weight:800;line-height:1}
-  .card .st{font-size:calc(var(--cw) * .3);line-height:1;align-self:flex-end}
+  /* A real card face: corner index top-left, big pip in the middle. With 13
+     cards overlapping, only the left strip of each is visible, so the RANK has
+     to sit in that strip — the pip is decoration you see on the top card. */
+  .card .ix{
+    position:absolute;top:2px;left:3px;display:flex;flex-direction:column;align-items:center;
+    line-height:.92;font-weight:800;
+  }
+  .card .ix b{font-size:calc(var(--cw) * .27);font-weight:800}
+  .card .ix i{font-size:calc(var(--cw) * .22);font-style:normal}
+  .card .pip{
+    position:absolute;inset:0;display:grid;place-items:center;
+    font-size:calc(var(--cw) * .5);line-height:1;opacity:.92;
+    padding-left:calc(var(--cw) * .14);
+  }
   .card.red{color:var(--red)}
   .card.blk{color:#22262f}
   .trick-cards .card{box-shadow:0 6px 14px rgba(23,26,35,.16)}
@@ -222,6 +241,11 @@
     :root{--cw:76px}
     .hand .card + .card{margin-left:calc(var(--cw) * -0.42)}
     .seat{min-width:120px}
+    /* A card table is a phone-shaped thing. Left to fill 1280px the felt becomes
+       a wall of green and the two buttons stretch to 400px each — so cap the
+       table and the action row rather than letting flex distribute the slack. */
+    #room{max-width:760px}
+    .actions{max-width:520px;margin:0 auto}
   }
   @media(min-width:1100px){
     #room{margin-right:326px}
@@ -243,6 +267,12 @@
     .seat{padding:5px 8px}
     .table{min-height:120px}
     .hand-wrap{padding-top:10px}
+  }
+  /* At 320px the chip's label wraps to two lines and pushes the code down. The
+     code is the thing that matters, and the chip still shares on tap. */
+  @media(max-width:359px){
+    .codechip small{display:none}
+    .codechip{padding:8px 10px}
   }
 </style>
 </head>
@@ -846,7 +876,9 @@ function cardEl(card, cls) {
   const el = document.createElement('div');
   el.className = 'card ' + (isRed(card.suit) ? 'red' : 'blk') + (cls ? ' ' + cls : '');
   el.dataset.id = card.id;
-  el.innerHTML = `<span class="rk">${rankLabel(card.rank)}</span><span class="st">${SUIT_GLYPH[card.suit]}</span>`;
+  el.innerHTML =
+    `<span class="ix"><b>${rankLabel(card.rank)}</b><i>${SUIT_GLYPH[card.suit]}</i></span>` +
+    `<span class="pip">${SUIT_GLYPH[card.suit]}</span>`;
   return el;
 }
 

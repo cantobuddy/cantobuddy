@@ -383,7 +383,6 @@
 
   <div class="actions" id="actions">
     <button class="act" id="drawBtn"></button>
-    <button class="act" id="passBtn"></button>
     <button class="act" id="startBtn" style="display:none"></button>
     <button class="act emoji" id="emojiBtn">😀</button>
     <button class="act uno" id="unoBtn">UNO!</button>
@@ -437,7 +436,7 @@ const STR = {
     tagWaiting: 'Waiting', tagYourTurn: 'Your turn', tagWaitingFor: 'Waiting for {name}', tagEnded: 'Round over',
     myCount: '{n} cards',
     handEmpty: 'No cards yet — the host starts the game ▶',
-    drawBtn: 'Draw a card', passBtn: 'Pass', startBtn: 'Start game', againBtn: 'Play again', waitPlayers: 'Waiting for players…',
+    drawBtn: 'Draw a card', drewHint: 'You drew a card you can play — tap it.', startBtn: 'Start game', againBtn: 'Play again', waitPlayers: 'Waiting for players…',
     colorTitle: 'Pick a colour', colorBody: 'The next card must match this colour', cancel: 'Cancel',
     winSelf: 'You win!', winOther: '{name} wins', winBody: 'Round {r} over · total 🏆 {w}',
     hostNext: 'Waiting for the host to start the next round…', viewTable: 'Back to the table',
@@ -465,10 +464,9 @@ const STR = {
     logOneLeft: '{who} is down to one card!',
     logDeckEmptyDraw: '{name} tried to draw but the pile is empty',
     logDraw: '{name} drew a card',
-    logPass: '{name} passed',
     logLeave: '{name} left the room',
     logBackToLobby: 'Not enough players — back to the lobby',
-    logAutoPass: '{name} was disconnected too long — auto-drew and skipped',
+    logAutoPass: '{name} was disconnected too long — skipped',
     errNotStarted: 'The round has not started yet',
     errNotYourTurn: 'It is not your turn yet',
     errCardNotInHand: 'That card is not in your hand',
@@ -506,7 +504,7 @@ const STR = {
     tagWaiting: 'Naghihintay', tagYourTurn: 'Ikaw ang lalaro', tagWaitingFor: 'Hinihintay si {name}', tagEnded: 'Tapos na',
     myCount: '{n} baraha',
     handEmpty: 'Wala pang baraha — ang host ang magsisimula ▶',
-    drawBtn: 'Bumunot', passBtn: 'Pass', startBtn: 'Simulan', againBtn: 'Maglaro ulit', waitPlayers: 'Naghihintay ng manlalaro…',
+    drawBtn: 'Bumunot', drewHint: 'May nabunot kang barahang puwede mong ilaro — i-tap ito.', startBtn: 'Simulan', againBtn: 'Maglaro ulit', waitPlayers: 'Naghihintay ng manlalaro…',
     colorTitle: 'Pumili ng kulay', colorBody: 'Dapat pareho ang kulay ng susunod na baraha', cancel: 'Kanselahin',
     winSelf: 'Nanalo ka!', winOther: 'Nanalo si {name}', winBody: 'Tapos ang ika-{r} laro · kabuuan 🏆 {w}',
     hostNext: 'Hinihintay na simulan ng host ang susunod na laro…', viewTable: 'Bumalik sa mesa',
@@ -534,10 +532,9 @@ const STR = {
     logOneLeft: 'Isang baraha na lang si {who}!',
     logDeckEmptyDraw: 'Gustong bumunot ni {name} pero walang laman ang pile',
     logDraw: 'Bumunot si {name}',
-    logPass: 'Nag-pass si {name}',
     logLeave: 'Umalis si {name}',
     logBackToLobby: 'Kulang ang manlalaro — balik sa kuwarto',
-    logAutoPass: 'Masyadong matagal na offline si {name} — awtomatikong bumunot at laktaw',
+    logAutoPass: 'Masyadong matagal na offline si {name} — nilaktawan',
     errNotStarted: 'Hindi pa nagsisimula ang laro',
     errNotYourTurn: 'Hindi pa turno mo',
     errCardNotInHand: 'Wala ang barahang iyon sa kamay mo',
@@ -575,7 +572,7 @@ const STR = {
     tagWaiting: '等待开始', tagYourTurn: '轮到你出牌', tagWaitingFor: '等待 {name}', tagEnded: '本局结束',
     myCount: '{n} 张',
     handEmpty: '牌还没发，等房主点开始 ▶',
-    drawBtn: '摸一张', passBtn: '不出', startBtn: '开始游戏', againBtn: '再来一局', waitPlayers: '等家人进来…',
+    drawBtn: '摸一张', drewHint: '摸到一张可以出的牌——点它就能出。', startBtn: '开始游戏', againBtn: '再来一局', waitPlayers: '等家人进来…',
     colorTitle: '指定颜色', colorBody: '下一张牌必须接这个颜色', cancel: '取消',
     winSelf: '你赢啦！', winOther: '{name} 赢了', winBody: '第 {r} 局结束 · 累计 🏆 {w}',
     hostNext: '等房主开下一局…', viewTable: '看看牌桌',
@@ -603,10 +600,9 @@ const STR = {
     logOneLeft: '{who} 只剩 1 张牌！',
     logDeckEmptyDraw: '{name} 想摸牌，但牌堆空了',
     logDraw: '{name} 摸了 1 张牌',
-    logPass: '{name} 选择不出',
     logLeave: '{name} 离开了房间',
     logBackToLobby: '人不够了，回到等待房间',
-    logAutoPass: '{name} 掉线太久，自动摸牌跳过',
+    logAutoPass: '{name} 掉线太久，跳过',
     errNotStarted: '牌局还没开始',
     errNotYourTurn: '还没轮到你',
     errCardNotInHand: '这张牌不在你手上',
@@ -644,7 +640,7 @@ const STR = {
     tagWaiting: 'Menunggu', tagYourTurn: 'Giliranmu', tagWaitingFor: 'Menunggu {name}', tagEnded: 'Selesai',
     myCount: '{n} kartu',
     handEmpty: 'Kartu belum dibagi — tuan rumah memulai ▶',
-    drawBtn: 'Ambil kartu', passBtn: 'Lewat', startBtn: 'Mulai main', againBtn: 'Main lagi', waitPlayers: 'Menunggu pemain…',
+    drawBtn: 'Ambil kartu', drewHint: 'Kamu menarik kartu yang bisa dimainkan — ketuk kartunya.', startBtn: 'Mulai main', againBtn: 'Main lagi', waitPlayers: 'Menunggu pemain…',
     colorTitle: 'Pilih warna', colorBody: 'Kartu berikutnya harus warna ini', cancel: 'Batal',
     winSelf: 'Kamu menang!', winOther: '{name} menang', winBody: 'Ronde {r} selesai · total 🏆 {w}',
     hostNext: 'Menunggu tuan rumah memulai ronde berikutnya…', viewTable: 'Kembali ke meja',
@@ -672,10 +668,9 @@ const STR = {
     logOneLeft: '{who} tinggal satu kartu!',
     logDeckEmptyDraw: '{name} mau ambil kartu tapi tumpukan kosong',
     logDraw: '{name} mengambil satu kartu',
-    logPass: '{name} lewat',
     logLeave: '{name} keluar dari ruang',
     logBackToLobby: 'Pemain kurang — kembali ke ruang tunggu',
-    logAutoPass: '{name} terlalu lama terputus — otomatis ambil kartu dan lewati',
+    logAutoPass: '{name} terlalu lama terputus — dilewati',
     errNotStarted: 'Ronde belum dimulai',
     errNotYourTurn: 'Belum giliranmu',
     errCardNotInHand: 'Kartu itu tidak ada di tanganmu',
@@ -802,7 +797,6 @@ function paintStatic() {
   attr('#feedBtn', 'title', 'feedTitle');
   attr('#leaveBtn', 'title', 'leaveTitle');
   $('#drawBtn').textContent = '🃏 ' + t('drawBtn');
-  $('#passBtn').textContent = '⏭ ' + t('passBtn');
 }
 
 /* ============================================================ sound */
@@ -1048,7 +1042,7 @@ function logText(ev) {
     case 'oneLeft': return t('logOneLeft', { who: ev.who });
     case 'deckEmptyDraw': return t('logDeckEmptyDraw', { name: ev.name });
     case 'draw': return t('logDraw', { name: ev.name });
-    case 'pass': return t('logPass', { name: ev.name });
+    // No 'pass' case: the server has no pass action, so this can never fire.
     case 'leave': return t('logLeave', { name: ev.name });
     case 'backToLobby': return t('logBackToLobby');
     case 'autoPass': return t('logAutoPass', { name: ev.name });
@@ -1106,7 +1100,6 @@ function renderActions() {
   const playing = S.state === 'playing';
   const myTurn = playing && S.you.isTurn;
   $('#drawBtn').disabled = !myTurn;
-  $('#passBtn').disabled = !myTurn;
   const startBtn = $('#startBtn');
   if (S.state !== 'playing' && S.you.canStart) {
     startBtn.style.display = '';
@@ -1235,6 +1228,23 @@ async function send(payload) {
   }
 }
 
+/**
+ * Drawing is now the ONLY way to end a turn you cannot play (there is no Pass
+ * button any more — it let a player skip without drawing, which is not UNO and
+ * can stall the table). The server keeps the turn with you when the drawn card
+ * is playable, so say so: otherwise the only affordance is a card that happens
+ * to be glowing, and the draw button still looks like the next thing to press.
+ */
+async function doDraw() {
+  try {
+    const r = await api('api/action', { type: 'draw', token: session.token });
+    if (r && r.drewPlayable) toast(t('drewHint'));
+  } catch (e) {
+    toast(e.message);
+    sfx.bad();
+  }
+}
+
 /* ============================================================ wiring */
 paintStatic();
 $('#createBtn').onclick = doCreate;
@@ -1245,8 +1255,7 @@ $('#codeInput').addEventListener('input', (e) => {
 });
 $('#codeInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') doJoin(); });
 
-$('#drawBtn').onclick = () => send({ type: 'draw' });
-$('#passBtn').onclick = () => send({ type: 'pass' });
+$('#drawBtn').onclick = doDraw;
 $('#startBtn').onclick = () => send({ type: S.state === 'ended' ? 'again' : 'start' });
 $('#unoBtn').onclick = () => { send({ type: 'shout', emoji: 'UNO!! 🔥' }); beep(900, 0.1, 'square', 0.06); };
 $('#emojiBtn').onclick = () => {

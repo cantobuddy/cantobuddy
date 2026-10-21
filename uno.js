@@ -320,13 +320,14 @@ function drawCard(room, player) {
   return { ok: true, drewPlayable: true };
 }
 
-function passTurn(room, player) {
-  if (room.state !== 'playing') return { error: 'notStarted' };
-  if (room.players[room.turn].id !== player.id) return { error: 'notYourTurn' };
-  pushLog(room, { k: 'pass', name: player.name });
-  advance(room, 1);
-  return { ok: true };
-}
+/*
+ * There is no `pass` action, deliberately. A UNO turn ends by playing a card or
+ * by drawing one — and the pass that used to sit here let a player skip WITHOUT
+ * drawing, which is not UNO and could stall a table indefinitely: nobody's hand
+ * changes, the discard never changes, and the turn just goes round. Drawing is
+ * the way to decline; `drawCard` already ends the turn when the drawn card is
+ * not playable, and keeps it (so she may play what she drew) when it is.
+ */
 
 /* -------------------------------------------------------------- broadcast */
 function stateFor(room, viewer) {
@@ -536,13 +537,6 @@ async function handle(req, res) {
       return json(res, 200, r);
     }
 
-    if (type === 'pass') {
-      const r = passTurn(room, player);
-      if (r.error) return json(res, 400, r);
-      broadcast(room, { type: 'pass', by: player.name });
-      return json(res, 200, r);
-    }
-
     if (type === 'chat') {
       const text = String(body.text || '').slice(0, 140).trim();
       if (!text) return json(res, 400, { error: 'emptyMessage' });
@@ -658,7 +652,10 @@ setInterval(() => {
       const cur = room.players[room.turn];
       if (cur && cur.conns === 0 && cur.disconnectedAt && t - cur.disconnectedAt > 25000) {
         pushLog(room, { k: 'autoPass', name: cur.name });
-        drawFromDeck(room, 1);
+        // Just move on. This used to `drawFromDeck(room, 1)` and discard the
+        // result — the card left the deck and reached nobody, which is a slow
+        // leak that looks like the deck thinning for no reason. An absent
+        // player is skipped; she is not dealt a card she cannot see.
         advance(room, 1);
         broadcast(room, { type: 'autopass' });
       }

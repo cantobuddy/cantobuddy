@@ -1,0 +1,1319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f4f5fa">
+<meta name="robots" content="noindex">
+<title>UNO · CantoBuddy</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%23e63946'/><ellipse cx='50' cy='52' rx='34' ry='24' fill='white' transform='rotate(-18 50 52)'/><text x='50' y='62' font-size='30' font-family='Arial' font-weight='bold' fill='%23e63946' text-anchor='middle'>U</text></svg>">
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  :root{
+    --red:#e63946; --yellow:#f0b429; --green:#1f9d63; --blue:#2b6cf0;
+    --ink:#161922; --muted:#6f7683; --line:#e6e8ef;
+    --bg:#f4f5fa; --panel:#ffffff;
+    --shadow:0 10px 30px rgba(23,26,35,.08);
+    --radius:18px;
+  }
+  html,body{height:100%}
+  body{
+    margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"PingFang SC","Microsoft YaHei",sans-serif;
+    color:var(--ink);background:var(--bg);
+    background-image:
+      radial-gradient(60vw 60vw at 8% -10%, rgba(230,57,70,.12), transparent 62%),
+      radial-gradient(50vw 50vw at 100% 0%, rgba(43,108,240,.12), transparent 60%),
+      radial-gradient(60vw 60vw at 50% 110%, rgba(31,157,99,.10), transparent 60%);
+    background-attachment:fixed;
+    overscroll-behavior:none;
+  }
+  button{font:inherit;color:inherit;border:none;background:none;cursor:pointer}
+  input{font:inherit;color:inherit}
+  .hidden{display:none !important}
+
+  /* ---------------------------------------------------------- lobby */
+  #lobby{min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px 18px 40px}
+  .backlink{
+    align-self:flex-start;display:inline-flex;align-items:center;gap:6px;color:var(--muted);
+    font-size:13px;font-weight:600;text-decoration:none;padding:8px 12px;border-radius:12px;background:#fff;
+    border:1px solid var(--line);box-shadow:0 4px 12px rgba(23,26,35,.05);margin-bottom:auto;
+  }
+  .brand{display:flex;gap:6px;margin:14px 0}
+  .brand i{
+    width:38px;height:52px;border-radius:8px;display:grid;place-items:center;
+    font-style:normal;font-weight:800;color:#fff;font-size:22px;
+    box-shadow:0 8px 18px rgba(0,0,0,.14);font-family:Arial Black,Arial,sans-serif;
+  }
+  .brand i:nth-child(1){background:var(--red);transform:rotate(-11deg)}
+  .brand i:nth-child(2){background:var(--yellow);transform:rotate(-3deg) translateY(-6px)}
+  .brand i:nth-child(3){background:var(--green);transform:rotate(6deg)}
+  .brand i:nth-child(4){background:var(--blue);transform:rotate(13deg) translateY(-4px)}
+  h1{margin:6px 0 6px;font-size:26px;letter-spacing:-.5px;text-align:center}
+  .sub{margin:0 0 20px;color:var(--muted);font-size:14px;text-align:center;line-height:1.6;max-width:330px}
+  .panel{
+    width:100%;max-width:380px;background:var(--panel);border-radius:24px;
+    padding:20px;box-shadow:var(--shadow);border:1px solid rgba(255,255,255,.7);
+  }
+  label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin:0 0 7px;letter-spacing:.3px}
+  .field{
+    width:100%;padding:13px 14px;border-radius:14px;border:1.5px solid var(--line);
+    background:#fafbfe;font-size:16px;outline:none;transition:.15s;
+  }
+  .field:focus{border-color:var(--blue);background:#fff;box-shadow:0 0 0 4px rgba(43,108,240,.1)}
+  .avatars{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:18px}
+  .avatars button{
+    aspect-ratio:1;border-radius:13px;font-size:22px;background:#fafbfe;border:1.5px solid var(--line);
+    display:grid;place-items:center;transition:.15s;
+  }
+  .avatars button.on{border-color:var(--blue);background:#eef3ff;transform:translateY(-2px);box-shadow:0 6px 14px rgba(43,108,240,.18)}
+  .btn{
+    width:100%;padding:14px;border-radius:15px;background:#eef0f6;font-weight:700;font-size:15px;
+    transition:.15s;border:1.5px solid transparent;
+  }
+  .btn:active{transform:scale(.98)}
+  .btn.primary{background:linear-gradient(135deg,#2b6cf0,#4a86ff);color:#fff;box-shadow:0 10px 22px rgba(43,108,240,.3)}
+  .btn.ghost{background:#fff;border-color:var(--line)}
+  .btn:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
+  .divider{display:flex;align-items:center;gap:10px;color:#a3a9b6;font-size:12px;margin:16px 0}
+  .divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line)}
+  .join-row{display:flex;gap:8px}
+  .join-row .field{flex:1 1 auto;min-width:0;letter-spacing:6px;text-align:center;font-weight:800;text-transform:uppercase;font-size:18px}
+  .join-row .btn{flex:0 0 auto;width:auto;padding:0 22px;background:var(--ink);color:#fff;white-space:nowrap}
+  .err{color:var(--red);font-size:13px;margin:10px 0 0;min-height:18px;text-align:center}
+  .tips{margin:20px 0 0;padding:0;list-style:none;color:var(--muted);font-size:12.5px;line-height:2;text-align:center;max-width:340px}
+
+  /* ---------------------------------------------------------- room shell */
+  #room{height:100dvh;display:flex;flex-direction:column;max-width:1100px;margin:0 auto;padding:10px 12px 0;overflow:hidden}
+  .topbar{display:flex;align-items:center;gap:8px;padding:6px 2px 10px}
+  .codechip{
+    display:flex;align-items:center;gap:8px;background:#fff;border-radius:13px;padding:8px 12px;
+    box-shadow:0 4px 14px rgba(23,26,35,.07);border:1px solid var(--line);
+  }
+  .codechip b{letter-spacing:3px;font-size:16px;font-family:ui-monospace,Menlo,monospace}
+  .codechip small{color:var(--muted);font-size:10.5px;display:block;letter-spacing:.4px}
+  .iconbtn{
+    width:38px;height:38px;border-radius:12px;background:#fff;border:1px solid var(--line);
+    display:grid;place-items:center;font-size:16px;box-shadow:0 4px 14px rgba(23,26,35,.06)
+  }
+  .spacer{flex:1}
+  .status{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px}
+  .dot{width:7px;height:7px;border-radius:50%;background:#22c55e}
+  .dot.warn{background:var(--yellow)}
+  .dot.bad{background:var(--red)}
+
+  /* opponents */
+  .opps{display:flex;gap:10px;overflow-x:auto;padding:4px 2px 10px;scrollbar-width:none;justify-content:safe center}
+  .opps::-webkit-scrollbar{display:none}
+  .opp{
+    flex:0 0 auto;min-width:78px;background:#fff;border-radius:16px;padding:9px 10px;text-align:center;
+    border:2px solid transparent;box-shadow:0 6px 16px rgba(23,26,35,.06);transition:.2s;position:relative;
+  }
+  .opp.turn{border-color:var(--blue);box-shadow:0 0 0 4px rgba(43,108,240,.13),0 8px 20px rgba(43,108,240,.16);transform:translateY(-2px)}
+  .opp.off{opacity:.45;filter:grayscale(.6)}
+  .opp .av{font-size:24px;line-height:1.15}
+  .opp .nm{font-size:11.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70px;margin-top:2px}
+  .opp .cnt{
+    display:inline-flex;align-items:center;gap:3px;margin-top:5px;font-size:10.5px;font-weight:700;
+    color:var(--muted);background:#f3f5fa;border-radius:20px;padding:2px 8px;
+  }
+  .opp .crown{position:absolute;top:-9px;right:-4px;font-size:13px}
+
+  /* table */
+  .table{
+    flex:1 1 auto;display:flex;align-items:center;justify-content:center;gap:26px;
+    padding:6px 0 10px;position:relative;min-height:0;
+  }
+  .table::before{
+    content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:min(600px,88%);height:min(280px,82%);border-radius:50%;
+    background:radial-gradient(ellipse at 50% 45%,rgba(255,255,255,.95),rgba(255,255,255,.55) 55%,rgba(255,255,255,0) 76%);
+    box-shadow:0 26px 50px -40px rgba(23,26,35,.22);
+    z-index:0;pointer-events:none;
+  }
+  .pile{position:relative;z-index:1;display:grid;place-items:center;gap:8px}
+  .pile .lbl{font-size:11px;color:var(--muted);font-weight:600}
+  .stack{position:relative;width:84px;height:122px}
+  .card{
+    --w:84px;width:var(--w);height:calc(var(--w)*1.44);border-radius:11px;background:#fff;
+    box-shadow:0 6px 16px rgba(23,26,35,.16);position:relative;display:grid;place-items:center;
+    overflow:hidden;flex:0 0 auto;
+  }
+  .card .inner{position:absolute;inset:5px;border-radius:8px;overflow:hidden}
+  .card .oval{
+    position:absolute;left:50%;top:50%;width:78%;height:60%;transform:translate(-50%,-50%) rotate(-20deg);
+    background:#fff;border-radius:50%;display:grid;place-items:center;
+  }
+  .card .oval span{transform:rotate(20deg);font-weight:900;font-size:calc(var(--w)*.34);font-family:Arial Black,Arial,sans-serif}
+  .card .cn{position:absolute;font-size:calc(var(--w)*.16);font-weight:800;color:#fff;font-family:Arial,sans-serif}
+  .card .cn.tl{top:4px;left:6px}
+  .card .cn.br{bottom:4px;right:6px;transform:rotate(180deg)}
+  .card[data-c=red] .inner{background:var(--red)} .card[data-c=red] .oval span{color:var(--red)}
+  .card[data-c=yellow] .inner{background:var(--yellow)} .card[data-c=yellow] .oval span{color:#d99a00}
+  .card[data-c=green] .inner{background:var(--green)} .card[data-c=green] .oval span{color:var(--green)}
+  .card[data-c=blue] .inner{background:var(--blue)} .card[data-c=blue] .oval span{color:var(--blue)}
+  .card[data-c=wild] .inner{background:conic-gradient(var(--red) 0 25%,var(--yellow) 0 50%,var(--green) 0 75%,var(--blue) 0)}
+  .card[data-c=wild] .oval span{color:#2b2b2b;font-size:calc(var(--w)*.2);letter-spacing:-.5px}
+  .card.back .inner{background:linear-gradient(140deg,#22262f,#3a4150)}
+  .card.back .oval{background:rgba(255,255,255,.92)}
+  .card.back .oval span{color:#e63946;font-size:calc(var(--w)*.3);transform:rotate(20deg);font-style:italic}
+  .stack .card{position:absolute;inset:0}
+  .stack .card:nth-child(2){transform:translate(4px,4px) rotate(4deg)}
+  .stack .card:nth-child(3){transform:translate(8px,8px) rotate(8deg)}
+  .stack .cnt{
+    position:absolute;bottom:-10px;right:-8px;background:var(--ink);color:#fff;font-size:11px;font-weight:700;
+    border-radius:20px;padding:2px 8px;z-index:5;box-shadow:0 4px 10px rgba(0,0,0,.2)
+  }
+  .discard-wrap{position:relative;display:grid;place-items:center}
+  .discard-wrap::after{
+    content:"";position:absolute;width:120px;height:120px;border-radius:50%;
+    background:var(--cur,rgba(43,108,240,.25));filter:blur(22px);opacity:.55;z-index:-1;transition:.3s;
+  }
+  .pop{animation:pop .28s cubic-bezier(.3,1.6,.5,1)}
+  @keyframes pop{from{transform:scale(.7) rotate(-8deg);opacity:.4}to{transform:scale(1) rotate(0);opacity:1}}
+  .metaline{display:flex;align-items:center;justify-content:center;gap:14px;font-size:11.5px;color:var(--muted);padding-bottom:6px}
+  .metaline b{color:var(--ink)}
+  .swatch{width:11px;height:11px;border-radius:50%;display:inline-block;vertical-align:-1px;margin-right:4px}
+  .dirbadge{font-size:13px}
+  .roundchip{font-size:11.5px;color:var(--muted);background:#fff;border:1px solid var(--line);border-radius:11px;padding:7px 11px;white-space:nowrap;box-shadow:0 4px 12px rgba(23,26,35,.05)}
+
+  /* hand */
+  .me-bar{display:flex;align-items:center;gap:8px;padding:2px 4px 6px}
+  .me-bar .av{font-size:20px}
+  .me-bar .nm{font-size:13px;font-weight:700}
+  .me-bar .tag{font-size:10.5px;background:#eef3ff;color:var(--blue);font-weight:700;padding:2px 7px;border-radius:20px}
+  .me-bar .tag.turn{background:#e8f8ef;color:var(--green)}
+  .hand-scroll{overflow-x:auto;overflow-y:visible;padding:14px 6px 8px;scrollbar-width:none;-webkit-overflow-scrolling:touch;flex:0 0 auto}
+  .hand-scroll::-webkit-scrollbar{display:none}
+  .hand{display:flex;padding-right:14px;align-items:flex-end}
+  .hand .card{
+    --w:74px;margin-left:-26px;transition:transform .16s,box-shadow .16s,opacity .16s;
+    animation:deal .3s ease backwards;
+  }
+  .hand .card:first-child{margin-left:0}
+  @keyframes deal{from{transform:translateY(22px) scale(.9);opacity:0}to{transform:none;opacity:1}}
+  .hand .card.ok{cursor:pointer;box-shadow:0 8px 20px rgba(23,26,35,.2),0 0 0 3px rgba(43,108,240,.55)}
+  .hand .card.ok:hover{transform:translateY(-16px)}
+  .hand .card.no{opacity:.8;filter:saturate(.82)}
+  .hand .card.no:active{transform:translateX(-3px)}
+  .shake{animation:shake .3s}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+
+  .actions{display:flex;gap:8px;padding:4px 2px 12px;align-items:center;flex-wrap:wrap}
+  .act{
+    padding:12px 16px;border-radius:14px;background:#fff;font-weight:700;font-size:13.5px;
+    border:1.5px solid var(--line);box-shadow:0 4px 12px rgba(23,26,35,.06);transition:.15s;
+    display:inline-flex;align-items:center;gap:6px
+  }
+  .act:active{transform:scale(.96)}
+  .act:disabled{opacity:.4;box-shadow:none}
+  .act.uno{background:linear-gradient(135deg,#e63946,#ff6a4d);color:#fff;border-color:transparent;box-shadow:0 8px 18px rgba(230,57,70,.3);margin-left:4px}
+  .act.emoji{padding:12px 13px}
+
+  /* feed */
+  .feed{
+    position:fixed;right:14px;bottom:14px;width:290px;max-height:56vh;background:rgba(255,255,255,.96);
+    backdrop-filter:blur(14px);border-radius:18px;box-shadow:0 18px 44px rgba(23,26,35,.18);
+    border:1px solid var(--line);display:flex;flex-direction:column;z-index:40;overflow:hidden;
+  }
+  .feed-head{display:flex;align-items:center;gap:6px;padding:10px 12px;border-bottom:1px solid var(--line);font-size:12px;font-weight:700}
+  .feed-body{flex:1;overflow-y:auto;padding:8px 12px;font-size:12.5px;line-height:1.7}
+  .feed-body .lg{color:#4b5160;display:flex;gap:6px}
+  .feed-body .lg i{font-style:normal;opacity:.5;flex:0 0 auto}
+  .bubble{margin:6px 0;display:flex;gap:6px}
+  .bubble .tx{background:#f1f3f9;border-radius:12px;padding:6px 10px;max-width:200px;word-break:break-word}
+  .bubble.mine .tx{background:#e9f0ff}
+  .bubble .who{font-size:10.5px;color:var(--muted);margin-bottom:2px}
+  .shout .tx{background:linear-gradient(135deg,#fff3d6,#ffe6b8);font-weight:800;color:#a56a00}
+  .feed-foot{display:flex;gap:6px;padding:8px;border-top:1px solid var(--line)}
+  .feed-foot input{flex:1;border:1px solid var(--line);border-radius:11px;padding:9px 11px;font-size:13px;outline:none;background:#fafbfe}
+  .feed-foot button{background:var(--blue);color:#fff;border-radius:11px;padding:0 14px;font-weight:700;font-size:13px}
+
+  /* overlay */
+  .overlay{
+    position:fixed;inset:0;background:rgba(20,23,30,.5);backdrop-filter:blur(6px);z-index:60;
+    display:grid;place-items:center;padding:20px;animation:fade .2s
+  }
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .modal{background:#fff;border-radius:24px;padding:24px;width:100%;max-width:330px;text-align:center;box-shadow:0 30px 60px rgba(0,0,0,.25);animation:up .25s cubic-bezier(.3,1.4,.5,1)}
+  @keyframes up{from{transform:translateY(16px) scale(.96);opacity:0}to{transform:none;opacity:1}}
+  .modal h2{margin:0 0 6px;font-size:20px}
+  .modal p{margin:0 0 16px;color:var(--muted);font-size:13px;line-height:1.6}
+  .colors{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:6px}
+  .colors button{height:62px;border-radius:16px;box-shadow:0 8px 18px rgba(0,0,0,.14);transition:.15s}
+  .colors button:active{transform:scale(.96)}
+  .c-red{background:var(--red)} .c-yellow{background:var(--yellow)} .c-green{background:var(--green)} .c-blue{background:var(--blue)}
+  .big-av{font-size:56px;line-height:1;margin-bottom:6px}
+  .confetti{position:fixed;inset:0;pointer-events:none;z-index:70;overflow:hidden}
+  .confetti i{position:absolute;top:-16px;width:8px;height:15px;border-radius:2px;animation:fall linear forwards;opacity:.95}
+  @keyframes fall{to{transform:translateY(112vh) rotate(720deg);opacity:.85}}
+  .toast{
+    position:fixed;left:50%;top:16px;transform:translateX(-50%) translateY(-20px);background:var(--ink);color:#fff;
+    padding:10px 16px;border-radius:12px;font-size:13px;opacity:0;transition:.25s;z-index:99;pointer-events:none;max-width:90vw;text-align:center
+  }
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  @media(min-width:900px){
+    .hand .card{--w:86px;margin-left:-16px}
+    .hand .card.ok:hover{transform:translateY(-20px)}
+    .card{--w:96px}
+    .stack{width:96px;height:138px}
+  }
+  @media(min-width:1100px){
+    #room{max-width:1000px;margin-right:326px}
+    .feed{top:10px;bottom:auto;right:12px;height:calc(100dvh - 20px);max-height:none}
+  }
+  @media(max-width:899px){
+    .feed{width:calc(100vw - 24px);right:12px;bottom:12px;max-height:46vh}
+  }
+  @media(max-width:560px){
+    #room{padding:8px 10px 0}
+    .topbar{gap:6px;padding:4px 0 8px}
+    .codechip{padding:6px 10px;border-radius:11px;gap:6px}
+    .codechip b{font-size:15px;letter-spacing:2px}
+    .codechip small{font-size:9px}
+    .roundchip{display:none}
+    .status span:last-child{display:none}
+    .iconbtn{width:33px;height:33px;border-radius:10px;font-size:14px}
+    .opps{gap:8px;padding-bottom:8px}
+    .opp{min-width:68px;padding:7px 8px;border-radius:14px}
+    .opp .av{font-size:21px}
+    .opp .nm{font-size:11px;max-width:60px}
+    .opp .cnt{font-size:10px;padding:2px 7px}
+    .card{--w:76px}
+    .stack{width:76px;height:110px}
+    #room{justify-content:space-between}
+    .table{flex:0 0 auto;height:min(42vh,320px);min-height:180px;gap:18px}
+    .table::before{width:94%;height:100%;box-shadow:0 18px 34px -30px rgba(23,26,35,.2)}
+    .metaline{gap:10px;font-size:11px;flex-wrap:wrap;padding-bottom:4px}
+    .me-bar{padding:0 4px 2px}
+    .hand .card{--w:70px;margin-left:-22px}
+    .hand-scroll{padding:12px 4px 6px}
+    .actions{gap:6px;padding:2px 2px calc(8px + env(safe-area-inset-bottom))}
+    .act{padding:11px 12px;font-size:12.5px;border-radius:13px}
+    .act.emoji{padding:11px}
+    .modal{padding:20px}
+  }
+  @media(max-height:680px){
+    .opp .cnt{display:none}
+    .metaline{padding-bottom:2px}
+    .hand-scroll{padding-top:10px}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================ LOBBY ============================ -->
+<main id="lobby">
+  <a class="backlink" href="/?view=games" id="backLink">← <span data-k="backToApp"></span></a>
+  <div class="brand"><i>U</i><i>N</i><i>O</i><i>!</i></div>
+  <h1 data-k="title"></h1>
+  <p class="sub" data-k="sub"></p>
+
+  <div class="panel">
+    <label data-k="nameLabel"></label>
+    <input id="nameInput" class="field" maxlength="12" autocomplete="off">
+
+    <label style="margin-top:16px" data-k="avatarLabel"></label>
+    <div id="avatarPicker" class="avatars"></div>
+
+    <button id="createBtn" class="btn primary" data-k="createBtn"></button>
+
+    <div class="divider"><span data-k="divider"></span></div>
+    <div class="join-row">
+      <input id="codeInput" class="field" maxlength="4" placeholder="ABCD" autocomplete="off" autocapitalize="characters">
+      <button id="joinBtn" class="btn" data-k="joinBtn"></button>
+    </div>
+    <p id="lobbyErr" class="err"></p>
+  </div>
+
+  <ul class="tips">
+    <li data-k="tip1"></li>
+    <li data-k="tip2"></li>
+  </ul>
+</main>
+
+<!-- ============================ ROOM ============================ -->
+<section id="room" class="hidden">
+  <div class="topbar">
+    <div class="codechip" id="codeChip">
+      <div>
+        <small data-k="codeChipLabel"></small>
+        <b id="codeText">----</b>
+      </div>
+      <span style="font-size:15px">🔗</span>
+    </div>
+    <div class="roundchip" id="roundChip"></div>
+    <div class="spacer"></div>
+    <div class="status"><span class="dot" id="liveDot"></span><span id="liveText"></span></div>
+    <button class="iconbtn" id="soundBtn"><span id="soundIcon"></span></button>
+    <button class="iconbtn" id="feedBtn"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 11.8a7.6 7.6 0 0 1-7.6 7.6H9.4L4.5 22v-4.6a7.6 7.6 0 1 1 16-5.6z"/></svg></button>
+    <button class="iconbtn" id="leaveBtn"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4.5h3.5A1.5 1.5 0 0 1 19 6v12a1.5 1.5 0 0 1-1.5 1.5H14"/><path d="M9.5 8 5.5 12l4 4"/><path d="M5.5 12H15"/></svg></button>
+  </div>
+
+  <div class="opps" id="opps"></div>
+
+  <div class="table">
+    <div class="pile">
+      <div class="stack" id="drawPile"></div>
+      <div class="lbl" id="deckLbl"></div>
+    </div>
+    <div class="pile">
+      <div class="discard-wrap" id="discardWrap"></div>
+      <div class="lbl" data-k="discardLabel"></div>
+    </div>
+  </div>
+
+  <div class="metaline">
+    <span id="colorMeta"></span>
+    <span id="dirMeta"></span>
+    <span id="turnMeta"></span>
+  </div>
+
+  <div class="me-bar">
+    <span class="av" id="myAv">🙂</span>
+    <span class="nm" id="myName"></span>
+    <span class="tag" id="myTag"></span>
+    <span class="spacer"></span>
+    <span style="font-size:11.5px;color:var(--muted)" id="myCount"></span>
+  </div>
+
+  <div class="hand-scroll" id="handScroll">
+    <div class="hand" id="hand"></div>
+  </div>
+
+  <div class="actions" id="actions">
+    <button class="act" id="drawBtn"></button>
+    <button class="act" id="passBtn"></button>
+    <button class="act" id="startBtn" style="display:none"></button>
+    <button class="act emoji" id="emojiBtn">😀</button>
+    <button class="act uno" id="unoBtn">UNO!</button>
+  </div>
+</section>
+
+<!-- ============================ FEED ============================ -->
+<aside class="feed hidden" id="feed">
+  <div class="feed-head">
+    <span data-k="feedHead"></span>
+    <span class="spacer"></span>
+    <button id="feedClose" style="font-size:14px;color:#9aa1ae">✕</button>
+  </div>
+  <div class="feed-body" id="feedBody"></div>
+  <div class="feed-foot">
+    <input id="chatInput" maxlength="140" autocomplete="off">
+    <button id="chatSend" data-k="sendBtn"></button>
+  </div>
+</aside>
+
+<div class="toast" id="toast"></div>
+<div id="modalRoot"></div>
+
+<script>
+/* ============================================================
+   Language.
+
+   The game must speak the language the learner already picked in
+   CantoBuddy, which is stored in `cb_lang` on this same origin — so the
+   hand-off needs no query string and no extra request. Four dictionaries,
+   the same four the app ships (en / fil / zh / id); an unknown or missing
+   key falls back to English rather than rendering "undefined".
+   ============================================================ */
+const STR = {
+  en: {
+    backToApp: 'CantoBuddy', title: 'Family UNO',
+    sub: 'Make a room and send the 4-letter code to your family. Phone, tablet or laptop — chat while you play.',
+    nameLabel: 'Your name', namePlaceholder: 'e.g. Maria / Mum / Lola',
+    avatarLabel: 'Pick an avatar', createBtn: 'Create a room',
+    divider: 'I already have a code', joinBtn: 'Join',
+    tip1: '2–8 players · the draw pile reshuffles itself · you reconnect if the signal drops',
+    tip2: 'Play on the same WiFi or with family far away',
+    codeChipLabel: 'Room code · tap to share', codeChipTitle: 'Copy the invite link',
+    discardLabel: 'Discard', deckLabel: 'Draw pile', deckEmpty: 'Pile empty',
+    liveOnline: 'Live', liveReconnecting: 'Reconnecting',
+    soundTitle: 'Sound', feedTitle: 'Chat & log', leaveTitle: 'Leave the room',
+    feedHead: 'Table chat & log', chatPlaceholder: 'Say something…', sendBtn: 'Send',
+    roundWaiting: '{n} players waiting', roundPlaying: 'Round {r} · {n} players',
+    colorMeta: 'Colour', dirCW: 'Clockwise', dirCCW: 'Anti-clockwise',
+    turnMine: 'Your turn', turnTheirs: 'Waiting for {name}', waitingStart: 'Waiting to start', roundOver: 'Round over',
+    tagWaiting: 'Waiting', tagYourTurn: 'Your turn', tagWaitingFor: 'Waiting for {name}', tagEnded: 'Round over',
+    myCount: '{n} cards',
+    handEmpty: 'No cards yet — the host starts the game ▶',
+    drawBtn: 'Draw a card', passBtn: 'Pass', startBtn: 'Start game', againBtn: 'Play again', waitPlayers: 'Waiting for players…',
+    colorTitle: 'Pick a colour', colorBody: 'The next card must match this colour', cancel: 'Cancel',
+    winSelf: 'You win!', winOther: '{name} wins', winBody: 'Round {r} over · total 🏆 {w}',
+    hostNext: 'Waiting for the host to start the next round…', viewTable: 'Back to the table',
+    toastNotYourTurn: 'It is not your turn yet', toastCantPlay: 'Colour and number both differ — you cannot play that',
+    toastCopied: 'Invite copied — send it to your family', promptCopy: 'Copy this link and send it to your family:',
+    confirmLeave: 'Leave the room?', toastExpired: 'Your seat expired — please join again',
+    errCode: 'A room code is 4 characters, like 7K2M',
+    inviteText: 'Come play UNO! Room code {code} → {url}',
+    joinHint: 'Send the code {code} to your family and wait for them…',
+    cardWild: 'Wild', cardWild4: '+4 Wild', cardSkip: 'Skip', cardReverse: 'Reverse', cardDraw2: '+2',
+    colRed: 'Red', colYellow: 'Yellow', colGreen: 'Green', colBlue: 'Blue',
+    logRoomCreated: 'Room {code} created — waiting for players…',
+    logJoin: '{name} joined the room',
+    logDeckRecycled: 'The draw pile ran out — the discard pile was reshuffled',
+    logRoundStart: 'Round {r} starts — {name} goes first (opening card: {card})',
+    logWin: '🏆 {name} played their last card and won round {r}!',
+    logLastCardOut: '{who} played {card} and is out of cards!',
+    logSkip: '{who} played {card} — {victim} is skipped',
+    logReverseTwo: '{who} played {card} — in a two-player game reverse means they go again',
+    logReverse: '{who} played {card} — direction reversed',
+    logDraw2: '{who} played {card} — {victim} draws 2 and is skipped',
+    logWild4: '{who} played +4 and chose {color} — {victim} draws 4 and is skipped',
+    logWild: '{who} played a wild and chose {color}',
+    logPlay: '{who} played {card}',
+    logOneLeft: '{who} is down to one card!',
+    logDeckEmptyDraw: '{name} tried to draw but the pile is empty',
+    logDraw: '{name} drew a card',
+    logPass: '{name} passed',
+    logLeave: '{name} left the room',
+    logBackToLobby: 'Not enough players — back to the lobby',
+    logAutoPass: '{name} was disconnected too long — auto-drew and skipped',
+    errNotStarted: 'The round has not started yet',
+    errNotYourTurn: 'It is not your turn yet',
+    errCardNotInHand: 'That card is not in your hand',
+    errCardNotPlayable: 'That card cannot be played right now',
+    errOnlyHost: 'Only the host can do that',
+    errNeedTwoPlayers: 'You need at least 2 players to start',
+    errAlreadyPlaying: 'A round is already in progress',
+    errEmptyMessage: 'Empty message',
+    errUnknownAction: 'Unknown action',
+    errRoomNotFound: 'No room with that code — check it again?',
+    errRoomFull: 'That room is full (8 players maximum)',
+    errNameRequired: 'Please enter a name',
+    errNameTaken: 'Someone in that room already has that name',
+    errSessionExpired: 'Your seat expired — please join again',
+    errTooManyRooms: 'Too many games running right now — try again in a minute',
+    errBadRequest: 'Something went wrong',
+    errNet: 'The connection slipped — please try again',
+  },
+  fil: {
+    backToApp: 'CantoBuddy', title: 'UNO ng Pamilya',
+    sub: 'Gumawa ng kuwarto at ipadala ang 4-letrang code sa pamilya mo. Telepono, tablet o laptop — mag-chat habang naglalaro.',
+    nameLabel: 'Pangalan mo', namePlaceholder: 'hal. Maria / Nanay / Lola',
+    avatarLabel: 'Pumili ng avatar', createBtn: 'Gumawa ng kuwarto',
+    divider: 'May code na ako', joinBtn: 'Sumali',
+    tip1: '2–8 manlalaro · kusang nagsha-shuffle ang pile · makakabalik ka kapag nawalan ng signal',
+    tip2: 'Puwede sa iisang WiFi o sa pamilyang malayo',
+    codeChipLabel: 'Code ng kuwarto · pindutin para i-share', codeChipTitle: 'Kopyahin ang link ng imbitasyon',
+    discardLabel: 'Tapunan', deckLabel: 'Pile', deckEmpty: 'Walang laman',
+    liveOnline: 'Live', liveReconnecting: 'Kumokonekta ulit',
+    soundTitle: 'Tunog', feedTitle: 'Chat at talaan', leaveTitle: 'Umalis sa kuwarto',
+    feedHead: 'Chat at talaan', chatPlaceholder: 'Magsalita…', sendBtn: 'Ipadala',
+    roundWaiting: '{n} manlalaro ang naghihintay', roundPlaying: 'Ika-{r} na laro · {n} manlalaro',
+    colorMeta: 'Kulay', dirCW: 'Pakanan', dirCCW: 'Pakaliwa',
+    turnMine: 'Ikaw ang lalaro', turnTheirs: 'Hinihintay si {name}', waitingStart: 'Naghihintay magsimula', roundOver: 'Tapos ang laro',
+    tagWaiting: 'Naghihintay', tagYourTurn: 'Ikaw ang lalaro', tagWaitingFor: 'Hinihintay si {name}', tagEnded: 'Tapos na',
+    myCount: '{n} baraha',
+    handEmpty: 'Wala pang baraha — ang host ang magsisimula ▶',
+    drawBtn: 'Bumunot', passBtn: 'Pass', startBtn: 'Simulan', againBtn: 'Maglaro ulit', waitPlayers: 'Naghihintay ng manlalaro…',
+    colorTitle: 'Pumili ng kulay', colorBody: 'Dapat pareho ang kulay ng susunod na baraha', cancel: 'Kanselahin',
+    winSelf: 'Nanalo ka!', winOther: 'Nanalo si {name}', winBody: 'Tapos ang ika-{r} laro · kabuuan 🏆 {w}',
+    hostNext: 'Hinihintay na simulan ng host ang susunod na laro…', viewTable: 'Bumalik sa mesa',
+    toastNotYourTurn: 'Hindi pa turno mo', toastCantPlay: 'Iba ang kulay at numero — hindi mo puwedeng ilagay',
+    toastCopied: 'Nakopya ang imbitasyon — ipadala sa pamilya mo', promptCopy: 'Kopyahin ang link at ipadala sa pamilya mo:',
+    confirmLeave: 'Aalis ka na ba sa kuwarto?', toastExpired: 'Nag-expire ang upuan mo — sumali ulit',
+    errCode: 'Apat na letra ang code, gaya ng 7K2M',
+    inviteText: 'Halina, mag-UNO tayo! Code {code} → {url}',
+    joinHint: 'Ipadala ang code na {code} sa pamilya mo at hintayin sila…',
+    cardWild: 'Wild', cardWild4: '+4 Wild', cardSkip: 'Skip', cardReverse: 'Baliktad', cardDraw2: '+2',
+    colRed: 'Pula', colYellow: 'Dilaw', colGreen: 'Berde', colBlue: 'Asul',
+    logRoomCreated: 'Nagawa ang kuwartong {code} — naghihintay ng manlalaro…',
+    logJoin: 'Sumali si {name}',
+    logDeckRecycled: 'Naubos ang pile — hinalo ulit ang tapunan',
+    logRoundStart: 'Nagsimula ang ika-{r} laro — si {name} ang mauuna (baraha: {card})',
+    logWin: '🏆 Naubos ni {name} ang baraha at nanalo sa ika-{r} laro!',
+    logLastCardOut: 'Inilagay ni {who} ang {card} at wala nang baraha!',
+    logSkip: 'Inilagay ni {who} ang {card} — laktawan si {victim}',
+    logReverseTwo: 'Inilagay ni {who} ang {card} — sa dalawang manlalaro, siya ulit ang lalaro',
+    logReverse: 'Inilagay ni {who} ang {card} — nabaligtad ang direksyon',
+    logDraw2: 'Inilagay ni {who} ang {card} — bumunot ng 2 si {victim} at laktaw',
+    logWild4: 'Nag-+4 si {who} at pinili ang {color} — bumunot ng 4 si {victim} at laktaw',
+    logWild: 'Nag-wild si {who} at pinili ang {color}',
+    logPlay: 'Inilagay ni {who} ang {card}',
+    logOneLeft: 'Isang baraha na lang si {who}!',
+    logDeckEmptyDraw: 'Gustong bumunot ni {name} pero walang laman ang pile',
+    logDraw: 'Bumunot si {name}',
+    logPass: 'Nag-pass si {name}',
+    logLeave: 'Umalis si {name}',
+    logBackToLobby: 'Kulang ang manlalaro — balik sa kuwarto',
+    logAutoPass: 'Masyadong matagal na offline si {name} — awtomatikong bumunot at laktaw',
+    errNotStarted: 'Hindi pa nagsisimula ang laro',
+    errNotYourTurn: 'Hindi pa turno mo',
+    errCardNotInHand: 'Wala ang barahang iyon sa kamay mo',
+    errCardNotPlayable: 'Hindi maaaring ilagay ang barahang iyon ngayon',
+    errOnlyHost: 'Ang host lang ang puwedeng gumawa niyan',
+    errNeedTwoPlayers: 'Kailangan ng hindi bababa sa 2 manlalaro',
+    errAlreadyPlaying: 'May laro nang nagaganap',
+    errEmptyMessage: 'Walang mensahe',
+    errUnknownAction: 'Hindi kilalang aksyon',
+    errRoomNotFound: 'Walang kuwartong may ganyang code — tiyakin ulit?',
+    errRoomFull: 'Puno na ang kuwarto (8 manlalaro lang)',
+    errNameRequired: 'Maglagay ng pangalan',
+    errNameTaken: 'May ganoon nang pangalan sa kuwarto',
+    errSessionExpired: 'Nag-expire ang upuan mo — sumali ulit',
+    errTooManyRooms: 'Masyadong maraming laro ngayon — subukan ulit mamaya',
+    errBadRequest: 'May nagkamali',
+    errNet: 'Naputol ang koneksyon — subukan ulit',
+  },
+  zh: {
+    backToApp: 'CantoBuddy', title: '家庭 UNO',
+    sub: '开个房间，把 4 位配对码发给家人。手机、平板、电脑都能进，边聊边打。',
+    nameLabel: '你的昵称', namePlaceholder: '比如：爸爸 / 小雨 / 外婆',
+    avatarLabel: '挑个头像', createBtn: '创建房间',
+    divider: '已经有配对码', joinBtn: '加入',
+    tip1: '2–8 人 · 牌堆自动洗牌 · 掉线能自动接回',
+    tip2: '同一 WiFi 也能玩，发给外地家人也行',
+    codeChipLabel: '配对码 · 点我分享', codeChipTitle: '点击复制邀请链接',
+    discardLabel: '出牌区', deckLabel: '牌堆', deckEmpty: '牌堆空了',
+    liveOnline: '在线', liveReconnecting: '重连中',
+    soundTitle: '音效', feedTitle: '聊天与记录', leaveTitle: '离开房间',
+    feedHead: '牌桌动态', chatPlaceholder: '说点什么…', sendBtn: '发送',
+    roundWaiting: '等待 {n} 人', roundPlaying: '第 {r} 局 · {n} 人',
+    colorMeta: '当前颜色', dirCW: '顺时针', dirCCW: '逆时针',
+    turnMine: '你的回合', turnTheirs: '轮到 {name}', waitingStart: '等待开始', roundOver: '本局结束',
+    tagWaiting: '等待开始', tagYourTurn: '轮到你出牌', tagWaitingFor: '等待 {name}', tagEnded: '本局结束',
+    myCount: '{n} 张',
+    handEmpty: '牌还没发，等房主点开始 ▶',
+    drawBtn: '摸一张', passBtn: '不出', startBtn: '开始游戏', againBtn: '再来一局', waitPlayers: '等家人进来…',
+    colorTitle: '指定颜色', colorBody: '下一张牌必须接这个颜色', cancel: '取消',
+    winSelf: '你赢啦！', winOther: '{name} 赢了', winBody: '第 {r} 局结束 · 累计 🏆 {w}',
+    hostNext: '等房主开下一局…', viewTable: '看看牌桌',
+    toastNotYourTurn: '还没轮到你', toastCantPlay: '颜色和数字都不同，打不出去',
+    toastCopied: '邀请已复制，发给家人吧', promptCopy: '复制这个链接发给家人：',
+    confirmLeave: '确定离开房间？', toastExpired: '会话已失效，请重新加入',
+    errCode: '配对码是 4 位，比如 7K2M',
+    inviteText: '来打牌！房间配对码 {code} → {url}',
+    joinHint: '把配对码 {code} 发给家人，等他们进来…',
+    cardWild: '万能牌', cardWild4: '+4 万能', cardSkip: '禁止', cardReverse: '反转', cardDraw2: '+2',
+    colRed: '红', colYellow: '黄', colGreen: '绿', colBlue: '蓝',
+    logRoomCreated: '房间 {code} 已创建，等待家人加入…',
+    logJoin: '{name} 加入了房间',
+    logDeckRecycled: '牌堆用完了，弃牌堆重新洗牌',
+    logRoundStart: '第 {r} 局开始，{name} 先出牌（起始牌 {card}）',
+    logWin: '🏆 {name} 出完了所有牌，赢下第 {r} 局！',
+    logLastCardOut: '{who} 打出 {card}，手里没牌了！',
+    logSkip: '{who} 打出 {card}，跳过 {victim}',
+    logReverseTwo: '{who} 打出 {card}，两人局反转=再出一次',
+    logReverse: '{who} 打出 {card}，出牌方向反转',
+    logDraw2: '{who} 打出 {card}，{victim} 摸 2 张并跳过',
+    logWild4: '{who} 打出 +4 变色（{color}），{victim} 摸 4 张并跳过',
+    logWild: '{who} 打出变色牌，指定 {color}',
+    logPlay: '{who} 打出 {card}',
+    logOneLeft: '{who} 只剩 1 张牌！',
+    logDeckEmptyDraw: '{name} 想摸牌，但牌堆空了',
+    logDraw: '{name} 摸了 1 张牌',
+    logPass: '{name} 选择不出',
+    logLeave: '{name} 离开了房间',
+    logBackToLobby: '人不够了，回到等待房间',
+    logAutoPass: '{name} 掉线太久，自动摸牌跳过',
+    errNotStarted: '牌局还没开始',
+    errNotYourTurn: '还没轮到你',
+    errCardNotInHand: '这张牌不在你手上',
+    errCardNotPlayable: '这张牌现在打不出去',
+    errOnlyHost: '只有房主可以做这个',
+    errNeedTwoPlayers: '至少要有 2 个人才能开始',
+    errAlreadyPlaying: '牌局进行中',
+    errEmptyMessage: '空消息',
+    errUnknownAction: '未知操作',
+    errRoomNotFound: '没找到这个房间号，检查一下？',
+    errRoomFull: '房间满了（最多 8 人）',
+    errNameRequired: '请先输入名字',
+    errNameTaken: '房间里已经有人叫这个名字了',
+    errSessionExpired: '会话已失效，请重新加入房间',
+    errTooManyRooms: '现在开着的牌局太多了，请稍后再试',
+    errBadRequest: '出了点问题',
+    errNet: '网络开小差了，再试一次',
+  },
+  id: {
+    backToApp: 'CantoBuddy', title: 'UNO Keluarga',
+    sub: 'Buat ruang dan kirim kode 4 huruf ke keluarga. Ponsel, tablet, atau laptop — ngobrol sambil main.',
+    nameLabel: 'Nama kamu', namePlaceholder: 'mis. Maria / Ibu / Nenek',
+    avatarLabel: 'Pilih avatar', createBtn: 'Buat ruang',
+    divider: 'Saya sudah punya kode', joinBtn: 'Gabung',
+    tip1: '2–8 pemain · tumpukan diacak otomatis · kamu tersambung lagi kalau sinyal putus',
+    tip2: 'Bisa di WiFi yang sama atau dengan keluarga yang jauh',
+    codeChipLabel: 'Kode ruang · ketuk untuk bagikan', codeChipTitle: 'Salin tautan undangan',
+    discardLabel: 'Buangan', deckLabel: 'Tumpukan', deckEmpty: 'Tumpukan kosong',
+    liveOnline: 'Tersambung', liveReconnecting: 'Menyambung ulang',
+    soundTitle: 'Suara', feedTitle: 'Obrolan & catatan', leaveTitle: 'Keluar dari ruang',
+    feedHead: 'Obrolan & catatan', chatPlaceholder: 'Katakan sesuatu…', sendBtn: 'Kirim',
+    roundWaiting: '{n} pemain menunggu', roundPlaying: 'Ronde {r} · {n} pemain',
+    colorMeta: 'Warna', dirCW: 'Searah jarum jam', dirCCW: 'Berlawanan jarum jam',
+    turnMine: 'Giliranmu', turnTheirs: 'Menunggu {name}', waitingStart: 'Menunggu mulai', roundOver: 'Ronde selesai',
+    tagWaiting: 'Menunggu', tagYourTurn: 'Giliranmu', tagWaitingFor: 'Menunggu {name}', tagEnded: 'Selesai',
+    myCount: '{n} kartu',
+    handEmpty: 'Kartu belum dibagi — tuan rumah memulai ▶',
+    drawBtn: 'Ambil kartu', passBtn: 'Lewat', startBtn: 'Mulai main', againBtn: 'Main lagi', waitPlayers: 'Menunggu pemain…',
+    colorTitle: 'Pilih warna', colorBody: 'Kartu berikutnya harus warna ini', cancel: 'Batal',
+    winSelf: 'Kamu menang!', winOther: '{name} menang', winBody: 'Ronde {r} selesai · total 🏆 {w}',
+    hostNext: 'Menunggu tuan rumah memulai ronde berikutnya…', viewTable: 'Kembali ke meja',
+    toastNotYourTurn: 'Belum giliranmu', toastCantPlay: 'Warna dan angkanya beda — kartu ini tidak bisa dipakai',
+    toastCopied: 'Undangan tersalin — kirim ke keluargamu', promptCopy: 'Salin tautan ini dan kirim ke keluargamu:',
+    confirmLeave: 'Keluar dari ruang?', toastExpired: 'Sesimu berakhir — silakan gabung lagi',
+    errCode: 'Kode ruang 4 karakter, misalnya 7K2M',
+    inviteText: 'Ayo main UNO! Kode ruang {code} → {url}',
+    joinHint: 'Kirim kode {code} ke keluargamu dan tunggu mereka…',
+    cardWild: 'Wild', cardWild4: '+4 Wild', cardSkip: 'Lewati', cardReverse: 'Balik', cardDraw2: '+2',
+    colRed: 'Merah', colYellow: 'Kuning', colGreen: 'Hijau', colBlue: 'Biru',
+    logRoomCreated: 'Ruang {code} dibuat — menunggu pemain…',
+    logJoin: '{name} bergabung',
+    logDeckRecycled: 'Tumpukan habis — buangan diacak ulang',
+    logRoundStart: 'Ronde {r} mulai — {name} jalan dulu (kartu pembuka {card})',
+    logWin: '🏆 {name} menghabiskan kartunya dan menang ronde {r}!',
+    logLastCardOut: '{who} memainkan {card} dan kartunya habis!',
+    logSkip: '{who} memainkan {card} — {victim} dilewati',
+    logReverseTwo: '{who} memainkan {card} — di permainan dua orang, balik berarti dia jalan lagi',
+    logReverse: '{who} memainkan {card} — arah berbalik',
+    logDraw2: '{who} memainkan {card} — {victim} ambil 2 dan dilewati',
+    logWild4: '{who} memainkan +4 dan memilih {color} — {victim} ambil 4 dan dilewati',
+    logWild: '{who} memainkan wild dan memilih {color}',
+    logPlay: '{who} memainkan {card}',
+    logOneLeft: '{who} tinggal satu kartu!',
+    logDeckEmptyDraw: '{name} mau ambil kartu tapi tumpukan kosong',
+    logDraw: '{name} mengambil satu kartu',
+    logPass: '{name} lewat',
+    logLeave: '{name} keluar dari ruang',
+    logBackToLobby: 'Pemain kurang — kembali ke ruang tunggu',
+    logAutoPass: '{name} terlalu lama terputus — otomatis ambil kartu dan lewati',
+    errNotStarted: 'Ronde belum dimulai',
+    errNotYourTurn: 'Belum giliranmu',
+    errCardNotInHand: 'Kartu itu tidak ada di tanganmu',
+    errCardNotPlayable: 'Kartu itu tidak bisa dimainkan sekarang',
+    errOnlyHost: 'Hanya tuan rumah yang bisa',
+    errNeedTwoPlayers: 'Butuh minimal 2 pemain untuk mulai',
+    errAlreadyPlaying: 'Ronde sedang berjalan',
+    errEmptyMessage: 'Pesan kosong',
+    errUnknownAction: 'Aksi tidak dikenal',
+    errRoomNotFound: 'Tidak ada ruang dengan kode itu — coba periksa lagi?',
+    errRoomFull: 'Ruang itu penuh (maksimal 8 pemain)',
+    errNameRequired: 'Isi nama dulu',
+    errNameTaken: 'Sudah ada yang memakai nama itu di ruang ini',
+    errSessionExpired: 'Sesimu berakhir — silakan gabung lagi',
+    errTooManyRooms: 'Terlalu banyak permainan sekarang — coba lagi sebentar',
+    errBadRequest: 'Ada yang tidak beres',
+    errNet: 'Koneksi terputus sebentar — coba lagi',
+  },
+};
+
+const LANG = (function () {
+  const saved = (localStorage.getItem('cb_lang') || '').toLowerCase();
+  if (STR[saved]) return saved;
+  const nav = (navigator.language || 'en').toLowerCase();
+  if (nav.indexOf('zh') === 0) return 'zh';
+  if (nav.indexOf('id') === 0) return 'id';
+  if (nav.indexOf('tl') === 0 || nav.indexOf('fil') === 0) return 'fil';
+  return 'en';
+})();
+
+function t(key, vars) {
+  const dict = STR[LANG] || STR.en;
+  let s = dict[key];
+  if (s === undefined) s = STR.en[key];
+  if (s === undefined) return key;
+  if (vars) {
+    Object.keys(vars).forEach((k) => { s = s.split('{' + k + '}').join(String(vars[k])); });
+  }
+  return s;
+}
+
+/* ============================================================ helpers */
+const $ = (s, r = document) => r.querySelector(s);
+const AVATARS = ['🦊','🐼','🐯','🐸','🐧','🦄','🐙','🐨','🐰','🦁','🐳','🐝'];
+const COLORS = { red:'colRed', yellow:'colYellow', green:'colGreen', blue:'colBlue' };
+const HEX = { red:'#e63946', yellow:'#f0b429', green:'#1f9d63', blue:'#2b6cf0' };
+
+/**
+ * Where the game's API lives, derived from the page URL.
+ *
+ * The game is mounted at /games/uno, and a shared invite is /games/uno/ABCD —
+ * neither ends in a slash, so a bare relative fetch('api/create') would resolve
+ * one level too high and 404. Both shapes collapse to /games/uno/ here.
+ */
+const BASE = (function () {
+  let p = location.pathname;
+  if (!p.endsWith('/')) {
+    const seg = p.split('/').pop();
+    // Drop the code but KEEP the slash: '/games/uno/ABCD' -> '/games/uno/', not
+    // '/games/uno'. Slicing a fixed 5 characters off does exactly the wrong
+    // thing here and every API call lands on /games/unoapi/… and 404s.
+    p = /^[A-Z0-9]{4}$/.test(seg) ? p.slice(0, -seg.length) : p + '/';
+  }
+  return p;
+})();
+
+let session = null;      // { code, token, name, avatar }
+let S = null;            // latest server state
+let es = null;
+let myAvatar = AVATARS[0];
+let pendingWild = null;
+let lastDiscardId = null;
+let lastTurnStart = 0;
+let lastWinnerId = null;
+let soundOn = localStorage.getItem('uno.sound') !== 'off';
+let audioCtx = null;
+
+function toast(msg) {
+  const el = $('#toast');
+  el.textContent = msg;
+  el.classList.add('on');
+  clearTimeout(el._h);
+  el._h = setTimeout(() => el.classList.remove('on'), 2200);
+}
+function saveSession() {
+  if (session) localStorage.setItem('uno.session', JSON.stringify(session));
+  else localStorage.removeItem('uno.session');
+}
+function loadSession() {
+  try { return JSON.parse(localStorage.getItem('uno.session') || 'null'); } catch (e) { return null; }
+}
+
+/** Server errors are codes, not sentences — see the header of uno.js. */
+function errorText(code) {
+  if (!code) return t('errNet');
+  const key = 'err' + code.charAt(0).toUpperCase() + code.slice(1);
+  const s = (STR[LANG] || STR.en)[key] || STR.en[key];
+  return s || t('errBadRequest');
+}
+
+async function api(path, body) {
+  const res = await fetch(BASE + path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body || {}),
+  });
+  let data = {};
+  try { data = await res.json(); } catch (e) {}
+  if (!res.ok) throw new Error(errorText(data.error));
+  return data;
+}
+
+/* ============================================================ static text */
+function paintStatic() {
+  document.documentElement.lang = LANG === 'fil' ? 'tl' : LANG;
+  document.title = t('title');
+  document.querySelectorAll('[data-k]').forEach((el) => { el.textContent = t(el.dataset.k); });
+  // Attributes cannot carry a data-k, so the six that need one are named here.
+  const attr = (sel, name, key) => { const el = $(sel); if (el) el.setAttribute(name, t(key)); };
+  attr('#nameInput', 'placeholder', 'namePlaceholder');
+  attr('#chatInput', 'placeholder', 'chatPlaceholder');
+  attr('#codeChip', 'title', 'codeChipTitle');
+  attr('#soundBtn', 'title', 'soundTitle');
+  attr('#feedBtn', 'title', 'feedTitle');
+  attr('#leaveBtn', 'title', 'leaveTitle');
+  $('#drawBtn').textContent = '🃏 ' + t('drawBtn');
+  $('#passBtn').textContent = '⏭ ' + t('passBtn');
+}
+
+/* ============================================================ sound */
+function beep(freq, dur = 0.08, type = 'sine', gain = 0.05) {
+  if (!soundOn) return;
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(gain, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(); o.stop(audioCtx.currentTime + dur);
+  } catch (e) {}
+}
+const sfx = {
+  play: () => beep(520, 0.07, 'triangle', 0.06),
+  draw: () => beep(300, 0.06, 'sine', 0.05),
+  turn: () => { beep(660, 0.07); setTimeout(() => beep(880, 0.09), 80); },
+  win: () => { [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => beep(f, 0.16, 'triangle', 0.07), i * 110)); },
+  bad: () => beep(160, 0.12, 'square', 0.04),
+};
+
+/* ============================================================ lobby */
+function renderAvatars() {
+  const box = $('#avatarPicker');
+  box.innerHTML = '';
+  AVATARS.forEach((a) => {
+    const b = document.createElement('button');
+    b.textContent = a;
+    b.className = a === myAvatar ? 'on' : '';
+    b.onclick = () => { myAvatar = a; renderAvatars(); };
+    box.appendChild(b);
+  });
+}
+
+function initLobby() {
+  myAvatar = AVATARS[Math.floor(Math.random() * AVATARS.length)];
+  renderAvatars();
+  const saved = localStorage.getItem('uno.name');
+  if (saved) $('#nameInput').value = saved;
+
+  const params = new URLSearchParams(location.search);
+  let code = (params.get('room') || '').toUpperCase();
+  const m = location.pathname.match(/\/([A-Za-z0-9]{4})$/);
+  if (!code && m && /^[A-Z0-9]{4}$/.test(m[1].toUpperCase())) code = m[1].toUpperCase();
+  if (code) { $('#codeInput').value = code; setTimeout(() => $('#nameInput').focus(), 100); }
+}
+
+function myName() {
+  return ($('#nameInput').value || '').trim() || 'Player' + Math.floor(Math.random() * 90 + 10);
+}
+
+async function doCreate() {
+  const btn = $('#createBtn');
+  btn.disabled = true;
+  $('#lobbyErr').textContent = '';
+  try {
+    const name = myName();
+    localStorage.setItem('uno.name', name);
+    const d = await api('api/create', { name, avatar: myAvatar });
+    session = { code: d.code, token: d.token, name: d.name, avatar: d.avatar };
+    saveSession();
+    enterRoom();
+  } catch (e) {
+    $('#lobbyErr').textContent = e.message;
+  } finally { btn.disabled = false; }
+}
+
+async function doJoin() {
+  const btn = $('#joinBtn');
+  const code = ($('#codeInput').value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (code.length !== 4) { $('#lobbyErr').textContent = t('errCode'); return; }
+  btn.disabled = true;
+  $('#lobbyErr').textContent = '';
+  try {
+    const name = myName();
+    localStorage.setItem('uno.name', name);
+    const d = await api('api/join', { code, name, avatar: myAvatar });
+    session = { code: d.code, token: d.token, name: d.name, avatar: d.avatar };
+    saveSession();
+    enterRoom();
+  } catch (e) {
+    $('#lobbyErr').textContent = e.message;
+  } finally { btn.disabled = false; }
+}
+
+/* ============================================================ room */
+function enterRoom() {
+  $('#lobby').classList.add('hidden');
+  $('#room').classList.remove('hidden');
+  $('#codeText').textContent = session.code;
+  $('#myAv').textContent = session.avatar || '🙂';
+  $('#myName').textContent = session.name;
+  history.replaceState(null, '', BASE + session.code);
+  connect();
+}
+
+function connect() {
+  if (es) es.close();
+  es = new EventSource(BASE + 'api/events?token=' + encodeURIComponent(session.token));
+  es.onopen = () => setLive(true);
+  es.onerror = () => setLive(false);
+  es.onmessage = (ev) => {
+    let d;
+    try { d = JSON.parse(ev.data); } catch (e) { return; }
+    if (d.fatal === 'expired') {
+      es.close(); es = null;
+      session = null; saveSession();
+      toast(t('toastExpired'));
+      location.href = BASE;
+      return;
+    }
+    applyState(d);
+  };
+}
+
+function setLive(ok) {
+  const dot = $('#liveDot');
+  dot.className = 'dot' + (ok ? '' : ' bad');
+  $('#liveText').textContent = ok ? t('liveOnline') : t('liveReconnecting');
+}
+
+function applyState(st) {
+  S = st;
+
+  // sounds / cues
+  if (st.event && st.event.type === 'play') sfx.play();
+  if (st.event && (st.event.type === 'draw' || st.event.type === 'autopass')) sfx.draw();
+  if (st.event && st.event.type === 'shout') beep(880, 0.12, 'square', 0.05);
+  if (st.state === 'ended' && st.winner && lastWinnerId !== st.winner) {
+    lastWinnerId = st.winner; sfx.win();
+  }
+  if (st.state === 'playing') lastWinnerId = null;
+  if (st.state === 'playing' && st.turn === st.you.id && st.turnStart !== lastTurnStart) sfx.turn();
+  lastTurnStart = st.turnStart;
+
+  renderTop();
+  renderOpps();
+  renderTable();
+  renderHand();
+  renderActions();
+  renderFeed();
+  renderOverlay();
+}
+
+function renderTop() {
+  $('#myCount').textContent = t('myCount', { n: S.you.hand.length });
+  const tag = $('#myTag');
+  if (S.state === 'lobby') { tag.textContent = t('tagWaiting'); tag.className = 'tag'; }
+  else if (S.state === 'ended') { tag.textContent = t('tagEnded'); tag.className = 'tag'; }
+  else if (S.you.isTurn) { tag.textContent = t('tagYourTurn'); tag.className = 'tag turn'; }
+  else { tag.textContent = t('tagWaitingFor', { name: S.turnName || '' }); tag.className = 'tag'; }
+
+  $('#turnMeta').innerHTML = S.state === 'playing'
+    ? (S.you.isTurn ? '👉 <b>' + t('turnMine') + '</b>' : t('turnTheirs', { name: '<b>' + esc(S.turnName) + '</b>' }))
+    : (S.state === 'lobby' ? t('waitingStart') : t('roundOver'));
+
+  $('#roundChip').textContent = S.state === 'lobby'
+    ? t('roundWaiting', { n: S.players.length })
+    : t('roundPlaying', { r: S.round, n: S.players.length });
+
+  const sw = S.color
+    ? '<span class="swatch" style="background:' + HEX[S.color] + '"></span>' + t(COLORS[S.color])
+    : '';
+  $('#colorMeta').innerHTML = sw ? t('colorMeta') + ' ' + sw : '';
+  $('#dirMeta').innerHTML = S.state === 'playing'
+    ? '<span class="dirbadge">' + (S.dir === 1 ? '↻ ' + t('dirCW') : '↺ ' + t('dirCCW')) + '</span>' : '';
+}
+
+function renderOpps() {
+  const box = $('#opps');
+  box.innerHTML = '';
+  S.players.filter((p) => p.id !== S.you.id).forEach((p) => {
+    const el = document.createElement('div');
+    el.className = 'opp' + (p.isTurn ? ' turn' : '') + (p.connected ? '' : ' off');
+    el.innerHTML =
+      (p.isHost ? '<span class="crown">👑</span>' : '') +
+      '<div class="av">' + p.avatar + '</div>' +
+      '<div class="nm">' + esc(p.name) + '</div>' +
+      '<div class="cnt">' + t('myCount', { n: p.count }) + (p.wins ? ' · 🏆' + p.wins : '') + '</div>';
+    box.appendChild(el);
+  });
+  if (S.players.length < 2) {
+    const el = document.createElement('div');
+    el.className = 'opp';
+    el.style.cssText = 'min-width:150px;text-align:left;color:#8b91a0;font-size:11.5px;line-height:1.6;display:flex;align-items:center';
+    el.innerHTML = esc(t('joinHint', { code: S.code }));
+    box.appendChild(el);
+  }
+}
+
+function cardEl(card, opts) {
+  opts = opts || {};
+  const el = document.createElement('div');
+  el.className = 'card' + (opts.cls ? ' ' + opts.cls : '');
+  el.dataset.c = card.color;
+  const label = glyph(card.value);
+  el.innerHTML =
+    '<div class="inner"></div>' +
+    '<div class="oval"><span>' + label + '</span></div>' +
+    '<div class="cn tl">' + label + '</div>' +
+    '<div class="cn br">' + label + '</div>';
+  if (opts.id) el.dataset.id = opts.id;
+  return el;
+}
+function glyph(v) {
+  if (v === 'skip') return '🚫';
+  if (v === 'reverse') return '⇄';
+  if (v === 'draw2') return '+2';
+  if (v === 'wild') return 'WILD';
+  if (v === 'wild4') return '+4';
+  return v;
+}
+
+/** A card named in the reader's language, for the action log. */
+function cardText(c) {
+  if (!c) return '?';
+  if (c.color === 'wild') return c.value === 'wild4' ? t('cardWild4') : t('cardWild');
+  const col = t(COLORS[c.color] || 'colRed');
+  if (c.value === 'skip') return col + ' ' + t('cardSkip');
+  if (c.value === 'reverse') return col + ' ' + t('cardReverse');
+  if (c.value === 'draw2') return col + ' ' + t('cardDraw2');
+  return col + ' ' + c.value;
+}
+
+/** One log event -> one sentence. The server sends data, never text. */
+function logText(ev) {
+  switch (ev.k) {
+    case 'roomCreated': return t('logRoomCreated', { code: ev.code });
+    case 'join': return t('logJoin', { name: ev.name });
+    case 'deckRecycled': return t('logDeckRecycled');
+    case 'roundStart': return t('logRoundStart', { r: ev.round, name: ev.name, card: cardText(ev.card) });
+    case 'win': return t('logWin', { name: ev.name, r: ev.round });
+    case 'lastCardOut': return t('logLastCardOut', { who: ev.who, card: cardText(ev.card) });
+    case 'skip': return t('logSkip', { who: ev.who, card: cardText(ev.card), victim: ev.victim });
+    case 'reverseTwo': return t('logReverseTwo', { who: ev.who, card: cardText(ev.card) });
+    case 'reverse': return t('logReverse', { who: ev.who, card: cardText(ev.card) });
+    case 'draw2': return t('logDraw2', { who: ev.who, card: cardText(ev.card), victim: ev.victim });
+    case 'wild4': return t('logWild4', { who: ev.who, color: t(COLORS[ev.color] || 'colRed'), victim: ev.victim });
+    case 'wild': return t('logWild', { who: ev.who, color: t(COLORS[ev.color] || 'colRed') });
+    case 'play': return t('logPlay', { who: ev.who, card: cardText(ev.card) });
+    case 'oneLeft': return t('logOneLeft', { who: ev.who });
+    case 'deckEmptyDraw': return t('logDeckEmptyDraw', { name: ev.name });
+    case 'draw': return t('logDraw', { name: ev.name });
+    case 'pass': return t('logPass', { name: ev.name });
+    case 'leave': return t('logLeave', { name: ev.name });
+    case 'backToLobby': return t('logBackToLobby');
+    case 'autoPass': return t('logAutoPass', { name: ev.name });
+    default: return '';
+  }
+}
+
+function renderTable() {
+  const pile = $('#drawPile');
+  pile.innerHTML = '';
+  for (let i = 0; i < 3; i++) {
+    const b = document.createElement('div');
+    b.className = 'card back';
+    b.innerHTML = '<div class="inner"></div><div class="oval"><span>UNO</span></div>';
+    pile.appendChild(b);
+  }
+  const c = document.createElement('div');
+  c.className = 'cnt';
+  c.textContent = S.deckCount;
+  pile.appendChild(c);
+  $('#deckLbl').textContent = S.deckCount ? t('deckLabel') : t('deckEmpty');
+
+  const dw = $('#discardWrap');
+  dw.innerHTML = '';
+  if (S.discardTop) {
+    const el = cardEl({ color: S.discardTop.color, value: S.discardTop.value });
+    if (S.discardTop.id !== lastDiscardId) { el.classList.add('pop'); lastDiscardId = S.discardTop.id; }
+    dw.appendChild(el);
+  }
+  dw.style.setProperty('--cur', S.color ? HEX[S.color] + '66' : 'rgba(43,108,240,.25)');
+}
+
+function renderHand() {
+  const box = $('#hand');
+  const sig = S.you.hand.map((c) => c.id + (c.playable ? '1' : '0')).join(',');
+  if (box.dataset.sig === sig) return;
+  box.dataset.sig = sig;
+  const scroll = $('#handScroll').scrollLeft;
+  box.innerHTML = '';
+  if (S.state === 'lobby') {
+    box.innerHTML = '<div style="color:#8b91a0;font-size:13px;padding:26px 4px">' + esc(t('handEmpty')) + '</div>';
+    return;
+  }
+  const active = S.you.isTurn && S.state === 'playing';
+  S.you.hand.forEach((c, i) => {
+    const el = cardEl(c, { cls: active ? (c.playable ? 'ok' : 'no') : '', id: c.id });
+    el.style.animationDelay = Math.min(i * 25, 250) + 'ms';
+    el.onclick = () => onCardClick(c, el);
+    box.appendChild(el);
+  });
+  $('#handScroll').scrollLeft = scroll;
+}
+
+function renderActions() {
+  const playing = S.state === 'playing';
+  const myTurn = playing && S.you.isTurn;
+  $('#drawBtn').disabled = !myTurn;
+  $('#passBtn').disabled = !myTurn;
+  const startBtn = $('#startBtn');
+  if (S.state !== 'playing' && S.you.canStart) {
+    startBtn.style.display = '';
+    startBtn.textContent = S.state === 'ended' ? '🔁 ' + t('againBtn') : '▶ ' + t('startBtn');
+    startBtn.disabled = false;
+  } else if (S.state !== 'playing' && S.hostId === S.you.id && S.players.length < 2) {
+    startBtn.style.display = '';
+    startBtn.textContent = t('waitPlayers');
+    startBtn.disabled = true;
+  } else {
+    startBtn.style.display = 'none';
+  }
+  $('#unoBtn').style.opacity = (S.you.hand.length <= 2 ? 1 : .55);
+}
+
+function onCardClick(card, el) {
+  if (!S.you.isTurn) {
+    el.classList.add('shake'); setTimeout(() => el.classList.remove('shake'), 320);
+    toast(t('toastNotYourTurn')); sfx.bad(); return;
+  }
+  if (!card.playable) {
+    el.classList.add('shake'); setTimeout(() => el.classList.remove('shake'), 320);
+    toast(t('toastCantPlay')); sfx.bad(); return;
+  }
+  if (card.color === 'wild') { askColor(card.id); return; }
+  send({ type: 'play', cardId: card.id });
+}
+
+function askColor(cardId) {
+  pendingWild = cardId;
+  const root = $('#modalRoot');
+  root.innerHTML =
+    '<div class="overlay" id="ov"><div class="modal">' +
+    '<h2>' + esc(t('colorTitle')) + '</h2><p>' + esc(t('colorBody')) + '</p>' +
+    '<div class="colors">' +
+    ['red','yellow','green','blue'].map((c) =>
+      '<button class="c-' + c + '" data-c="' + c + '"></button>').join('') +
+    '</div>' +
+    '<button class="btn ghost" id="cancelColor" style="margin-top:12px">' + esc(t('cancel')) + '</button>' +
+    '</div></div>';
+  root.querySelectorAll('.colors button').forEach((b) => {
+    b.onclick = () => {
+      const color = b.dataset.c;
+      const cardId2 = pendingWild;   // capture before closeModal clears it
+      closeModal();
+      if (cardId2) send({ type: 'play', cardId: cardId2, color });
+    };
+  });
+  $('#cancelColor').onclick = closeModal;
+  $('#ov').onclick = (e) => { if (e.target.id === 'ov') closeModal(); };
+}
+function closeModal() { $('#modalRoot').innerHTML = ''; pendingWild = null; }
+
+function renderFeed() {
+  const body = $('#feedBody');
+  const items = [];
+  S.log.forEach((l) => items.push({ t: l.t, kind: 'log', text: logText(l) }));
+  S.chat.forEach((c) => items.push({ t: c.t, kind: c.kind, ...c }));
+  items.sort((a, b) => a.t - b.t);
+  const atBottom = body.scrollHeight - body.scrollTop - body.clientHeight < 60;
+  body.innerHTML = items.map((it) => {
+    if (it.kind === 'log') return it.text
+      ? '<div class="lg"><i>' + clock(it.t) + '</i><span>' + esc(it.text) + '</span></div>' : '';
+    if (it.kind === 'shout') return '<div class="bubble shout"><div><div class="who">' + esc(it.name) + '</div><div class="tx">' + esc(it.text) + '</div></div></div>';
+    const mine = it.id === S.you.id;
+    return '<div class="bubble' + (mine ? ' mine' : '') + '"><div><div class="who">' + esc(it.name) + '</div><div class="tx">' + esc(it.text) + '</div></div></div>';
+  }).join('');
+  if (atBottom) body.scrollTop = body.scrollHeight;
+}
+function clock(tm) {
+  const d = new Date(tm);
+  return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+}
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+}
+
+function confetti() {
+  const root = document.createElement('div');
+  root.className = 'confetti';
+  const palette = ['#e63946', '#f0b429', '#1f9d63', '#2b6cf0', '#ff6a4d'];
+  for (let i = 0; i < 70; i++) {
+    const p = document.createElement('i');
+    p.style.cssText =
+      'left:' + Math.random() * 100 + '%;background:' + palette[i % palette.length] +
+      ';animation-delay:' + (Math.random() * 0.7).toFixed(2) + 's' +
+      ';animation-duration:' + (1.5 + Math.random() * 1.3).toFixed(2) + 's';
+    root.appendChild(p);
+  }
+  document.body.appendChild(root);
+  setTimeout(() => root.remove(), 3600);
+}
+
+function renderOverlay() {
+  if (S.state !== 'ended' || !S.winner) { if ($('#winOv')) $('#winOv').remove(); return; }
+  if ($('#winOv')) return;
+  const w = S.players.find((p) => p.id === S.winner) || { name: '?', avatar: '🏆' };
+  const iWon = S.winner === S.you.id;
+  confetti();
+  const root = $('#modalRoot');
+  const div = document.createElement('div');
+  div.className = 'overlay';
+  div.id = 'winOv';
+  div.innerHTML =
+    '<div class="modal">' +
+    '<div class="big-av">' + w.avatar + '</div>' +
+    '<h2>' + (iWon ? esc(t('winSelf')) : esc(t('winOther', { name: w.name }))) + '</h2>' +
+    '<p>' + esc(t('winBody', { r: S.round, w: w.wins || 1 })) + '</p>' +
+    (S.hostId === S.you.id
+      ? '<button class="btn primary" id="againBtn">🔁 ' + esc(t('againBtn')) + '</button>'
+      : '<p style="margin:0">' + esc(t('hostNext')) + '</p>') +
+    '<button class="btn ghost" id="viewTableBtn" style="margin-top:8px">' + esc(t('viewTable')) + '</button>' +
+    '</div>';
+  root.appendChild(div);
+  if ($('#againBtn')) $('#againBtn').onclick = () => send({ type: 'again' });
+  $('#viewTableBtn').onclick = () => div.remove();
+}
+
+/* ============================================================ actions */
+async function send(payload) {
+  try {
+    await api('api/action', { ...payload, token: session.token });
+  } catch (e) {
+    toast(e.message);
+    sfx.bad();
+  }
+}
+
+/* ============================================================ wiring */
+paintStatic();
+$('#createBtn').onclick = doCreate;
+$('#joinBtn').onclick = doJoin;
+$('#nameInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') doCreate(); });
+$('#codeInput').addEventListener('input', (e) => {
+  e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+});
+$('#codeInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') doJoin(); });
+
+$('#drawBtn').onclick = () => send({ type: 'draw' });
+$('#passBtn').onclick = () => send({ type: 'pass' });
+$('#startBtn').onclick = () => send({ type: S.state === 'ended' ? 'again' : 'start' });
+$('#unoBtn').onclick = () => { send({ type: 'shout', emoji: 'UNO!! 🔥' }); beep(900, 0.1, 'square', 0.06); };
+$('#emojiBtn').onclick = () => {
+  const list = ['😀','😂','😱','🔥','👏','🤔','😭','🎉'];
+  const em = list[Math.floor(Math.random() * list.length)];
+  send({ type: 'shout', emoji: em });
+};
+const ICON_SOUND_ON = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.2l4.3 3.5V6L7.2 9.5H4z"/><path d="M15.4 9a4.2 4.2 0 0 1 0 6"/><path d="M18 6.6a7.6 7.6 0 0 1 0 10.8"/></svg>';
+const ICON_SOUND_OFF = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.2l4.3 3.5V6L7.2 9.5H4z"/><path d="M16 9.8l4.4 4.4M20.4 9.8 16 14.2"/></svg>';
+
+$('#soundBtn').onclick = () => {
+  soundOn = !soundOn;
+  localStorage.setItem('uno.sound', soundOn ? 'on' : 'off');
+  $('#soundIcon').innerHTML = soundOn ? ICON_SOUND_ON : ICON_SOUND_OFF;
+  if (soundOn) beep(660, 0.08);
+};
+$('#soundIcon').innerHTML = soundOn ? ICON_SOUND_ON : ICON_SOUND_OFF;
+
+function toggleFeed(force) {
+  const f = $('#feed');
+  const show = force !== undefined ? force : f.classList.contains('hidden');
+  f.classList.toggle('hidden', !show);
+  if (show) setTimeout(() => { const b = $('#feedBody'); b.scrollTop = b.scrollHeight; }, 30);
+}
+$('#feedBtn').onclick = () => toggleFeed();
+$('#feedClose').onclick = () => toggleFeed(false);
+$('#chatSend').onclick = sendChat;
+$('#chatInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendChat(); });
+function sendChat() {
+  const inp = $('#chatInput');
+  const txt = inp.value.trim();
+  if (!txt) return;
+  inp.value = '';
+  send({ type: 'chat', text: txt });
+}
+$('#codeChip').onclick = async () => {
+  const url = location.origin + BASE + session.code;
+  const msg = t('inviteText', { code: session.code, url });
+  try {
+    await navigator.clipboard.writeText(msg);
+    toast(t('toastCopied'));
+  } catch (e) {
+    prompt(t('promptCopy'), url);
+  }
+};
+$('#leaveBtn').onclick = () => {
+  if (!confirm(t('confirmLeave'))) return;
+  send({ type: 'leave' }).finally(() => {
+    if (es) es.close();
+    session = null; saveSession();
+    location.href = BASE;
+  });
+};
+
+/* ============================================================ boot */
+initLobby();
+session = loadSession();
+if (session && session.token) {
+  // Validate the stored seat before showing the table: a room dies with the
+  // server process, and an expired token would otherwise leave her staring at
+  // an empty table with no explanation.
+  fetch(BASE + 'api/state?token=' + encodeURIComponent(session.token))
+    .then((r) => { if (!r.ok) throw new Error('bad'); return r.json(); })
+    .then((st) => { enterRoom(); applyState(st); })
+    .catch(() => { session = null; saveSession(); });
+}
+if (window.innerWidth >= 1100) toggleFeed(true);
+</script>
+</body>
+</html>

@@ -562,6 +562,26 @@ function navigate(view) {
 }
 
 /**
+ * Honour `?view=<name>` once, on boot.
+ *
+ * Only a name that actually exists as a section is accepted — `navigate()`
+ * dereferences the element directly, so an unknown name from a URL would throw.
+ * The query string is then removed from the address bar, or a reload would keep
+ * re-opening that view and she could never get back to Home by refreshing.
+ *
+ * The Games tab is the reason this exists: the game is a real page at
+ * /games/uno, and its back link is `/?view=games`. Without this, leaving a game
+ * would drop her on Home and the tab she came from would look lost.
+ */
+function openViewFromUrl() {
+  const name = new URLSearchParams(location.search).get('view');
+  if (!name) return;
+  if (!document.getElementById('view-' + name)) return;
+  if (name !== 'home') navigate(name);
+  try { history.replaceState(null, '', location.pathname); } catch (e) { /* ignore */ }
+}
+
+/**
  * Points the story's language select at the language she is reading in.
  *
  * Only until she chooses one herself: the whole reason this control exists is
@@ -729,6 +749,12 @@ async function init() {
     renderHomeFestival();
     renderHomeDailyCulture();
     renderHomeDiscoverPromo();
+
+    // A view named in the URL, so a page outside the SPA can send her back to a
+    // specific screen. The Games tab needs this: the game is a real page at
+    // /games/uno, and its "back" link is `/?view=games` — without this, leaving a
+    // game would dump her on Home and the tab she came from would look lost.
+    openViewFromUrl();
   } catch (err) {
     console.error('Init error:', err);
     document.getElementById('app').insertAdjacentHTML(

@@ -33,11 +33,28 @@ const I18N = {
     // nav / header
     'nav.home': 'Home',
     'nav.learn': 'Learn',
+    'nav.games': 'Games',
     'nav.quiz': 'Quiz',
     'nav.progress': 'Progress',
     'nav.feedback': 'Feedback',
     'nav.share': 'Share',
     'nav.discover': 'Discover',
+    // The Games hub — a tab, a list of games, and the way back out of one.
+    // UNO itself lives at /games/uno (a real page, see #view-games in index.html)
+    // and speaks the same four languages through its own dictionary.
+    'games.backHome': '← Home',
+    'games.title': 'Games',
+    'games.lead': 'Play together, online. One person makes a room and sends the code to the rest — no account, no install.',
+    'games.unoDesc': '2–8 players · one room code · full rules, chat and card counts',
+    'games.online': 'Online, live',
+    'games.family': 'With family',
+    'games.soon': 'Coming soon',
+    'games.bigtwoName': 'Big Two',
+    'games.bigtwoDesc': 'The Hong Kong table game — 鋤大D, with the same room codes.',
+    'games.matchName': 'Word match',
+    'games.matchDesc': 'Race a partner to match the Cantonese word with its meaning.',
+    'games.note': 'More games are on the way. UNO is the first — try it and tell us what to build next.',
+
 
     // discover — the culture + news feed
     'discover.title': 'Discover: HK life, news & stories from home',
@@ -494,11 +511,26 @@ const I18N = {
     // nav / header
     'nav.home': 'Simula',
     'nav.learn': 'Mag-aral',
+    'nav.games': 'Laro',
     'nav.quiz': 'Pagsusulit',
     'nav.progress': 'Progreso',
     'nav.feedback': 'Puna',
     'nav.share': 'Ibahagi',
     'nav.discover': 'Tuklasin',
+    // Ang Games hub — isang tab, isang listahan ng laro, at ang daan pabalik.
+    'games.backHome': '← Simula',
+    'games.title': 'Mga Laro',
+    'games.lead': 'Maglaro nang sama-sama, online. Isang tao ang gagawa ng kuwarto at ipapadala ang code sa iba — walang account, walang i-install.',
+    'games.unoDesc': '2–8 manlalaro · isang code ng kuwarto · kumpletong rules, chat at bilang ng baraha',
+    'games.online': 'Live, online',
+    'games.family': 'Kasama ang pamilya',
+    'games.soon': 'Malapit na',
+    'games.bigtwoName': 'Big Two',
+    'games.bigtwoDesc': 'Ang laro sa mesa sa Hong Kong — 鋤大D, parehong code ng kuwarto.',
+    'games.matchName': 'Tugma ng salita',
+    'games.matchDesc': 'Magkarera sa kasama para itugma ang salitang Cantonese sa kahulugan.',
+    'games.note': 'Marami pang laro ang darating. Ang UNO ang una — subukan at sabihin kung ano ang susunod.',
+
 
     // discover — ang feed ng kultura at balita
     'discover.title': 'Tuklasin: buhay sa HK, balita at mga kuwento',
@@ -939,11 +971,26 @@ const I18N = {
     // nav / header
     'nav.home': '首页',
     'nav.learn': '学习',
+    'nav.games': '游戏',
     'nav.quiz': '测验',
     'nav.progress': '进度',
     'nav.feedback': '反馈',
     'nav.share': '分享',
     'nav.discover': '发现',
+    // 游戏页——一个标签页、一份游戏列表，以及从游戏里回来的路。
+    'games.backHome': '← 首页',
+    'games.title': '游戏',
+    'games.lead': '一起在线玩。一个人开房间，把配对码发给其他人——不用注册，不用安装。',
+    'games.unoDesc': '2–8 人 · 一个配对码 · 完整规则、聊天和剩牌数',
+    'games.online': '在线联机',
+    'games.family': '和家人一起',
+    'games.soon': '即将上线',
+    'games.bigtwoName': '锄大D',
+    'games.bigtwoDesc': '香港的桌上游戏——锄大D，用同样的配对码。',
+    'games.matchName': '词语配对',
+    'games.matchDesc': '和伙伴比赛，把粤语词和它的意思配对起来。',
+    'games.note': '更多游戏在路上。UNO 是第一个——先试试，再告诉我们下一个想玩什么。',
+
 
     // discover — 文化与新闻
     'discover.title': '发现：香港生活、新闻与家佣故事',
@@ -1383,11 +1430,26 @@ const I18N = {
     // nav / header
     'nav.home': 'Beranda',
     'nav.learn': 'Belajar',
+    'nav.games': 'Game',
     'nav.quiz': 'Kuis',
     'nav.progress': 'Kemajuan',
     'nav.feedback': 'Masukan',
     'nav.share': 'Bagikan',
     'nav.discover': 'Jelajah',
+    // Hub Game — satu tab, daftar game, dan jalan kembali dari dalam game.
+    'games.backHome': '← Beranda',
+    'games.title': 'Game',
+    'games.lead': 'Main bersama, online. Satu orang membuat ruang dan mengirim kodenya ke yang lain — tanpa akun, tanpa instal.',
+    'games.unoDesc': '2–8 pemain · satu kode ruang · aturan lengkap, obrolan, dan jumlah kartu',
+    'games.online': 'Online, langsung',
+    'games.family': 'Bersama keluarga',
+    'games.soon': 'Segera hadir',
+    'games.bigtwoName': 'Big Two',
+    'games.bigtwoDesc': 'Permainan meja Hong Kong — 鋤大D, dengan kode ruang yang sama.',
+    'games.matchName': 'Cocokkan kata',
+    'games.matchDesc': 'Berlomba dengan pasangan mencocokkan kata Kanton dengan artinya.',
+    'games.note': 'Masih ada game lain menyusul. UNO yang pertama — coba dulu, lalu bilang mau apa berikutnya.',
+
 
     // discover — umpan budaya dan berita
     'discover.title': 'Jelajahi: kehidupan HK, berita & kisah',

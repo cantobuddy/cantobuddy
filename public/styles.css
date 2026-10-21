@@ -984,6 +984,153 @@ body {
 }
 
 /* ===========================================================================
+   GAMES HUB (#view-games)
+   ---------------------------------------------------------------------------
+   A list of games, not a game. Each card is a destination; the live one is an
+   <a> (a real page, /games/uno) and the rest are disabled <button>s carrying a
+   "coming soon" tag, so a tap can never land on nothing.
+
+   Rows rather than a grid of tiles: the description is the part that tells her
+   what the game actually is, and a 2-up grid at 320px leaves about 90px for it
+   — the same squeeze that once broke the category pills. One per row also
+   means a new game arrives by adding a row, not by re-tuning a grid.
+   =========================================================================== */
+
+.games-lead {
+  color: var(--c-text-soft);
+  font-size: 0.92rem;
+  line-height: 1.55;
+  margin: -4px 0 16px;
+}
+
+.games-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.game-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 14px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  text-align: left;
+  text-decoration: none;
+  color: var(--c-text);
+  font-family: var(--font-en);
+  transition: transform 0.12s, box-shadow 0.2s, border-color 0.2s;
+}
+
+a.game-card:hover { border-color: var(--c-primary); box-shadow: 0 6px 18px var(--c-shadow-lg); }
+a.game-card:active { transform: scale(0.985); }
+
+/* A disabled card keeps full contrast on its name — it is a game she will be
+   able to play, not an error — and only the tag says it is not ready yet. */
+.game-card[disabled] { cursor: default; background: var(--c-surface); }
+
+/* The UNO mark: three overlapping mini cards, the same four colours the table
+   uses. Drawn in CSS so it stays crisp at any density and needs no asset. */
+.game-art {
+  flex: 0 0 auto;
+  width: 58px;
+  height: 58px;
+  border-radius: 15px;
+  background: var(--c-primary-tint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+
+.game-art i {
+  width: 15px;
+  height: 21px;
+  border-radius: 3px;
+  background: var(--c-primary);
+  color: #fff;
+  font-style: normal;
+  font-weight: 800;
+  font-size: 8.5px;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.18);
+  transform: rotate(-9deg);
+}
+.game-art i:nth-child(2) { background: #f0b429; transform: none; margin-top: -5px; }
+.game-art i:nth-child(3) { background: #2b6cf0; transform: rotate(9deg); }
+
+.game-art-soon {
+  font-size: 26px;
+  line-height: 1;
+  background: #eef1f5;
+}
+
+.game-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.game-name {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--c-text);
+  overflow-wrap: anywhere;
+}
+
+.game-desc {
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--c-text-soft);
+  overflow-wrap: anywhere;
+}
+
+.game-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.game-tag {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #eef1f5;
+  color: var(--c-text-soft);
+}
+
+.game-tag-on {
+  background: #e8f8ef;
+  color: #14724a;
+}
+
+.game-go {
+  flex: 0 0 auto;
+  color: var(--c-text-soft);
+  font-size: 1.5rem;
+  line-height: 1;
+  padding-right: 2px;
+}
+
+.games-note {
+  margin: 16px 0 0;
+  font-size: 0.8rem;
+  line-height: 1.6;
+  color: var(--c-text-soft);
+  text-align: center;
+}
+
+/* ===========================================================================
    SHARE PAGE (#view-share)
    ---------------------------------------------------------------------------
    Its own destination, reached from the Share tab in the bottom nav. This

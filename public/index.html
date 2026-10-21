@@ -553,6 +553,67 @@
     <div id="story-mine" class="story-mine"></div>
   </section>
 
+  <!-- ---- GAMES HUB ---- -->
+  <!-- A hub, not a game. The tab opens this page; each card leaves the app for
+       a real page of its own. That split is deliberate:
+
+         · a card table wants the whole viewport (the bottom nav would sit on
+           top of her hand), and
+         · UNO streams its state over Server-Sent Events, which the app-shell
+           service worker would happily cache if it lived at an app route.
+
+       So the game is at /games/uno, its own page, its own cache rules. The way
+       back is a link on the game's own lobby (`/?view=games`), which app.js
+       reads on boot — that is why this page has to be reachable by URL and not
+       only by tapping the tab.
+
+       The two "coming soon" cards are honest placeholders, not dead links: they
+       are disabled buttons carrying the label, so nobody taps one and waits for
+       something to load. Add a game by replacing one, not by adding a sixth. -->
+  <section id="view-games" class="view">
+    <div class="browse-header">
+      <button class="btn-back" onclick="navigate('home')" data-i18n="games.backHome">← Home</button>
+      <h2 data-i18n="games.title">Games</h2>
+    </div>
+
+    <p class="games-lead" data-i18n="games.lead">Play together, online. One person makes a room and sends the code to the rest — no account, no install.</p>
+
+    <div class="games-grid">
+      <a class="game-card game-card-live" href="/games/uno">
+        <span class="game-art" aria-hidden="true"><i>U</i><i>N</i><i>O</i></span>
+        <span class="game-body">
+          <span class="game-name">UNO</span>
+          <span class="game-desc" data-i18n="games.unoDesc">2–8 players · one room code · full rules, chat and card counts</span>
+          <span class="game-tags">
+            <span class="game-tag game-tag-on" data-i18n="games.online">Online, live</span>
+            <span class="game-tag" data-i18n="games.family">With family</span>
+          </span>
+        </span>
+        <span class="game-go" aria-hidden="true">›</span>
+      </a>
+
+      <button class="game-card" disabled>
+        <span class="game-art game-art-soon" aria-hidden="true">🀄</span>
+        <span class="game-body">
+          <span class="game-name" data-i18n="games.bigtwoName">Big Two</span>
+          <span class="game-desc" data-i18n="games.bigtwoDesc">The Hong Kong table game — 鋤大D, with the same room codes.</span>
+          <span class="game-tags"><span class="game-tag" data-i18n="games.soon">Coming soon</span></span>
+        </span>
+      </button>
+
+      <button class="game-card" disabled>
+        <span class="game-art game-art-soon" aria-hidden="true">🧠</span>
+        <span class="game-body">
+          <span class="game-name" data-i18n="games.matchName">Word match</span>
+          <span class="game-desc" data-i18n="games.matchDesc">Race a partner to match the Cantonese word with its meaning.</span>
+          <span class="game-tags"><span class="game-tag" data-i18n="games.soon">Coming soon</span></span>
+        </span>
+      </button>
+    </div>
+
+    <p class="games-note" data-i18n="games.note">More games are on the way. UNO is the first — try it and tell us what to build next.</p>
+  </section>
+
   <!-- ---- SHARE VIEW ---- -->
   <!-- Its own page rather than a card on Home: word of mouth is how this app
        spreads, so it gets a permanent tab instead of something to scroll past.
@@ -660,11 +721,16 @@
     <span class="nav-icon">🌏</span><span data-i18n="nav.discover">Discover</span>
   </button>
   <!-- Discover. Two channels — culture and news — behind one tab, and a third
-       since Stories joined them. This bar is at its limit and that is measured,
-       not assumed: at 320px the six tabs fit with 0px to spare in Filipino and
-       Indonesian, and a seventh tab overflows the viewport in three of the four
-       languages. `node tools/nav-shot.js` prints the spare pixels per label per
-       width. Do not add a tab without running it. -->
+       since Stories joined them.
+
+       FIVE TABS, and the count is measured rather than assumed: at 320px the
+       six-tab bar fitted with 0px to spare in Filipino and Indonesian, and a
+       seventh overflowed the viewport in three of the four languages. Quiz and
+       Progress left this bar on 2026-10-21 to make room for Games — they were
+       the two least-opened tabs, and both screens are still reached from the
+       two buttons on Home, so nothing was removed from the app, only from the
+       bar. `node tools/nav-shot.js` prints the spare pixels per label per
+       width; run it before changing anything here. -->
   <!-- Learn opens the CATEGORIES page, not the word list. The category is the
        decision she has to make first — "what do I want to learn" — and the word
        list is the answer to it, so the list is the second step rather than the
@@ -673,11 +739,12 @@
   <button class="nav-btn" data-view="categories" onclick="goCategories()">
     <span class="nav-icon">📖</span><span data-i18n="nav.learn">Learn</span>
   </button>
-  <button class="nav-btn" data-view="quiz" onclick="goQuizSelect()">
-    <span class="nav-icon">📝</span><span data-i18n="nav.quiz">Quiz</span>
-  </button>
-  <button class="nav-btn" data-view="progress" onclick="navigate('progress')">
-    <span class="nav-icon">📊</span><span data-i18n="nav.progress">Progress</span>
+  <!-- Games. A hub, not a single game: UNO is the first one playable and the
+       page is built to hold the next ones beside it. The screen it opens is
+       #view-games; the game itself is a real page at /games/uno, because a card
+       table wants the whole viewport and its own server-sent events stream. -->
+  <button class="nav-btn" data-view="games" onclick="navigate('games')">
+    <span class="nav-icon">🎮</span><span data-i18n="nav.games">Games</span>
   </button>
   <!-- The fifth tab is an ACTION, not a location: it opens the feedback dialog
        instead of switching views, so it deliberately carries no data-view and

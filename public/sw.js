@@ -7,7 +7,7 @@
 // Bump this whenever index.html / app.js / i18n.js / styles.css / the icons
 // change. The app shell is cached cache-first, so without a version bump
 // installed PWAs would keep serving the previous build from cache.
-const CACHE = 'cantobuddy-v88';
+const CACHE = 'cantobuddy-v89';
 
 // Which paths are server-rendered SEO documents rather than app-shell assets.
 // Kept as one matcher so it can be asserted against `LANG_PREFIX` in seo.js —
@@ -86,6 +86,16 @@ self.addEventListener('fetch', (event) => {
   // account and progress data, never a cached shell.
   if (url.pathname.startsWith('/admin') || url.pathname.startsWith('/portal')) {
     event.respondWith(fetch(req).catch(() => caches.match(req)));
+    return;
+  }
+
+  // The games. A game is its own page with its own live state, and its client is
+  // redeployed with the app — so a cached copy is not a fast copy, it is a dead
+  // connection to a table that no longer exists. Network only, never cached, and
+  // deliberately NOT in APP_SHELL (pre-caching it would ship the old game to
+  // every learner on the next deploy).
+  if (url.pathname.startsWith('/games/')) {
+    event.respondWith(fetch(req));
     return;
   }
 

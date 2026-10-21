@@ -47,8 +47,19 @@ push.configure(process.env);
 app.set('trust proxy', 1);
 
 // ---------------------------------------------------------------------------
-// Middleware
+// Games
 // ---------------------------------------------------------------------------
+// The UNO table lives at /games/uno — one game server, its own routes, its own
+// Server-Sent Events stream. It is mounted HERE, before the JSON body parser,
+// for a reason that is easy to lose: uno.js reads the raw request stream itself
+// (`readBody`), and express.json() would have already consumed it, so every
+// move would arrive as an empty object and the game would silently reject them.
+// Mounting also leaves the game untouched by sessions and by the app's own
+// /api namespace, which it does not share.
+//
+// Express strips the mount prefix from req.url, so the game's own routes stay
+// `/api/create`, `/api/events` … while the browser sees `/games/uno/api/...`.
+app.use('/games/uno', require('./uno').handle);
 
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true }));

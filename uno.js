@@ -311,13 +311,14 @@ function drawCard(room, player) {
     return { ok: true };
   }
   player.hand.push(got[0]);
-  const playable = isPlayable(got[0], room);
   pushLog(room, { k: 'draw', name: player.name });
-  if (!playable) {
-    advance(room, 1);
-    return { ok: true, drewPlayable: false };
-  }
-  return { ok: true, drewPlayable: true };
+  // Drawing ALWAYS ends the turn, even when the card drawn happens to be
+  // playable (operator's rule, 2026-10-21: "he cannot discard at that turn").
+  // The old code kept the turn so she could immediately play what she drew,
+  // which turned Draw into a free look at the deck: draw until you like the
+  // card. The drawn card stays in her hand for her NEXT turn.
+  advance(room, 1);
+  return { ok: true };
 }
 
 /*
@@ -325,8 +326,7 @@ function drawCard(room, player) {
  * by drawing one — and the pass that used to sit here let a player skip WITHOUT
  * drawing, which is not UNO and could stall a table indefinitely: nobody's hand
  * changes, the discard never changes, and the turn just goes round. Drawing is
- * the way to decline; `drawCard` already ends the turn when the drawn card is
- * not playable, and keeps it (so she may play what she drew) when it is.
+ * the way to decline, and it ends the turn whether or not the card suits her.
  */
 
 /* -------------------------------------------------------------- broadcast */
@@ -533,7 +533,7 @@ async function handle(req, res) {
     if (type === 'draw') {
       const r = drawCard(room, player);
       if (r.error) return json(res, 400, r);
-      broadcast(room, { type: 'draw', by: player.name, drewPlayable: !!r.drewPlayable });
+      broadcast(room, { type: 'draw', by: player.name });
       return json(res, 200, r);
     }
 
@@ -672,4 +672,9 @@ setInterval(() => {
   }
 }, 5000).unref();
 
-module.exports = { handle, rooms };
+// The room functions are exported so the rules can be tested with no browser
+// and no HTTP — same reason bigtwo.js exports its hand evaluator. A rule that is
+// wrong is silently wrong: the game still deals and still declares a winner.
+module.exports = {
+  handle, rooms, createRoom, startGame, drawCard, playCard, advance, isPlayable,
+};

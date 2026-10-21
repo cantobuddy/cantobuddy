@@ -439,7 +439,7 @@ const STR = {
     tagWaiting: 'Waiting', tagYourTurn: 'Your turn', tagWaitingFor: 'Waiting for {name}', tagEnded: 'Round over',
     myCount: '{n} cards',
     handEmpty: 'No cards yet — the host starts the game ▶',
-    drawBtn: 'Draw a card', drewHint: 'You drew a card you can play — tap it.', startBtn: 'Start game', againBtn: 'Play again', waitPlayers: 'Waiting for players…',
+    drawBtn: 'Draw a card', startBtn: 'Start game', againBtn: 'Play again', waitPlayers: 'Waiting for players…',
     colorTitle: 'Pick a colour', colorBody: 'The next card must match this colour', cancel: 'Cancel',
     winSelf: 'You win!', winOther: '{name} wins', winBody: 'Round {r} over · total 🏆 {w}',
     hostNext: 'Waiting for the host to start the next round…', viewTable: 'Back to the table',
@@ -507,7 +507,7 @@ const STR = {
     tagWaiting: 'Naghihintay', tagYourTurn: 'Ikaw ang lalaro', tagWaitingFor: 'Hinihintay si {name}', tagEnded: 'Tapos na',
     myCount: '{n} baraha',
     handEmpty: 'Wala pang baraha — ang host ang magsisimula ▶',
-    drawBtn: 'Bumunot', drewHint: 'May nabunot kang barahang puwede mong ilaro — i-tap ito.', startBtn: 'Simulan', againBtn: 'Maglaro ulit', waitPlayers: 'Naghihintay ng manlalaro…',
+    drawBtn: 'Bumunot', startBtn: 'Simulan', againBtn: 'Maglaro ulit', waitPlayers: 'Naghihintay ng manlalaro…',
     colorTitle: 'Pumili ng kulay', colorBody: 'Dapat pareho ang kulay ng susunod na baraha', cancel: 'Kanselahin',
     winSelf: 'Nanalo ka!', winOther: 'Nanalo si {name}', winBody: 'Tapos ang ika-{r} laro · kabuuan 🏆 {w}',
     hostNext: 'Hinihintay na simulan ng host ang susunod na laro…', viewTable: 'Bumalik sa mesa',
@@ -575,7 +575,7 @@ const STR = {
     tagWaiting: '等待开始', tagYourTurn: '轮到你出牌', tagWaitingFor: '等待 {name}', tagEnded: '本局结束',
     myCount: '{n} 张',
     handEmpty: '牌还没发，等房主点开始 ▶',
-    drawBtn: '摸一张', drewHint: '摸到一张可以出的牌——点它就能出。', startBtn: '开始游戏', againBtn: '再来一局', waitPlayers: '等家人进来…',
+    drawBtn: '摸一张', startBtn: '开始游戏', againBtn: '再来一局', waitPlayers: '等家人进来…',
     colorTitle: '指定颜色', colorBody: '下一张牌必须接这个颜色', cancel: '取消',
     winSelf: '你赢啦！', winOther: '{name} 赢了', winBody: '第 {r} 局结束 · 累计 🏆 {w}',
     hostNext: '等房主开下一局…', viewTable: '看看牌桌',
@@ -643,7 +643,7 @@ const STR = {
     tagWaiting: 'Menunggu', tagYourTurn: 'Giliranmu', tagWaitingFor: 'Menunggu {name}', tagEnded: 'Selesai',
     myCount: '{n} kartu',
     handEmpty: 'Kartu belum dibagi — tuan rumah memulai ▶',
-    drawBtn: 'Ambil kartu', drewHint: 'Kamu menarik kartu yang bisa dimainkan — ketuk kartunya.', startBtn: 'Mulai main', againBtn: 'Main lagi', waitPlayers: 'Menunggu pemain…',
+    drawBtn: 'Ambil kartu', startBtn: 'Mulai main', againBtn: 'Main lagi', waitPlayers: 'Menunggu pemain…',
     colorTitle: 'Pilih warna', colorBody: 'Kartu berikutnya harus warna ini', cancel: 'Batal',
     winSelf: 'Kamu menang!', winOther: '{name} menang', winBody: 'Ronde {r} selesai · total 🏆 {w}',
     hostNext: 'Menunggu tuan rumah memulai ronde berikutnya…', viewTable: 'Kembali ke meja',
@@ -1235,16 +1235,15 @@ async function send(payload) {
 }
 
 /**
- * Drawing is now the ONLY way to end a turn you cannot play (there is no Pass
- * button any more — it let a player skip without drawing, which is not UNO and
- * can stall the table). The server keeps the turn with you when the drawn card
- * is playable, so say so: otherwise the only affordance is a card that happens
- * to be glowing, and the draw button still looks like the next thing to press.
+ * Drawing is the ONLY way to end a turn you cannot play (there is no Pass button
+ * any more — it let a player skip without drawing, which is not UNO and can
+ * stall the table). Drawing always ends your turn, even if the card you drew
+ * would have been playable: you may play it on your NEXT turn. That is why there
+ * is no "tap it now" toast any more — there would be nothing to tap.
  */
 async function doDraw() {
   try {
-    const r = await api('api/action', { type: 'draw', token: session.token });
-    if (r && r.drewPlayable) toast(t('drewHint'));
+    await api('api/action', { type: 'draw', token: session.token });
   } catch (e) {
     toast(e.message);
     sfx.bad();

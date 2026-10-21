@@ -204,6 +204,35 @@
   .act.emoji{flex:0 0 auto;padding:14px 13px;font-size:17px}
   .act.selcount{font-size:12px;font-weight:600;color:var(--muted);flex:0 0 auto;padding:0 4px}
 
+  /* ---- emoji picker ---- */
+  /* A popover, not a modal: the table stays live behind it, because a reaction
+     is a aside — you glance, you pick, you carry on. `left`/`bottom` are set in
+     JS from the button's rect; only the transform is here, so the entrance
+     animation cannot fight the positioning. */
+  .emoji-pop{
+    position:fixed;z-index:60;width:min(292px,calc(100vw - 24px));
+    background:rgba(255,255,255,.98);backdrop-filter:blur(14px);
+    border:1px solid var(--line);border-radius:18px;box-shadow:0 18px 44px rgba(23,26,35,.22);
+    padding:10px 10px 8px;transform:translateX(-50%);
+    animation:emojiPop .16s cubic-bezier(.3,1.4,.5,1);
+  }
+  @keyframes emojiPop{from{opacity:0;margin-bottom:-8px}to{opacity:1;margin-bottom:0}}
+  .emoji-pop-head{
+    font-size:10.5px;font-weight:800;color:var(--muted);text-align:center;
+    letter-spacing:.06em;text-transform:uppercase;margin-bottom:7px;
+  }
+  /* Five across: at 292px that is a ~52px target, which is above the 44px
+     minimum for a thumb, and four rows of twenty keeps the whole set on screen
+     without scrolling. */
+  .emoji-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:3px}
+  .emoji-grid button{
+    aspect-ratio:1;border:none;background:none;border-radius:12px;padding:0;
+    font-size:23px;line-height:1;cursor:pointer;display:grid;place-items:center;
+    transition:transform .1s,background .1s;-webkit-tap-highlight-color:transparent;
+  }
+  .emoji-grid button:active{transform:scale(.85);background:#eef1f8}
+  @media(hover:hover){.emoji-grid button:hover{background:#eef1f8}}
+
   /* feed */
   .feed{
     position:fixed;right:14px;bottom:14px;width:290px;max-height:52vh;background:rgba(255,255,255,.97);
@@ -370,11 +399,22 @@
     <button class="act" id="passBtn"></button>
     <button class="act go" id="playBtn"></button>
     <button class="act ghost" id="startBtn" style="display:none"></button>
-    <!-- Same random-emoji shout as the UNO table. A family game needs a way to
-         react without typing, and the two tables should feel like one app. -->
-    <button class="act emoji" id="emojiBtn">😀</button>
+    <!-- A family game needs a way to react without typing, and the two tables
+         should feel like one app. This OPENS a picker rather than firing a
+         random emoji: "surprise me" is a toy, but choosing what you mean is
+         communication, and a random 😭 when you meant 🎉 is worse than nothing. -->
+    <button class="act emoji" id="emojiBtn" aria-haspopup="dialog" aria-expanded="false">😀</button>
   </div>
 </section>
+
+<!-- ---- emoji picker ----------------------------------------------------
+     A popover over the button that opened it, so the thumb does not have to
+     travel. Positioned in JS from the button's own rect and clamped to the
+     viewport, because a fixed offset overflows on a 320px phone. -->
+<div class="emoji-pop hidden" id="emojiPop" role="dialog" aria-modal="false">
+  <div class="emoji-pop-head" data-k="emojiPickTitle"></div>
+  <div class="emoji-grid" id="emojiGrid"></div>
+</div>
 
 <!-- ============================ FEED ============================ -->
 <aside class="feed hidden" id="feed">
@@ -421,6 +461,7 @@ const STR = {
     feedHead: 'Table chat & log',
     chatPlaceholder: 'Say something…',
     sendBtn: 'Send',
+    emojiPickTitle: 'Pick a reaction',
     turnYou: 'Your turn', turnTheirs: '{name} is thinking…',
     leadHint: 'Your lead — play any combination',
     youLead: 'You lead the next hand',
@@ -484,6 +525,7 @@ const STR = {
     feedHead: 'Chat at talaan',
     chatPlaceholder: 'Magsalita…',
     sendBtn: 'Ipadala',
+    emojiPickTitle: 'Pumili ng reaksyon',
     turnYou: 'Ikaw ang lalaro', turnTheirs: 'Nag-iisip si {name}…',
     leadHint: 'Ikaw ang mangunguna — maglaro ng kahit anong kombinasyon',
     youLead: 'Ikaw ang mangunguna sa susunod',
@@ -547,6 +589,7 @@ const STR = {
     feedHead: '牌桌动态',
     chatPlaceholder: '说点什么…',
     sendBtn: '发送',
+    emojiPickTitle: '选一个表情',
     turnYou: '轮到你了', turnTheirs: '{name} 正在想…',
     leadHint: '你先出牌——出任何一种牌型',
     youLead: '下一手你先出',
@@ -610,6 +653,7 @@ const STR = {
     feedHead: 'Obrolan & catatan',
     chatPlaceholder: 'Katakan sesuatu…',
     sendBtn: 'Kirim',
+    emojiPickTitle: 'Pilih reaksi',
     turnYou: 'Giliranmu', turnTheirs: '{name} sedang berpikir…',
     leadHint: 'Kamu memimpin — mainkan kombinasi apa saja',
     youLead: 'Kamu memimpin putaran berikutnya',
@@ -1140,6 +1184,98 @@ async function sendChat() {
   if (r.status !== 200) { toast(errorText(r.body.error)); inp.value = txt; }
 }
 
+/* --------------------------------------------------------------- emoji picker */
+/**
+ * Twenty reactions, chosen by the player.
+ *
+ * The button used to fire a RANDOM one from a list of eight. That is a toy, not
+ * communication: you cannot say what you mean, and a random 😭 when you meant
+ * 🎉 is worse than saying nothing. So the button opens a picker instead, and the
+ * set is wide enough to actually cover a table — encouragement, dismay, luck,
+ * triumph.
+ *
+ * Same list in both games, deliberately: a player who learns where 👍 is on one
+ * table should not have to look again on the other.
+ */
+const EMOJIS = [
+  '😀', '😂', '🤣', '🥳', '😍',
+  '😎', '🤔', '😱', '😭', '😡',
+  '👍', '👏', '🙏', '💪', '🔥',
+  '🎉', '❤️', '💯', '🍀', '⭐',
+];
+
+let emojiBuilt = false;
+
+function buildEmojiPop() {
+  if (emojiBuilt) return;
+  $('#emojiGrid').innerHTML = EMOJIS.map((e) =>
+    `<button type="button" data-e="${e}" aria-label="${e}">${e}</button>`).join('');
+  $('#emojiGrid').querySelectorAll('button').forEach((b) => {
+    b.onclick = () => {
+      closeEmojiPop();
+      post('/api/action', { token, type: 'shout', emoji: b.dataset.e }).catch(() => {});
+    };
+  });
+  emojiBuilt = true;
+}
+
+/**
+ * Place the popover over the button that opened it.
+ *
+ * `left` is the CENTRE, not the edge: the stylesheet shifts the box by
+ * translateX(-50%) so it grows outwards from that point. Clamping the edge
+ * instead put the whole popover 134px off the left of a 390px phone — a real
+ * bug, found by measuring rather than by looking at the source.
+ *
+ * The box is `position:fixed`, so it does NOT follow the button: anything that
+ * moves the button (a scroll, a resize) has to re-place it.
+ */
+function placeEmojiPop() {
+  const pop = $('#emojiPop');
+  const btn = $('#emojiBtn').getBoundingClientRect();
+  const w = pop.offsetWidth;
+  if (!w) return;
+  const cx = btn.left + btn.width / 2;
+  pop.style.left = Math.min(Math.max(cx, w / 2 + 12), window.innerWidth - w / 2 - 12) + 'px';
+  pop.style.bottom = (window.innerHeight - btn.top + 10) + 'px';
+}
+
+function toggleEmojiPop() {
+  const pop = $('#emojiPop');
+  if (!pop.classList.contains('hidden')) { closeEmojiPop(); return; }
+  buildEmojiPop();
+  pop.classList.remove('hidden');
+  placeEmojiPop();
+  $('#emojiBtn').setAttribute('aria-expanded', 'true');
+}
+
+function closeEmojiPop() {
+  $('#emojiPop').classList.add('hidden');
+  $('#emojiBtn').setAttribute('aria-expanded', 'false');
+}
+
+// A tap anywhere else dismisses it. Listening on the document rather than on a
+// scrim keeps the table live behind the picker — which is the point of a popover.
+document.addEventListener('click', (e) => {
+  const pop = $('#emojiPop');
+  if (pop.classList.contains('hidden')) return;
+  if (pop.contains(e.target) || e.target.closest('#emojiBtn')) return;
+  closeEmojiPop();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeEmojiPop();
+});
+// Re-place rather than close on a viewport change. Closing was the first
+// instinct and it is wrong on a phone: scrolling down collapses the URL bar,
+// which fires `resize`, and the picker would vanish mid-choice. It is only two
+// style writes, so following the button is cheaper than the surprise.
+window.addEventListener('resize', () => {
+  if (!$('#emojiPop').classList.contains('hidden')) placeEmojiPop();
+});
+window.addEventListener('scroll', () => {
+  if (!$('#emojiPop').classList.contains('hidden')) placeEmojiPop();
+}, { passive: true });
+
 async function leave() {
   try { await post('/api/action', { token, type: 'leave' }); } catch (e) { /* gone */ }
   localStorage.removeItem(SESSION_KEY);
@@ -1226,11 +1362,7 @@ function initLobby() {
   $('#feedClose').onclick = () => $('#feed').classList.add('hidden');
   $('#chatSend').onclick = sendChat;
   $('#chatInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendChat(); });
-  $('#emojiBtn').onclick = () => {
-    const list = ['😀', '😂', '😱', '🔥', '👏', '🤔', '😭', '🎉'];
-    const em = list[Math.floor(Math.random() * list.length)];
-    post('/api/action', { token, type: 'shout', emoji: em }).catch(() => {});
-  };
+  $('#emojiBtn').onclick = () => toggleEmojiPop();
   $('#codeChip').onclick = async () => {
     const url = location.origin + BASE + code;
     try { await navigator.clipboard.writeText(url); toast(url); }

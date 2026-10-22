@@ -126,6 +126,12 @@ const STATE = {
   // request; `mine` is her own submissions, which is the only place a reviewer's
   // note is ever shown.
   stories: { list: null, current: null, mine: null, langPicked: false },
+  // Living — supportive passages about life in Hong Kong, grouped by situation
+  // (Medical, Holiday, Entertainment, Homesick, Food, Transport, Churches). The
+  // reader browses by category and opens a passage; reactions, comments and share
+  // live on the passage page. `list` caches the shelf; `current` is the open
+  // passage, kept so a language switch re-renders without a refetch.
+  living: { list: null, current: null },
   // One culture article per day, from /api/posts/daily-culture. `null` means
   // "not asked yet", `false` means "asked and there is nothing" — the
   // distinction stops Home re-fetching on every language switch when there is
@@ -756,6 +762,7 @@ async function init() {
     // /games/uno, and its "back" link is `/?view=games` — without this, leaving a
     // game would dump her on Home and the tab she came from would look lost.
     openViewFromUrl();
+    openLivingFromUrl();
   } catch (err) {
     console.error('Init error:', err);
     document.getElementById('app').insertAdjacentHTML(
@@ -792,6 +799,9 @@ function rerenderForLanguage() {
   // An open story is the same problem as an open article: one body of text,
   // rebuilt from the cached row so it does not stay in the old language.
   if (active && active.id === 'view-story' && STATE.stories.current) renderStoryPage(STATE.stories.current);
+  // An open Living passage: one body of text, rebuilt from the cached row so the
+  // language switch does not leave it stranded in the old language.
+  if (active && active.id === 'view-living' && STATE.living.current) renderLivingPage(STATE.living.current);
   // The write form is static markup and re-translates in place, so only her
   // own submissions below it are rebuilt. Her half-typed draft is untouched.
   if (active && active.id === 'view-story-new') renderStoryMine();
@@ -1040,7 +1050,7 @@ function renderHomeDiscoverPromo() {
   const channels = [
     { key: 'culture', emoji: '🏛️', label: t('discover.tabCulture'), desc: t('discover.cultureLead') },
     { key: 'news',    emoji: '📰', label: t('discover.tabNews'),    desc: t('discover.newsLead') },
-    { key: 'stories', emoji: '📖', label: t('discover.tabStories'), desc: t('discover.storiesLead') },
+    { key: 'living', emoji: '🏠', label: t('discover.tabLiving'), desc: t('discover.livingLead') },
   ];
   wrap.innerHTML =
     `<h4 class="home-section-title">${escapeHtml(t('discover.title'))}</h4>` +
@@ -3965,7 +3975,7 @@ function sanitizePostHtml(html) {
  * a fresh visit does.
  */
 function showChannel(channel) {
-  STATE.discover.channel = ['news', 'stories'].includes(channel) ? channel : 'culture';
+  STATE.discover.channel = ['news', 'stories', 'living'].includes(channel) ? channel : 'culture';
   STATE.discover.category = null;
   STATE.discover.region = null;
   STATE.discover.shown = NEWS_PAGE_SIZE;
@@ -4244,8 +4254,9 @@ async function renderDiscover() {
   if (note) {
     note.textContent = t(
       channel === 'news' ? 'discover.newsLead'
-        : channel === 'stories' ? 'discover.storiesLead'
-          : 'discover.cultureLead'
+        : channel === 'living' ? 'discover.livingLead'
+          : channel === 'stories' ? 'discover.storiesLead'
+            : 'discover.cultureLead'
     );
   }
   // The "share your story" button belongs to one channel only. It is a
@@ -4259,6 +4270,7 @@ async function renderDiscover() {
   renderNewsRegionFilters();
   if (channel === 'news') loadNewsFilters();
 
+  if (channel === 'living') return renderLivingList(feed);
   if (channel === 'stories') return renderStoryList(feed);
 
   // Serve the cache when we have it, so a tab switch is instant and a language
@@ -4388,6 +4400,295 @@ function renderStoryPage(story) {
       { label: t('share.pictureBtn'), icon: '🖼️', onclick: `shareStory('${story.slug}')` },
     ])}
     <p class="story-back"><button class="btn-link" onclick="navigate('discover')">${escapeHtml(t('story.backToStories'))}</button></p>`;
+}
+
+// ---- Living: supportive passages about life in Hong Kong --------------------
+//
+// Editorial passages (seeded, not user-submitted) grouped by situation — sick,
+// homesick, short of money, lonely on a rest day. The reader browses by category
+// and opens a passage; on the passage page she can react (Facebook-style, one
+// reaction per device), comment, and share. Bodies are plain text in four
+// languages and never HTML.
+
+/** Pick the per-language field of a living passage, falling back to English. */
+function livingField(post, field) {
+  const v = post[`${field}_${currentLang()}`];
+  return v && String(v).trim() ? v : (post[`${field}_en`] || '');
+}
+
+const LIVING_REACTIONS = [
+  { emoji: '👍', key: 'like',  labelKey: 'living.reactionLike' },
+  { emoji: '❤️', key: 'love',  labelKey: 'living.reactionLove' },
+  { emoji: '🤗', key: 'care',  labelKey: 'living.reactionCare' },
+  { emoji: '😂', key: 'haha',  labelKey: 'living.reactionHaha' },
+  { emoji: '😮', key: 'wow',   labelKey: 'living.reactionWow' },
+  { emoji: '😢', key: 'sad',   labelKey: 'living.reactionSad' },
+  { emoji: '😠', key: 'angry', labelKey: 'living.reactionAngry' },
+];
+
+const LIVING_CAT_ICON = {
+  medical: '🩺', holiday: '✈️', entertainment: '🎉', homesick: '💔',
+  food: '🍚', transport: '🚇', churches: '⛪',
+};
+const LIVING_CAT_ORDER = ['medical', 'holiday', 'entertainment', 'homesick', 'food', 'transport', 'churches'];
+
+function livingCatIcon(cat) { return LIVING_CAT_ICON[cat] || '🏠'; }
+function livingCatLabel(cat) { return t('living.cat' + cat.charAt(0).toUpperCase() + cat.slice(1)); }
+
+/** One card on the Living shelf: title, excerpt, and a Facebook-style footer. */
+function livingCardHtml(post) {
+  const title = livingField(post, 'title');
+  const sub = livingField(post, 'sub');
+  const body = livingField(post, 'body');
+  const excerpt = (body.split(/\n{2,}/)[0] || '').trim();
+  const reacts = Number(post.reaction_count) || 0;
+  const comments = Number(post.comment_count) || 0;
+  return `
+    <button class="post-card living-card" onclick="openLiving('${escapeHtml(post.slug)}')">
+      <span class="post-card-icon">${escapeHtml(post.icon || '🏠')}</span>
+      <span class="post-card-main">
+        <span class="post-card-cat">${escapeHtml(livingCatLabel(post.category))} · ${escapeHtml(sub)}</span>
+        <span class="post-card-title">${escapeHtml(title)}</span>
+        <span class="post-card-summary">${escapeHtml(excerpt)}</span>
+        <span class="living-card-footer">
+          <span class="living-card-stat">${reacts ? '👍 ' + reacts : '👍'}</span>
+          <span class="living-card-stat">💬 ${comments}</span>
+          <span class="living-card-stat">↗</span>
+        </span>
+      </span>
+      <span class="post-card-arrow" aria-hidden="true">›</span>
+    </button>`;
+}
+
+/** The Living channel: passages grouped by category, newest first within each. */
+async function renderLivingList(feed) {
+  const host = feed || document.getElementById('discover-feed');
+  if (!host) return;
+
+  // Cached so a tab switch is instant and a language switch does not refetch.
+  let posts = STATE.living.list;
+  if (!posts) {
+    host.innerHTML = `<div class="discover-loading">…</div>`;
+    try {
+      const data = await apiGet('/api/living');
+      posts = data.posts;
+      STATE.living.list = posts;
+    } catch (err) {
+      console.warn('Could not load Living:', err);
+      host.innerHTML = `<p class="discover-empty">${escapeHtml(t('discover.livingLoadFailed'))}</p>`;
+      return;
+    }
+  }
+  if (STATE.discover.channel !== 'living') return; // she switched away mid-flight
+
+  const byCat = {};
+  for (const p of posts) (byCat[p.category] = byCat[p.category] || []).push(p);
+  const cats = LIVING_CAT_ORDER.filter((c) => byCat[c] && byCat[c].length);
+
+  if (!cats.length) {
+    host.innerHTML = `<p class="discover-empty">${escapeHtml(t('discover.livingEmpty'))}</p>`;
+    return;
+  }
+
+  host.innerHTML = cats.map((c) => `
+    <section class="living-group">
+      <h3 class="living-group-title"><span class="living-group-icon">${livingCatIcon(c)}</span>${escapeHtml(livingCatLabel(c))}</h3>
+      <div class="living-group-list">${byCat[c].map(livingCardHtml).join('')}</div>
+    </section>`).join('');
+}
+
+/** Opens one passage by slug, fetching its reactions and comments. */
+async function openLiving(slug) {
+  const host = document.getElementById('living-body');
+  if (!host || !slug) return;
+  navigate('living');
+  host.innerHTML = `<div class="discover-loading">…</div>`;
+  try {
+    const data = await apiGet(`/api/living/${encodeURIComponent(slug)}?public_id=${encodeURIComponent(STATE.deviceId)}`);
+    STATE.living.current = data.post;
+    STATE.living.reactions = data.reactions || {};
+    STATE.living.myReaction = data.myReaction || null;
+    STATE.living.comments = data.comments || [];
+    renderLivingPage(data.post);
+    markRead(`living:${slug}`);
+  } catch (err) {
+    console.warn('Could not load the passage:', err);
+    host.innerHTML = `<p class="discover-empty">${escapeHtml(t('story.notFound'))}</p>`;
+  }
+}
+
+/** Draws the open passage: body, reaction bar, comments, share. */
+function renderLivingPage(post) {
+  const host = document.getElementById('living-body');
+  if (!host || !post) return;
+  const title = livingField(post, 'title');
+  const sub = livingField(post, 'sub');
+  const body = livingField(post, 'body');
+  const paragraphs = String(body || '').split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
+
+  host.innerHTML = `
+    <div class="post-hero">
+      <div class="post-hero-icon">${escapeHtml(post.icon || '🏠')}</div>
+      <h1 class="post-title">${escapeHtml(title)}</h1>
+      <div class="post-date">${escapeHtml(livingCatLabel(post.category))} · ${escapeHtml(sub)}</div>
+    </div>
+    <div class="post-content">${paragraphs.map((p) => `<p>${escapeHtml(p).replace(/\n/g, '<br>')}</p>`).join('')}</div>
+
+    <div class="living-reactions" id="living-reactions"></div>
+
+    <div class="living-comments">
+      <h2 class="living-comments-title">${escapeHtml(t('living.commentsTitle'))}</h2>
+      <div class="living-comments-list" id="living-comments-list"></div>
+      <form class="living-comment-form" id="living-comment-form" onsubmit="return submitLivingComment(event)">
+        <input type="text" class="living-comment-name-input" id="living-comment-name" maxlength="80"
+               placeholder="${escapeHtml(t('living.commentNamePlaceholder'))}" aria-label="${escapeHtml(t('living.commentNameLabel'))}">
+        <textarea class="living-comment-input" id="living-comment-input" maxlength="500" required
+                  placeholder="${escapeHtml(t('living.commentPlaceholder'))}"></textarea>
+        <button type="submit" class="btn btn-primary living-comment-submit">${escapeHtml(t('living.commentPost'))}</button>
+      </form>
+    </div>
+
+    ${shareRowHtml([
+      { label: t('share.chatBtn'), icon: WHATSAPP_ICON_SVG, onclick: `shareLiving('${post.slug}', 'chat')`, variant: 'wa' },
+      { label: t('share.pictureBtn'), icon: '🖼️', onclick: `shareLiving('${post.slug}')` },
+    ])}
+    <p class="story-back"><button class="btn-link" onclick="navigate('discover'); showChannel('living')">${escapeHtml(t('living.back'))}</button></p>`;
+
+  renderLivingReactions();
+  renderLivingComments();
+}
+
+/** The reaction bar: a summary (tap to open the picker) plus the Facebook set. */
+function renderLivingReactions() {
+  const host = document.getElementById('living-reactions');
+  if (!host) return;
+  const reactions = STATE.living.reactions || {};
+  const my = STATE.living.myReaction;
+  const count = Object.values(reactions).reduce((a, b) => a + b, 0);
+
+  const chips = LIVING_REACTIONS
+    .filter((r) => (reactions[r.key] || 0) > 0 || r.key === my)
+    .map((r) => {
+      const n = reactions[r.key] || 0;
+      const active = r.key === my ? ' is-active' : '';
+      return `<button class="living-react-chip${active}" title="${escapeHtml(t(r.labelKey))}" onclick="reactLiving('${STATE.living.current.slug}', '${r.key}')">
+        <span class="living-react-emoji">${r.emoji}</span>${n ? `<span class="living-react-count">${n}</span>` : ''}
+      </button>`;
+    }).join('');
+
+  host.innerHTML = `
+    <div class="living-react-summary" onclick="toggleLivingPicker()" role="button" tabindex="0">
+      ${count ? `<span class="living-react-total">${count}</span>` : ''}
+      <span class="living-react-chips">${chips || `<span class="living-react-hint">${escapeHtml(t('living.reactTitle'))}</span>`}</span>
+    </div>
+    <div class="living-react-picker" id="living-react-picker" hidden>
+      ${LIVING_REACTIONS.map((r) => `
+        <button class="living-react-pick" title="${escapeHtml(t(r.labelKey))}" onclick="reactLiving('${STATE.living.current.slug}', '${r.key}')">${r.emoji}</button>
+      `).join('')}
+    </div>`;
+}
+
+/** Show/hide the reaction picker. */
+function toggleLivingPicker() {
+  const p = document.getElementById('living-react-picker');
+  if (p) p.hidden = !p.hidden;
+}
+
+/** Send (or toggle) a reaction, then repaint the bar from the server's state. */
+async function reactLiving(slug, emoji) {
+  try {
+    const res = await apiPost(`/api/living/${encodeURIComponent(slug)}/react`, { public_id: STATE.deviceId, emoji });
+    STATE.living.reactions = res.reactions || {};
+    STATE.living.myReaction = res.myReaction || null;
+    renderLivingReactions();
+  } catch (err) {
+    console.warn('Could not react:', err);
+    showToast(t('share.failed'));
+  }
+}
+
+/** Draw the comment thread. */
+function renderLivingComments() {
+  const host = document.getElementById('living-comments-list');
+  if (!host) return;
+  const comments = STATE.living.comments || [];
+  if (!comments.length) {
+    host.innerHTML = `<p class="living-comments-empty">${escapeHtml(t('living.commentEmpty'))}</p>`;
+    return;
+  }
+  host.innerHTML = comments.map((c) => {
+    const name = String(c.display_name || '').trim() || t('story.anonymous');
+    return `<div class="living-comment">
+      <div class="living-comment-head"><span class="living-comment-name">${escapeHtml(name)}</span><span class="living-comment-date">${escapeHtml(postDate(c.created_at))}</span></div>
+      <div class="living-comment-body">${escapeHtml(c.body)}</div>
+    </div>`;
+  }).join('');
+}
+
+/** Post a comment; on success, append it to the thread in place. */
+async function submitLivingComment(event) {
+  event.preventDefault();
+  const slug = STATE.living.current && STATE.living.current.slug;
+  const input = document.getElementById('living-comment-input');
+  const nameInput = document.getElementById('living-comment-name');
+  if (!slug || !input) return false;
+  const body = input.value.trim();
+  if (!body) return false;
+  const name = nameInput ? nameInput.value.trim() : '';
+  const btn = document.querySelector('#living-comment-form .living-comment-submit');
+  if (btn) { btn.disabled = true; btn.textContent = t('living.commentPosting'); }
+  try {
+    const res = await apiPost(`/api/living/${encodeURIComponent(slug)}/comment`, {
+      public_id: STATE.deviceId, display_name: name, body,
+    });
+    if (res.comment) {
+      STATE.living.comments = STATE.living.comments || [];
+      STATE.living.comments.push(res.comment);
+      input.value = '';
+      if (nameInput) nameInput.value = '';
+      renderLivingComments();
+    }
+  } catch (err) {
+    console.warn('Could not post comment:', err);
+    showToast(t('share.failed'));
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = t('living.commentPost'); }
+  }
+  return false;
+}
+
+/** A shareable card for a passage. */
+function livingSpec(post) {
+  const k = cardTokens();
+  return {
+    accent: k.secondary,
+    tint: '#e6f5f3',
+    eyebrow: t('living.back'),
+    blocks: [
+      { type: 'emoji', value: post.icon || '🏠', size: 140, y: 300 },
+      { type: 'wrap', value: livingField(post, 'title'), size: 56, y: 470, maxLines: 3, lineHeight: 72 },
+      { type: 'text', value: livingCatLabel(post.category), weight: 500, size: 42, color: k.soft, y: 790 },
+    ],
+  };
+}
+
+/** Share a passage — straight to WhatsApp, or as a picture. */
+async function shareLiving(slug, mode) {
+  const post = (STATE.living.current && STATE.living.current.slug === slug)
+    ? STATE.living.current
+    : (STATE.living.list || []).find((p) => p.slug === slug);
+  if (!post) return;
+  const text = t('share.livingText').replace('{title}', livingField(post, 'title'));
+  const url = shareUrl(`/living/${slug}`);
+  if (mode === 'chat') return shareToWhatsApp(text, url);
+  await sharePicture({ spec: livingSpec(post), text, url, filename: `cantobuddy-living-${slug}.png` });
+}
+
+/** If the app was opened from a shared /living/<slug> link, open that passage. */
+function openLivingFromUrl() {
+  const m = location.pathname.match(/^\/living\/([^/]+)/);
+  if (!m) return;
+  setTimeout(() => openLiving(m[1]), 300);
 }
 
 // ---- Writing a story -------------------------------------------------------

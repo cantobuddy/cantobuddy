@@ -4578,3 +4578,104 @@ a.game-card:active { transform: scale(0.985); }
 .fb-meta { font-size: 0.78rem; color: var(--c-text-soft); margin-bottom: 10px; }
 
 .fb-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* ---- Living (situational support passages) --------------------------------
+   Reuses .post-card (list), .post-hero / .post-content (article) and .share-row
+   (share). Everything below is Living-specific: the grouped shelf, the
+   Facebook-style reaction bar, and the comment thread. Kept on the same design
+   tokens as the rest of the app so it reads as one product, not a bolt-on. */
+
+/* The Discover shelf: passages grouped by situation, newest first per group. */
+.living-group { margin-bottom: 22px; }
+.living-group:last-child { margin-bottom: 0; }
+.living-group-title {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 1.02rem; font-weight: 700; color: var(--c-text);
+  margin: 0 0 10px;
+}
+.living-group-icon {
+  flex: 0 0 auto;
+  width: 30px; height: 30px; border-radius: 9px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--c-primary-tint); font-size: 1.05rem;
+}
+.living-group-list { display: flex; flex-direction: column; gap: 10px; }
+
+/* The Facebook-style footer on each card (reacts / comments / share). */
+.living-card-footer {
+  display: flex; align-items: center; gap: 14px;
+  margin-top: 4px; font-size: 0.8rem; color: var(--c-text-soft);
+}
+.living-card-stat { display: inline-flex; align-items: center; gap: 4px; }
+
+/* Reaction bar: summary chips (tap to toggle) plus a hidden picker. */
+.living-reactions { margin-top: 18px; }
+.living-react-summary {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; border-radius: 12px;
+  background: var(--c-surface); border: 1px solid var(--c-border);
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.living-react-total { font-weight: 700; color: var(--c-text); font-size: 0.9rem; }
+.living-react-chips { display: flex; align-items: center; gap: 3px; flex-wrap: wrap; }
+.living-react-hint { font-size: 0.82rem; color: var(--c-text-soft); }
+.living-react-chip {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 3px 9px; border-radius: 999px;
+  background: var(--c-primary-tint); border: 1px solid transparent;
+  font: inherit; font-size: 0.9rem; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.living-react-chip.is-active { border-color: var(--c-primary-dark); }
+.living-react-emoji { font-size: 1.05rem; line-height: 1; }
+.living-react-count { font-size: 0.78rem; font-weight: 700; color: var(--c-text); }
+.living-react-picker {
+  display: flex; gap: 4px; margin-top: 8px; padding: 6px;
+  border-radius: 999px; background: var(--c-surface);
+  border: 1px solid var(--c-border); box-shadow: 0 2px 8px var(--c-shadow);
+  width: fit-content;
+}
+.living-react-pick {
+  width: 40px; height: 40px; border-radius: 50%;
+  border: none; background: transparent; cursor: pointer;
+  font-size: 1.45rem; line-height: 1; padding: 0;
+  transition: transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+}
+.living-react-pick:hover, .living-react-pick:active { transform: scale(1.25); }
+
+/* Comment thread. */
+.living-comments { margin-top: 22px; }
+.living-comments-title { font-size: 1.05rem; font-weight: 700; margin: 0 0 10px; color: var(--c-text); }
+.living-comments-list { display: flex; flex-direction: column; gap: 10px; }
+.living-comment {
+  background: var(--c-surface); border: 1px solid var(--c-border);
+  border-radius: 12px; padding: 10px 12px;
+}
+.living-comment-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 8px; margin-bottom: 4px;
+}
+.living-comment-name { font-weight: 700; font-size: 0.85rem; color: var(--c-text); }
+.living-comment-date { font-size: 0.72rem; color: var(--c-text-soft); white-space: nowrap; }
+.living-comment-body {
+  font-size: 0.92rem; line-height: 1.5; color: var(--c-text);
+  white-space: pre-wrap; word-break: break-word;
+}
+.living-comments-empty { font-size: 0.86rem; color: var(--c-text-soft); font-style: italic; }
+.living-comment-form { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.living-comment-name-input,
+.living-comment-input {
+  width: 100%; box-sizing: border-box;
+  font: inherit; font-size: 0.92rem; color: var(--c-text);
+  background: var(--c-surface); border: 1px solid var(--c-border);
+  border-radius: 12px; padding: 11px 12px;
+}
+.living-comment-name-input { min-height: 44px; }
+.living-comment-input { min-height: 76px; resize: vertical; }
+.living-comment-name-input:focus,
+.living-comment-input:focus {
+  outline: none; border-color: var(--c-primary-dark);
+  box-shadow: 0 0 0 3px var(--c-primary-tint);
+}
+.living-comment-submit { align-self: flex-end; }

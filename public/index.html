@@ -430,8 +430,8 @@
               onclick="showChannel('culture')" data-i18n="discover.tabCulture">Culture</button>
       <button class="discover-tab" data-channel="news" role="tab"
               onclick="showChannel('news')" data-i18n="discover.tabNews">News</button>
-      <button class="discover-tab" data-channel="stories" role="tab"
-              onclick="showChannel('stories')" data-i18n="discover.tabStories">Stories</button>
+      <button class="discover-tab" data-channel="living" role="tab"
+              onclick="showChannel('living')" data-i18n="discover.tabLiving">Living</button>
     </div>
 
     <!-- One line saying what this channel is, filled by renderDiscover(). Not a
@@ -482,6 +482,18 @@
       <button class="btn-back" onclick="navigate('discover')" data-i18n="story.back">← Discover</button>
     </div>
     <article id="story-body" class="post-article"></article>
+  </section>
+
+  <!-- ---- LIVING VIEW ---- -->
+  <!-- Supportive passages about life in Hong Kong, grouped by situation. Facebook-
+       style reactions, comments and share live on the passage page. Plain text
+       only (no HTML): the words are editorial and rendered with paragraph breaks
+       the renderer adds itself. -->
+  <section id="view-living" class="view">
+    <div class="browse-header">
+      <button class="btn-back" onclick="navigate('discover'); showChannel('living')" data-i18n="living.back">← Living</button>
+    </div>
+    <article id="living-body" class="post-article"></article>
   </section>
 
   <!-- ---- WRITE A STORY VIEW ---- -->

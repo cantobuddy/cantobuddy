@@ -257,6 +257,17 @@ const storyRateLimit = makeRateLimit({
   message: (m) => `You have shared a lot of stories. Try again in ${m} minute${m === 1 ? '' : 's'}.`,
 });
 
+/**
+ * Living comments are public writes like feedback, but a single supportive thread
+ * should not be spammed. Per-connection throttle above the per-device behaviour;
+ * the DB also bounds comment length so the thread stays readable.
+ */
+const livingRateLimit = makeRateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: Number(process.env.LIVING_RATE_MAX) || 15,
+  message: (m) => `You are posting too quickly. Try again in ${m} minute${m === 1 ? '' : 's'}.`,
+});
+
 // ---------------------------------------------------------------------------
 // Auth
 // ---------------------------------------------------------------------------
@@ -833,6 +844,82 @@ app.post('/api/stories', storyRateLimit, (req, res) => {
   if (!story) return res.status(400).json({ error: 'Please write a title and your story.' });
 
   res.status(201).json({ ok: true, id: story.id, slug: story.slug, status: story.status, quota: store.storyQuotaFor(learner.id) });
+});
+
+// ---------------------------------------------------------------------------
+// Living — supportive passages about life in Hong Kong, grouped by situation.
+//
+// Editorial content (seeded, not user-submitted) plus Facebook-style reactions,
+// comments and share. Read routes are public; the write routes (react, comment)
+// are keyed on the device token, like feedback. A device may hold exactly one
+// reaction per passage; picking a second emoji moves it, picking the same one
+// again clears it. Comments publish immediately as plain text.
+// ---------------------------------------------------------------------------
+
+/** GET /api/living — the public shelf, optionally narrowed to one category. */
+app.get('/api/living', (req, res) => {
+  const category = req.query.category ? String(req.query.category) : null;
+  res.json({ posts: store.listLivingPosts({ category }) });
+});
+
+/** GET /api/living/categories — which categories have passages, with counts. */
+app.get('/api/living/categories', (req, res) => {
+  res.json({ categories: store.listLivingCategories() });
+});
+
+/**
+ * GET /api/living/:slug — one passage with its reaction counts, this device's
+ * current reaction, and the comment thread. `public_id` is optional; without it
+ * myReaction is null (the reader has not reacted on this device yet).
+ */
+app.get('/api/living/:slug', (req, res) => {
+  const post = store.getLivingPostBySlug(req.params.slug);
+  if (!post) return res.status(404).json({ error: 'Not found' });
+  const publicId = req.query.public_id ? String(req.query.public_id) : null;
+  res.json({
+    post,
+    reactions: store.getLivingReactions(post.id),
+    myReaction: publicId ? store.getLivingUserReaction(post.id, publicId) : null,
+    comments: store.listLivingComments(post.id),
+  });
+});
+
+/**
+ * POST /api/living/:slug/react — react (or change / toggle) on a passage.
+ * Body: { public_id, emoji }. Returns the passage's full reaction state and the
+ * device's current reaction so the client can repaint without another fetch.
+ */
+app.post('/api/living/:slug/react', livingRateLimit, (req, res) => {
+  const post = store.getLivingPostBySlug(req.params.slug);
+  if (!post) return res.status(404).json({ error: 'Not found' });
+  const b = req.body || {};
+  const publicId = String(b.public_id || '').trim();
+  const emoji = String(b.emoji || '').trim();
+  if (!publicId) return res.status(400).json({ error: 'Missing device id.' });
+  if (!emoji) return res.status(400).json({ error: 'Missing reaction.' });
+  const result = store.setLivingReaction(post.id, publicId, emoji);
+  if (!result) return res.status(400).json({ error: 'Could not save reaction.' });
+  res.json(result);
+});
+
+/**
+ * POST /api/living/:slug/comment — add a comment to a passage's thread.
+ * Body: { public_id, display_name, body }. display_name is optional (blank =>
+ * Anonymous). Returns the new comment and the thread's comment count.
+ */
+app.post('/api/living/:slug/comment', livingRateLimit, (req, res) => {
+  const post = store.getLivingPostBySlug(req.params.slug);
+  if (!post) return res.status(404).json({ error: 'Not found' });
+  const b = req.body || {};
+  const publicId = String(b.public_id || '').trim();
+  if (!publicId) return res.status(400).json({ error: 'Missing device id.' });
+  const comment = store.addLivingComment(post.id, {
+    publicId,
+    displayName: b.display_name,
+    body: b.body,
+  });
+  if (!comment) return res.status(400).json({ error: 'Please write a comment.' });
+  res.status(201).json({ comment, commentCount: store.listLivingComments(post.id).length });
 });
 
 // ---------------------------------------------------------------------------
@@ -1681,6 +1768,9 @@ app.get('/api/admin/report.csv', requireAdmin, (req, res) => {
 app.get('/portal', (req, res) => res.sendFile(path.join(__dirname, 'public', 'portal.html')));
 app.get('/reset', (req, res) => res.sendFile(path.join(__dirname, 'public', 'portal.html')));
 app.get('/join/:code', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+// A shared Living passage deep-link (from WhatsApp / a picture) lands here and
+// opens in the learner app, which then opens the passage by slug.
+app.get('/living/:slug', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
 // ---------------------------------------------------------------------------
 // SEO

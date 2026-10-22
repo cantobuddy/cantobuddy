@@ -22,6 +22,7 @@ const {
   MANDARIN_GLOSSES, CATEGORY_ZH_NAMES,
   INDONESIAN_GLOSSES, CATEGORY_ID_NAMES,
   SEED_POSTS,
+  SEED_LIVING,
 } = require('./data');
 const { SEED_STICKERS } = require('./stickers');
 // The news taxonomy and the keyword classifier that fills it. Required here
@@ -538,6 +539,87 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_stories_queue  ON stories(status, created_at DESC);
   CREATE INDEX IF NOT EXISTS idx_stories_feed   ON stories(status, published_at DESC);
   CREATE INDEX IF NOT EXISTS idx_stories_author ON stories(learner_id, created_at DESC);
+
+  /* Living — supportive passages about life in Hong Kong, grouped by situation.
+
+     Unlike Stories (a helper's own life story, moderated before it is read),
+     Living is EDITORIAL: passages the operator writes to meet a helper where she
+     is — sick, homesick, short of money, lonely on a rest day. They are seeded
+     and curated, never user-submitted, so there is no moderation queue and no
+     learner identity on the row.
+
+     PER-LANGUAGE like the posts table: title/body/sub x en/fil/zh/id. A blank
+     column falls back to English on the client, because the point is to meet her
+     in her own language, not to gate content on four translations existing.
+
+     category is one of: medical, holiday, entertainment, homesick, food,
+     transport, churches. sub_key + sub_* name the sub-resource (a clinic, a
+     church, a budget tip) so the UI can group finely; only category drives the
+     section heading. */
+
+  CREATE TABLE IF NOT EXISTS living_posts (
+    id           INTEGER PRIMARY KEY,
+    slug         TEXT NOT NULL UNIQUE,
+    category     TEXT NOT NULL,
+    sub_key      TEXT NOT NULL DEFAULT '',
+    icon         TEXT NOT NULL DEFAULT '🏠',
+    title_en     TEXT NOT NULL DEFAULT '',
+    title_fil    TEXT NOT NULL DEFAULT '',
+    title_zh     TEXT NOT NULL DEFAULT '',
+    title_id     TEXT NOT NULL DEFAULT '',
+    body_en      TEXT NOT NULL DEFAULT '',
+    body_fil     TEXT NOT NULL DEFAULT '',
+    body_zh      TEXT NOT NULL DEFAULT '',
+    body_id      TEXT NOT NULL DEFAULT '',
+    sub_en       TEXT NOT NULL DEFAULT '',
+    sub_fil      TEXT NOT NULL DEFAULT '',
+    sub_zh       TEXT NOT NULL DEFAULT '',
+    sub_id       TEXT NOT NULL DEFAULT '',
+    status       TEXT NOT NULL DEFAULT 'published',
+    published_at TEXT,
+    created_at   TEXT NOT NULL,
+    updated_at   TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_living_cat  ON living_posts(category, published_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_living_slug ON living_posts(slug);
+
+  /* Reactions, Facebook-style: one row per (post, emoji) holding the aggregate
+     count. The seven emojis are like/love/care/haha/wow/sad/angry — the client
+     shows only emojis with count > 0, so a fresh post simply has none. */
+  CREATE TABLE IF NOT EXISTS living_reactions (
+    post_id INTEGER NOT NULL REFERENCES living_posts(id) ON DELETE CASCADE,
+    emoji   TEXT NOT NULL,
+    count   INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (post_id, emoji)
+  );
+  CREATE INDEX IF NOT EXISTS idx_living_react_post ON living_reactions(post_id);
+
+  /* A device's CURRENT reaction to a post — exactly one per device, like
+     Facebook. Picking a different emoji moves the count from the old to the new;
+     picking the same one again toggles it off. Keyed on public_id (the device
+     token), never on anything the helper typed. */
+  CREATE TABLE IF NOT EXISTS living_user_reactions (
+    post_id   INTEGER NOT NULL REFERENCES living_posts(id) ON DELETE CASCADE,
+    public_id TEXT NOT NULL,
+    emoji     TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    PRIMARY KEY (post_id, public_id)
+  );
+
+  /* Comments — a supportive thread under each passage. Published immediately
+     (plain text, HTML-escaped on render) so a helper who reaches out gets an
+     answer now, not after a queue. display_name is optional; blank means
+     "Anonymous". Length is bounded so the thread stays readable. */
+  CREATE TABLE IF NOT EXISTS living_comments (
+    id           INTEGER PRIMARY KEY,
+    post_id      INTEGER NOT NULL REFERENCES living_posts(id) ON DELETE CASCADE,
+    public_id    TEXT NOT NULL,
+    display_name TEXT NOT NULL DEFAULT '',
+    body         TEXT NOT NULL,
+    status       TEXT NOT NULL DEFAULT 'published',
+    created_at   TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_living_comments_post ON living_comments(post_id, created_at DESC);
 
   /* Web Push subscriptions.
 
@@ -1343,6 +1425,69 @@ function seedPostsIfNeeded() {
 
 const postsSeeded = seedPostsIfNeeded();
 
+/**
+ * Seed the Living passages. Guarded on the SEED size (like seedPostsIfNeeded)
+ * so re-running on an existing database never re-inserts and never clobbers an
+ * operator's edits — INSERT OR IGNORE keys on slug, and this only runs while the
+ * seeded count is below the seed array length.
+ */
+function seedLivingIfNeeded() {
+  const row = db.prepare("SELECT value FROM meta WHERE key = 'living_seeded'").get();
+  const current = row ? Number(row.value) || 0 : 0;
+  if (current >= SEED_LIVING.length) return 0;
+
+  const now = new Date().toISOString();
+  const ins = db.prepare(`
+    INSERT OR IGNORE INTO living_posts
+      (slug, category, sub_key, icon,
+       title_en, title_fil, title_zh, title_id,
+       body_en, body_fil, body_zh, body_id,
+       sub_en, sub_fil, sub_zh, sub_id,
+       status, published_at, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  let added = 0;
+  db.exec('BEGIN');
+  try {
+    for (const p of SEED_LIVING) {
+      added += ins.run(
+        p.slug,
+        p.category || 'medical',
+        p.sub_key || '',
+        p.icon || '🏠',
+        p.title_en || '',
+        p.title_fil || '',
+        p.title_zh || '',
+        p.title_id || '',
+        p.body_en || '',
+        p.body_fil || '',
+        p.body_zh || '',
+        p.body_id || '',
+        p.sub_en || '',
+        p.sub_fil || '',
+        p.sub_zh || '',
+        p.sub_id || '',
+        p.status === 'draft' ? 'draft' : 'published',
+        p.published_at || now,
+        now,
+        now
+      ).changes;
+    }
+    db.prepare('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)').run(
+      'living_seeded',
+      String(SEED_LIVING.length)
+    );
+    db.exec('COMMIT');
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
+  return added;
+}
+
+const livingSeeded = seedLivingIfNeeded();
+
 // ---------------------------------------------------------------------------
 // Content migration — bring an EXISTING database up to the current CONTENT set.
 //
@@ -2141,6 +2286,87 @@ const S = {
     SELECT * FROM push_subscriptions
      WHERE last_active_at IS NOT NULL AND last_active_at < ?
        AND (last_reminded_at IS NULL OR last_reminded_at < ?)
+  `),
+
+  // --- Living: supportive passages about life in Hong Kong ---
+  listLivingPosts: db.prepare(`
+    SELECT id, slug, category, sub_key, icon,
+           title_en, title_fil, title_zh, title_id,
+           sub_en, sub_fil, sub_zh, sub_id,
+           published_at,
+           (SELECT COALESCE(SUM(count), 0) FROM living_reactions WHERE post_id = living_posts.id) AS reaction_count,
+           (SELECT COUNT(*) FROM living_comments WHERE post_id = living_posts.id AND status = 'published') AS comment_count
+      FROM living_posts
+     WHERE status = 'published'
+     ORDER BY published_at DESC, id DESC
+     LIMIT ?
+  `),
+  listLivingByCategory: db.prepare(`
+    SELECT id, slug, category, sub_key, icon,
+           title_en, title_fil, title_zh, title_id,
+           sub_en, sub_fil, sub_zh, sub_id,
+           published_at,
+           (SELECT COALESCE(SUM(count), 0) FROM living_reactions WHERE post_id = living_posts.id) AS reaction_count,
+           (SELECT COUNT(*) FROM living_comments WHERE post_id = living_posts.id AND status = 'published') AS comment_count
+      FROM living_posts
+     WHERE status = 'published' AND category = ?
+     ORDER BY published_at DESC, id DESC
+     LIMIT ?
+  `),
+  listLivingCategories: db.prepare(`
+    SELECT category, COUNT(*) AS n
+      FROM living_posts
+     WHERE status = 'published'
+     GROUP BY category
+     ORDER BY category ASC
+  `),
+  getLivingPostBySlug: db.prepare(`
+    SELECT * FROM living_posts
+     WHERE slug = ? AND status = 'published'
+  `),
+  insertLivingPost: db.prepare(`
+    INSERT INTO living_posts
+      (slug, category, sub_key, icon,
+       title_en, title_fil, title_zh, title_id,
+       body_en, body_fil, body_zh, body_id,
+       sub_en, sub_fil, sub_zh, sub_id,
+       status, published_at, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `),
+  getLivingReactions: db.prepare('SELECT emoji, count FROM living_reactions WHERE post_id = ?'),
+  getLivingUserReaction: db.prepare(
+    'SELECT emoji FROM living_user_reactions WHERE post_id = ? AND public_id = ?'
+  ),
+  incLivingReaction: db.prepare(`
+    INSERT INTO living_reactions (post_id, emoji, count)
+    VALUES (?, ?, 1)
+    ON CONFLICT(post_id, emoji) DO UPDATE SET count = count + 1
+  `),
+  decLivingReaction: db.prepare(`
+    UPDATE living_reactions SET count = MAX(0, count - 1)
+     WHERE post_id = ? AND emoji = ?
+  `),
+  upsertLivingUserReaction: db.prepare(`
+    INSERT INTO living_user_reactions (post_id, public_id, emoji, created_at)
+    VALUES (?, ?, ?, ?)
+    ON CONFLICT(post_id, public_id) DO UPDATE SET emoji = excluded.emoji, created_at = excluded.created_at
+  `),
+  delLivingUserReaction: db.prepare(
+    'DELETE FROM living_user_reactions WHERE post_id = ? AND public_id = ?'
+  ),
+  listLivingComments: db.prepare(`
+    SELECT id, post_id, display_name, body, created_at
+      FROM living_comments
+     WHERE post_id = ? AND status = 'published'
+     ORDER BY created_at ASC, id ASC
+  `),
+  insertLivingComment: db.prepare(`
+    INSERT INTO living_comments (post_id, public_id, display_name, body, status, created_at)
+    VALUES (?, ?, ?, ?, 'published', ?)
+  `),
+  getLivingComment: db.prepare(`
+    SELECT id, post_id, display_name, body, created_at
+      FROM living_comments WHERE id = ?
   `),
 };
 
@@ -3621,6 +3847,86 @@ function listPublishedStorySlugs() {
   return S.listPublishedStorySlugs.all();
 }
 
+// ---- Living: supportive passages about life in Hong Kong --------------------
+
+/** The public shelf of published passages, optionally narrowed to one category,
+ *  newest first. No body — a list only needs the card. */
+function listLivingPosts({ category = null, limit = 300 } = {}) {
+  const lim = Math.max(1, Math.min(Number(limit) || 300, 500));
+  if (category) return S.listLivingByCategory.all(String(category), lim);
+  return S.listLivingPosts.all(lim);
+}
+
+/** The categories that actually have published passages, with their counts. */
+function listLivingCategories() {
+  return S.listLivingCategories.all();
+}
+
+/** One published passage with every column, or null. */
+function getLivingPostBySlug(slug) {
+  return S.getLivingPostBySlug.get(String(slug || '')) || null;
+}
+
+/** Aggregated reaction counts for a post: { emoji: count } for counts > 0. */
+function getLivingReactions(postId) {
+  const out = {};
+  for (const r of S.getLivingReactions.all(Number(postId))) {
+    if (r.count > 0) out[r.emoji] = r.count;
+  }
+  return out;
+}
+
+/** The emoji this device currently has on the post, or null. */
+function getLivingUserReaction(postId, publicId) {
+  const row = S.getLivingUserReaction.get(Number(postId), String(publicId || ''));
+  return row ? row.emoji : null;
+}
+
+/**
+ * React (or change/toggle a reaction) on a post. Returns the post's full
+ * reaction state and the device's current reaction, so the client can repaint
+ * without another fetch. Exactly one reaction per device: picking a second emoji
+ * moves the old count down and the new one up; picking the same one again clears
+ * it.
+ */
+function setLivingReaction(postId, publicId, emoji) {
+  const pid = Number(postId);
+  const pub = String(publicId || '');
+  if (!pub || !emoji) return null;
+  const now = new Date().toISOString();
+  const prev = getLivingUserReaction(pid, pub);
+  if (prev === emoji) {
+    S.decLivingReaction.run(pid, emoji);
+    S.delLivingUserReaction.run(pid, pub);
+  } else {
+    S.upsertLivingUserReaction.run(pid, pub, emoji, now);
+    S.incLivingReaction.run(pid, emoji);
+    if (prev) S.decLivingReaction.run(pid, prev);
+  }
+  return {
+    reactions: getLivingReactions(pid),
+    myReaction: getLivingUserReaction(pid, pub),
+  };
+}
+
+/** The published comment thread for a post, oldest first. */
+function listLivingComments(postId) {
+  return S.listLivingComments.all(Number(postId));
+}
+
+/** Add a comment. `displayName` is optional (blank => Anonymous). Returns the
+ *  new row, or null if the body was empty after trimming. */
+function addLivingComment(postId, { publicId, displayName, body } = {}) {
+  const pid = Number(postId);
+  const pub = String(publicId || '');
+  const name = String(displayName || '').trim().slice(0, 80);
+  const text = String(body || '').trim().slice(0, 500);
+  if (!pub || !text) return null;
+  const now = new Date().toISOString();
+  const info = S.insertLivingComment.run(pid, pub, name, text, now);
+  return S.getLivingComment.get(info.lastInsertRowid);
+}
+
 /** Who this learner has chosen to share their progress with. */
 const listEmployersForLearner = (learnerId) => S.listLinksByLearner.all(Number(learnerId));
 /** The learners an employer is allowed to see — accepted invitations only. */
@@ -4571,6 +4877,16 @@ module.exports = {
   storyQuotaFor,
   listStoriesByLearner,
   listPublishedStorySlugs,
+
+  // Living — supportive passages about life in Hong Kong, grouped by situation.
+  listLivingPosts,
+  listLivingCategories,
+  getLivingPostBySlug,
+  getLivingReactions,
+  getLivingUserReaction,
+  setLivingReaction,
+  listLivingComments,
+  addLivingComment,
   slugifyStory,
   STORY_TOPICS,
   STORY_STATUSES,

@@ -114,7 +114,7 @@
   .dot.bad{background:var(--red)}
 
   /* opponents */
-  .opps{display:flex;gap:10px;overflow-x:auto;padding:4px 2px 10px;scrollbar-width:none;justify-content:safe center}
+  .opps{display:flex;gap:10px;overflow-x:auto;padding:4px 2px 10px;scrollbar-width:none;justify-content:safe center;flex-shrink:0}
   .opps::-webkit-scrollbar{display:none}
   .opp{
     flex:0 0 auto;min-width:94px;background:#fff;border-radius:16px;padding:10px 11px;text-align:center;
@@ -129,6 +129,25 @@
     color:#4b5160;background:#f3f5fa;border-radius:20px;padding:3px 9px;
   }
   .opp .crown{position:absolute;top:-9px;right:-4px;font-size:13px}
+  /* The "send this code to your family" card. It is a .opp so it keeps the seat
+     surface, but it holds a SENTENCE and a button rather than a name. As a plain
+     .opp it measured 386px wide against a 300px strip on a 320px phone — it
+     overflowed the horizontal scroller and the instruction was cut off
+     mid-sentence, which is the one piece of text in the game a player cannot
+     afford to half-read. `flex:1 1 auto` + `min-width:0` makes it take the strip
+     and wrap instead. */
+  .opp.hint{
+    flex:1 1 auto;min-width:0;max-width:none;display:flex;align-items:center;gap:10px;
+    text-align:left;color:#6b7280;font-size:15px;line-height:1.4;
+  }
+  .opp.hint .hint-tx{flex:1 1 auto;min-width:0}
+  .opp.hint .wa-btn{
+    flex:0 0 auto;width:48px;height:48px;border-radius:50%;background:#fff;
+    border:1.5px solid var(--line);color:#25d366;display:grid;place-items:center;
+    box-shadow:0 4px 12px rgba(23,26,35,.08);transition:.15s;
+  }
+  .opp.hint .wa-btn:active{transform:scale(.93)}
+  .opp.hint .wa-btn svg{width:26px;height:26px;display:block}
 
   /* table */
   .table{
@@ -547,7 +566,7 @@ const STR = {
     confirmLeave: 'Leave the room?', toastExpired: 'Your seat expired — please join again',
     errCode: 'A room code is 4 characters, like 7K2M',
     inviteText: 'Come play UNO! Room code {code} → {url}',
-    joinHint: 'Send the code {code} to your family and wait for them…',
+    joinHint: 'Send the code {code} to your family and wait for them…', waInvite: 'Invite on WhatsApp',
     cardWild: 'Wild', cardWild4: '+4 Wild', cardSkip: 'Skip', cardReverse: 'Reverse', cardDraw2: '+2',
     colRed: 'Red', colYellow: 'Yellow', colGreen: 'Green', colBlue: 'Blue',
     logRoomCreated: 'Room {code} created — waiting for players…',
@@ -616,7 +635,7 @@ const STR = {
     confirmLeave: 'Aalis ka na ba sa kuwarto?', toastExpired: 'Nag-expire ang upuan mo — sumali ulit',
     errCode: 'Apat na letra ang code, gaya ng 7K2M',
     inviteText: 'Halina, mag-UNO tayo! Code {code} → {url}',
-    joinHint: 'Ipadala ang code na {code} sa pamilya mo at hintayin sila…',
+    joinHint: 'Ipadala ang code na {code} sa pamilya mo at hintayin sila…', waInvite: 'Anyayahan sa WhatsApp',
     cardWild: 'Wild', cardWild4: '+4 Wild', cardSkip: 'Skip', cardReverse: 'Baliktad', cardDraw2: '+2',
     colRed: 'Pula', colYellow: 'Dilaw', colGreen: 'Berde', colBlue: 'Asul',
     logRoomCreated: 'Nagawa ang kuwartong {code} — naghihintay ng manlalaro…',
@@ -685,7 +704,7 @@ const STR = {
     confirmLeave: '确定离开房间？', toastExpired: '会话已失效，请重新加入',
     errCode: '配对码是 4 位，比如 7K2M',
     inviteText: '来打牌！房间配对码 {code} → {url}',
-    joinHint: '把配对码 {code} 发给家人，等他们进来…',
+    joinHint: '把配对码 {code} 发给家人，等他们进来…', waInvite: '用 WhatsApp 邀请家人',
     cardWild: '万能牌', cardWild4: '+4 万能', cardSkip: '禁止', cardReverse: '反转', cardDraw2: '+2',
     colRed: '红', colYellow: '黄', colGreen: '绿', colBlue: '蓝',
     logRoomCreated: '房间 {code} 已创建，等待家人加入…',
@@ -754,7 +773,7 @@ const STR = {
     confirmLeave: 'Keluar dari ruang?', toastExpired: 'Sesimu berakhir — silakan gabung lagi',
     errCode: 'Kode ruang 4 karakter, misalnya 7K2M',
     inviteText: 'Ayo main UNO! Kode ruang {code} → {url}',
-    joinHint: 'Kirim kode {code} ke keluargamu dan tunggu mereka…',
+    joinHint: 'Kirim kode {code} ke keluargamu dan tunggu mereka…', waInvite: 'Undang lewat WhatsApp',
     cardWild: 'Wild', cardWild4: '+4 Wild', cardSkip: 'Lewati', cardReverse: 'Balik', cardDraw2: '+2',
     colRed: 'Merah', colYellow: 'Kuning', colGreen: 'Hijau', colBlue: 'Biru',
     logRoomCreated: 'Ruang {code} dibuat — menunggu pemain…',
@@ -822,6 +841,15 @@ const $ = (s, r = document) => r.querySelector(s);
 const AVATARS = ['🦊','🐼','🐯','🐸','🐧','🦄','🐙','🐨','🐰','🦁','🐳','🐝'];
 const COLORS = { red:'colRed', yellow:'colYellow', green:'colGreen', blue:'colBlue' };
 const HEX = { red:'#e63946', yellow:'#f0b429', green:'#1f9d63', blue:'#2b6cf0' };
+
+/* The WhatsApp mark, the same two paths the rest of CantoBuddy draws (app.js
+   WHATSAPP_ICON_SVG) — a speech bubble with a handset in it, in currentColor so
+   the button decides the green. Copied rather than shared because the game
+   client is a standalone file with no access to app.js. */
+const WA_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
+  '<path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Z" fill="none" stroke="currentColor" stroke-width="2"/>' +
+  '<path d="M8.6 7.6c.3-.1.6 0 .8.3l.8 1.3c.1.3.1.6-.1.8l-.5.5c-.2.2-.2.4-.1.6.5.9 1.3 1.7 2.2 2.2.2.1.4.1.6-.1l.5-.5c.2-.2.5-.3.8-.1l1.3.8c.3.2.4.5.3.8-.3 1-1.3 1.7-2.4 1.6-2.8-.3-5.2-2.7-5.5-5.5-.1-1.1.6-2.1 1.6-2.4Z" fill="currentColor"/>' +
+  '</svg>';
 
 /**
  * Where the game's API lives, derived from the page URL.
@@ -1183,11 +1211,42 @@ function renderOpps() {
   });
   if (S.players.length < 2) {
     const el = document.createElement('div');
-    el.className = 'opp';
-    el.style.cssText = 'min-width:170px;text-align:left;color:#6b7280;font-size:15px;line-height:1.55;display:flex;align-items:center';
-    el.innerHTML = esc(t('joinHint', { code: S.code }));
+    el.className = 'opp hint';
+    el.innerHTML =
+      '<span class="hint-tx">' + esc(t('joinHint', { code: S.code })) + '</span>' +
+      '<button class="wa-btn" type="button" aria-label="' + esc(t('waInvite')) + '" title="' + esc(t('waInvite')) + '">' +
+      WA_ICON + '</button>';
     box.appendChild(el);
+    el.querySelector('.wa-btn').onclick = shareOnWhatsApp;
   }
+}
+
+/* ============================================================ invite */
+/**
+ * The link a family member taps to land in THIS room.
+ *
+ * The same URL the code chip copies — /games/uno/ABCD, which the client reads
+ * back out of the path on boot. Built in one place so the two can never drift:
+ * a chip that copies one room and a WhatsApp button that opens another would be
+ * the kind of bug nobody notices until a grandmother is in the wrong game.
+ */
+function inviteUrl() {
+  return location.origin + BASE + session.code;
+}
+
+/**
+ * Hand the invitation to WhatsApp rather than to the clipboard.
+ *
+ * `wa.me/?text=` is the one form that works everywhere — the app on a phone,
+ * WhatsApp Web on a desktop — and it needs no SDK and no login. The message
+ * carries the room link, not just the four-letter code, so the person who
+ * receives it taps once and is in the room instead of typing a code into a
+ * form and getting it wrong.
+ */
+function shareOnWhatsApp() {
+  const url = inviteUrl();
+  const msg = t('inviteText', { code: session.code, url });
+  window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank', 'noopener');
 }
 
 function cardEl(card, opts) {
@@ -1300,6 +1359,14 @@ function renderHand() {
 function renderActions() {
   const playing = S.state === 'playing';
   const myTurn = playing && S.you.isTurn;
+  // Before the game starts (and after it ends) the draw / emoji / UNO buttons do
+  // nothing, yet they sit in a wrapping bar and — on a 320px phone, beside the
+  // disabled "waiting for players" start button — wrap to three rows that crush
+  // the seats strip above them to 16px. Hide them until a hand is actually live.
+  const pre = !playing;
+  $('#drawBtn').style.display = pre ? 'none' : '';
+  $('#emojiBtn').style.display = pre ? 'none' : '';
+  $('#unoBtn').style.display = pre ? 'none' : '';
   $('#drawBtn').disabled = !myTurn;
   const startBtn = $('#startBtn');
   if (S.state !== 'playing' && S.you.canStart) {

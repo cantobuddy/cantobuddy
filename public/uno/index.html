@@ -35,8 +35,9 @@
   #lobby{min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px 18px 40px}
   .backlink{
     align-self:flex-start;display:inline-flex;align-items:center;gap:6px;color:var(--muted);
-    font-size:13px;font-weight:600;text-decoration:none;padding:8px 12px;border-radius:12px;background:#fff;
+    font-size:16px;font-weight:600;text-decoration:none;padding:12px 16px;border-radius:14px;background:#fff;
     border:1px solid var(--line);box-shadow:0 4px 12px rgba(23,26,35,.05);margin-bottom:auto;
+    min-height:48px;
   }
   .brand{display:flex;gap:6px;margin:14px 0}
   .brand i{
@@ -48,42 +49,42 @@
   .brand i:nth-child(2){background:var(--yellow);transform:rotate(-3deg) translateY(-6px)}
   .brand i:nth-child(3){background:var(--green);transform:rotate(6deg)}
   .brand i:nth-child(4){background:var(--blue);transform:rotate(13deg) translateY(-4px)}
-  h1{margin:6px 0 6px;font-size:26px;letter-spacing:-.5px;text-align:center}
-  .sub{margin:0 0 20px;color:var(--muted);font-size:14px;text-align:center;line-height:1.6;max-width:330px}
+  h1{margin:8px 0 8px;font-size:31px;letter-spacing:-.5px;text-align:center}
+  .sub{margin:0 0 22px;color:var(--muted);font-size:16.5px;text-align:center;line-height:1.55;max-width:min(360px,100%)}
   .panel{
     width:100%;max-width:380px;background:var(--panel);border-radius:24px;
     padding:20px;box-shadow:var(--shadow);border:1px solid rgba(255,255,255,.7);
   }
-  label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin:0 0 7px;letter-spacing:.3px}
+  label{display:block;font-size:15px;font-weight:600;color:var(--muted);margin:0 0 8px;letter-spacing:.3px}
   .field{
-    width:100%;padding:13px 14px;border-radius:14px;border:1.5px solid var(--line);
-    background:#fafbfe;font-size:16px;outline:none;transition:.15s;
+    width:100%;padding:16px 15px;border-radius:14px;border:1.5px solid var(--line);
+    background:#fafbfe;font-size:18px;outline:none;transition:.15s;
   }
   .field:focus{border-color:var(--blue);background:#fff;box-shadow:0 0 0 4px rgba(43,108,240,.1)}
-  .avatars{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:18px}
+  .avatars{display:grid;grid-template-columns:repeat(auto-fill,minmax(54px,1fr));gap:10px;margin-bottom:20px}
   .avatars button{
-    aspect-ratio:1;border-radius:13px;font-size:22px;background:#fafbfe;border:1.5px solid var(--line);
+    aspect-ratio:1;min-height:54px;border-radius:14px;font-size:27px;background:#fafbfe;border:1.5px solid var(--line);
     display:grid;place-items:center;transition:.15s;
   }
   .avatars button.on{border-color:var(--blue);background:#eef3ff;transform:translateY(-2px);box-shadow:0 6px 14px rgba(43,108,240,.18)}
   .btn{
-    width:100%;padding:14px;border-radius:15px;background:#eef0f6;font-weight:700;font-size:15px;
+    width:100%;min-height:58px;padding:16px;border-radius:16px;background:#eef0f6;font-weight:700;font-size:18px;
     transition:.15s;border:1.5px solid transparent;
   }
   .btn:active{transform:scale(.98)}
   .btn.primary{background:linear-gradient(135deg,#2b6cf0,#4a86ff);color:#fff;box-shadow:0 10px 22px rgba(43,108,240,.3)}
   .btn.ghost{background:#fff;border-color:var(--line)}
   .btn:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
-  .divider{display:flex;align-items:center;gap:10px;color:#a3a9b6;font-size:12px;margin:16px 0}
+  .divider{display:flex;align-items:center;gap:10px;color:#8a909d;font-size:14.5px;margin:18px 0}
   .divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line)}
   .join-row{display:flex;gap:8px}
-  .join-row .field{flex:1 1 auto;min-width:0;letter-spacing:6px;text-align:center;font-weight:800;text-transform:uppercase;font-size:18px}
+  .join-row .field{flex:1 1 auto;min-width:0;letter-spacing:5px;text-align:center;font-weight:800;text-transform:uppercase;font-size:22px}
   /* The placeholder is an INSTRUCTION, not a sample code — undo the code styling
      (uppercase, wide spacing, bold) or "Enter code" itself reads as a code. */
-  .join-row .field::placeholder{text-transform:none;letter-spacing:0;font-weight:600;font-size:13px;color:#a7aeba}
-  .join-row .btn{flex:0 0 auto;width:auto;padding:0 22px;background:var(--ink);color:#fff;white-space:nowrap}
-  .err{color:var(--red);font-size:13px;margin:10px 0 0;min-height:18px;text-align:center}
-  .tips{margin:20px 0 0;padding:0;list-style:none;color:var(--muted);font-size:12.5px;line-height:2;text-align:center;max-width:340px}
+  .join-row .field::placeholder{text-transform:none;letter-spacing:0;font-weight:600;font-size:15.5px;color:#8a909d}
+  .join-row .btn{flex:0 0 auto;width:auto;padding:0 24px;background:var(--ink);color:#fff;white-space:nowrap;min-height:58px}
+  .err{color:var(--red);font-size:15.5px;margin:10px 0 0;min-height:20px;text-align:center}
+  .tips{margin:22px 0 0;padding:0;list-style:none;color:var(--muted);font-size:15px;line-height:1.85;text-align:center;max-width:min(360px,100%)}
 
   /* ---------------------------------------------------------- room shell */
   #room{height:100dvh;display:flex;flex-direction:column;max-width:1100px;margin:0 auto;padding:10px 12px 0;overflow:hidden}
@@ -92,14 +93,22 @@
     display:flex;align-items:center;gap:8px;background:#fff;border-radius:13px;padding:8px 12px;
     box-shadow:0 4px 14px rgba(23,26,35,.07);border:1px solid var(--line);
   }
-  .codechip b{letter-spacing:3px;font-size:16px;font-family:ui-monospace,Menlo,monospace}
-  .codechip small{color:var(--muted);font-size:10.5px;display:block;letter-spacing:.4px}
+  .codechip b{letter-spacing:3px;font-size:19px;font-family:ui-monospace,Menlo,monospace}
+  .codechip small{color:var(--muted);font-size:13px;display:block;letter-spacing:.4px}
+  /* Two labels, one shown at a time. The long one ("Room code · tap to share",
+     and in Filipino "Code ng kuwarto · pindutin para i-share") is the better
+     copy, but the chip shares the top bar with three 48px buttons, so on a
+     320px phone it has about 76px of text width and broke into three
+     fragments — "Room code / · tap to / share" — which reads as a layout bug.
+     Below 560px the short form keeps it to one line; the 🔗 icon and the
+     button's own title still carry the "tap to copy the link" hint. */
+  .codechip .cl-short{display:none}
   .iconbtn{
-    width:38px;height:38px;border-radius:12px;background:#fff;border:1px solid var(--line);
-    display:grid;place-items:center;font-size:16px;box-shadow:0 4px 14px rgba(23,26,35,.06)
+    flex:0 0 auto;width:48px;height:48px;border-radius:14px;background:#fff;border:1px solid var(--line);
+    display:grid;place-items:center;font-size:21px;box-shadow:0 4px 14px rgba(23,26,35,.06)
   }
   .spacer{flex:1}
-  .status{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px}
+  .status{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px}
   .dot{width:7px;height:7px;border-radius:50%;background:#22c55e}
   .dot.warn{background:var(--yellow)}
   .dot.bad{background:var(--red)}
@@ -108,16 +117,16 @@
   .opps{display:flex;gap:10px;overflow-x:auto;padding:4px 2px 10px;scrollbar-width:none;justify-content:safe center}
   .opps::-webkit-scrollbar{display:none}
   .opp{
-    flex:0 0 auto;min-width:78px;background:#fff;border-radius:16px;padding:9px 10px;text-align:center;
+    flex:0 0 auto;min-width:94px;background:#fff;border-radius:16px;padding:10px 11px;text-align:center;
     border:2px solid transparent;box-shadow:0 6px 16px rgba(23,26,35,.06);transition:.2s;position:relative;
   }
   .opp.turn{border-color:var(--blue);box-shadow:0 0 0 4px rgba(43,108,240,.13),0 8px 20px rgba(43,108,240,.16);transform:translateY(-2px)}
   .opp.off{opacity:.45;filter:grayscale(.6)}
-  .opp .av{font-size:24px;line-height:1.15}
-  .opp .nm{font-size:11.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70px;margin-top:2px}
+  .opp .av{font-size:29px;line-height:1.15}
+  .opp .nm{font-size:14.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:86px;margin-top:3px}
   .opp .cnt{
-    display:inline-flex;align-items:center;gap:3px;margin-top:5px;font-size:10.5px;font-weight:700;
-    color:var(--muted);background:#f3f5fa;border-radius:20px;padding:2px 8px;
+    display:inline-flex;align-items:center;gap:4px;margin-top:6px;font-size:13px;font-weight:700;
+    color:#4b5160;background:#f3f5fa;border-radius:20px;padding:3px 9px;
   }
   .opp .crown{position:absolute;top:-9px;right:-4px;font-size:13px}
 
@@ -134,7 +143,7 @@
     z-index:0;pointer-events:none;
   }
   .pile{position:relative;z-index:1;display:grid;place-items:center;gap:8px}
-  .pile .lbl{font-size:11px;color:var(--muted);font-weight:600}
+  .pile .lbl{font-size:14px;color:var(--muted);font-weight:600}
   .stack{position:relative;width:84px;height:122px}
   .card{
     --w:84px;width:var(--w);height:calc(var(--w)*1.44);border-radius:11px;background:#fff;
@@ -163,7 +172,7 @@
   .stack .card:nth-child(2){transform:translate(4px,4px) rotate(4deg)}
   .stack .card:nth-child(3){transform:translate(8px,8px) rotate(8deg)}
   .stack .cnt{
-    position:absolute;bottom:-10px;right:-8px;background:var(--ink);color:#fff;font-size:11px;font-weight:700;
+    position:absolute;bottom:-11px;right:-9px;background:var(--ink);color:#fff;font-size:13px;font-weight:700;
     border-radius:20px;padding:2px 8px;z-index:5;box-shadow:0 4px 10px rgba(0,0,0,.2)
   }
   .discard-wrap{position:relative;display:grid;place-items:center}
@@ -173,17 +182,45 @@
   }
   .pop{animation:pop .28s cubic-bezier(.3,1.6,.5,1)}
   @keyframes pop{from{transform:scale(.7) rotate(-8deg);opacity:.4}to{transform:scale(1) rotate(0);opacity:1}}
-  .metaline{display:flex;align-items:center;justify-content:center;gap:14px;font-size:11.5px;color:var(--muted);padding-bottom:6px}
+  .metaline{display:flex;align-items:center;justify-content:center;gap:14px;font-size:14px;color:var(--muted);padding-bottom:6px}
   .metaline b{color:var(--ink)}
   .swatch{width:11px;height:11px;border-radius:50%;display:inline-block;vertical-align:-1px;margin-right:4px}
   .dirbadge{font-size:13px}
-  .roundchip{font-size:11.5px;color:var(--muted);background:#fff;border:1px solid var(--line);border-radius:11px;padding:7px 11px;white-space:nowrap;box-shadow:0 4px 12px rgba(23,26,35,.05)}
+  .roundchip{font-size:13.5px;color:var(--muted);background:#fff;border:1px solid var(--line);border-radius:11px;padding:8px 12px;white-space:nowrap;box-shadow:0 4px 12px rgba(23,26,35,.05)}
 
   /* hand */
-  .me-bar{display:flex;align-items:center;gap:8px;padding:2px 4px 6px}
-  .me-bar .av{font-size:20px}
-  .me-bar .nm{font-size:13px;font-weight:700}
-  .me-bar .tag{font-size:10.5px;background:#eef3ff;color:var(--blue);font-weight:700;padding:2px 7px;border-radius:20px}
+  /* YOUR OWN SEAT, drawn in the same language as the opponent cards above it:
+     the same white surface, the same 2px edge that lights up blue on your turn,
+     the same soft shadow, and the card count in the same grey pill. It was a
+     bare text line — "brenda  Waiting for 真" — which read as a caption rather
+     than as a player, so the one seat you look at most was the only one that
+     did not look like a seat.
+     It stays a ROW on purpose. A vertical seat card is 74px and #room has 8px
+     of slack at 320x568 (the table can only give 43 before it hits its floor),
+     so the vertical shape would push the action bar out of reach — the exact
+     failure the type scale-up was careful to avoid. Same look, one line. */
+  .me-bar{
+    display:flex;align-items:center;gap:10px;padding:7px 12px;margin:2px 0 6px;
+    background:#fff;border-radius:16px;border:2px solid transparent;
+    box-shadow:0 6px 16px rgba(23,26,35,.06);transition:.2s;
+  }
+  .me-bar.turn{border-color:var(--blue);box-shadow:0 0 0 4px rgba(43,108,240,.13),0 8px 20px rgba(43,108,240,.16)}
+  .me-bar .av{font-size:26px;line-height:1}
+  /* min-width:0 + ellipsis on both: the card's 12px padding and the count's
+     pill cost about 36px of row width at 320px, and a long name ("Maria
+     Cristina") beside a long tag ("Naghihintay kay Maria") would otherwise
+     push the row past the right edge. Truncating is the honest failure. */
+  .me-bar .nm{font-size:16.5px;font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  /* The card count on your own row. It was an inline 11.5px span — the smallest
+     text in the game, and the one number a player checks most. */
+  .me-bar .cnt{
+    display:inline-flex;align-items:center;font-size:13.5px;font-weight:700;color:#4b5160;
+    background:#f3f5fa;border-radius:20px;padding:4px 10px;white-space:nowrap;
+  }
+  .me-bar .tag{
+    font-size:13px;background:#eef3ff;color:var(--blue);font-weight:700;padding:4px 10px;border-radius:20px;
+    min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
   .me-bar .tag.turn{background:#e8f8ef;color:var(--green)}
   .hand-scroll{overflow-x:auto;overflow-y:visible;padding:14px 6px 8px;scrollbar-width:none;-webkit-overflow-scrolling:touch;flex:0 0 auto}
   .hand-scroll::-webkit-scrollbar{display:none}
@@ -198,19 +235,20 @@
   .hand .card.ok:hover{transform:translateY(-16px)}
   .hand .card.no{opacity:.8;filter:saturate(.82)}
   .hand .card.no:active{transform:translateX(-3px)}
+  .hand-empty{color:#6b7280;font-size:15px;padding:22px 4px}
   .shake{animation:shake .3s}
   @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 
   .actions{display:flex;gap:8px;padding:4px 2px 12px;align-items:center;flex-wrap:wrap}
   .act{
-    padding:12px 16px;border-radius:14px;background:#fff;font-weight:700;font-size:13.5px;
+    min-height:54px;min-width:48px;padding:13px 19px;border-radius:15px;background:#fff;font-weight:700;font-size:17px;
     border:1.5px solid var(--line);box-shadow:0 4px 12px rgba(23,26,35,.06);transition:.15s;
-    display:inline-flex;align-items:center;gap:6px
+    display:inline-flex;align-items:center;justify-content:center;gap:7px
   }
   .act:active{transform:scale(.96)}
   .act:disabled{opacity:.4;box-shadow:none}
   .act.uno{background:linear-gradient(135deg,#e63946,#ff6a4d);color:#fff;border-color:transparent;box-shadow:0 8px 18px rgba(230,57,70,.3);margin-left:4px}
-  .act.emoji{padding:12px 13px}
+  .act.emoji{padding:13px 15px}
 
   /* feed */
   .feed{
@@ -218,18 +256,26 @@
     backdrop-filter:blur(14px);border-radius:18px;box-shadow:0 18px 44px rgba(23,26,35,.18);
     border:1px solid var(--line);display:flex;flex-direction:column;z-index:40;overflow:hidden;
   }
-  .feed-head{display:flex;align-items:center;gap:6px;padding:10px 12px;border-bottom:1px solid var(--line);font-size:12px;font-weight:700}
-  .feed-body{flex:1;overflow-y:auto;padding:8px 12px;font-size:12.5px;line-height:1.7}
+  .feed-head{display:flex;align-items:center;gap:6px;padding:11px 13px;border-bottom:1px solid var(--line);font-size:14.5px;font-weight:700}
+  /* The ✕ was a bare 14px glyph with no padding — roughly a 20x22 target, the
+     smallest thing on the screen and the only way out of the panel. The
+     negative margin keeps the 48px hit area from inflating the header. */
+  .feed-close{
+    flex:0 0 auto;min-width:48px;min-height:48px;display:grid;place-items:center;
+    font-size:18px;color:#9aa1ae;border-radius:12px;margin:-8px -8px -8px 0;
+  }
+  .feed-close:active{background:#eef1f8}
+  .feed-body{flex:1;overflow-y:auto;padding:9px 13px;font-size:15px;line-height:1.65}
   .feed-body .lg{color:#4b5160;display:flex;gap:6px}
   .feed-body .lg i{font-style:normal;opacity:.5;flex:0 0 auto}
   .bubble{margin:6px 0;display:flex;gap:6px}
   .bubble .tx{background:#f1f3f9;border-radius:12px;padding:6px 10px;max-width:200px;word-break:break-word}
   .bubble.mine .tx{background:#e9f0ff}
-  .bubble .who{font-size:10.5px;color:var(--muted);margin-bottom:2px}
+  .bubble .who{font-size:13px;color:var(--muted);margin-bottom:3px}
   .shout .tx{background:linear-gradient(135deg,#fff3d6,#ffe6b8);font-weight:800;color:#a56a00}
   .feed-foot{display:flex;gap:6px;padding:8px;border-top:1px solid var(--line)}
-  .feed-foot input{flex:1;border:1px solid var(--line);border-radius:11px;padding:9px 11px;font-size:13px;outline:none;background:#fafbfe}
-  .feed-foot button{background:var(--blue);color:#fff;border-radius:11px;padding:0 14px;font-weight:700;font-size:13px}
+  .feed-foot input{flex:1;border:1px solid var(--line);border-radius:12px;padding:12px 13px;font-size:16px;outline:none;background:#fafbfe}
+  .feed-foot button{background:var(--blue);color:#fff;border-radius:12px;padding:0 16px;font-weight:700;font-size:16px;min-height:48px}
 
   /* ---- emoji picker ---- */
   /* A popover, not a modal: the table stays live behind it, because a reaction
@@ -245,15 +291,15 @@
   }
   @keyframes emojiPop{from{opacity:0;margin-bottom:-8px}to{opacity:1;margin-bottom:0}}
   .emoji-pop-head{
-    font-size:10.5px;font-weight:800;color:var(--muted);text-align:center;
-    letter-spacing:.06em;text-transform:uppercase;margin-bottom:7px;
+    font-size:13px;font-weight:800;color:var(--muted);text-align:center;
+    letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;
   }
   /* Five across: at 292px that is a ~52px target, above the 44px minimum for a
      thumb, and four rows of twenty keeps the whole set on screen unscrolled. */
   .emoji-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:3px}
   .emoji-grid button{
     aspect-ratio:1;border:none;background:none;border-radius:12px;padding:0;
-    font-size:23px;line-height:1;cursor:pointer;display:grid;place-items:center;
+    font-size:27px;line-height:1;cursor:pointer;display:grid;place-items:center;
     transition:transform .1s,background .1s;-webkit-tap-highlight-color:transparent;
   }
   .emoji-grid button:active{transform:scale(.85);background:#eef1f8}
@@ -267,10 +313,10 @@
   @keyframes fade{from{opacity:0}to{opacity:1}}
   .modal{background:#fff;border-radius:24px;padding:24px;width:100%;max-width:330px;text-align:center;box-shadow:0 30px 60px rgba(0,0,0,.25);animation:up .25s cubic-bezier(.3,1.4,.5,1)}
   @keyframes up{from{transform:translateY(16px) scale(.96);opacity:0}to{transform:none;opacity:1}}
-  .modal h2{margin:0 0 6px;font-size:20px}
-  .modal p{margin:0 0 16px;color:var(--muted);font-size:13px;line-height:1.6}
+  .modal h2{margin:0 0 8px;font-size:24px}
+  .modal p{margin:0 0 18px;color:var(--muted);font-size:16px;line-height:1.55}
   .colors{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:6px}
-  .colors button{height:62px;border-radius:16px;box-shadow:0 8px 18px rgba(0,0,0,.14);transition:.15s}
+  .colors button{height:76px;border-radius:18px;box-shadow:0 8px 18px rgba(0,0,0,.14);transition:.15s}
   .colors button:active{transform:scale(.96)}
   .c-red{background:var(--red)} .c-yellow{background:var(--yellow)} .c-green{background:var(--green)} .c-blue{background:var(--blue)}
   .big-av{font-size:56px;line-height:1;margin-bottom:6px}
@@ -279,7 +325,7 @@
   @keyframes fall{to{transform:translateY(112vh) rotate(720deg);opacity:.85}}
   .toast{
     position:fixed;left:50%;top:16px;transform:translateX(-50%) translateY(-20px);background:var(--ink);color:#fff;
-    padding:10px 16px;border-radius:12px;font-size:13px;opacity:0;transition:.25s;z-index:99;pointer-events:none;max-width:90vw;text-align:center
+    padding:12px 18px;border-radius:12px;font-size:15.5px;opacity:0;transition:.25s;z-index:99;pointer-events:none;max-width:90vw;text-align:center
   }
   .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 
@@ -300,28 +346,38 @@
     #room{padding:8px 10px 0}
     .topbar{gap:6px;padding:4px 0 8px}
     .codechip{padding:6px 10px;border-radius:11px;gap:6px}
-    .codechip b{font-size:15px;letter-spacing:2px}
-    .codechip small{font-size:9px}
+    .codechip b{font-size:18px;letter-spacing:2px}
+    .codechip small{font-size:13px}
+    .codechip .cl-long{display:none}
+    .codechip .cl-short{display:block}
     .roundchip{display:none}
     .status span:last-child{display:none}
-    .iconbtn{width:33px;height:33px;border-radius:10px;font-size:14px}
+    .iconbtn{flex:0 0 auto;width:48px;height:48px;border-radius:14px;font-size:20px}
     .opps{gap:8px;padding-bottom:8px}
-    .opp{min-width:68px;padding:7px 8px;border-radius:14px}
-    .opp .av{font-size:21px}
-    .opp .nm{font-size:11px;max-width:60px}
-    .opp .cnt{font-size:10px;padding:2px 7px}
+    .opp{min-width:88px;padding:9px 10px;border-radius:15px}
+    .opp .av{font-size:26px}
+    .opp .nm{font-size:13.5px;max-width:76px}
+    .opp .cnt{font-size:13px;padding:3px 8px}
     .card{--w:76px}
     .stack{width:76px;height:110px}
     #room{justify-content:space-between}
-    .table{flex:0 0 auto;height:min(42vh,320px);min-height:180px;gap:18px}
+    .table{flex:1 1 auto;height:auto;min-height:132px;gap:18px}
     .table::before{width:94%;height:100%;box-shadow:0 18px 34px -30px rgba(23,26,35,.2)}
-    .metaline{gap:10px;font-size:11px;flex-wrap:wrap;padding-bottom:4px}
-    .me-bar{padding:0 4px 2px}
+    .metaline{gap:10px;font-size:13px;flex-wrap:wrap;padding-bottom:4px}
+    .me-bar{padding:6px 10px;gap:8px;border-radius:15px}
+    .me-bar .av{font-size:24px}
+    /* The turn tag duplicates the metaline directly above it, which names the
+       player in full on its own line at the same 13px. On a 320px phone the tag
+       got 99px of room for 168px of text and rendered "Waiting fo…", while the
+       line above already read "Waiting for Naghihintay" — so it cost width and
+       conveyed less. Absent beats truncated; the card's blue edge and the
+       metaline both still say whose turn it is. */
+    .me-bar .tag{display:none}
     .hand .card{--w:70px;margin-left:-22px}
     .hand-scroll{padding:12px 4px 6px}
     .actions{gap:6px;padding:2px 2px calc(8px + env(safe-area-inset-bottom))}
-    .act{padding:11px 12px;font-size:12.5px;border-radius:13px}
-    .act.emoji{padding:11px}
+    .act{padding:12px 14px;font-size:16px;border-radius:15px;min-height:52px}
+    .act.emoji{padding:12px}
     .modal{padding:20px}
   }
   @media(max-height:680px){
@@ -368,7 +424,8 @@
   <div class="topbar">
     <div class="codechip" id="codeChip">
       <div>
-        <small data-k="codeChipLabel"></small>
+        <small class="cl-long" data-k="codeChipLabel"></small>
+        <small class="cl-short" data-k="codeChipShort"></small>
         <b id="codeText">----</b>
       </div>
       <span style="font-size:15px">🔗</span>
@@ -400,12 +457,12 @@
     <span id="turnMeta"></span>
   </div>
 
-  <div class="me-bar">
+  <div class="me-bar" id="meBar">
     <span class="av" id="myAv">🙂</span>
     <span class="nm" id="myName"></span>
     <span class="tag" id="myTag"></span>
     <span class="spacer"></span>
-    <span style="font-size:11.5px;color:var(--muted)" id="myCount"></span>
+    <span class="cnt" id="myCount"></span>
   </div>
 
   <div class="hand-scroll" id="handScroll">
@@ -438,7 +495,7 @@
   <div class="feed-head">
     <span data-k="feedHead"></span>
     <span class="spacer"></span>
-    <button id="feedClose" style="font-size:14px;color:#9aa1ae">✕</button>
+    <button id="feedClose" class="feed-close">✕</button>
   </div>
   <div class="feed-body" id="feedBody"></div>
   <div class="feed-foot">
@@ -469,7 +526,7 @@ const STR = {
     divider: 'I already have a code', joinBtn: 'Join', codePlaceholder: 'Enter code',
     tip1: '2–8 players · the draw pile reshuffles itself · you reconnect if the signal drops',
     tip2: 'Play on the same WiFi or with family far away',
-    codeChipLabel: 'Room code · tap to share', codeChipTitle: 'Copy the invite link',
+    codeChipLabel: 'Room code · tap to share', codeChipShort: 'Room code', codeChipTitle: 'Copy the invite link',
     discardLabel: 'Discard', deckLabel: 'Draw pile', deckEmpty: 'Pile empty',
     liveOnline: 'Live', liveReconnecting: 'Reconnecting',
     soundTitle: 'Sound', feedTitle: 'Chat & log', leaveTitle: 'Leave the room',
@@ -538,7 +595,7 @@ const STR = {
     divider: 'May code na ako', joinBtn: 'Sumali', codePlaceholder: 'Ilagay ang code',
     tip1: '2–8 manlalaro · kusang nagsha-shuffle ang pile · makakabalik ka kapag nawalan ng signal',
     tip2: 'Puwede sa iisang WiFi o sa pamilyang malayo',
-    codeChipLabel: 'Code ng kuwarto · pindutin para i-share', codeChipTitle: 'Kopyahin ang link ng imbitasyon',
+    codeChipLabel: 'Code ng kuwarto · pindutin para i-share', codeChipShort: 'Code', codeChipTitle: 'Kopyahin ang link ng imbitasyon',
     discardLabel: 'Tapunan', deckLabel: 'Pile', deckEmpty: 'Walang laman',
     liveOnline: 'Live', liveReconnecting: 'Kumokonekta ulit',
     soundTitle: 'Tunog', feedTitle: 'Chat at talaan', leaveTitle: 'Umalis sa kuwarto',
@@ -607,7 +664,7 @@ const STR = {
     divider: '已经有配对码', joinBtn: '加入', codePlaceholder: '输入配对码',
     tip1: '2–8 人 · 牌堆自动洗牌 · 掉线能自动接回',
     tip2: '同一 WiFi 也能玩，发给外地家人也行',
-    codeChipLabel: '配对码 · 点我分享', codeChipTitle: '点击复制邀请链接',
+    codeChipLabel: '配对码 · 点我分享', codeChipShort: '配对码', codeChipTitle: '点击复制邀请链接',
     discardLabel: '出牌区', deckLabel: '牌堆', deckEmpty: '牌堆空了',
     liveOnline: '在线', liveReconnecting: '重连中',
     soundTitle: '音效', feedTitle: '聊天与记录', leaveTitle: '离开房间',
@@ -676,7 +733,7 @@ const STR = {
     divider: 'Saya sudah punya kode', joinBtn: 'Gabung', codePlaceholder: 'Masukkan kode',
     tip1: '2–8 pemain · tumpukan diacak otomatis · kamu tersambung lagi kalau sinyal putus',
     tip2: 'Bisa di WiFi yang sama atau dengan keluarga yang jauh',
-    codeChipLabel: 'Kode ruang · ketuk untuk bagikan', codeChipTitle: 'Salin tautan undangan',
+    codeChipLabel: 'Kode ruang · ketuk untuk bagikan', codeChipShort: 'Kode ruang', codeChipTitle: 'Salin tautan undangan',
     discardLabel: 'Buangan', deckLabel: 'Tumpukan', deckEmpty: 'Tumpukan kosong',
     liveOnline: 'Tersambung', liveReconnecting: 'Menyambung ulang',
     soundTitle: 'Suara', feedTitle: 'Obrolan & catatan', leaveTitle: 'Keluar dari ruang',
@@ -793,6 +850,8 @@ let pendingWild = null;
 let lastDiscardId = null;
 let lastTurnStart = 0;
 let lastWinnerId = null;
+let lastChatKey = null;   // "t:author" of the newest chat line already sounded
+let chatPrimed = false;   // the first state is history, not news
 let soundOn = localStorage.getItem('uno.sound') !== 'off';
 let audioCtx = null;
 
@@ -851,24 +910,90 @@ function paintStatic() {
 }
 
 /* ============================================================ sound */
-function beep(freq, dur = 0.08, type = 'sine', gain = 0.05) {
+/* One small synth for the whole game: a note, a slide, and a master bus.
+   This used to be five bare `beep()` calls at gain 0.04-0.07 — roughly a
+   sixteenth of full scale — which on a phone speaker is a click you have to be
+   listening for. Everything now goes through MASTER and a limiter, so "louder"
+   is one number and a four-note fanfare cannot clip.
+   Everything is major and upward-moving: a rising interval reads as friendly,
+   a falling one as a mistake. `bad` is the only one that goes down, because it
+   should sound like "not that one". */
+const MASTER = 0.55;
+let masterBus = null;
+
+function ac() {
+  audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+  /* A context created before the first tap starts 'suspended', and every sound
+     scheduled on it is silent WITHOUT throwing — the classic "sound is broken"
+     that has nothing to fix. Resume is free. */
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  if (!masterBus) {
+    masterBus = audioCtx.createDynamicsCompressor();
+    masterBus.threshold.value = -10;
+    masterBus.knee.value = 8;
+    masterBus.ratio.value = 12;
+    masterBus.attack.value = 0.003;
+    masterBus.release.value = 0.22;
+    masterBus.connect(audioCtx.destination);
+  }
+  return audioCtx;
+}
+
+/** One note. `amp` is relative to MASTER; the fast attack keeps it percussive. */
+function tone(freq, dur = 0.09, type = 'sine', amp = 0.6, delay = 0) {
   if (!soundOn) return;
   try {
-    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-    o.type = type; o.frequency.value = freq;
-    g.gain.setValueAtTime(gain, audioCtx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
-    o.connect(g); g.connect(audioCtx.destination);
-    o.start(); o.stop(audioCtx.currentTime + dur);
+    const ctx = ac();
+    const t0 = ctx.currentTime + delay;
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(freq, t0);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.0002, amp * MASTER), t0 + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g); g.connect(masterBus);
+    o.start(t0); o.stop(t0 + dur + 0.03);
   } catch (e) {}
 }
+
+/** A note that bends from one pitch to another — the cartoon "boing". */
+function slide(f1, f2, dur = 0.16, type = 'sine', amp = 0.6, delay = 0) {
+  if (!soundOn) return;
+  try {
+    const ctx = ac();
+    const t0 = ctx.currentTime + delay;
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(f1, t0);
+    o.frequency.exponentialRampToValueAtTime(f2, t0 + dur);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.0002, amp * MASTER), t0 + 0.015);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g); g.connect(masterBus);
+    o.start(t0); o.stop(t0 + dur + 0.03);
+  } catch (e) {}
+}
+
 const sfx = {
-  play: () => beep(520, 0.07, 'triangle', 0.06),
-  draw: () => beep(300, 0.06, 'sine', 0.05),
-  turn: () => { beep(660, 0.07); setTimeout(() => beep(880, 0.09), 80); },
-  win: () => { [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => beep(f, 0.16, 'triangle', 0.07), i * 110)); },
-  bad: () => beep(160, 0.12, 'square', 0.04),
+  play: () => { tone(880, 0.07, 'triangle', 0.55); tone(1320, 0.10, 'triangle', 0.5, 0.055); },
+  draw: () => { slide(560, 330, 0.14, 'sine', 0.5); },
+  turn: () => { tone(784, 0.09, 'sine', 0.6); tone(1046, 0.13, 'sine', 0.55, 0.09); },
+  win: () => {
+    [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.20, 'triangle', 0.55, i * 0.11));
+    tone(1568, 0.34, 'sine', 0.30, 0.46);          // a sparkle on top
+  },
+  bad: () => { tone(220, 0.09, 'square', 0.34); tone(165, 0.14, 'square', 0.30, 0.075); },
+  /* THE FUNNY ONE — a springy "boing" when someone else says something: up
+     fast, then down, then a tiny high blip. That is the shape of every cartoon
+     sound effect there is, and it is unmistakably "a message", not "your turn". */
+  msg: () => {
+    slide(380, 1150, 0.09, 'sine', 0.6);
+    slide(1150, 720, 0.13, 'sine', 0.5, 0.09);
+    tone(1400, 0.05, 'sine', 0.3, 0.22);
+  },
+  /* A shout (the big emoji reaction) gets its own: two quick bright pings, so
+     the two are never confused with the ears alone. */
+  shout: () => { tone(1046, 0.06, 'square', 0.4); tone(1568, 0.09, 'square', 0.35, 0.06); },
 };
 
 /* ============================================================ lobby */
@@ -977,13 +1102,33 @@ function applyState(st) {
   // sounds / cues
   if (st.event && st.event.type === 'play') sfx.play();
   if (st.event && (st.event.type === 'draw' || st.event.type === 'autopass')) sfx.draw();
-  if (st.event && st.event.type === 'shout') beep(880, 0.12, 'square', 0.05);
+  if (st.event && st.event.type === 'shout') sfx.shout();
   if (st.state === 'ended' && st.winner && lastWinnerId !== st.winner) {
     lastWinnerId = st.winner; sfx.win();
   }
   if (st.state === 'playing') lastWinnerId = null;
   if (st.state === 'playing' && st.turn === st.you.id && st.turnStart !== lastTurnStart) sfx.turn();
   lastTurnStart = st.turnStart;
+
+  /* A message from someone else gets the funny sound.
+     Keyed on `t:author` and not on `id`, because a chat item's `id` is the
+     AUTHOR — the same player's second message carries the same id, so it would
+     dedupe to silence.
+     `chatPrimed` is separate from `lastChatKey` on purpose. Priming on "the key
+     was null" instead looks equivalent and is not: a room with no chat yet
+     never sets a key, so the FIRST message anyone ever sends was treated as
+     backlog and played nothing — which is exactly the message the feature
+     exists for. Prime once, on the first state, whether or not there is chat. */
+  const chat = st.chat || [];
+  const newest = chat.length ? chat[chat.length - 1] : null;
+  const key = newest ? newest.t + ':' + newest.id : null;
+  if (!chatPrimed) {
+    chatPrimed = true;
+    lastChatKey = key;
+  } else if (key && key !== lastChatKey) {
+    if (newest.id !== st.you.id && newest.kind !== 'shout') sfx.msg();
+    lastChatKey = key;
+  }
 
   renderTop();
   renderOpps();
@@ -1001,6 +1146,11 @@ function renderTop() {
   else if (S.state === 'ended') { tag.textContent = t('tagEnded'); tag.className = 'tag'; }
   else if (S.you.isTurn) { tag.textContent = t('tagYourTurn'); tag.className = 'tag turn'; }
   else { tag.textContent = t('tagWaitingFor', { name: S.turnName || '' }); tag.className = 'tag'; }
+
+  // Your own seat lights up the same way an opponent's does, so "whose turn"
+  // reads as one visual language wherever you look. Gated on 'playing' as well
+  // as isTurn: in the lobby isTurn can be true before anyone has been dealt.
+  $('#meBar').classList.toggle('turn', S.state === 'playing' && !!S.you.isTurn);
 
   $('#turnMeta').innerHTML = S.state === 'playing'
     ? (S.you.isTurn ? '👉 <b>' + t('turnMine') + '</b>' : t('turnTheirs', { name: '<b>' + esc(S.turnName) + '</b>' }))
@@ -1034,7 +1184,7 @@ function renderOpps() {
   if (S.players.length < 2) {
     const el = document.createElement('div');
     el.className = 'opp';
-    el.style.cssText = 'min-width:150px;text-align:left;color:#8b91a0;font-size:11.5px;line-height:1.6;display:flex;align-items:center';
+    el.style.cssText = 'min-width:170px;text-align:left;color:#6b7280;font-size:15px;line-height:1.55;display:flex;align-items:center';
     el.innerHTML = esc(t('joinHint', { code: S.code }));
     box.appendChild(el);
   }
@@ -1134,7 +1284,7 @@ function renderHand() {
   const scroll = $('#handScroll').scrollLeft;
   box.innerHTML = '';
   if (S.state === 'lobby') {
-    box.innerHTML = '<div style="color:#8b91a0;font-size:13px;padding:26px 4px">' + esc(t('handEmpty')) + '</div>';
+    box.innerHTML = '<div class="hand-empty">' + esc(t('handEmpty')) + '</div>';
     return;
   }
   const active = S.you.isTurn && S.state === 'playing';
@@ -1307,7 +1457,7 @@ $('#codeInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') doJo
 
 $('#drawBtn').onclick = doDraw;
 $('#startBtn').onclick = () => send({ type: S.state === 'ended' ? 'again' : 'start' });
-$('#unoBtn').onclick = () => { send({ type: 'shout', emoji: 'UNO!! 🔥' }); beep(900, 0.1, 'square', 0.06); };
+$('#unoBtn').onclick = () => { send({ type: 'shout', emoji: 'UNO!! 🔥' }); tone(1046, 0.07, 'square', 0.45); };
 $('#emojiBtn').onclick = () => toggleEmojiPop();
 const ICON_SOUND_ON = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.2l4.3 3.5V6L7.2 9.5H4z"/><path d="M15.4 9a4.2 4.2 0 0 1 0 6"/><path d="M18 6.6a7.6 7.6 0 0 1 0 10.8"/></svg>';
 const ICON_SOUND_OFF = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.2l4.3 3.5V6L7.2 9.5H4z"/><path d="M16 9.8l4.4 4.4M20.4 9.8 16 14.2"/></svg>';
@@ -1316,7 +1466,7 @@ $('#soundBtn').onclick = () => {
   soundOn = !soundOn;
   localStorage.setItem('uno.sound', soundOn ? 'on' : 'off');
   $('#soundIcon').innerHTML = soundOn ? ICON_SOUND_ON : ICON_SOUND_OFF;
-  if (soundOn) beep(660, 0.08);
+  if (soundOn) tone(660, 0.09, 'sine', 0.5);
 };
 $('#soundIcon').innerHTML = soundOn ? ICON_SOUND_ON : ICON_SOUND_OFF;
 

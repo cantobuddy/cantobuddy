@@ -1182,7 +1182,7 @@ function vocabValues(v) {
 
 /* Bumped whenever the SEED_* content changes in a way an EXISTING database
    needs to pick up. See migrateContent() below. */
-const CONTENT_VERSION = 8; // v1 = original 64 · v2 = Tier A expansion · v3 = coverage top-up (every category ≥5) · v4 = Simplified Chinese glosses (all 132) · v5 = Restaurant category + 10 entries (all 142 glossed) · v6 = the 9 empty (category x level) combinations filled, +38 entries (all 180 glossed) · v7 = Festivals category (id 19, 節日/Festivals) + 36 vocabulary rows (ids 181–216), all four languages · v8 = festival coverage completed: +24 rows (ids 217–240) for the five events that had no words at all (Ching Ming, Buddha's Birthday, Chongyang, Winter Solstice, Christmas), plus 龍舟, all four languages
+const CONTENT_VERSION = 9; // v1 = original 64 · v2 = Tier A expansion · v3 = coverage top-up (every category ≥5) · v4 = Simplified Chinese glosses (all 132) · v5 = Restaurant category + 10 entries (all 142 glossed) · v6 = the 9 empty (category x level) combinations filled, +38 entries (all 180 glossed) · v7 = Festivals category (id 19, 節日/Festivals) + 36 vocabulary rows (ids 181–216), all four languages · v8 = festival coverage completed: +24 rows (ids 217–240) for the five events that had no words at all (Ching Ming, Buddha's Birthday, Chongyang, Winter Solstice, Christmas), plus 龍舟, all four languages · v9 = five everyday categories (ids 20–24: Food, Fruit, Colours, Money, Counting) + 94 vocabulary rows (ids 241–334), all four languages, every new category filling all three levels
 // NOTE: the Simplified glosses (vocabulary.mandarin), the Indonesian glosses
 // (vocabulary.indonesian) and BOTH per-language category name sets
 // (categories.name_zh, categories.name_id) are NOT applied by migrateContent() —
@@ -1225,7 +1225,14 @@ function seedIfEmpty() {
 
   db.exec('BEGIN');
   try {
-    SEED_CATEGORIES.forEach((c, i) => insCat.run(c.id, c.name_en, c.name_yue || '', c.name_fil || '', c.name_zh || '', c.name_id || '', c.icon || '📁', i));
+    // `c.sort_order ?? i`, NOT bare `i`. migrateContent() below already honours
+    // an explicit sort_order and falls back to the array index; this path used
+    // only the index, so the two disagreed the moment a category carried one.
+    // v9 shipped Food..Counting with sort_order 19-23 appended after Festivals,
+    // and a fresh database ordered them 18..23 with Festivals last while a
+    // migrated one ordered them 19..23 with Festivals before them — same seed,
+    // two different apps. The scenarios line below always did this correctly.
+    SEED_CATEGORIES.forEach((c, i) => insCat.run(c.id, c.name_en, c.name_yue || '', c.name_fil || '', c.name_zh || '', c.name_id || '', c.icon || '📁', c.sort_order ?? i));
     SEED_SCENARIOS.forEach((s, i) =>
       insScenario.run(s.id, s.name_en, s.name_yue || '', s.name_fil || '', s.icon || '💬', s.description || '', s.sort_order ?? i, s.enabled ?? 1)
     );

@@ -576,9 +576,9 @@
        reads on boot — that is why this page has to be reachable by URL and not
        only by tapping the tab.
 
-       The two "coming soon" cards are honest placeholders, not dead links: they
-       are disabled buttons carrying the label, so nobody taps one and waits for
-       something to load. Add a game by replacing one, not by adding a sixth. -->
+       All three games are live links. A disabled card is only honest while the
+       game does not exist; once it does, a dead button is a dead end. Add a game
+       by replacing one, not by adding a fourth. -->
   <section id="view-games" class="view">
     <div class="browse-header">
       <button class="btn-back" onclick="navigate('home')" data-i18n="games.backHome">← Home</button>
@@ -614,14 +614,18 @@
         <span class="game-go" aria-hidden="true">›</span>
       </a>
 
-      <button class="game-card" disabled>
-        <span class="game-art game-art-soon" aria-hidden="true">🧠</span>
+      <a class="game-card game-card-live" href="/games/wordmatch">
+        <span class="game-art" aria-hidden="true"><i class="cjk">配</i><i class="cjk">對</i><i>?</i></span>
         <span class="game-body">
           <span class="game-name" data-i18n="games.matchName">Word match</span>
           <span class="game-desc" data-i18n="games.matchDesc">Race a partner to match the Cantonese word with its meaning.</span>
-          <span class="game-tags"><span class="game-tag" data-i18n="games.soon">Coming soon</span></span>
+          <span class="game-tags">
+            <span class="game-tag game-tag-on" data-i18n="games.online">Online, live</span>
+            <span class="game-tag" data-i18n="games.twoPlayers">2 players</span>
+          </span>
         </span>
-      </button>
+        <span class="game-go" aria-hidden="true">›</span>
+      </a>
     </div>
 
     <p class="games-note" data-i18n="games.note">More games are on the way. UNO is the first — try it and tell us what to build next.</p>

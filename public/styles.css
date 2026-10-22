@@ -1119,6 +1119,10 @@ a.game-card:active { transform: scale(0.985); }
 .game-art i:nth-child(3) { background: #2b6cf0; transform: rotate(9deg); }
 /* A suit glyph needs a bigger size than a digit to read at 15px wide. */
 .game-art i.suit { font-size: 11px; line-height: 1; }
+/* Same problem, worse: a Chinese glyph at 8.5px is a grey blob. It cannot be
+   made legible in a 15px tile, but at 11px it at least reads as a character
+   rather than as dirt, and the gold ? tile beside it carries the meaning. */
+.game-art i.cjk { font-size: 11px; letter-spacing: -0.5px; }
 
 .game-art-soon {
   font-size: 26px;

@@ -809,10 +809,10 @@ function rerenderForLanguage() {
 function renderHomeCategories() {
   const wrap = document.getElementById('home-categories');
   if (!wrap) return;
-  // The strip is intentionally long (19 categories), which makes the home page
+  // The strip is intentionally long (24 categories), which makes the home page
   // honest about how much there is to learn — but the strip itself is a choice
   // she's not yet making. Show two rows and a "Show more" button. The grid
-  // keeps all 19 cards in the DOM and the container is the thing that clips,
+  // keeps every card in the DOM and the container is the thing that clips,
   // so the reveal is instant and the chips are still rendered, just behind a
   // max-height. A fade at the bottom is a hint that the strip continues, not
   // a wall.
@@ -1075,6 +1075,12 @@ function renderHomeGamesPromo() {
       art: '<i>2</i><i class="suit">♠</i><i class="suit">♥</i>',
       name: t('games.bigtwoName'),
       desc: t('games.bigtwoDesc'),
+    },
+    {
+      href: '/games/wordmatch',
+      art: '<i class="cjk">配</i><i class="cjk">對</i><i>?</i>',
+      name: t('games.matchName'),
+      desc: t('games.matchDesc'),
     },
   ];
   wrap.innerHTML =

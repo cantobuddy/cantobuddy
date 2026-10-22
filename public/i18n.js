@@ -54,11 +54,12 @@ const I18N = {
     'games.bigtwoDesc': 'The Hong Kong table game — 鋤大D. 2 is the biggest card, spades the strongest suit.',
     'games.twoToFour': '2–4 players',
     'games.matchName': 'Word match',
-    'games.matchDesc': 'Race a partner to match the Cantonese word with its meaning.',
+    'games.matchDesc': '2 players · 8 rounds · race to match each Cantonese word with its meaning.',
+    'games.twoPlayers': '2 players',
     'games.promoTitle': 'Play together, online',
-    'games.promoLead': 'UNO and Big Two — one room code, no account, no install.',
+    'games.promoLead': 'UNO, Big Two and Word match — one room code, no account, no install.',
     'games.promoBadge': 'New',
-    'games.note': 'Two games are live now — UNO and Big Two. Tell us what to build next.',
+    'games.note': 'Three games are live now — UNO, Big Two and Word match. Tell us what to build next.',
 
 
     // discover — the culture + news feed
@@ -534,12 +535,13 @@ const I18N = {
     'games.bigtwoName': 'Big Two',
     'games.bigtwoDesc': 'Ang laro sa mesa sa Hong Kong — 鋤大D. Ang 2 ang pinakamalaking baraha, spades ang pinakamalakas na suit.',
     'games.twoToFour': '2–4 na manlalaro',
-    'games.matchName': 'Tugma ng salita',
-    'games.matchDesc': 'Magkarera sa kasama para itugma ang salitang Cantonese sa kahulugan.',
+    'games.matchName': 'Tugma ng Salita',
+    'games.matchDesc': '2 manlalaro · 8 round · magkarera sa pagtutugma ng salitang Cantonese sa kahulugan.',
+    'games.twoPlayers': '2 manlalaro',
     'games.promoTitle': 'Maglaro nang sama-sama, online',
-    'games.promoLead': 'UNO at Big Two — isang code ng kuwarto, walang account.',
+    'games.promoLead': 'UNO, Big Two at Tugma ng Salita — isang code ng kuwarto, walang account.',
     'games.promoBadge': 'Bago',
-    'games.note': 'Dalawang laro na ang live — UNO at Big Two. Sabihin kung ano ang susunod.',
+    'games.note': 'Tatlong laro na ang live — UNO, Big Two at Tugma ng Salita. Sabihin kung ano ang susunod.',
 
 
     // discover — ang feed ng kultura at balita
@@ -999,12 +1001,13 @@ const I18N = {
     'games.bigtwoName': '鋤大D',
     'games.bigtwoDesc': '香港的桌上游戏——鋤大D。2 最大，黑桃最大。',
     'games.twoToFour': '2–4 人',
-    'games.matchName': '词语配对',
-    'games.matchDesc': '和伙伴比赛，把粤语词和它的意思配对起来。',
+    'games.matchName': '配对游戏',
+    'games.matchDesc': '2 人 · 8 局 · 和伙伴比赛，把粤语词和它的意思配对起来。',
+    'games.twoPlayers': '2 人',
     'games.promoTitle': '一起在线玩牌',
-    'games.promoLead': 'UNO 和鋤大D——一个房间码，无需账号。',
+    'games.promoLead': 'UNO、鋤大D 和配对游戏——一个房间码，无需账号。',
     'games.promoBadge': '新',
-    'games.note': '现在有两个游戏——UNO 和鋤大D。告诉我们下一个想玩什么。',
+    'games.note': '现在有三个游戏——UNO、鋤大D 和配对游戏。告诉我们下一个想玩什么。',
 
 
     // discover — 文化与新闻
@@ -1464,11 +1467,12 @@ const I18N = {
     'games.bigtwoDesc': 'Permainan meja Hong Kong — 鋤大D. Kartu 2 paling besar, sekop suit terkuat.',
     'games.twoToFour': '2–4 pemain',
     'games.matchName': 'Cocokkan kata',
-    'games.matchDesc': 'Berlomba dengan pasangan mencocokkan kata Kanton dengan artinya.',
+    'games.matchDesc': '2 pemain · 8 babak · berlomba mencocokkan kata Kanton dengan artinya.',
+    'games.twoPlayers': '2 pemain',
     'games.promoTitle': 'Main bersama, online',
-    'games.promoLead': 'UNO dan Big Two — satu kode ruang, tanpa akun.',
+    'games.promoLead': 'UNO, Big Two dan Cocokkan kata — satu kode ruang, tanpa akun.',
     'games.promoBadge': 'Baru',
-    'games.note': 'Dua permainan sudah aktif — UNO dan Big Two. Bilang mau apa berikutnya.',
+    'games.note': 'Tiga permainan sudah aktif — UNO, Big Two dan Cocokkan kata. Bilang mau apa berikutnya.',
 
 
     // discover — umpan budaya dan berita

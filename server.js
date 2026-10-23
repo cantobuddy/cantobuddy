@@ -1155,6 +1155,35 @@ app.post('/api/feedback', feedbackRateLimit, (req, res) => {
 });
 
 /**
+ * POST /contact — the public contact form rendered on /contact (seo.js).
+ *
+ * Not under /api/ on purpose: this is a form on a page, so it has to work with
+ * JavaScript disabled and answer with a redirect instead of JSON. It writes to
+ * the same feedback table the in-app form does, which the operator already
+ * reads in the admin — so a message sent from the website is a message someone
+ * actually sees, which is the whole point of having a contact page at all.
+ *
+ * No CSRF token: the endpoint is public and unauthenticated, it writes one
+ * feedback row and reads nothing back, and it is rate-limited exactly like the
+ * in-app form. A token would add an expired-form failure mode without adding a
+ * protection.
+ *
+ * The redirect destination does not depend on whether the message was empty.
+ * A bot that learns "empty body = error" retries; a person who mistyped gets
+ * the same thanks and can send again. The limiter is what stops abuse.
+ */
+app.post('/contact', feedbackRateLimit, (req, res) => {
+  const b = req.body || {};
+  store.createFeedback({
+    message: b.message,
+    contact: b.contact,
+    lang: 'en',
+    page: String(b.page || '/contact').slice(0, 120),
+  });
+  res.redirect(303, '/contact?sent=1');
+});
+
+/**
  * Where learners came from — the operator's view of which channel is working.
  *
  * Read-only, and counts only: no device ids, no names. The point is to answer

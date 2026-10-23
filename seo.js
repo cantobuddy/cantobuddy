@@ -1047,6 +1047,25 @@ article a:hover{border-bottom-color:var(--red)}
 .faq summary::marker{color:var(--red)}
 .faq p{margin:11px 0 0;color:var(--muted);font-size:15.5px;line-height:1.65}
 p.updated{color:var(--muted);font-size:13.5px;margin-top:30px}
+/* The contact form — the only form on the server-rendered pages, so it is
+   written out rather than reusing app styles that never load here. It has to
+   survive with JavaScript off: the form POSTs and the page redirects back. */
+.contact-form{background:#fff;border:1px solid var(--line);border-radius:14px;
+  padding:22px 22px 20px;margin:0 0 30px;max-width:620px}
+.contact-form label{display:block;font-weight:600;font-size:14.5px;margin:0 0 6px}
+.contact-form label .opt{font-weight:400;color:var(--muted)}
+.contact-form textarea,.contact-form input{width:100%;font:inherit;font-size:15.5px;
+  padding:11px 12px;border:1px solid #cfd8e3;border-radius:10px;background:#fff;
+  color:var(--ink);margin:0 0 18px}
+.contact-form textarea{resize:vertical;min-height:150px;line-height:1.6}
+.contact-form textarea:focus,.contact-form input:focus{outline:2px solid rgba(230,57,70,.35);
+  outline-offset:1px;border-color:var(--red)}
+.contact-form button{font:inherit;font-weight:600;font-size:16px;padding:12px 26px;
+  border:0;border-radius:999px;background:var(--red);color:#fff;cursor:pointer}
+.contact-form button:hover{background:#c1121f}
+.contact-form .form-note{font-size:13.5px;color:var(--muted);margin:14px 0 0;line-height:1.55}
+.sent-note{background:#f1f8f4;border:1px solid #cfe8d8;border-radius:12px;
+  padding:18px 20px;margin:0 0 26px;line-height:1.65}
 ul.links{list-style:none;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:9px}
 ul.links li a{display:inline-block;background:#fff;border:1px solid var(--line);border-radius:999px;
   padding:7px 15px;font-size:14.5px;text-decoration:none;color:var(--ink)}
@@ -1238,7 +1257,10 @@ ${o.body}
        &nbsp;·&nbsp; <a href="${LANG_PREFIX[lang]}/discover">${esc(L[lang].discover)}</a>
        &nbsp;·&nbsp; <a href="${LANG_PREFIX[lang]}/stories">${esc((STORIES_UI[lang] || STORIES_UI.en).title)}</a>
        &nbsp;·&nbsp; <a href="${LANG_PREFIX[lang]}/privacy">${esc(PRIVACY[lang].title)}</a>
-       &nbsp;·&nbsp; <a href="${FOR_EMPLOYERS_HREF[lang]}">${esc(FOR_EMPLOYERS_LABEL[lang])}</a></p>
+       &nbsp;·&nbsp; <a href="${FOR_EMPLOYERS_HREF[lang]}">${esc(FOR_EMPLOYERS_LABEL[lang])}</a>
+       &nbsp;·&nbsp; <a href="/about">About</a>
+       &nbsp;·&nbsp; <a href="/contact">Contact</a>
+       &nbsp;·&nbsp; <a href="/terms">Terms</a></p>
   </div>
 </footer>
 ${VISIT_BEACON}
@@ -2108,6 +2130,7 @@ ${faqHtml}
 
     <p class="pl-cta"><a class="cta" href="#auth-form">Sign in to the employer portal</a></p>
     <p class="pl-more"><a href="${guide}">Read the full guide: getting your helper started →</a></p>
+    <p class="pl-more"><a href="/about">About CantoBuddy</a> · <a href="/contact">Contact</a> · <a href="/terms">Terms</a></p>
   </div>
 </section>`;
 }
@@ -2123,7 +2146,7 @@ ${faqHtml}
 function portalHead() {
   const title = 'For employers — help your helper learn Cantonese | CantoBuddy';
   const description =
-    'Connect to your domestic helper’s Cantonese progress on CantoBuddy — what you can see, what you cannot, and how to encourage her without watching her. Free for helpers, always.';
+    'Connect to your domestic helper’s Cantonese progress — what you can see, what you cannot, and how to encourage her without watching her. Free for helpers, always.';
   const canonical = `${SITE_ORIGIN}/portal`;
 
   const jsonLd = {
@@ -2168,7 +2191,8 @@ function portalHead() {
   <meta name="twitter:title" content="${esc(title)}" />
   <meta name="twitter:description" content="${esc(description)}" />
   <meta name="twitter:image" content="${SITE_ORIGIN}/icons/icon-512.png" />
-  <script type="application/ld+json">${JSON.stringify(jsonLd)}</script>`;
+  <script type="application/ld+json">${JSON.stringify(jsonLd)}</script>
+  ${ADSENSE_SNIPPET}`;
 }
 
 /* The portal shell, read once. portal.html is the app — the form, the
@@ -3240,6 +3264,14 @@ ${alts}
   // written for the person who is not the learner.
   add('/portal', '0.8', 'monthly', null, SITE_STRUCTURE_DATE);
 
+  // Publisher identity. AdSense would not approve a site that had none of
+  // these, and a reader deciding whether to trust a privacy policy wants to
+  // know who wrote it. Low priority because nobody searches for them — they
+  // exist to be found from the footer, not from Google.
+  add('/about', '0.4', 'yearly', null, SITE_STRUCTURE_DATE);
+  add('/contact', '0.4', 'yearly', null, SITE_STRUCTURE_DATE);
+  add('/terms', '0.3', 'yearly', null, SITE_STRUCTURE_DATE);
+
   // Stories — the shared shelf of helper-written stories.
   //
   // ONE shelf, every tree. The hub is listed in all four language trees because
@@ -3392,6 +3424,214 @@ Sitemap: ${SITE_ORIGIN}/sitemap.xml
 `;
 }
 
+/* ===========================================================================
+   Publisher pages — /about, /contact, /terms
+   ===========================================================================
+
+   AdSense rejected the site with the generic "Meet AdSense program policies"
+   message. That message is what Google shows when a reviewer cannot satisfy
+   themselves that a real publisher stands behind the site — and the two things
+   they look for first, a page saying who runs it and a way to reach them, were
+   both 404s. So were /terms and /disclaimer.
+
+   English only, like /portal, and for the same reason: these are publisher
+   identity, not learner content. Inventing three more translations of a legal
+   page would add exactly the near-duplicate URLs the indexing report is
+   already complaining about.
+
+   /contact is a WORKING form, not an invented address. It posts to the same
+   feedback table the app already writes to (see POST /contact in server.js),
+   which the operator reads in the admin Feedback tab. An address like
+   hello@cantobuddy.com would look better on the page and might not exist — a
+   reviewer who tries it and gets a bounce is worse than a form that works.
+   =========================================================================== */
+
+/** Shared head/meta for the three publisher pages. */
+function publisherPage({ title, docTitle, description, path, body, jsonLd, type = 'WebPage' }) {
+  return page({
+    lang: 'en',
+    // `title` is the page's NAME — the h1, the breadcrumb label and the JSON-LD
+    // name, so it stays as written. The document title is a separate thing and
+    // needs an override on the two pages whose name already contains the brand:
+    // without it /about shipped as "About CantoBuddy | CantoBuddy".
+    title: docTitle || `${title} | CantoBuddy`,
+    description,
+    path,
+    body,
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@graph': [
+        ORG_LD,
+        breadcrumbLd([
+          { name: 'CantoBuddy', path: '/' },
+          { name: title, path },
+        ]),
+        {
+          '@type': type,
+          name: title,
+          description,
+          url: `${SITE_ORIGIN}${path}`,
+          inLanguage: 'en-HK',
+          isPartOf: { '@type': 'WebSite', name: 'CantoBuddy', url: SITE_ORIGIN },
+        },
+      ],
+    },
+  });
+}
+
+/**
+ * /about — who publishes this, and on what basis.
+ *
+ * Every claim here is one the code can support. There is no company name, no
+ * founding date and no team size, because none of that is recorded anywhere and
+ * a plausible invention on an AdSense review page is the one kind of content
+ * that must not be guessed.
+ */
+function renderAbout() {
+  const words = store.listVocabulary({ enabledOnly: true }).length;
+  const topics = store.listEnabledCategories().length;
+
+  const body = `
+${crumbs('en', [{ label: 'About' }])}
+<article>
+<h1>About CantoBuddy</h1>
+<p class="lede">CantoBuddy is a free Cantonese practice app for domestic helpers in Hong Kong. It is an independent project, not a company, an agency or a recruitment service.</p>
+
+<h2>What it is</h2>
+<p>${words} words and phrases across ${topics} everyday topics — greetings, the kitchen, elder care, medication, emergencies, transport, money. Each entry carries the characters, Jyutping romanisation, the meaning in English and Filipino, and audio. Quizzes and a practice game turn the list into something a helper can actually remember.</p>
+<p>It works offline, needs no sign-up, and costs nothing. That is not a trial: there is no paid tier to upgrade to.</p>
+
+<h2>Who it is for</h2>
+<p>Around 200,000 Filipino and Indonesian women work as live-in helpers in Hong Kong. Most arrive speaking English and learn Cantonese on the job, from the person in the household who speaks English least. That gap is where small misunderstandings happen — a request repeated three times, a symptom not reported, a medicine taken at the wrong hour.</p>
+<p>The app is built for that situation rather than for exam preparation. The vocabulary is chosen by what comes up in a flat, not by what appears in a textbook.</p>
+
+<h2>Who publishes it</h2>
+<p>CantoBuddy is an independent project with one maintainer. The same person writes the vocabulary, checks the guides against their sources and reads every message the contact form sends. There is no parent company, no investor and no agency behind it, and we are not paid by any employment agency to feature one. If that ever changes, this page will say so before it happens.</p>
+
+<h2>How the content is written</h2>
+<p>Vocabulary entries are written and checked by hand. Where a word has more than one common form — 菜 and 蔬菜 for vegetables, for instance — both are kept, because a helper will hear either one.</p>
+<p>The guides on rights, holidays, pay and health are written from primary sources: the Hong Kong Labour Department, the Immigration Department, the Minimum Wage Ordinance, and the official sites of the hospitals and utilities they describe. Dates are checked against the current year rather than carried forward, and every guide carries the month it was last reviewed.</p>
+<p>Nothing here is legal, medical or financial advice, and the <a href="/terms">terms of use</a> say so plainly. Where a decision matters, the guide links to the body that actually decides it.</p>
+
+<h2>How it is paid for</h2>
+<p>Hosting and the audio cost money, and advertising pays for it. Ads appear on this website; they are served by Google, and they are never targeted using anything a helper tells the app. There is no subscription, no in-app purchase, and nothing in the app to sell her.</p>
+<p>We do not sell personal information, and there is no account to sell it from — a learner is identified by a device token, not an email address. The <a href="/privacy">privacy policy</a> sets out exactly what is and is not collected.</p>
+
+<h2>Corrections</h2>
+<p>Cantonese is not one thing, and a word that is right in one household can sound odd in another. If an entry is wrong, if a Jyutping reading is off, or if a guide has gone out of date, tell us — <a href="/contact">the contact form</a> goes straight to the person who maintains this.</p>
+</article>`;
+
+  return publisherPage({
+    title: 'About CantoBuddy',
+    docTitle: 'About CantoBuddy | free Cantonese practice for HK helpers',
+    description:
+      'CantoBuddy is a free Cantonese practice app for domestic helpers in Hong Kong — who publishes it, how the content is written, and how it is paid for.',
+    path: '/about',
+    body,
+    type: 'AboutPage',
+  });
+}
+
+/**
+ * /contact — a form that writes to the feedback table the operator already
+ * reads. `?sent=1` is the success state after the POST redirects back here, so
+ * the page works with JavaScript disabled as well as without it.
+ */
+function renderContact(sent) {
+  const body = `
+${crumbs('en', [{ label: 'Contact' }])}
+<article>
+<h1>Contact CantoBuddy</h1>
+<p class="lede">Corrections, questions about privacy, a bug, or something that reads wrong — this form reaches the person who maintains the site.</p>
+
+${
+  sent
+    ? `<div class="sent-note" role="status"><strong>Thank you — your message has been sent.</strong><br />
+We read every message. If it needs a reply, you will get one at the address you left.</div>
+<p><a href="/">Back to CantoBuddy</a> · <a href="/contact">Send another message</a></p>`
+    : `<form class="contact-form" method="post" action="/contact">
+  <input type="hidden" name="page" value="/contact" />
+  <label for="cf-message">Your message</label>
+  <textarea id="cf-message" name="message" rows="7" maxlength="2000" required
+            placeholder="Tell us what is wrong, or what you need."></textarea>
+
+  <label for="cf-contact">Your email or phone <span class="opt">(optional — only if you want a reply)</span></label>
+  <input id="cf-contact" name="contact" type="text" maxlength="120" autocomplete="email"
+         placeholder="you@example.com" />
+
+  <button type="submit">Send message</button>
+  <p class="form-note">We use your message only to answer it. It is stored with the rest of the feedback described in the <a href="/privacy">privacy policy</a>, and never published.</p>
+</form>`
+}
+
+<h2>What to write about</h2>
+<ul>
+  <li><strong>A word that is wrong.</strong> A misheard Jyutping reading, the wrong character, or a meaning that does not fit how it is used.</li>
+  <li><strong>A guide that has gone out of date.</strong> Statutory holidays, the minimum wage and visa rules change; if a figure is stale, say which one.</li>
+  <li><strong>Privacy.</strong> What is stored, what an employer can see, or how to have something deleted.</li>
+  <li><strong>Something broken.</strong> A page that will not load, audio that will not play, a quiz that marks a correct answer wrong.</li>
+</ul>
+
+<h2>For employers</h2>
+<p>If you are an employer trying to connect to your helper's progress, the <a href="/portal">employer page</a> explains how the invitation works and what you can and cannot see. If you are stuck at that step, the form above is the right place.</p>
+</article>`;
+
+  return publisherPage({
+    title: 'Contact CantoBuddy',
+    docTitle: 'Contact CantoBuddy | report a wrong word or a bug',
+    description:
+      'Contact CantoBuddy about a wrong word, an out-of-date guide, a privacy question or a bug. Messages go straight to the person who maintains the site.',
+    path: '/contact',
+    body,
+    type: 'ContactPage',
+  });
+}
+
+/** /terms — the plain-language terms AdSense expects beside the privacy policy. */
+function renderTerms() {
+  const body = `
+${crumbs('en', [{ label: 'Terms of use' }])}
+<article>
+<h1>Terms of use</h1>
+<p class="lede">Plain terms for using CantoBuddy. They are short because the product is simple: it is free, it does not ask for much, and it does not promise more than it can do.</p>
+
+<h2>Using the app</h2>
+<p>CantoBuddy is free to use. Learners need no account, no email address and no payment. You may use the app on any device you control, for your own learning or for helping someone else learn.</p>
+
+<h2>Employer accounts</h2>
+<p>An employer account is created with a name and a device token, not a password. Keep the device you signed in on; anyone using that device can reach the account. Inviting a helper does not give you access to her learning until she accepts on her own phone, and she may disconnect at any time.</p>
+
+<h2>Content you send us</h2>
+<p>Comments, stories and feedback you submit must be your own words. Do not post anything unlawful, abusive, hateful, sexually explicit, or that reveals another person's private information without their consent. We may remove anything that breaks these rules, and we may close a thread that has turned abusive.</p>
+<p>You keep ownership of what you write. By posting it you allow us to show it in the app, which is the only thing we do with it.</p>
+
+<h2>What this site is not</h2>
+<p>The guides on this site — on employment rights, statutory holidays, pay, health and housing — are general information, written carefully and checked against official sources, but they are <strong>not legal, medical or financial advice</strong>. They cannot account for your contract, your visa or your circumstances. Where a decision matters, the guide links to the body that actually decides it, and that body's answer is the one that counts.</p>
+<p>Cantonese varies by household and by neighbourhood. An entry that is correct here may sound unusual somewhere else; the app is a practice aid, not an authority on how a particular family speaks.</p>
+
+<h2>Availability</h2>
+<p>We aim to keep the app online and the content correct, but we do not guarantee either. The service may change, and features may be added or removed. Nothing on this site is a promise of a particular result, including progress in learning.</p>
+
+<h2>Intellectual property</h2>
+<p>The vocabulary, audio, guides and design are ours or used with permission. You may quote and link to pages freely with attribution. You may not republish the vocabulary library or the audio as your own product.</p>
+
+<h2>Privacy</h2>
+<p>What we collect, why, and how to have it deleted is set out in the <a href="/privacy">privacy policy</a>, which forms part of these terms.</p>
+
+<h2>Changes and contact</h2>
+<p>If these terms change materially, the date below changes with them. Questions about any of this go through the <a href="/contact">contact form</a>.</p>
+<p class="updated">Last reviewed: October 2026</p>
+</article>`;
+
+  return publisherPage({
+    title: 'Terms of use',
+    description:
+      'The terms for using CantoBuddy: free to use, what employer accounts can and cannot see, rules for comments, and why the guides are not legal or medical advice.',
+    path: '/terms',
+    body,
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Mounting
 // ---------------------------------------------------------------------------
@@ -3526,6 +3766,14 @@ function mount(app) {
     if (!LANG_PREFIX[lang]) continue;
     app.get(LANG_PREFIX[lang], (req, res) => res.redirect(301, `${LANG_PREFIX[lang]}/learn`));
   }
+
+  // The publisher pages. Single URLs, not language families — they are English
+  // only, so they are registered here rather than in the `routes` array (which
+  // mirrors every entry into all four trees). /contact reads ?sent=1, the state
+  // the POST redirects back to, so the form works without JavaScript.
+  app.get('/about', (req, res) => html(res, renderAbout()));
+  app.get('/contact', (req, res) => html(res, renderContact(req.query.sent === '1')));
+  app.get('/terms', (req, res) => html(res, renderTerms()));
 
   console.log(`  SEO:          ${SITE_ORIGIN}/sitemap.xml  (${store.listVocabulary({ enabledOnly: true }).length} words, ${store.listEnabledCategories().length} categories, ${LANGS.length} languages)`);
 }

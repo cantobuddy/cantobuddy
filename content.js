@@ -1105,7 +1105,7 @@ const GUIDES = [
 
 <h2>6. If it does not happen</h2>
 <p>Some helpers will not want to, and that is a legitimate answer. The app is not a performance-management tool and it is not designed to become one. If she declines, she keeps the app and keeps every word she has learned.</p>
-<p><a href="/for-employers">See how the employer portal works →</a></p>
+<p><a href="/portal">See how the employer portal works →</a></p>
 `,
     },
     faq: [
@@ -1133,7 +1133,7 @@ const GUIDES = [
     related: [
       { href: '/guide/learn-cantonese', label: { en: "Learn Cantonese: the complete beginner's guide" } },
       { href: '/guide/cantonese-for-elderly-care', label: { en: 'Cantonese for elderly care' } },
-      { href: '/for-employers', label: { en: 'For employers' } },
+      { href: '/portal', label: { en: 'For employers' } },
     ],
   },
   /* ===================================================================== */

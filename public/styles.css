@@ -4165,6 +4165,130 @@ a.game-card:active { transform: scale(0.985); }
 .portal-promo .pp-emoji { font-size: 1.25rem; line-height: 1; }
 .portal-promo strong { color: var(--c-primary, #1d3557); }
 
+/* ===========================================================================
+   Employer landing content on /portal
+   ===========================================================================
+
+   Server-rendered into #portal-auth by seo.js#portalPage(), so /portal is a
+   landing page rather than a bare sign-in form.
+
+   It sits BELOW the sign-in card deliberately: a returning employer wants the
+   form and gets it without scrolling, while a cold visitor (and a crawler,
+   which reads the whole document either way) gets the full pitch underneath.
+
+   Capped at 680px rather than .portal-main's 800px because this is a reading
+   column, not a dashboard — the lede and the FAQ want a comfortable measure.
+   =========================================================================== */
+.portal-landing {
+  max-width: 680px;
+  margin: 4px auto 44px;
+  padding: 32px 26px 28px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-lg);
+  color: var(--c-text);
+  line-height: 1.65;
+  /* The sticky header would otherwise cover the H1 when the promo card links
+     down to #employers. */
+  scroll-margin-top: 72px;
+}
+
+.portal-landing .pl-eyebrow {
+  margin: 0 0 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--c-primary);
+}
+
+.portal-landing .pl-h1 {
+  margin: 0 0 14px;
+  font-size: clamp(1.45rem, 4.6vw, 1.95rem);
+  line-height: 1.25;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.portal-landing .pl-lede {
+  margin: 0 0 14px;
+  font-size: 1.05rem;
+  color: var(--c-text-soft);
+}
+
+.portal-landing h2 {
+  margin: 32px 0 10px;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.portal-landing h3 {
+  margin: 20px 0 6px;
+  font-size: 0.98rem;
+  font-weight: 600;
+}
+
+.portal-landing p { margin: 0 0 12px; }
+.portal-landing a { color: var(--c-primary-dark); text-decoration: underline; }
+.portal-landing strong { font-weight: 600; }
+
+.portal-landing .pl-steps,
+.portal-landing .pl-tips { margin: 0 0 14px; padding-left: 22px; }
+.portal-landing .pl-steps li,
+.portal-landing .pl-tips li { margin-bottom: 9px; }
+
+/* "What you can see / cannot see" — the trust section, and the reason an
+   employer says yes. Two tinted panels side by side so the contrast between
+   them is visual, not something to read carefully. */
+.portal-landing .pl-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 4px 0 14px;
+}
+.portal-landing .pl-col {
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--c-border);
+  background: var(--c-bg);
+}
+.portal-landing .pl-col h3 { margin: 0 0 8px; font-size: 0.9rem; }
+.portal-landing .pl-col ul { margin: 0; padding-left: 18px; }
+.portal-landing .pl-col li { margin-bottom: 5px; font-size: 0.9rem; }
+.portal-landing .pl-yes {
+  background: #f1f8f4;
+  border-color: #cfe8d8;
+}
+.portal-landing .pl-yes h3 { color: #2f7a52; }
+.portal-landing .pl-no {
+  background: #f7f8fa;
+  border-color: var(--c-border);
+}
+.portal-landing .pl-no h3 { color: var(--c-text-soft); }
+
+.portal-landing .pl-faq { margin-bottom: 6px; }
+.portal-landing .pl-faq h3 { margin-top: 18px; }
+.portal-landing .pl-faq p { color: var(--c-text-soft); }
+
+.portal-landing .pl-cta { margin: 26px 0 10px; }
+.portal-landing .pl-cta .cta {
+  display: inline-block;
+  padding: 13px 24px;
+  border-radius: 999px;
+  background: var(--c-primary);
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 2px 10px var(--c-shadow);
+}
+.portal-landing .pl-cta .cta:hover { background: var(--c-primary-dark); }
+.portal-landing .pl-more { font-size: 0.92rem; }
+
+@media (max-width: 560px) {
+  .portal-landing { padding: 26px 18px 22px; border-radius: var(--radius); }
+  .portal-landing .pl-split { grid-template-columns: 1fr; }
+}
+
 /* ---- Reports: platform totals, activity chart, employer engagement ---- */
 .report-chart {
   background: var(--c-surface);

@@ -25,6 +25,7 @@
  * The SPA is untouched: / still serves public/index.html, and every rendered
  * page carries a prominent link back into the app. These pages are additive.
  */
+const fs = require('fs');
 const path = require('path');
 
 const store = require('./db');
@@ -377,11 +378,15 @@ function catName(cat, lang) {
 /** The URL prefix for a language tree. English is the root, deliberately. */
 const LANG_PREFIX = { en: '', fil: '/fil', zh: '/zh', id: '/id' };
 
-// Employer-facing landing page (/for-employers) and its footer link. The body
-// is English-primary and falls back to English in every tree until the
-// translations land (see the guide in content.js). The chrome is localised by
-// page() already.
-const FOR_EMPLOYERS_HREF = { en: '/for-employers', fil: '/fil/for-employers', zh: '/zh/for-employers', id: '/id/for-employers' };
+// Employer-facing landing page and the footer link that points at it. The page
+// itself lives on the portal (see renderEmployerLanding / portalPage), not on a
+// route this module registers, because it is the portal shell with content
+// spliced in.
+//
+// One URL in every tree, because the page is English only. A per-language href
+// here would send a Chinese reader to a /zh/for-employers that 301s straight
+// back to English.
+const FOR_EMPLOYERS_HREF = { en: '/portal', fil: '/portal', zh: '/portal', id: '/portal' };
 const FOR_EMPLOYERS_LABEL = { en: 'For employers', fil: 'Para sa mga employer', zh: '雇主专区', id: 'Untuk majikan' };
 
 /**
@@ -401,7 +406,14 @@ const FOR_EMPLOYERS_LABEL = { en: 'For employers', fil: 'Para sa mga employer', 
  * (The same shape of bug happened once before, with `/privacy`.) Those suites
  * now derive the pattern from this export, so the next route cannot repeat it.
  */
-const ROUTE_FAMILIES = ['learn', 'words', 'level', 'guide', 'discover', 'stories', 'privacy', 'for-employers'];
+/* Route families that have a page in every language tree.
+ *
+ * `/portal` is deliberately NOT here: it is the employer landing page, it is
+ * English only, and it is not registered as a seo.js route at all (server.js
+ * serves it via portalPage()). Listing it would make the language suites
+ * expect /fil/portal, /zh/portal and /id/portal to exist, and would count it as
+ * an English-only URL when they assert the four trees are the same size. */
+const ROUTE_FAMILIES = ['learn', 'words', 'level', 'guide', 'discover', 'stories', 'privacy'];
 
 /** Every language tree this module serves, in the order links should list them. */
 const LANGS = ['en', 'fil', 'zh', 'id'];
@@ -1962,94 +1974,248 @@ ${ctaCard(lang)}
   });
 }
 
+/* ===========================================================================
+   The employer landing page — /portal
+   ===========================================================================
+
+   /portal used to be the sign-in shell and nothing else: `noindex`, no
+   canonical, no content. It was the one page aimed at the people who actually
+   pay for domestic help, and a search engine could see none of it.
+
+   It is now the employer landing page. Rather than build a second page and
+   leave the portal as a bare form, the landing content is server-rendered
+   INTO the portal shell (see portalPage below), so:
+
+     - /portal is one URL, indexable, with real content — not a login page
+       whose purpose Google has to guess at;
+     - the sign-in form stays exactly where it was, so an employer with the URL
+       bookmarked, and the /reset flow that redirects here, still work;
+     - /portal.html and /reset keep their noindex, because they are the bare
+       shell with none of this content.
+
+   The content sits inside #portal-auth, so it disappears the moment she signs
+   in. Nothing in it is personalised: the counts come from the shared library,
+   never from an account.
+   =========================================================================== */
+
 /**
- * The employer landing page: /for-employers.
+ * The questions employers actually ask.
  *
- * Short and employer-first — an employer deciding whether to bother will not
- * read 2,000 words. It explains what CantoBuddy is, how to connect to a
- * helper, what progress is and is not visible, and where the line is. The
- * longer version lives at /guide/getting-your-helper-started-with-cantonese.
- *
- * English-primary: the body falls back to English in every tree until the
- * translations land (see content.js). The header and footer chrome is
- * localised by page() already.
+ * Data, not markup, because the same list feeds both the visible FAQ and the
+ * FAQPage structured data. Google requires a marked-up answer to match what is
+ * on the page, and two hand-maintained copies are exactly how that drifts.
  */
-function renderForEmployers(lang) {
-  const t = L[lang];
-  const prefix = LANG_PREFIX[lang] || '';
+const EMPLOYER_FAQ = [
+  [
+    'How do I connect with my helper on CantoBuddy?',
+    'Sign in with your name, then send her the invitation link from your dashboard. There is also a short code you can read aloud — the codes leave out 0/O and 1/I so they cannot be misheard over the phone. Nothing is shared until she accepts on her own phone.',
+  ],
+  [
+    'Can I see my helper’s quiz answers?',
+    'No. You see how many quiz attempts she has made, her accuracy, her total correct answers, her progress per level, and when she last practised. You never see which words she got wrong, her feedback to us, or anything else she does on this site.',
+  ],
+  [
+    'Does my helper have to pay for CantoBuddy?',
+    'No. It is free for helpers, always — no subscription, no in-app purchase, and nothing in the app to sell her.',
+  ],
+  [
+    'What if she does not want me to see her progress?',
+    'That is allowed, and the app still works completely for her. She can decline the invitation or disconnect at any time, and she keeps every bit of her progress either way.',
+  ],
+  [
+    'Does it work without an internet connection?',
+    'Yes. Once she has opened it, the app and its audio keep working offline — which matters in a flat with weak signal, or on the MTR.',
+  ],
+];
 
-  const body = `
-<h1>Your helper learns Cantonese. Here's how you help.</h1>
-<blockquote>Most helpers arrive speaking English and learn Cantonese on the job — usually from the person in the household who speaks English least.</blockquote>
-<p>If your mother is the one at home all day, she is the one your helper cannot talk to. That is where the small misunderstandings start: a request repeated three times, a symptom not reported, a medicine taken at the wrong hour because nobody could confirm it.</p>
+/**
+ * The employer landing body, as an HTML fragment.
+ *
+ * A fragment rather than a whole page because it is injected into portal.html,
+ * which owns the header, the form and the app runtime. `page()` is not used
+ * here for the same reason — its chrome would replace the portal.
+ *
+ * English only, deliberately. The portal is English (its labels are hardcoded
+ * in portal.html), so a /zh/portal would be an English page behind a Chinese
+ * URL. Emitting hreflang alternates for trees that do not exist would be worse
+ * than emitting none — see the note in page().
+ */
+function renderEmployerLanding() {
+  const words = store.listVocabulary({ enabledOnly: true }).length;
+  const topics = store.listEnabledCategories().length;
+  const guide = '/guide/getting-your-helper-started-with-cantonese';
 
-<h2>What CantoBuddy is</h2>
-<p>A free Cantonese practice app, built for domestic helpers in Hong Kong. 180 words and phrases for the situations that actually come up at home — elder care, the kitchen, medication, emergencies — each with audio, Jyutping, and quizzes.</p>
-<p>No sign-up. No cost. Works offline. <strong>Free to your helper, always</strong> — and there is nothing in it to sell her.</p>
+  const faqHtml = EMPLOYER_FAQ.map(
+    ([q, a]) => `      <h3>${esc(q)}</h3>\n      <p>${esc(a)}</p>`
+  ).join('\n');
 
-<h2>How to connect with your helper</h2>
-<ol>
-  <li><strong>Sign in</strong> at the employer portal.</li>
-  <li><strong>Invite her.</strong> You get a link to send, <em>and</em> a short code you can read aloud — the codes leave out 0/O and 1/I so they cannot be misheard over the phone.</li>
-  <li><strong>Add a note.</strong> One thing, this week. "Please practise the Elder Care words" works far better than "please study".</li>
-  <li><strong>She accepts on her own phone.</strong> Sharing is off until she does.</li>
-</ol>
+  return `<section class="portal-landing" id="employers" aria-labelledby="employer-h1">
+  <div class="pl-inner">
+    <p class="pl-eyebrow">For employers</p>
+    <h1 class="pl-h1" id="employer-h1">Your helper learns Cantonese. Here’s how you help.</h1>
+    <p class="pl-lede">Most helpers arrive speaking English and learn Cantonese on the job — usually from the person in the household who speaks English least.</p>
+    <p>If your mother is the one at home all day, she is the one your helper cannot talk to. That is where the small misunderstandings start: a request repeated three times, a symptom not reported, a medicine taken at the wrong hour because nobody could confirm it.</p>
 
-<h2>What you can see — and what you cannot</h2>
-<p><strong>You can see:</strong> how many quiz attempts she has done, her accuracy (% correct), her total right answers, a progress bar, her progress per level, and when she last practised.</p>
-<p><strong>You cannot see:</strong></p>
-<ul>
-  <li>her quiz answers, word by word;</li>
-  <li>her feedback to us;</li>
-  <li>anything else she does on this site;</li>
-  <li>anything at all once she disconnects.</li>
-</ul>
-<p>She can disconnect at any time, and she keeps every bit of her progress. The invitation is hers to accept and hers to end. That is not a setting we might change later — it is the reason a helper can use this app honestly, and it is written into our <a href="${prefix}/privacy">privacy policy</a>.</p>
+    <h2>What CantoBuddy is</h2>
+    <p>A free Cantonese practice app built for domestic helpers in Hong Kong: <strong>${words} words and phrases</strong> across ${topics} everyday topics — elder care, the kitchen, medication, emergencies — each with audio, Jyutping romanisation and quizzes. No sign-up, no cost, and it works offline.</p>
+    <p><strong>Free to your helper, always</strong>, and there is nothing in it to sell her. You are welcome to <a href="/learn">browse the vocabulary yourself</a> before you invite anyone.</p>
 
-<h2>How to encourage her — without watching her</h2>
-<ul>
-  <li><strong>Start small and be specific.</strong> One category this week. A helper given "learn Cantonese" does nothing; a helper given "the Elder Care words" opens the app.</li>
-  <li><strong>Invite in the first week, not the first day.</strong> On day one she is learning the household. An app request then reads as one more task. Give her a week to settle.</li>
-  <li><strong>Let her own it.</strong> The app is hers. If she asks you not to connect, that is allowed, and the app still works completely for her.</li>
-  <li><strong>Say thank you out loud.</strong> You can see when she last practised and how her accuracy is moving. Noticing it costs nothing and is the entire mechanism.</li>
-</ul>
-<p><em>If you want to recognise progress with a gift, that happens between you and her — the app does not handle money and never will.</em></p>
+    <h2>How to connect with your helper</h2>
+    <ol class="pl-steps">
+      <li><strong>Sign in above.</strong> Your name is all it takes — no email address, no password to forget.</li>
+      <li><strong>Invite her.</strong> You get a link to send, and a short code you can read aloud.</li>
+      <li><strong>Add one note.</strong> “Please practise the Elder Care words” works far better than “please study”.</li>
+      <li><strong>She accepts on her own phone.</strong> Sharing stays off until she does.</li>
+    </ol>
 
-<p class="cta-card"><a class="cta" href="/portal.html">Sign in to the employer portal</a></p>
-<p><a href="${prefix}/guide/getting-your-helper-started-with-cantonese">Read the full guide →</a></p>
-`;
+    <h2>What you can see — and what you cannot</h2>
+    <div class="pl-split">
+      <div class="pl-col pl-yes">
+        <h3>You can see</h3>
+        <ul>
+          <li>How many quiz attempts she has made</li>
+          <li>Her accuracy, as a percentage</li>
+          <li>Her total correct answers</li>
+          <li>Her progress in each level</li>
+          <li>When she last practised</li>
+        </ul>
+      </div>
+      <div class="pl-col pl-no">
+        <h3>You cannot see</h3>
+        <ul>
+          <li>Her quiz answers, word by word</li>
+          <li>Her feedback to us</li>
+          <li>Anything else she does on this site</li>
+          <li>Anything at all once she disconnects</li>
+        </ul>
+      </div>
+    </div>
+    <p>She can disconnect at any time and keeps every bit of her progress. The invitation is hers to accept and hers to end — that is not a setting we might change later, it is the reason a helper can use this app honestly, and it is written into our <a href="/privacy">privacy policy</a>.</p>
 
+    <h2>How to encourage her — without watching her</h2>
+    <ul class="pl-tips">
+      <li><strong>Start small and be specific.</strong> One topic this week. A helper given “learn Cantonese” does nothing; a helper given “the Elder Care words” opens the app.</li>
+      <li><strong>Invite in the first week, not the first day.</strong> On day one she is learning the household. An app request then reads as one more task.</li>
+      <li><strong>Let her own it.</strong> If she would rather not connect, that is allowed, and the app still works completely for her.</li>
+      <li><strong>Say thank you out loud.</strong> You can see when she last practised and how her accuracy is moving. Noticing it costs nothing, and it is the entire mechanism.</li>
+    </ul>
+    <p><em>If you want to recognise progress with a gift, that happens between you and her — the app does not handle money and never will.</em></p>
+
+    <h2>Questions employers ask</h2>
+    <div class="pl-faq">
+${faqHtml}
+    </div>
+
+    <p class="pl-cta"><a class="cta" href="#auth-form">Sign in to the employer portal</a></p>
+    <p class="pl-more"><a href="${guide}">Read the full guide: getting your helper started →</a></p>
+  </div>
+</section>`;
+}
+
+/**
+ * The indexable <head> block for /portal, replacing the noindex block that
+ * portal.html ships. See the PORTAL_SEO_HEAD marker in that file.
+ *
+ * No hreflang alternates: this page exists in English only, and a self-
+ * referential alternate set that claims translations which do not exist is a
+ * lie a crawler can check. The page's own lang="en" is the honest signal.
+ */
+function portalHead() {
   const title = 'For employers — help your helper learn Cantonese | CantoBuddy';
-  const description = 'How to connect to your domestic helper’s Cantonese progress on CantoBuddy — what you can see, what you cannot, and how to encourage her without watching her. Free for helpers, always.';
+  const description =
+    'Connect to your domestic helper’s Cantonese progress on CantoBuddy — what you can see, what you cannot, and how to encourage her without watching her. Free for helpers, always.';
+  const canonical = `${SITE_ORIGIN}/portal`;
 
   const jsonLd = {
     '@context': 'https://schema.org',
     '@graph': [
       ORG_LD,
       breadcrumbLd([
-        { name: t.learn, path: `${prefix}/learn` },
-        { name: 'For employers', path: `${prefix}/for-employers` },
+        { name: 'CantoBuddy', path: '/' },
+        { name: 'For employers', path: '/portal' },
       ]),
       {
         '@type': 'WebPage',
         name: title,
         description,
-        inLanguage: L[lang].htmlLang,
-        url: `${SITE_ORIGIN}${prefix}/for-employers`,
+        url: canonical,
+        inLanguage: 'en-HK',
         isPartOf: { '@type': 'WebSite', name: 'CantoBuddy', url: SITE_ORIGIN },
+      },
+      {
+        '@type': 'FAQPage',
+        mainEntity: EMPLOYER_FAQ.map(([q, a]) => ({
+          '@type': 'Question',
+          name: q,
+          acceptedAnswer: { '@type': 'Answer', text: a },
+        })),
       },
     ],
   };
 
-  return page({
-    lang,
-    title,
-    description,
-    path: `${prefix}/for-employers`,
-    jsonLd,
-    body,
-    alternates: hreflangLinks((l) => `${LANG_PREFIX[l]}/for-employers`),
-  });
+  return `  <title>${esc(title)}</title>
+  <meta name="description" content="${esc(description)}" />
+  <link rel="canonical" href="${esc(canonical)}" />
+  <meta name="robots" content="index, follow" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="CantoBuddy" />
+  <meta property="og:title" content="${esc(title)}" />
+  <meta property="og:description" content="${esc(description)}" />
+  <meta property="og:url" content="${esc(canonical)}" />
+  <meta property="og:image" content="${SITE_ORIGIN}/icons/icon-512.png" />
+  <meta property="og:locale" content="en_HK" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="${esc(title)}" />
+  <meta name="twitter:description" content="${esc(description)}" />
+  <meta name="twitter:image" content="${SITE_ORIGIN}/icons/icon-512.png" />
+  <script type="application/ld+json">${JSON.stringify(jsonLd)}</script>`;
+}
+
+/* The portal shell, read once. portal.html is the app — the form, the
+ * dashboard, portal.js — so it must not be rewritten per request; only the
+ * head block and the landing fragment are spliced in. */
+const PORTAL_SHELL_PATH = path.join(__dirname, 'public', 'portal.html');
+const PORTAL_HEAD_MARKER = '  <!-- PORTAL_SEO_HEAD';
+const PORTAL_LANDING_MARKER = '    <!-- PORTAL_SEO_LANDING';
+let portalShellCache = null;
+
+function readPortalShell() {
+  if (portalShellCache === null) portalShellCache = fs.readFileSync(PORTAL_SHELL_PATH, 'utf8');
+  return portalShellCache;
+}
+
+/**
+ * /portal — the employer landing page, with the sign-in form it always had.
+ *
+ * Both splices throw rather than degrade. A missing marker means portal.html
+ * was refactored and this module would otherwise serve either a noindex page
+ * (invisible to search) or a contentless one (thin), and both failures are
+ * silent in production. A 500 at request time is the loud version.
+ */
+function portalPage() {
+  let html = readPortalShell();
+
+  const headAt = html.indexOf(PORTAL_HEAD_MARKER);
+  if (headAt === -1) {
+    throw new Error('portal.html: PORTAL_SEO_HEAD marker missing — refusing to serve a noindex employer page');
+  }
+  const titleEnd = html.indexOf('</title>', headAt);
+  if (titleEnd === -1) {
+    throw new Error('portal.html: <title> missing after the PORTAL_SEO_HEAD marker');
+  }
+  html = html.slice(0, headAt) + portalHead() + html.slice(titleEnd + '</title>'.length);
+
+  const landAt = html.indexOf(PORTAL_LANDING_MARKER);
+  if (landAt === -1) {
+    throw new Error('portal.html: PORTAL_SEO_LANDING marker missing — refusing to serve a contentless employer page');
+  }
+  // Insert after the marker's closing `-->`, not after its first line: the
+  // marker is a multi-line comment, and splicing inside it would comment out
+  // the whole landing page.
+  const commentEnd = html.indexOf('-->', landAt);
+  const lineEnd = html.indexOf('\n', commentEnd === -1 ? landAt : commentEnd);
+  const insertAt = lineEnd === -1 ? html.length : lineEnd + 1;
+  return html.slice(0, insertAt) + renderEmployerLanding() + '\n' + html.slice(insertAt);
 }
 
 // ---------------------------------------------------------------------------
@@ -3067,12 +3233,12 @@ ${alts}
     add(`${prefix}/privacy`, '0.3', 'yearly', hreflangLinks((l) => `${LANG_PREFIX[l]}/privacy`), SITE_STRUCTURE_DATE);
   }
 
-  // The employer landing page, in every tree. This is the page aimed at the
-  // only paying audience, so it earns a mid priority and a monthly cadence
-  // (the content is stable but the surrounding product moves).
-  for (const prefix of Object.values(LANG_PREFIX)) {
-    add(`${prefix}/for-employers`, '0.7', 'monthly', hreflangLinks((l) => `${LANG_PREFIX[l]}/for-employers`), SITE_STRUCTURE_DATE);
-  }
+  // The employer landing page. ONE URL, not four: it is English only (so are
+  // the portal's own labels), so it has no tree to mirror and no hreflang
+  // alternates. Priority sits above /learn because this is the page that turns
+  // a family into a connected employer, and it is the only page on the site
+  // written for the person who is not the learner.
+  add('/portal', '0.8', 'monthly', null, SITE_STRUCTURE_DATE);
 
   // Stories — the shared shelf of helper-written stories.
   //
@@ -3206,6 +3372,12 @@ Allow: /fil
 Allow: /zh
 Allow: /id
 Allow: /privacy
+Allow: /portal
+
+# The employer landing page is /portal. /portal.html is the same shell WITHOUT
+# the landing content, and it carries its own noindex — so it is deliberately
+# not disallowed here. A Disallow would stop a crawler from ever reading that
+# noindex, which is the classic way a page gets indexed while asking not to be.
 
 # The JSON API is not a page — it is the SPA's data feed. Crawling it just
 # duplicates the server-rendered pages below.
@@ -3271,6 +3443,17 @@ function mount(app) {
     res.send(`google.com, ${ADSENSE_CLIENT.replace(/^ca-/, '')}, DIRECT, f08c47fec0942fa0\n`);
   });
 
+  // /for-employers was the employer landing page before it moved onto /portal.
+  // A 301 rather than a second copy: two URLs serving the same content is the
+  // duplicate pair this module exists to prevent, and the page has never been
+  // deployed under the old name, so there is no ranking to preserve — only a
+  // link that should not 404. The language variants redirect to the one English
+  // page, because that is what they always served anyway.
+  app.get(
+    ['/for-employers', '/fil/for-employers', '/zh/for-employers', '/id/for-employers'],
+    (req, res) => res.redirect(301, '/portal')
+  );
+
   // English tree lives at the root; the other trees mirror it under a prefix.
   const routes = [
     ['/learn', (lang) => renderLearnHub(lang)],
@@ -3295,9 +3478,6 @@ function mount(app) {
     // The privacy policy. Last, so the two-segment guide route above cannot be
     // shadowed, and reachable at /privacy (root) plus /fil|/zh|/id/privacy.
     ['/privacy', (lang) => renderPrivacy(lang)],
-    // The employer landing page — reachable at /for-employers (root) plus
-    // /fil|/zh|/id/for-employers, mirroring every other top-level page.
-    ['/for-employers', (lang) => renderForEmployers(lang)],
   ];
 
   /* Google Search Console — HTML-file verification is a REAL FILE, not a route.
@@ -3350,4 +3530,4 @@ function mount(app) {
   console.log(`  SEO:          ${SITE_ORIGIN}/sitemap.xml  (${store.listVocabulary({ enabledOnly: true }).length} words, ${store.listEnabledCategories().length} categories, ${LANGS.length} languages)`);
 }
 
-module.exports = { mount, SITE_ORIGIN, slugify, buildWordIndex, wordSlugMap, LANG_PREFIX, LANGS, ROUTE_FAMILIES, HK_FESTIVALS, upcomingFestivals, upcomingFestivalPayload, festivalBanner };
+module.exports = { mount, portalPage, SITE_ORIGIN, slugify, buildWordIndex, wordSlugMap, LANG_PREFIX, LANGS, ROUTE_FAMILIES, HK_FESTIVALS, upcomingFestivals, upcomingFestivalPayload, festivalBanner };

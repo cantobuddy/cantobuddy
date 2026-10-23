@@ -92,6 +92,45 @@ app.use((req, res, next) => {
   next();
 });
 
+/* Canonical-URL redirect: one URL, one trailing-slash form.
+ *
+ * Google Search Console reported "Duplicate, Google chose different canonical
+ * than user". The cause is here, not in any canonical tag.
+ *
+ * Express routes are non-strict by default, so `/guide` and `/guide/` hit the
+ * SAME handler and both answer 200 with byte-identical HTML and the same
+ * `<link rel="canonical">`. That leaves two indexable 200 URLs for every one of
+ * the ~1,577 content pages (and for `/index.html` vs `/`). Google crawls both,
+ * sees a duplicate pair, and — for the slashed URL — picks its OWN canonical
+ * instead of the declared one, which is exactly the message it reported.
+ *
+ * The fix is to make the slashed form a 301 to the canonical one, so only a
+ * single URL is ever indexable. This has to run BEFORE express.static, or
+ * `/index.html` is served as a file and never reaches here.
+ *
+ * Only GET/HEAD are redirected. A trailing slash on a write must never be
+ * rewritten into a different route, and the game/API mounts below own their own
+ * path shapes — the slash-less redirect is a no-op for them because their real
+ * URLs are already slash-less.
+ */
+app.use((req, res, next) => {
+  if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+  // `/` is already canonical; leave it. A path with no trailing slash, or one
+  // that is exactly the root, is untouched.
+  const path = req.path;
+  let target = null;
+  if (path.length > 1 && path.endsWith('/')) {
+    target = path.replace(/\/+$/, '') || '/';
+  } else if (path === '/index.html') {
+    // The shell file is served by express.static; the canonical URL is `/`.
+    target = '/';
+  }
+  if (!target) return next();
+  // Preserve the query string so a shared campaign link is not truncated.
+  const qs = req.originalUrl.includes('?') ? req.originalUrl.slice(req.originalUrl.indexOf('?')) : '';
+  res.redirect(301, target + qs);
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(
@@ -1765,7 +1804,12 @@ app.get('/api/admin/report.csv', requireAdmin, (req, res) => {
 //                 belongs in the employer portal, not the learner app.
 // ---------------------------------------------------------------------------
 
-app.get('/portal', (req, res) => res.sendFile(path.join(__dirname, 'public', 'portal.html')));
+// /portal is the employer LANDING page: the portal shell with the employer
+// content spliced into its head and its auth section, so the one URL aimed at
+// the people who pay for domestic help is indexable and says something. It is
+// still the sign-in page — the form is untouched — which is why /reset keeps
+// serving the bare shell: a password reset has no business being indexed.
+app.get('/portal', (req, res) => res.type('html').send(seo.portalPage()));
 app.get('/reset', (req, res) => res.sendFile(path.join(__dirname, 'public', 'portal.html')));
 app.get('/join/:code', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 // A shared Living passage deep-link (from WhatsApp / a picture) lands here and

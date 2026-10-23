@@ -4410,10 +4410,28 @@ function renderStoryPage(story) {
 // reaction per device), comment, and share. Bodies are plain text in four
 // languages and never HTML.
 
-/** Pick the per-language field of a living passage, falling back to English. */
+/**
+ * A Living passage's text, ALWAYS in English.
+ *
+ * Living is the app's editorial writing: short passages — roughly 50–70 words —
+ * about being sick, homesick, broke or lonely in Hong Kong. It is English-only
+ * on purpose. The other columns were never trustworthy: the Chinese one held a
+ * one- or two-word stub in every passage, and a reader offered that instead of
+ * the English lost the passage entirely. English is the version that is written
+ * and edited, so English is what everyone gets.
+ *
+ * So this deliberately ignores currentLang(). The interface AROUND the passage
+ * — the back link, the reaction prompt, the comment box, the category names —
+ * still follows the reader's language, because that is navigation rather than
+ * prose. Only the article itself is fixed.
+ *
+ * The other-language columns still exist in living_posts and the API still
+ * returns them; nothing deletes content that might be wanted later. If Living
+ * is ever properly translated, this is the single function to change — which is
+ * why every render site goes through it instead of indexing the row directly.
+ */
 function livingField(post, field) {
-  const v = post[`${field}_${currentLang()}`];
-  return v && String(v).trim() ? v : (post[`${field}_en`] || '');
+  return String(post?.[`${field}_en`] ?? '');
 }
 
 const LIVING_REACTIONS = [
@@ -4427,10 +4445,10 @@ const LIVING_REACTIONS = [
 ];
 
 const LIVING_CAT_ICON = {
-  medical: '🩺', holiday: '✈️', entertainment: '🎉', homesick: '💔',
+  before: '🧭', medical: '🩺', holiday: '✈️', entertainment: '🎉', homesick: '💔',
   food: '🍚', transport: '🚇', churches: '⛪',
 };
-const LIVING_CAT_ORDER = ['medical', 'holiday', 'entertainment', 'homesick', 'food', 'transport', 'churches'];
+const LIVING_CAT_ORDER = ['before', 'medical', 'holiday', 'entertainment', 'homesick', 'food', 'transport', 'churches'];
 
 function livingCatIcon(cat) { return LIVING_CAT_ICON[cat] || '🏠'; }
 function livingCatLabel(cat) { return t('living.cat' + cat.charAt(0).toUpperCase() + cat.slice(1)); }

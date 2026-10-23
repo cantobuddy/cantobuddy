@@ -47,3 +47,9 @@ ui-preview/
 *.log
 .DS_Store
 Thumbs.db
+
+# Windows: a bad shell redirect (`2>nul` run under bash) creates a file literally
+# named nul. It cannot be deleted through the normal file API (the name resolves
+# to the NUL device), and it makes `git add -A` abort with "short read". Ignore
+# it rather than leaving the whole tree un-committable.
+nul

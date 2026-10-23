@@ -4,7 +4,17 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
   <meta name="theme-color" content="#1d3557" />
-  <!-- Operator-facing, like /admin.html: reachable by typing the URL, never indexed. -->
+  <!-- PORTAL_SEO_HEAD — this block is replaced at request time by
+       seo.js#portalPage() with the indexable head (title, description,
+       canonical, Open Graph, JSON-LD) so /portal can rank as the employer
+       landing page. What is written here is what /portal.html and /reset serve
+       directly: the bare app shell, which must stay out of the index.
+
+       The marker must stay on its own line, and the title element must stay
+       inside this block: seo.js slices from the marker to the closing title
+       tag and throws if it cannot find them, so a silent regression to noindex
+       is impossible. Do not write a literal closing title tag in this comment
+       — that is the tag the slice searches for. -->
   <meta name="robots" content="noindex, nofollow" />
   <title>CantoBuddy – Employer</title>
   <link rel="icon" href="/favicon.ico" sizes="any" />
@@ -44,9 +54,9 @@
       <h2 id="auth-title">Employer Sign In</h2>
       <p class="login-hint" id="auth-hint">See how your helper's Cantonese is coming along.</p>
 
-      <a href="/for-employers" class="portal-promo">
+      <a href="#employers" class="portal-promo">
         <span class="pp-emoji">🤝</span>
-        <span><strong>New here?</strong> How to get your helper started →</span>
+        <span><strong>New here?</strong> How to get your helper started ↓</span>
       </a>
 
       <!-- No email, no password, and no access code to forget. The employer types
@@ -78,6 +88,12 @@
         link from your dashboard.
       </p>
     </div>
+
+    <!-- PORTAL_SEO_LANDING — seo.js#portalPage() injects the server-rendered
+         employer landing content on the line after this marker. It lives
+         inside #portal-auth so a cold visitor (and a crawler) gets the full
+         pitch, and a signed-in employer — whose section is switched to
+         #portal-dash — never sees it again. -->
   </section>
 
   <!-- ======================= SET NEW PASSWORD (/reset?token=…) ======================= -->

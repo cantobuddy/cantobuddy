@@ -1265,6 +1265,16 @@ function vocabValues(v) {
 /* Bumped whenever the SEED_* content changes in a way an EXISTING database
    needs to pick up. See migrateContent() below. */
 const CONTENT_VERSION = 9; // v1 = original 64 · v2 = Tier A expansion · v3 = coverage top-up (every category ≥5) · v4 = Simplified Chinese glosses (all 132) · v5 = Restaurant category + 10 entries (all 142 glossed) · v6 = the 9 empty (category x level) combinations filled, +38 entries (all 180 glossed) · v7 = Festivals category (id 19, 節日/Festivals) + 36 vocabulary rows (ids 181–216), all four languages · v8 = festival coverage completed: +24 rows (ids 217–240) for the five events that had no words at all (Ching Ming, Buddha's Birthday, Chongyang, Winter Solstice, Christmas), plus 龍舟, all four languages · v9 = five everyday categories (ids 20–24: Food, Fruit, Colours, Money, Counting) + 94 vocabulary rows (ids 241–334), all four languages, every new category filling all three levels
+
+// Living passages content version. Unlike the vocabulary/category migration,
+// living_posts are purely editorial (no operator-edit UI exists for them), so
+// each bump UPSERTs the full seeded set — updating existing passages in place and
+// inserting any new slugs. The UPDATE path preserves each row's `id`, so user
+// reactions and comments (foreign-keyed on living_posts(id) with ON DELETE
+// CASCADE) survive untouched. Guarded so a content drop runs exactly once per
+// version on every deployment, including the production database that already
+// carries the original 14 short passages.
+const LIVING_CONTENT_VERSION = 2; // v1 = original 14 short passages · v2 = expanded 18 passages (English, ~500 words each) via the Living upgrade
 // NOTE: the Simplified glosses (vocabulary.mandarin), the Indonesian glosses
 // (vocabulary.indonesian) and BOTH per-language category name sets
 // (categories.name_zh, categories.name_id) are NOT applied by migrateContent() —
@@ -1431,13 +1441,33 @@ const postsSeeded = seedPostsIfNeeded();
  * operator's edits — INSERT OR IGNORE keys on slug, and this only runs while the
  * seeded count is below the seed array length.
  */
+// Living passages are editorial, curated content — there is no operator-edit UI
+// for them — so when the seeded set changes we UPSERT the whole thing: existing
+// slugs are UPDATEd in place (preserving their `id` and therefore every user
+// reaction and comment foreign-keyed on that id), and brand-new slugs are
+// INSERTed. The migration is versioned on `living_content_version` so a content
+// drop runs exactly once per version on every boot, including the production
+// database that already holds the original 14 short passages.
 function seedLivingIfNeeded() {
-  const row = db.prepare("SELECT value FROM meta WHERE key = 'living_seeded'").get();
+  const row = db.prepare("SELECT value FROM meta WHERE key = 'living_content_version'").get();
   const current = row ? Number(row.value) || 0 : 0;
-  if (current >= SEED_LIVING.length) return 0;
+  if (current >= LIVING_CONTENT_VERSION) return 0;
 
   const now = new Date().toISOString();
-  const ins = db.prepare(`
+  const upsertExisting = db.prepare(`
+    UPDATE living_posts SET
+      category     = ?,
+      sub_key      = ?,
+      icon         = ?,
+      title_en     = ?, title_fil = ?, title_zh = ?, title_id = ?,
+      body_en      = ?, body_fil  = ?, body_zh  = ?, body_id  = ?,
+      sub_en       = ?, sub_fil   = ?, sub_zh   = ?, sub_id   = ?,
+      status       = ?,
+      published_at = ?,
+      updated_at   = ?
+    WHERE slug = ?
+  `);
+  const insertNew = db.prepare(`
     INSERT OR IGNORE INTO living_posts
       (slug, category, sub_key, icon,
        title_en, title_fil, title_zh, title_id,
@@ -1446,44 +1476,52 @@ function seedLivingIfNeeded() {
        status, published_at, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
+  const findSlug = db.prepare('SELECT id FROM living_posts WHERE slug = ?');
 
-  let added = 0;
+  let added = 0, refreshed = 0;
   db.exec('BEGIN');
   try {
     for (const p of SEED_LIVING) {
-      added += ins.run(
-        p.slug,
-        p.category || 'medical',
-        p.sub_key || '',
-        p.icon || '🏠',
-        p.title_en || '',
-        p.title_fil || '',
-        p.title_zh || '',
-        p.title_id || '',
-        p.body_en || '',
-        p.body_fil || '',
-        p.body_zh || '',
-        p.body_id || '',
-        p.sub_en || '',
-        p.sub_fil || '',
-        p.sub_zh || '',
-        p.sub_id || '',
-        p.status === 'draft' ? 'draft' : 'published',
-        p.published_at || now,
-        now,
-        now
-      ).changes;
+      const existing = findSlug.get(p.slug);
+      if (existing) {
+        refreshed += upsertExisting.run(
+          p.category || 'medical',
+          p.sub_key || '',
+          p.icon || '🏠',
+          p.title_en || '', p.title_fil || '', p.title_zh || '', p.title_id || '',
+          p.body_en || '', p.body_fil || '', p.body_zh || '', p.body_id || '',
+          p.sub_en || '', p.sub_fil || '', p.sub_zh || '', p.sub_id || '',
+          p.status === 'draft' ? 'draft' : 'published',
+          p.published_at || now,
+          now,
+          p.slug
+        ).changes;
+      } else {
+        added += insertNew.run(
+          p.slug,
+          p.category || 'medical',
+          p.sub_key || '',
+          p.icon || '🏠',
+          p.title_en || '', p.title_fil || '', p.title_zh || '', p.title_id || '',
+          p.body_en || '', p.body_fil || '', p.body_zh || '', p.body_id || '',
+          p.sub_en || '', p.sub_fil || '', p.sub_zh || '', p.sub_id || '',
+          p.status === 'draft' ? 'draft' : 'published',
+          p.published_at || now,
+          now,
+          now
+        ).changes;
+      }
     }
     db.prepare('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)').run(
-      'living_seeded',
-      String(SEED_LIVING.length)
+      'living_content_version',
+      String(LIVING_CONTENT_VERSION)
     );
     db.exec('COMMIT');
   } catch (err) {
     db.exec('ROLLBACK');
     throw err;
   }
-  return added;
+  return added + refreshed;
 }
 
 const livingSeeded = seedLivingIfNeeded();

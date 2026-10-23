@@ -25,10 +25,33 @@
   --font-cn:         'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
   --font-en:         'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --max-w:           640px;
+
+  /* ---- Level ramp ------------------------------------------------------
+     One hue per level, used by the Home cards and anywhere a level is named,
+     so the colour a learner learns on Home is the colour she meets on Browse
+     and in the quiz. Written as tokens rather than repeated hex so the three
+     cannot drift apart. Each pair is (solid, tint); the tint is the icon tile
+     and the solid is the rail, the arrow and any text on white.
+     Chosen to survive daylight on a cheap phone screen: all three are dark
+     enough to carry white text and to clear 4.5:1 on their own tint. */
+  --lv1:      #17796d;  --lv1-tint: #e1f5ee;  /* beginner     */
+  --lv2:      #a8641a;  --lv2-tint: #faedda;  /* intermediate */
+  --lv3:      #2f66b8;  --lv3-tint: #e6f0fb;  /* advanced     */
+
+  /* Very light brand wash — the active nav tab and the logo tile. */
+  --c-primary-tint: #fff1f2;
 }
 
 /* ---- Reset ---- */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* The `hidden` attribute is a UA `display:none`, and ANY author display rule
+   beats the UA stylesheet. `.btn { display: inline-flex }` alone was enough to
+   make `hidden` lie: the Discover "Share your story" button (a .btn-block) had
+   `hidden` set on every channel and still rendered on Culture and News. This is
+   the one reset the HTML attribute cannot live without, so it is asserted by
+   tools/hidden-attribute-test.js rather than left to memory. */
+[hidden] { display: none !important; }
 
 html { -webkit-text-size-adjust: 100%; font-size: 16px; }
 
@@ -68,7 +91,18 @@ body {
   user-select: none;
 }
 
-.logo-emoji { font-size: 1.5rem; }
+/* The parrot sits on a tinted tile so the lockup reads as a mark rather than
+   as an emoji that happens to precede the wordmark. */
+.logo-emoji {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--c-primary-tint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
 
 .logo-text {
   font-size: 1.25rem;
@@ -98,6 +132,12 @@ body {
   cursor: pointer;
   white-space: nowrap;
   transition: opacity 0.15s;
+  /* The badge also shows the learner's own name (up to 30 characters). Cap it
+     relative to the viewport so a long name can never push the header out of
+     shape; short names and the "Set your name" prompt are unaffected. */
+  max-width: 46vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .learner-badge:hover { opacity: 0.85; }
@@ -150,6 +190,137 @@ body {
 
 .lang-btn:active { transform: scale(0.92); }
 
+/* ---- Language picker rows ----
+   Each row is set in the language it selects. The Chinese row needs a CJK
+   stack of its own — Noto Sans SC is already loaded for the vocabulary, and
+   the Latin stack would fall back to a system font with inconsistent glyph
+   widths at this size. */
+.lang-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 16px 0 20px;
+}
+
+.lang-row {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  width: 100%;
+  padding: 13px 44px 13px 16px;
+  border-radius: 12px;
+  border: 2px solid var(--c-border);
+  background: var(--c-surface);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.lang-row:hover { border-color: var(--c-primary); background: var(--c-primary-light); }
+
+.lang-row.is-active {
+  border-color: var(--c-primary);
+  background: var(--c-primary-light);
+}
+
+/* Label and name share the first line; the coverage note (if any) wraps to a
+   second line rather than squeezing the name into a mid-character break. */
+.lang-row-label {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--c-primary);
+  min-width: 42px;
+  white-space: nowrap;
+}
+
+.lang-row-name {
+  font-size: 0.9rem;
+  color: var(--c-text);
+  white-space: nowrap;
+}
+
+.lang-row[lang="zh-Hans"] .lang-row-name,
+.lang-row[lang="zh-Hans"] .lang-row-label {
+  font-family: var(--font-cn);
+}
+
+.lang-row-note {
+  flex-basis: 100%;
+  font-size: 0.72rem;
+  color: var(--c-text-soft);
+}
+
+.lang-row.is-active .lang-row-note { color: var(--c-primary); }
+
+.lang-row-tick {
+  position: absolute;
+  right: 16px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--c-primary);
+}
+
+/* ---- Cross-site icon button (learner header → employer portal) ----
+   Both public sites link to each other: the learner app carries a 👩‍💼 icon
+   into /portal, and the portal carries a 📚 link back to /. The admin area
+   intentionally has no such icon — the operator reaches it by URL only. */
+.site-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 2px solid var(--c-border);
+  background: var(--c-surface);
+  /* Set the colour explicitly: one of these buttons is an <a> and one is a
+     <button>, and an <a> would otherwise paint an inline SVG in link-blue
+     while the <button> inherits the body text colour. */
+  color: var(--c-text);
+  font-size: 1.05rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  flex-shrink: 0;
+  transition: border-color 0.15s, transform 0.1s;
+}
+
+.site-btn:hover { border-color: var(--c-primary); }
+.site-btn:active { transform: scale(0.92); }
+.site-btn:focus-visible { outline: 2px solid var(--c-primary); outline-offset: 2px; }
+
+/* ---- The share glyph (inline SVG, see SHARE_ICON_SVG in app.js) ----
+   A box with an arrow leaving it — the shape people already read as "share".
+   Sized in em so it scales with whatever text it sits beside, and drawn in
+   currentColor so it takes the colour of its context: grey on an inactive nav
+   tab, red when active, white on a primary button. */
+.share-glyph {
+  width: 1.05em;
+  height: 1.05em;
+  display: inline-block;
+  vertical-align: -0.16em;
+  flex-shrink: 0;
+}
+
+/* In the bottom nav, match the size of the emoji icons beside it. */
+.nav-icon .share-glyph {
+  width: 21px;
+  height: 21px;
+  vertical-align: 0;
+}
+
+/* In the header, sit the glyph inside the 38px .site-btn circle at the same
+   visual weight as the emoji in the neighbouring buttons. Kept generic (any
+   svg) so a second glyph cannot drift out of step with the first. */
+.site-btn svg {
+  width: 19px;
+  height: 19px;
+  display: block;
+  vertical-align: 0;
+}
+
 .admin-link {
   color: var(--c-text-soft);
   text-decoration: none;
@@ -178,82 +349,161 @@ body {
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ---- Hero ---- */
+/* ---- Hero ---------------------------------------------------------------
+   Was plain centred text on the page background, which made the first thing a
+   visitor sees the flattest thing on the screen. It is now a brand block — the
+   one place on Home that owns the colour, so the page has a top to it. */
 .hero {
+  /* An <a> now, not a <div>: the reset matters. Without display:block the
+     anchor is inline and the padding collapses; without text-decoration and
+     color the whole block goes blue and underlined. */
+  display: block;
+  position: relative;
+  overflow: hidden;
   text-align: center;
-  padding: 24px 16px 8px;
+  padding: 20px 18px 22px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(140deg, #ef4a56 0%, #c1121f 100%);
+  color: #fff;
+  text-decoration: none;
+  box-shadow: 0 8px 22px rgba(193, 18, 31, 0.22);
+  /* It looks tappable because it is, so it has to move like the other cards. */
+  cursor: pointer;
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+
+.hero:hover { box-shadow: 0 10px 26px rgba(193, 18, 31, 0.3); }
+.hero:active { transform: scale(0.99); }
+
+/* Keyboard users get the same affordance as a finger. Offset so the ring is
+   not clipped by the block's own rounded edge. */
+.hero:focus-visible {
+  outline: 3px solid var(--c-text);
+  outline-offset: 3px;
+}
+
+/* A soft highlight so the block is not a flat rectangle. Decorative only. */
+.hero::after {
+  content: '';
+  position: absolute;
+  right: -40px;
+  top: -60px;
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.10);
+  pointer-events: none;
+}
+
+.hero-chip {
+  position: relative;
+  z-index: 1;
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  margin-bottom: 12px;
 }
 
 .hero-title {
-  font-size: 1.6rem;
+  position: relative;
+  z-index: 1;
+  font-size: 1.7rem;
   font-weight: 700;
-  color: var(--c-text);
-  line-height: 1.3;
+  color: #fff;
+  line-height: 1.25;
 }
 
 .hero-sub {
   display: block;
   font-size: 0.95rem;
   font-weight: 500;
-  color: var(--c-primary);
+  color: rgba(255, 255, 255, 0.92);
   margin-top: 4px;
 }
 
 .hero-desc {
-  font-size: 0.9rem;
-  color: var(--c-text-soft);
+  position: relative;
+  z-index: 1;
+  font-size: 0.88rem;
+  color: rgba(255, 255, 255, 0.86);
   margin-top: 10px;
   max-width: 400px;
   margin-inline: auto;
 }
 
-/* ---- Level cards ---- */
+/* ---- Level cards --------------------------------------------------------
+   Compact rows, each carrying its own colour. Previously three tall centred
+   cards (~150px each) holding a 30px emoji and two lines of text, which spent
+   a whole phone screen on three words. */
 .level-cards {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 12px;
-  margin-top: 20px;
+  gap: 10px;
+  margin-top: 18px;
 }
 
 .level-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   background: var(--c-surface);
-  border: 2px solid var(--c-border);
+  border: 1px solid var(--c-border);
+  border-left: 5px solid var(--lv);
   border-radius: var(--radius);
-  padding: 20px;
+  padding: 12px 14px 12px 12px;
   cursor: pointer;
-  transition: border-color 0.2s, box-shadow 0.2s, transform 0.1s;
-  text-align: center;
+  text-align: left;
+  transition: transform 0.12s, box-shadow 0.2s, border-color 0.2s;
 }
 
-.level-card:hover {
-  border-color: var(--c-primary);
-  box-shadow: 0 4px 16px var(--c-shadow-lg);
+/* Each level owns one hue — see the ramp in :root. */
+.level-card.lv1 { --lv: var(--lv1); --lv-tint: var(--lv1-tint); }
+.level-card.lv2 { --lv: var(--lv2); --lv-tint: var(--lv2-tint); }
+.level-card.lv3 { --lv: var(--lv3); --lv-tint: var(--lv3-tint); }
+
+.level-card:hover { box-shadow: 0 6px 18px var(--c-shadow-lg); }
+.level-card:active { transform: scale(0.985); }
+
+.level-icon {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--lv-tint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  line-height: 1;
 }
 
-.level-card:active { transform: scale(0.98); }
-
-.level-icon { font-size: 2rem; margin-bottom: 6px; }
+.level-body { flex: 1; min-width: 0; }
 
 .level-card h3 {
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   font-weight: 700;
-  margin-bottom: 4px;
+  margin-bottom: 1px;
 }
 
 .level-card p {
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   color: var(--c-text-soft);
+  line-height: 1.35;
 }
 
-.level-count {
-  display: inline-block;
-  margin-top: 8px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--c-primary);
-  background: var(--c-primary-light);
-  padding: 3px 10px;
-  border-radius: 12px;
+.level-arrow {
+  flex: 0 0 auto;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--lv);
+  opacity: 0.55;
 }
 
 /* ---- Buttons ---- */
@@ -266,7 +516,7 @@ body {
   font-size: 0.95rem;
   font-weight: 600;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: 12px;
   cursor: pointer;
   transition: opacity 0.15s, background 0.15s;
   min-height: var(--tap);
@@ -294,23 +544,313 @@ body {
 .btn-sm { font-size: 0.8rem; padding: 6px 12px; min-height: 36px; }
 .btn-block { width: 100%; }
 
+/* Stacked, not side by side. "Start Quiz" and "My Progress" fit a half-width
+   button in English and in no other language: Filipino is "Simulan ang
+   Pagsusitul", 23 characters, which wrapped mid-phrase at every phone width.
+   Full width also gives the primary action the weight it should have had — it
+   is the one thing to do on this screen and it was sharing a row.
+   `minmax(0, 1fr)` rather than `1fr` because a 1fr track has a min-content
+   floor and overflows silently — see the note in tools/app-layout-test.js. */
 .home-quick {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
-  margin-top: 20px;
+  margin-top: 16px;
 }
 
-.home-quick .btn { flex: 1; }
+.home-quick .btn { border-radius: 12px; }
+
+/* The primary action carries the brand colour and a soft matching shadow, so
+   it reads as the one thing to do here rather than as one of two equal
+   buttons. Scoped to .home-quick — .btn-primary is used in every dialog and
+   must stay flat there. */
+.home-quick .btn-primary { box-shadow: 0 6px 16px rgba(230, 57, 70, 0.26); }
+
+/* ---- Home: the returning-learner cards ---------------------------------- */
+/* Same amber as the streak card in My Progress, because it IS that card — it
+   just appears where she lands rather than where she has to go looking. The
+   green variant is the "already done today" state, so the card stops nagging
+   the moment it has nothing left to ask for. */
+.home-resume {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+  padding: 14px 16px;
+  background: #fffdf7;
+  border: 1px solid #ffe08a;
+  border-radius: var(--radius);
+}
+.home-resume.done { background: #f2fbf5; border-color: #b7e4c7; }
+.home-resume-main { flex: 1 1 150px; min-width: 0; }
+.home-resume-streak {
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #8a5a00;
+}
+.home-resume.done .home-resume-streak { color: #1e6b3a; }
+.home-resume-sub { font-size: 0.82rem; color: var(--c-text-soft); margin-top: 3px; }
+.home-resume-btn { flex: 0 0 auto; }
+
+.home-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--c-text-soft);
+  margin-bottom: 10px;
+}
+
+/* A short brand tick before every section label — on Home and on My Progress.
+   The pages had rows of identical grey uppercase headings with nothing to mark
+   where a section begins or to tell one from another. */
+.home-section-title::before,
+.home-categories h4::before,
+.progress-card h4::before {
+  content: '';
+  flex: 0 0 auto;
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--c-primary);
+}
+
+/* ---- Home: Coming up — the next festival, at most three days out ---------
+   Above Today's Culture because it is the only card on this screen with a
+   deadline. It is absent on most days of the year; that is the feature, not a
+   gap — see the note on the three-day window in seo.js.
+
+   The red rail and the warm wash are the same signal the landing page uses, so
+   a learner who has seen the panel on /learn recognises the card here. */
+#home-festival { margin-top: 20px; }
+#home-festival:empty { margin-top: 0; }
+
+.fest-card {
+  background: linear-gradient(135deg, var(--c-primary-tint), var(--c-surface) 70%);
+  border: 1px solid var(--c-border);
+  border-left: 5px solid var(--c-primary);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+.fest-card-kicker {
+  margin: 0 0 6px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--c-primary-dark);
+}
+.fest-card-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 2px;
+  font-size: 1.02rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--c-text);
+}
+.fest-card-icon { flex: 0 0 auto; font-size: 1.2rem; line-height: 1; }
+.fest-card-when {
+  margin: 0 0 10px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--c-primary-dark);
+}
+/* The short story about the day. Ordinary reading size — it is the reason the
+   card is taller than a banner, and it should read like an intro, not a caption. */
+.fest-card-desc {
+  margin: 0 0 12px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--c-text);
+}
+/* The custom activity: a tinted tip row with a small tag. The tag is nowrap, the
+   text wraps beside it (min-width:0) — the same 320px discipline as the chips. */
+.fest-card-activity {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  margin: 0 0 12px;
+  padding: 9px 11px;
+  background: var(--c-primary-tint);
+  border-radius: var(--radius);
+  min-width: 0;
+}
+.fest-card-activity-tag {
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  background: var(--c-primary);
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.fest-card-activity .fest-card-activity-text { min-width: 0; font-size: 0.87rem; line-height: 1.4; color: var(--c-text); }
+.fest-card-words-label {
+  margin: 0 0 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--c-text-soft);
+}
+.fest-card-words {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.fest-card-words li {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 5px 10px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: 999px;
+  /* Without this a chip whose jyutping cannot break would overflow the row
+     instead of wrapping — the 320px failure mode in gotcha form. */
+  min-width: 0;
+}
+.fest-yue {
+  font-family: var(--font-cn);
+  font-size: 0.95rem;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--c-text);
+}
+.fest-jyut {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.68rem;
+  color: var(--c-text-soft);
+}
 
 /* ---- Home categories strip ---- */
+/* ---- Home: Daily Culture (one featured article per day) ---------------- */
+#home-daily-culture {
+  margin-top: 20px;
+}
+#home-daily-culture:empty { margin-top: 0; }
+#home-daily-culture .home-section-title::before { content: '🏛️'; }
+
+/* ---- Home: Discover promo (three channel cards) ------------------------ */
+#home-discover-promo {
+  margin-top: 20px;
+}
+#home-discover-promo .home-section-title::before { content: '🌏'; }
+.discover-promo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.discover-promo-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 8px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+}
+.discover-promo-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px var(--c-shadow-lg);
+  border-color: var(--c-primary);
+}
+.discover-promo-card:active { transform: scale(0.97); }
+.discover-promo-emoji { font-size: 1.6rem; line-height: 1; }
+.discover-promo-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--c-text);
+}
+.discover-promo-desc {
+  font-size: 0.7rem;
+  color: var(--c-text-soft);
+  line-height: 1.35;
+}
+
+/* ---- Home: Games promo -------------------------------------------------
+   The promotion for the new Games tab. It borrows the Games hub's own
+   `.game-card` so the card tapped here is the card seen there — the only
+   overrides are size: on Home it sits between two other sections, so the art
+   shrinks and the card tightens rather than becoming the loudest thing on a
+   screen whose job is still learning. */
+#home-games-promo {
+  margin-top: 20px;
+}
+#home-games-promo .home-section-title::before { content: '🎮'; }
+.games-promo-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* Sits beside the section title, not above it — one line, no extra height. */
+.games-promo-badge {
+  flex: 0 0 auto;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--c-primary);
+  color: #fff;
+  font-size: 0.55rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.games-promo-lead {
+  font-size: 0.78rem;
+  color: var(--c-text-soft);
+  line-height: 1.45;
+  margin: -4px 0 10px;
+}
+#home-games-promo .games-grid {
+  display: grid;
+  gap: 8px;
+}
+#home-games-promo .game-card {
+  padding: 10px 12px;
+  gap: 11px;
+}
+#home-games-promo .game-art {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+}
+#home-games-promo .game-art i {
+  width: 12px;
+  height: 17px;
+  font-size: 7px;
+}
+#home-games-promo .game-art i.suit { font-size: 9px; }
+#home-games-promo .game-name { font-size: 0.85rem; }
+#home-games-promo .game-desc { font-size: 0.68rem; line-height: 1.35; }
+
 .home-categories {
   margin-top: 24px;
 }
 
 .home-categories h4 {
-  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   color: var(--c-text-soft);
   margin-bottom: 10px;
 }
@@ -318,45 +858,436 @@ body {
 /* All categories shown at once — a grid, no horizontal scrolling */
 .cat-strip {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  /* minmax(0, 1fr), NOT 1fr. A plain `1fr` track has an automatic minimum of
+     min-content, so one long category name ("Health & Symptoms") forces its
+     track wider than half the row and the whole grid spills a few pixels past
+     its container — invisible in English, 6px in Indonesian at 320px. Caught by
+     tools/app-layout-test.js; see the gotcha in ARCHITECTURE.md. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+}
+
+/* The home screen shows 19 categories, which is honest about how much there is
+   to learn but is a lot to scroll past before the story cards. The wrapper
+   clips the grid to ~2 rows when collapsed and fades the bottom edge so the
+   "more" button below is the obvious next step. The fade is a hint, not a
+   hard cut, so she still sees the next row's icons peeking through. */
+.cat-strip-wrap.collapsed {
+  max-height: 130px;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, black 0, black calc(100% - 22px), transparent 100%);
+          mask-image: linear-gradient(to bottom, black 0, black calc(100% - 22px), transparent 100%);
+}
+
+/* "Show more / Show less" for the home category grid. Sits centred below the
+   clipped grid; a soft outline keeps it visible without competing with the
+   category pills above. */
+.cat-strip-toggle {
+  display: block;
+  margin: 10px auto 0;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--c-primary);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, border-color 0.15s;
+}
+.cat-strip-toggle:hover {
+  background: var(--c-primary-tint);
+  border-color: var(--c-primary);
 }
 
 .cat-pill {
   background: var(--c-surface);
   border: 1px solid var(--c-border);
-  border-radius: var(--radius-sm);
-  padding: 10px 12px;
+  border-radius: 12px;
+  padding: 9px 10px;
   display: flex;
   align-items: center;
   gap: 8px;
   cursor: pointer;
   font-family: var(--font-en);
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 600;
   color: var(--c-text);
   transition: border-color 0.15s, background 0.15s, transform 0.1s;
-  min-height: 46px;
+  min-height: 48px;
   text-align: left;
   line-height: 1.2;
 }
 
 .cat-pill:hover {
   border-color: var(--c-primary);
-  background: var(--c-primary-light);
+  background: var(--c-primary-tint);
 }
 
 .cat-pill:active { transform: scale(0.98); }
 
+/* The icon sits on a tinted tile rather than floating on the white pill, which
+   is what gives an 18-item grid some texture. Four tints, cycled by position —
+   no one has to hand-pick a colour per category, and adding a category cannot
+   leave one unstyled. */
 .cat-pill-icon {
-  font-size: 1.25rem;
-  flex-shrink: 0;
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
   line-height: 1;
+  background: #eef1f5;
 }
+
+.cat-pill:nth-child(4n+1) .cat-pill-icon { background: #e1f5ee; }
+.cat-pill:nth-child(4n+2) .cat-pill-icon { background: #faedda; }
+.cat-pill:nth-child(4n+3) .cat-pill-icon { background: #e6f0fb; }
+.cat-pill:nth-child(4n+4) .cat-pill-icon { background: #fdeaea; }
 
 .cat-pill-name {
   flex: 1;
   min-width: 0;
+  /* The safety net. At 320px a two-column grid leaves ~80px for the name, and
+     one unbreakable word can be wider than that ("Appointments" is ~84px in
+     English, and Indonesian is longer). Without this the word spills out of its
+     own pill — measured, not guessed: tools/app-layout-test.js caught it. */
+  overflow-wrap: anywhere;
+}
+
+/* ===========================================================================
+   CATEGORIES PAGE (#view-categories)
+   ---------------------------------------------------------------------------
+   The Learn tab's destination. A grid of every category, because the decision
+   she has to make here is "what do I want to learn", and that decision cannot
+   be made from a scrolling chip row that shows six of nineteen categories.
+   Two-column at 320px: the names are long in Indonesian and the count has to
+   fit underneath, and a three-column grid leaves ~55px per name at that width,
+   which is four letters. minmax(0, 1fr) rather than 1fr for the reason in
+   .cat-strip above — measured with the same instrument.
+   =========================================================================== */
+
+.categories-lead {
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--c-text-soft);
+  margin: 0 0 14px;
+}
+
+.categories-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.category-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-height: 96px;
+  padding: 12px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-en);
+  transition: border-color 0.15s, background 0.15s, transform 0.1s;
+}
+
+.category-card:active { transform: scale(0.98); }
+.category-card:hover { border-color: var(--c-primary); }
+
+.category-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: #eef1f5;
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+/* The same four-way tint the Home pills use, so the icon colour a helper saw
+   next to a category name does not change when she taps through to its page. */
+.category-card:nth-child(4n+1) .category-card-icon { background: #e1f5ee; }
+.category-card:nth-child(4n+2) .category-card-icon { background: #faedda; }
+.category-card:nth-child(4n+3) .category-card-icon { background: #e6f0fb; }
+.category-card:nth-child(4n+4) .category-card-icon { background: #f8d7da; }
+
+.category-card-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--c-text);
+  overflow-wrap: anywhere;
+}
+
+.category-card-count {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--c-text-soft);
+}
+
+/* ===========================================================================
+   GAMES HUB (#view-games)
+   ---------------------------------------------------------------------------
+   A list of games, not a game. Each card is a destination; the live one is an
+   <a> (a real page, /games/uno) and the rest are disabled <button>s carrying a
+   "coming soon" tag, so a tap can never land on nothing.
+
+   Rows rather than a grid of tiles: the description is the part that tells her
+   what the game actually is, and a 2-up grid at 320px leaves about 90px for it
+   — the same squeeze that once broke the category pills. One per row also
+   means a new game arrives by adding a row, not by re-tuning a grid.
+   =========================================================================== */
+
+.games-lead {
+  color: var(--c-text-soft);
+  font-size: 0.92rem;
+  line-height: 1.55;
+  margin: -4px 0 16px;
+}
+
+.games-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.game-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 14px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  text-align: left;
+  text-decoration: none;
+  color: var(--c-text);
+  font-family: var(--font-en);
+  transition: transform 0.12s, box-shadow 0.2s, border-color 0.2s;
+}
+
+a.game-card:hover { border-color: var(--c-primary); box-shadow: 0 6px 18px var(--c-shadow-lg); }
+a.game-card:active { transform: scale(0.985); }
+
+/* A disabled card keeps full contrast on its name — it is a game she will be
+   able to play, not an error — and only the tag says it is not ready yet. */
+.game-card[disabled] { cursor: default; background: var(--c-surface); }
+
+/* The UNO mark: three overlapping mini cards, the same four colours the table
+   uses. Drawn in CSS so it stays crisp at any density and needs no asset. */
+.game-art {
+  flex: 0 0 auto;
+  width: 58px;
+  height: 58px;
+  border-radius: 15px;
+  background: var(--c-primary-tint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+
+.game-art i {
+  width: 15px;
+  height: 21px;
+  border-radius: 3px;
+  background: var(--c-primary);
+  color: #fff;
+  font-style: normal;
+  font-weight: 800;
+  font-size: 8.5px;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.18);
+  transform: rotate(-9deg);
+}
+.game-art i:nth-child(2) { background: #f0b429; transform: none; margin-top: -5px; }
+.game-art i:nth-child(3) { background: #2b6cf0; transform: rotate(9deg); }
+/* A suit glyph needs a bigger size than a digit to read at 15px wide. */
+.game-art i.suit { font-size: 11px; line-height: 1; }
+/* Same problem, worse: a Chinese glyph at 8.5px is a grey blob. It cannot be
+   made legible in a 15px tile, but at 11px it at least reads as a character
+   rather than as dirt, and the gold ? tile beside it carries the meaning. */
+.game-art i.cjk { font-size: 11px; letter-spacing: -0.5px; }
+
+.game-art-soon {
+  font-size: 26px;
+  line-height: 1;
+  background: #eef1f5;
+}
+
+.game-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.game-name {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--c-text);
+  overflow-wrap: anywhere;
+}
+
+.game-desc {
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--c-text-soft);
+  overflow-wrap: anywhere;
+}
+
+.game-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.game-tag {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #eef1f5;
+  color: var(--c-text-soft);
+}
+
+.game-tag-on {
+  background: #e8f8ef;
+  color: #14724a;
+}
+
+.game-go {
+  flex: 0 0 auto;
+  color: var(--c-text-soft);
+  font-size: 1.5rem;
+  line-height: 1;
+  padding-right: 2px;
+}
+
+.games-note {
+  margin: 16px 0 0;
+  font-size: 0.8rem;
+  line-height: 1.6;
+  color: var(--c-text-soft);
+  text-align: center;
+}
+
+/* ===========================================================================
+   SHARE PAGE (#view-share)
+   ---------------------------------------------------------------------------
+   Its own destination, reached from the Share tab in the bottom nav. This
+   started life as a card at the bottom of Home, but that sat below the
+   category grid — more than a screen down — so it was easy to never see.
+   =========================================================================== */
+
+.share-hero {
+  text-align: center;
+  padding: 4px 0 10px;
+}
+
+.share-hero-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--c-primary-tint);
+  font-size: 2.2rem;
+  line-height: 1;
+}
+
+.share-hero-title {
+  margin: 10px 0 6px;
+  font-size: 1.15rem;
+  color: var(--c-text);
+}
+
+.share-hero-body {
+  margin: 0 auto;
+  max-width: 34ch;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--c-text-soft);
+}
+
+/* ---- Preview of the message the friend actually receives ---- */
+.share-preview { margin: 20px 0 22px; }
+
+.share-preview-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--c-text-soft);
+  margin-bottom: 8px;
+}
+
+.share-bubble {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+
+.share-bubble-text {
+  margin: 0 0 8px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--c-text);
+}
+
+/* The URL is long and must never widen the card */
+.share-bubble-link {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--c-secondary);
+  word-break: break-all;
+}
+
+.share-copy-btn { margin-top: 10px; }
+
+/* ---- WhatsApp share button ----
+   WhatsApp green, and it stays its own colour rather than using the brand red:
+   the button is a destination, and people recognise the colour before they read
+   the label. This community coordinates in WhatsApp groups, so this is the
+   primary share path, not an afterthought. */
+.btn-whatsapp {
+  background: #25d366;
+  color: #fff;
+  margin-bottom: 10px;
+}
+.btn-whatsapp:hover { background: #1da851; }
+.btn-whatsapp .share-glyph { width: 20px; height: 20px; }
+
+/* Quiet note under the share buttons. Explains why the link carries a code —
+   without it the ?ref= looks like tracking junk, which is exactly the thing
+   people strip off before forwarding. */
+.share-footnote {
+  margin-top: 16px;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--c-text-soft);
+  text-align: center;
 }
 
 /* ---- Browse header ---- */
@@ -387,8 +1318,11 @@ body {
 .filters {
   background: var(--c-surface);
   border-radius: var(--radius);
-  padding: 14px;
-  margin-bottom: 16px;
+  /* 12px, not 14: ui-browse-fold asserts this block stays under 45% of the
+     viewport, and every pixel spent here is one the first vocabulary card does
+     not get. */
+  padding: 12px;
+  margin-bottom: 14px;
   border: 1px solid var(--c-border);
 }
 
@@ -402,11 +1336,27 @@ body {
 
 .filter-row:last-child { margin-bottom: 0; }
 
+/* The same label treatment as the Home section headings, so "Level:" and
+   "Category:" read as part of one system rather than as form furniture. */
 .filter-row label {
-  font-size: 0.8rem;
-  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--c-text-soft);
   min-width: 60px;
+}
+
+.filter-row label::before {
+  content: '';
+  flex: 0 0 auto;
+  width: 12px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--c-primary);
 }
 
 .chip-group {
@@ -418,16 +1368,17 @@ body {
 .chip {
   padding: 6px 14px;
   border: 1.5px solid var(--c-border);
-  border-radius: 20px;
+  border-radius: 999px;
   background: var(--c-surface);
   color: var(--c-text-soft);
   font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
   min-height: 36px;
   display: inline-flex;
   align-items: center;
+  gap: 5px;
 }
 
 .chip.active {
@@ -435,6 +1386,17 @@ body {
   color: #fff;
   border-color: var(--c-primary);
 }
+
+/* A selected level chip wears its own level's colour. The colour a learner
+   meets on Home is the colour she meets here, and again in the quiz — which is
+   the entire reason the ramp is three tokens rather than three hex values
+   copied into each rule. */
+#filter-level .chip[data-val="1"].active,
+#quiz-level .chip[data-val="1"].active { background: var(--lv1); border-color: var(--lv1); color: #fff; }
+#filter-level .chip[data-val="2"].active,
+#quiz-level .chip[data-val="2"].active { background: var(--lv2); border-color: var(--lv2); color: #fff; }
+#filter-level .chip[data-val="3"].active,
+#quiz-level .chip[data-val="3"].active { background: var(--lv3); border-color: var(--lv3); color: #fff; }
 
 /* ---- Vocab list ---- */
 .vocab-list {
@@ -446,31 +1408,38 @@ body {
   background: var(--c-surface);
   border: 1px solid var(--c-border);
   border-radius: var(--radius);
-  padding: 16px;
+  padding: 14px;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   cursor: pointer;
-  transition: box-shadow 0.2s, border-color 0.2s;
+  transition: box-shadow 0.2s, border-color 0.2s, transform 0.12s;
 }
 
+/* The card carries its level, and the level carries the colour — set from the
+   same three tokens the Home cards use, so `.lv1/.lv2/.lv3` means the same
+   thing on every view. The class is emitted by the renderer in app.js. */
+.vocab-card.lv1 { --lv: var(--lv1); --lv-tint: var(--lv1-tint); }
+.vocab-card.lv2 { --lv: var(--lv2); --lv-tint: var(--lv2-tint); }
+.vocab-card.lv3 { --lv: var(--lv3); --lv-tint: var(--lv3-tint); }
+
 .vocab-card:hover {
-  box-shadow: 0 4px 12px var(--c-shadow-lg);
-  border-color: var(--c-primary);
+  box-shadow: 0 6px 18px var(--c-shadow-lg);
+  border-color: var(--lv, var(--c-primary));
 }
 
 .vocab-card:active { transform: scale(0.99); }
 
 .vocab-emoji {
-  font-size: 2rem;
+  font-size: 1.9rem;
   flex-shrink: 0;
-  width: 56px;
-  height: 56px;
+  width: 54px;
+  height: 54px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--c-bg);
-  border-radius: var(--radius-sm);
+  background: var(--lv-tint, var(--c-bg));
+  border-radius: 12px;
 }
 
 .vocab-body { flex: 1; min-width: 0; }
@@ -616,7 +1585,10 @@ body {
 
 /* ---- Share button (vocab modal) ---- */
 .modal-share-btn {
-  display: block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   width: 100%;
   margin-top: 16px;
   padding: 12px 16px;
@@ -638,6 +1610,17 @@ body {
 }
 
 .modal-share-btn:active { transform: scale(0.98); }
+
+/* Secondary share action ("as a picture") — same shape, less weight, so the
+   plain text share stays the obvious default and the image option reads as an
+   extra rather than a competing choice. */
+.modal-share-btn--ghost {
+  margin-top: 8px;
+  border-style: dashed;
+  background: transparent;
+  color: var(--c-text-soft);
+  font-size: 0.86rem;
+}
 
 /* ---- Toast (share / copy confirmation) ---- */
 .toast {
@@ -678,6 +1661,14 @@ body {
 
 .modal-box h3 { font-size: 1.2rem; margin-bottom: 6px; }
 .modal-hint { font-size: 0.85rem; color: var(--c-text-soft); margin-bottom: 14px; }
+
+/* The name gate. A required hint is a direction, not a note, so it reads as
+   emphasis rather than the grey aside the optional edit form uses. */
+.name-hint--required { color: #c0392b; font-weight: 600; }
+
+/* An empty required field used to do nothing at all when Save was tapped —
+   silently. Colour the input so the refusal is visible rather than inferred. */
+.input-error { border-color: #e74c3c !important; box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.15); }
 
 #name-input {
   width: 100%;
@@ -900,11 +1891,24 @@ body {
 }
 
 .setup-group label {
-  display: block;
-  font-size: 0.85rem;
-  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--c-text-soft);
   margin-bottom: 10px;
+}
+
+.setup-group label::before {
+  content: '';
+  flex: 0 0 auto;
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--c-primary);
 }
 
 .quiz-type-list {
@@ -914,24 +1918,37 @@ body {
 
 .quiz-type-card {
   background: var(--c-surface);
-  border: 2px solid var(--c-border);
+  border: 1px solid var(--c-border);
   border-radius: var(--radius);
-  padding: 16px;
+  padding: 14px;
   cursor: pointer;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.12s;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
 }
 
 .quiz-type-card:hover {
   border-color: var(--c-primary);
-  box-shadow: 0 4px 12px var(--c-shadow);
+  box-shadow: 0 6px 18px var(--c-shadow-lg);
 }
 
-.quiz-type-card:active { transform: scale(0.98); }
+.quiz-type-card:active { transform: scale(0.985); }
 
-.quiz-type-icon { font-size: 1.8rem; flex-shrink: 0; }
+/* The same tinted icon tile the level cards use, so the quiz list reads as part
+   of one family with Home rather than as a separate screen. */
+.quiz-type-icon {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--c-primary-tint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  line-height: 1;
+}
 
 .quiz-type-info h4 { font-size: 1rem; font-weight: 700; }
 .quiz-type-info p { font-size: 0.82rem; color: var(--c-text-soft); margin-top: 2px; }
@@ -952,28 +1969,29 @@ body {
 }
 
 .quiz-bar {
-  height: 6px;
+  height: 8px;
   background: var(--c-border);
-  border-radius: 3px;
-  margin-bottom: 24px;
+  border-radius: 999px;
+  margin-bottom: 22px;
   overflow: hidden;
 }
 
 .quiz-bar-fill {
   height: 100%;
   background: var(--c-primary);
-  border-radius: 3px;
+  border-radius: 999px;
   transition: width 0.3s ease;
   width: 0%;
 }
 
 .quiz-question {
   background: var(--c-surface);
-  border-radius: var(--radius);
-  padding: 28px 20px;
+  border-radius: var(--radius-lg);
+  padding: 26px 20px;
   text-align: center;
   margin-bottom: 16px;
   border: 1px solid var(--c-border);
+  box-shadow: 0 6px 20px var(--c-shadow);
 }
 
 .quiz-q-emoji { font-size: 3.5rem; margin-bottom: 12px; }
@@ -1019,13 +2037,13 @@ body {
 
 .quiz-option {
   background: var(--c-surface);
-  border: 2px solid var(--c-border);
-  border-radius: var(--radius);
+  border: 1.5px solid var(--c-border);
+  border-radius: 12px;
   padding: 16px;
   font-size: 1rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: background 0.15s, border-color 0.15s, transform 0.12s;
   text-align: center;
   min-height: var(--tap);
   display: flex;
@@ -1033,7 +2051,12 @@ body {
   justify-content: center;
 }
 
-.quiz-option:hover { border-color: var(--c-primary); }
+.quiz-option:hover {
+  border-color: var(--c-primary);
+  background: var(--c-primary-tint);
+}
+
+.quiz-option:active { transform: scale(0.99); }
 
 .quiz-option.correct {
   background: #d4edda;
@@ -1099,9 +2122,13 @@ body {
 }
 
 .progress-card h4 {
-  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
   color: var(--c-text-soft);
   margin-bottom: 10px;
 }
@@ -1171,10 +2198,546 @@ body {
   font-weight: 600;
   transition: color 0.15s;
   min-height: 64px;
+  /* Anchors the "New" badge. It is absolute so the badge cannot widen the tab
+     and take pixels from the other four — the bar is measured to the pixel at
+     320px (tools/nav-shot.js). */
+  position: relative;
+}
+
+/* "New" tag on a tab. Small, high-contrast, and sat on the icon rather than
+   beside the label: a second word under the label would add a line and push
+   the bar taller, which costs more than the badge gains.
+
+   Anchored to .nav-icon (which is position:relative) and hung off its top-right
+   corner. An earlier version anchored to the button and spilled 8px into the
+   next tab at 320px — measured, not guessed. */
+.nav-icon { position: relative; }
+.nav-badge {
+  position: absolute;
+  top: -6px;
+  right: -10px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: var(--c-primary);
+  color: #fff;
+  font-size: 0.5rem;
+  font-weight: 800;
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  pointer-events: none;
+  white-space: nowrap;
 }
 
 .nav-btn.active { color: var(--c-primary); }
-.nav-icon { font-size: 1.3rem; }
+.nav-icon {
+  font-size: 1.3rem;
+  /* Fixed-height flex box so the emoji icons and the SVG share glyph all sit
+     on the same baseline across the six tabs. min-width (not width) so the
+     pill hugs a narrow glyph — and 40px still clears a 320px screen, where
+     six tabs leave about 53px each. */
+  height: 22px;
+  min-width: 40px;
+  padding: 0 6px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+/* The active tab gets a soft brand pill behind its icon. With six tabs the bar
+   is dense enough that a colour change on the label alone is easy to miss. */
+.nav-btn.active .nav-icon { background: var(--c-primary-tint); }
+
+/* ===========================================================================
+   DISCOVER FEED (culture + news)
+   =========================================================================== */
+
+.discover-lead {
+  color: var(--c-text-soft);
+  font-size: 0.92rem;
+  margin: -4px 0 14px;
+}
+
+/* A segmented control rather than two loose buttons: culture and news are one
+   choice, so they read as a single track with the selected half filled. */
+.discover-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 14px;
+  background: #eef1f5;
+  border-radius: 999px;
+}
+
+.discover-tab {
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--c-text-soft);
+  font-family: inherit;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: var(--tap);
+  transition: background 0.15s, color 0.15s;
+}
+
+.discover-tab.active {
+  background: var(--c-surface);
+  color: var(--c-primary);
+  box-shadow: 0 1px 3px var(--c-shadow);
+}
+
+.discover-note {
+  color: var(--c-text-soft);
+  font-size: 0.85rem;
+  margin-bottom: 14px;
+}
+
+.discover-feed { display: flex; flex-direction: column; gap: 10px; }
+
+.discover-loading,
+.discover-empty {
+  padding: 28px 12px;
+  text-align: center;
+  color: var(--c-text-soft);
+  font-size: 0.9rem;
+}
+
+.post-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  padding: 14px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 3px var(--c-shadow);
+  cursor: pointer;
+  font-family: inherit;
+  color: inherit;
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+
+.post-card:active { transform: scale(0.99); }
+.post-card:hover { box-shadow: 0 4px 12px var(--c-shadow-lg); }
+
+.post-card-icon {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  background: var(--c-primary-tint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.post-card-main { display: flex; flex-direction: column; gap: 3px; flex: 1 1 auto; min-width: 0; }
+
+.post-card-meta {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--c-text-soft);
+}
+
+.post-card-title {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--c-text);
+}
+
+.post-card-summary {
+  font-size: 0.86rem;
+  color: var(--c-text-soft);
+  line-height: 1.45;
+  /* Two lines of summary in the card; the article itself is one tap away. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.post-card-arrow {
+  flex: 0 0 auto;
+  align-self: center;
+  color: var(--c-text-soft);
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+/* ---- "You have opened this" ------------------------------------------------
+   Two signals, because one is not enough. A worded chip carries the meaning in
+   every language and does not depend on colour, and the muted card is what lets
+   her scan a feed she has mostly read for the two items she has not.
+
+   The colour is deliberately NOT the brand red. Red is this app's attention
+   colour everywhere else, so a red tick would read as "new" — the exact
+   opposite. Teal is already the completion colour here (--c-correct), and this
+   pair is that family darkened far enough to clear 4.5:1 on its own tint. */
+:root {
+  --c-read:      #17796d;
+  --c-read-tint: #e1f5ee;
+}
+
+.read-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--c-read-tint);
+  color: var(--c-read);
+  font-size: 0.66rem;
+  font-weight: 700;
+  /* The meta line is uppercase; a chip is a word, not a label. */
+  text-transform: none;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  vertical-align: 1px;
+}
+
+.post-card.is-read .post-card-title { color: var(--c-text-soft); }
+.post-card.is-read .post-card-icon { opacity: 0.55; }
+
+/* ---- News topic filter ----------------------------------------------------
+   The News channel grows without bound (the importer runs hourly), so it is
+   the only channel with topics. These are chips rather than a <select>
+   because the point is to see the choices at once — a dropdown hides the fact
+   that there are eight of them, and eight visible chips fit a 320px screen
+   once they wrap. */
+
+.discover-filters {
+  margin-bottom: 14px;
+}
+
+.discover-filters-label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--c-text-soft);
+  margin-bottom: 7px;
+}
+
+/* minmax(0,1fr) is not needed here — these tracks hold one short word each —
+   but the row MUST be allowed to wrap, or eight chips on a 320px screen
+   overflow the viewport instead of forming a second line. `flex` on the
+   container with `flex-wrap` on the row is what permits that. */
+.discover-filters-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.news-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 12px;
+  border: 1px solid var(--c-border);
+  border-radius: 999px;
+  background: var(--c-surface);
+  color: var(--c-text-soft);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 34px;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.news-filter-chip:hover { border-color: var(--c-primary); color: var(--c-primary); }
+
+.news-filter-chip.active {
+  background: var(--c-primary);
+  border-color: var(--c-primary);
+  color: #fff;
+}
+
+/* The count is quieter than the label on purpose: it is the answer to "is it
+   worth tapping", not the name of the thing. */
+.news-filter-chip .chip-count {
+  font-size: 0.78rem;
+  font-weight: 700;
+  opacity: 0.75;
+}
+
+/* ---- The pager ------------------------------------------------------------
+   Deliberately plain. It is a control, not content, and it should read as one
+   after a screen full of cards. */
+
+.discover-pager { margin-top: 4px; }
+
+.discover-pager-note {
+  padding: 14px 12px 4px;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--c-text-soft);
+}
+
+.discover-pager .btn-outline { margin-top: 4px; }
+
+/* ---- One article ---- */
+
+.post-article { padding-bottom: 24px; }
+
+.post-hero { text-align: center; padding: 6px 0 18px; }
+/* Icon on the left, the share row on the right: a flex bar, so the icons sit
+   at the top-right corner without ever overlapping the title, and the whole
+   thing still fits at 320px where an absolutely-positioned row would collide
+   with a long centred headline. */
+.post-hero-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.post-hero-share { flex: 0 0 auto; }
+.post-hero-share .social-row { margin-top: 0; gap: 12px; }
+.post-hero-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--c-primary-tint);
+  font-size: 2.2rem;
+  line-height: 1;
+}
+.post-title { font-size: 1.35rem; line-height: 1.3; margin-top: 8px; }
+.post-date {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--c-text-soft);
+  margin-top: 8px;
+}
+
+.post-summary {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--c-text);
+  background: var(--c-primary-tint);
+  border-left: 4px solid var(--c-primary);
+  /* Square on the left so the rail reads as a rail, rounded on the right. */
+  border-radius: 0 12px 12px 0;
+  padding: 12px 14px;
+  margin-bottom: 18px;
+}
+
+.post-content { font-size: 1rem; line-height: 1.65; }
+.post-content p { margin-bottom: 14px; }
+.post-content h2 {
+  font-size: 1.12rem;
+  margin: 22px 0 8px;
+  color: var(--c-primary-dark);
+}
+.post-content h3 { font-size: 1rem; margin: 18px 0 6px; }
+.post-content ul, .post-content ol { margin: 0 0 14px 20px; }
+.post-content li { margin-bottom: 7px; }
+.post-content strong { font-weight: 700; }
+.post-content a { color: var(--c-primary-dark); text-decoration: underline; }
+
+.post-source {
+  margin-top: 26px;
+  padding-top: 18px;
+  border-top: 1px solid var(--c-border);
+}
+.post-source-line { font-size: 0.88rem; color: var(--c-text-soft); margin-bottom: 12px; }
+.post-news-note {
+  font-size: 0.78rem;
+  color: var(--c-text-soft);
+  margin-top: 10px;
+  text-align: center;
+}
+
+/* ===========================================================================
+   STORIES
+   ---------------------------------------------------------------------------
+   A helper's own life story. It reuses the Discover card and article shells,
+   because a story IS a piece of reading like any other — the only new surfaces
+   are the write form and the list of her own submissions.
+
+   Colour comes from the level ramp (--lv1/--lv2/--lv3) rather than a new
+   palette, and the ramp is used for the STATUS of a submission, which is the
+   one place on this screen a colour has to carry meaning: waiting (amber),
+   published (the green it shares with "correct"), not published (quiet, not
+   red — a rejection is not an error, and painting it red would make her feel
+   she had done something wrong when the note may just ask for a change).
+   =========================================================================== */
+
+.story-write-cta { margin: 4px 0 14px; }
+
+.story-intro {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--c-text);
+  margin-bottom: 8px;
+}
+.story-rule {
+  font-size: 0.86rem;
+  line-height: 1.55;
+  color: var(--c-text-soft);
+  margin-bottom: 20px;
+  padding-left: 12px;
+  border-left: 3px solid var(--c-border);
+}
+
+.story-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--c-text);
+  margin: 16px 0 6px;
+}
+.story-input,
+.story-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  font-size: 1rem;
+  color: var(--c-text);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  padding: 11px 12px;
+}
+.story-textarea { line-height: 1.6; resize: vertical; min-height: 160px; }
+.story-input:focus,
+.story-textarea:focus {
+  outline: none;
+  border-color: var(--c-primary);
+  box-shadow: 0 0 0 3px var(--c-primary-tint);
+}
+
+/* The anonymity control. Given a full-width tap target of its own, because a
+   checkbox that is hard to hit is a checkbox that decides her privacy for her. */
+.story-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 20px 0 6px;
+  padding: 12px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.story-check input { width: 20px; height: 20px; flex: none; margin: 0; accent-color: var(--c-primary); }
+.story-hint {
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--c-text-soft);
+  margin-bottom: 4px;
+}
+
+.story-error {
+  margin: 14px 0 0;
+  padding: 11px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--c-primary-light);
+  color: var(--c-primary-dark);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.story-sent {
+  margin: 22px 0 8px;
+  padding: 16px;
+  border-radius: var(--radius);
+  background: var(--lv1-tint);
+  border: 1px solid var(--lv1);
+}
+.story-sent h3 { font-size: 1rem; color: var(--lv1); margin-bottom: 6px; }
+.story-sent p { font-size: 0.9rem; line-height: 1.55; color: var(--c-text); }
+
+.story-mine { margin-top: 30px; }
+.story-mine-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+  color: var(--c-text);
+}
+.story-mine-row {
+  padding: 12px 14px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  background: var(--c-surface);
+  margin-bottom: 9px;
+}
+.story-mine-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.story-mine-name { font-weight: 600; font-size: 0.95rem; min-width: 0; overflow-wrap: anywhere; }
+.story-status {
+  flex: none;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.story-status-pending { background: var(--lv2-tint); color: var(--lv2); }
+.story-status-published { background: var(--lv1-tint); color: var(--lv1); }
+.story-status-rejected { background: var(--c-bg); color: var(--c-text-soft); }
+.story-mine-note {
+  margin-top: 8px;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: var(--c-text-soft);
+}
+
+/* The reader. The gloss is the operator's hand-written English version of a
+   story written in another language, set apart so a reader can always tell
+   where her words end and someone else's begin. */
+.story-gloss {
+  margin-top: 30px;
+  padding-top: 18px;
+  border-top: 1px solid var(--c-border);
+}
+.story-gloss h2 { font-size: 1rem; margin-bottom: 10px; color: var(--c-text-soft); }
+.story-back { margin-top: 26px; text-align: center; }
+.btn-link {
+  background: none;
+  border: none;
+  padding: 8px;
+  color: var(--c-primary-dark);
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Six tabs share 390px (~65px each). The widest labels — Filipino
+   "Pagsusulit" and "Tuklasin" — are right at that limit, so labels never wrap
+   and the type steps down a notch on the narrowest phones. */
+.nav-btn > span:not(.nav-icon) { white-space: nowrap; }
+@media (max-width: 400px) {
+  .nav-btn { font-size: 0.64rem; padding: 8px 2px 6px; }
+}
 
 /* ===========================================================================
    ADMIN
@@ -1290,6 +2853,7 @@ body {
 /* ---- Admin tabs ---- */
 .admin-tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
   background: var(--c-surface);
   border-radius: var(--radius);
@@ -1299,7 +2863,9 @@ body {
 }
 
 .admin-tab {
-  flex: 1;
+  /* Four tabs no longer fit on one row on a phone. They wrap to two rows of
+     two rather than shrinking until the labels are unreadable. */
+  flex: 1 1 calc(50% - 2px);
   padding: 10px 8px;
   border: none;
   background: none;
@@ -1309,6 +2875,7 @@ body {
   color: var(--c-text-soft);
   cursor: pointer;
   transition: all 0.15s;
+  white-space: nowrap;
 }
 
 .admin-tab.active {
@@ -1421,38 +2988,118 @@ body {
 .admin-vocab-actions .edit-btn:hover { background: #e3f2fd; }
 .admin-vocab-actions .del-btn:hover { background: #f8d7da; }
 
-/* ---- Admin category grid ---- */
-.admin-cat-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 10px;
-}
-
-.admin-cat-card {
+/* ---- Admin category listing ----
+   A single-column listing rather than a tile grid. The grid gave every category
+   a large tile carrying its name and nothing else, so the one number an operator
+   needs — does this category have enough words to be usable — was invisible.
+   Each row now carries the total and the per-level split. */
+.admin-cat-row {
   background: var(--c-surface);
   border: 1px solid var(--c-border);
-  border-radius: var(--radius);
-  padding: 14px;
-  text-align: center;
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
-.admin-cat-icon { font-size: 1.8rem; margin-bottom: 6px; }
-.admin-cat-name { font-weight: 700; font-size: 0.95rem; }
-.admin-cat-name-yue { font-size: 0.8rem; color: var(--c-text-soft); margin-top: 2px; }
-
-/* Position number badge on each category card */
+/* Position number badge */
 .admin-cat-order {
-  display: inline-block;
+  flex-shrink: 0;
+  min-width: 24px;
+  text-align: center;
   font-size: 0.7rem;
   font-weight: 700;
   color: var(--c-text-soft);
   background: var(--c-bg);
   border-radius: 10px;
-  padding: 1px 8px;
-  margin-bottom: 6px;
+  padding: 2px 6px;
 }
 
-.admin-cat-actions { display: flex; gap: 6px; justify-content: center; margin-top: 8px; }
+.admin-cat-icon { font-size: 1.5rem; flex-shrink: 0; }
+
+.admin-cat-body { flex: 1 1 130px; min-width: 0; }
+.admin-cat-name { font-weight: 700; font-size: 0.95rem; }
+.admin-cat-name-yue { font-size: 0.78rem; color: var(--c-text-soft); margin-top: 1px; }
+.admin-cat-none { font-style: italic; opacity: 0.7; }
+
+.admin-cat-coverage { display: flex; gap: 4px; flex-shrink: 0; }
+
+/* Per-level word counts, flagged against the threshold the quiz engine uses:
+   it returns nothing below 4 words, so 0 and 1-3 are both unusable. */
+.cat-level {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 10px;
+  background: var(--c-bg);
+  color: var(--c-text-soft);
+  white-space: nowrap;
+}
+
+.cat-level.lv-empty { background: #f8d7da; color: #b71c1c; }
+.cat-level.lv-low   { background: #fff3cd; color: #856404; }
+.cat-level.lv-ok    { background: #d4edda; color: #1b5e20; }
+
+.admin-cat-total {
+  flex-shrink: 0;
+  min-width: 58px;
+  text-align: right;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.admin-cat-total span { font-weight: 400; font-size: 0.75rem; color: var(--c-text-soft); }
+
+/* On/off switch for a category. Switching off is not destructive — the words
+   stay — but it does take the category out of the learner's app and out of the
+   quiz pool, so it is a real change and is styled to be noticed. */
+.cat-switch {
+  flex-shrink: 0;
+  min-width: 44px;
+  padding: 5px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--c-border);
+  background: var(--c-bg);
+  color: var(--c-text-soft);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.cat-switch.is-on {
+  background: #d4edda;
+  border-color: #a8d5b5;
+  color: #1b5e20;
+}
+
+.cat-switch:hover { border-color: var(--c-text-soft); }
+
+/* A switched-off row stays readable — the counts are still worth seeing — but
+   must not look like something a learner can currently reach. */
+.admin-cat-row.is-off .admin-cat-icon,
+.admin-cat-row.is-off .admin-cat-body,
+.admin-cat-row.is-off .admin-cat-coverage,
+.admin-cat-row.is-off .admin-cat-total { opacity: 0.55; }
+
+.cat-off-badge {
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 10px;
+  border: 1px solid var(--c-border);
+  background: var(--c-bg);
+  color: var(--c-text-soft);
+  font-size: 0.65rem;
+  font-weight: 600;
+  vertical-align: middle;
+  /* Must not break mid-phrase: without this the badge renders as "switched" on
+     one line and "off" on the next when the row is tight. */
+  white-space: nowrap;
+}
+
+.admin-cat-actions { display: flex; gap: 6px; flex-shrink: 0; }
 
 .admin-cat-actions button {
   width: 34px;
@@ -1531,6 +3178,120 @@ body {
   background: var(--c-bg);
 }
 
+/* ---- People: employers, their helpers, learners with no employer ---- */
+.admin-subhead {
+  margin: 26px 0 6px;
+  font-size: 1rem;
+}
+
+.admin-card {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  margin: 14px 0 8px;
+  max-width: 680px;
+}
+
+.admin-result {
+  margin-left: 12px;
+  font-size: 0.85rem;
+  color: var(--c-text-soft);
+}
+
+.employer-card {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.employer-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.employer-name { font-size: 1.05rem; font-weight: 700; }
+
+.employer-email {
+  font-size: 0.82rem;
+  color: var(--c-text-soft);
+  word-break: break-all;
+}
+
+.employer-count {
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: var(--c-bg);
+  color: var(--c-text-soft);
+  white-space: nowrap;
+}
+
+.employer-meta {
+  font-size: 0.78rem;
+  color: var(--c-text-soft);
+  margin: 8px 0 10px;
+}
+.employer-actions { margin: 0 0 10px; }
+
+.helper-row { border-top: 1px solid var(--c-border); padding: 12px 0 2px; }
+.helper-name { font-weight: 600; font-size: 0.95rem; }
+.helper-meta { font-size: 0.78rem; color: var(--c-text-soft); margin-top: 2px; }
+.helper-stats { font-size: 0.85rem; color: #6c757d; margin-top: 6px; }
+.helper-none { font-size: 0.85rem; color: var(--c-text-soft); font-style: italic; padding-top: 4px; }
+.learner-stat-sub { font-size: 0.85rem; color: #6c757d; }
+.stat-warn { color: #8a5a00; font-weight: 600; }
+
+/* Four tabs share one row again once there is room for them. */
+@media (min-width: 620px) {
+  .admin-tab { flex: 1 1 0; }
+}
+
+/* ---- Discover feed (admin Posts tab) ---- */
+.admin-toolbar-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.post-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border-top: 1px solid var(--c-border);
+  padding: 12px 0;
+  flex-wrap: wrap;
+}
+.post-row-main { flex: 1 1 260px; min-width: 0; }
+.post-row-title { font-weight: 600; font-size: 0.95rem; }
+.post-row-meta {
+  font-size: 0.76rem;
+  color: var(--c-text-soft);
+  margin-top: 3px;
+  word-break: break-word;
+}
+.post-src { color: var(--c-primary-dark); }
+.post-row-badges { display: flex; gap: 6px; align-items: center; }
+.post-row-actions { display: flex; gap: 6px; }
+
+.post-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.post-badge.published { background: #e6f4ea; color: #1e6b3a; }
+.post-badge.draft { background: #fdecea; color: #a3281f; }
+.post-badge.auto { background: #e8eefc; color: #2b4c9b; }
+/* The topic. Neutral on purpose: unlike Published/Draft it is neither good news
+   nor bad, it is a label the operator may be about to change. */
+.post-badge.topic { background: #f1f3f5; color: #495057; text-transform: none; }
+
 /* ---- Modal form ---- */
 .modal-form {
   background: var(--c-surface);
@@ -1553,9 +3314,167 @@ body {
    RESPONSIVE — tablet / desktop
    =========================================================================== */
 
+/* ---- Header on narrow phones: wrap, don't clip ----
+   .header-inner is a single non-wrapping flex row. It now holds four things —
+   the language button, the voice button, the employer-portal icon and the name
+   badge — which together are wider than a 360–430 px phone. A flex row shrinks
+   its items rather than wrapping them, so the badge used to be pushed past the
+   right edge and silently cut off (worse in Filipino, where "Ilagay ang
+   pangalan" is longer than "Set your name").
+
+   Wrapping lets the controls drop onto their own line instead of losing them.
+   Because the row only breaks when the content genuinely does not fit, wide
+   screens keep the single-row layout. This mirrors the fix the admin/portal
+   header already uses further down this file.
+
+   --- Why `flex-wrap` alone was NOT enough (measured, 360px) --------------------
+   `flex-wrap` lets a CHILD move to its own line, but it does not help when a
+   single child is itself wider than the line. Measured at 360px:
+
+     .header-inner   w=360  (content box 328 after the 16px side padding)
+     .logo           w=162  min-content 162   ← will not shrink
+     .header-right   w=357  min-content 357   ← will not shrink, and 357 > 328
+
+   So `.header-right` had nowhere to wrap TO: 357px of unshrinkable row in a
+   328px content box, overflowing by 29px. `.header-inner` stayed 360 wide, but
+   the page reported `scrollWidth: 373` — the leftover 13px after `.logo` and
+   `.header-right` were laid out on one line (`16 + 357 = 373`).
+
+   The badge is what pins `.header-right`'s floor: `#learner-badge` is
+   `min-content 113px` ("Set your name" at 12.8px, `white-space: nowrap`), and
+   the five icon buttons before it add 194px + 5 gaps of 10px = 325px. Even
+   alone on its own line the group cannot fit 328px while the badge refuses to
+   shrink below its text.
+
+   Two independent fixes, both needed:
+     1. `.header-right` wraps internally, so its own min-content drops to the
+        width of its WIDEST CHILD (a single 38px button) plus the badge — small
+        enough to fit any phone. This is the load-bearing one.
+     2. `.logo` is allowed to shrink (`min-width: 0`), so the wordmark yields
+        rather than the controls. It is the only piece here with no function to
+        lose — a clipped "CantoBuddy" still reads. See `.logo-text` below,
+        which ellipsises instead of wrapping to a second line.
+
+   Both are scoped to phones; a wide screen has room for everything and keeps
+   the original single line. */
+.app-header .header-inner {
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+
+.app-header .header-right {
+  margin-left: auto;
+}
+
+@media (max-width: 479px) {
+  /* (1) The control group wraps internally. `justify-content: flex-end` keeps
+     the controls right-aligned when they land on a second line, matching the
+     single-line look. `min-width: 0` removes the min-content floor on the group
+     itself so its own children (not the group) decide the wrap point. */
+  .app-header .header-right {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    min-width: 0;
+    row-gap: 6px;
+    /* The controls are the point of the header; the wordmark is decoration.
+       Let the group claim the full line before the logo takes any of it. */
+    flex: 1 1 auto;
+  }
+  /* (2) The wordmark yields first. `min-width: 0` is what actually lets it
+     shrink — a flex item defaults to min-width:auto and would otherwise hold
+     its full 162px. */
+  .app-header .logo {
+    min-width: 0;
+    flex: 0 1 auto;
+  }
+  .app-header .logo-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+/* ---- The category filter must not eat the screen ----
+   MEASURED, not guessed: at 390px the filter box was 586px tall (69% of an
+   844px screen) and the first vocab card began at y=787px; at 360px it was
+   712px (84%) and the card AND its sound button were entirely below the fold.
+   Nineteen chips, wrapping into ~13 rows, is what does it. The user tapped a
+   category to see words and was shown a wall of categories.
+
+   On a phone the chip group becomes ONE horizontally-scrolling row, so the
+   filter block is roughly one chip tall. Every category stays reachable by
+   swiping — none are removed or hidden behind a "more" menu, because a helper
+   looking for 照顧老人 should not have to discover a second interaction.
+
+   Scoped to the category row only. The level row has four chips and fits on
+   two lines without harm, so it keeps wrapping. */
+@media (max-width: 479px) {
+  .filter-row:has(#filter-cat) {
+    align-items: flex-start;
+  }
+  #filter-cat {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    /* `min-width: 0` is load-bearing, and `width:100%` is wrong here.
+       A flex item defaults to min-width:auto, which refuses to shrink below its
+       content — so the 19-chip row would force this element wider than the
+       card, and the PAGE grew a horizontal scrollbar instead of the row
+       scrolling within itself. That is a real bug (caught at 360px and 320px by
+       tools/ui-browse-fold.js after the first attempt at this fix used
+       width:100%), and min-width:0 is the fix: it lets the row be narrower than
+       its contents, which is the precondition for overflow-x to do anything. */
+    flex: 1 1 auto;
+    min-width: 0;
+    padding-bottom: 4px;
+    /* Momentum scrolling and no visible scrollbar: the row should read as a
+       row of chips, not as a widget. A fade at the right edge is the affordance
+       that more chips exist (below). */
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  #filter-cat::-webkit-scrollbar { display: none; }
+  #filter-cat .chip {
+    flex: 0 0 auto;      /* never shrink a chip to fit — that clips its label */
+    white-space: nowrap;
+  }
+  /* The right-edge fade. Drawn on the wrapper, not the scroller, so it does not
+     scroll away with the chips. */
+  .filter-row:has(#filter-cat) {
+    position: relative;
+  }
+  .filter-row:has(#filter-cat)::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 4px;
+    width: 28px;
+    pointer-events: none;
+    background: linear-gradient(to right, transparent, var(--c-surface));
+  }
+  /* NO `scroll-behavior: smooth` here, deliberately. The self-nudge in app.js
+     animates scrollLeft frame by frame over ~1.1s with an easing curve; letting
+     the browser also smooth-scroll each of those assignments would fight the
+     animation and produce a stutter. Smooth scrolling is only ever wanted for
+     a *jump*, and there is no jump here. */
+
+  /* The nudge is decorative, and for some people self-moving content is
+     genuinely unpleasant — it is one of the classic motion-sickness triggers.
+     Anyone who has asked their device for less motion gets a still row; the
+     right-edge fade and the ability to swipe are both unaffected. */
+  @media (prefers-reduced-motion: reduce) {
+    #filter-cat { scroll-behavior: auto; }
+  }
+}
+
 @media (min-width: 480px) {
-  .level-cards { grid-template-columns: 1fr 1fr 1fr; }
-  .cat-strip { grid-template-columns: repeat(3, 1fr); }
+  /* The level cards deliberately stay one per row. They used to go three-across
+     here, which worked for tall centred cards but not for rows: at 480px each
+     column would be ~150px, too narrow for "Basic greetings & common words"
+     beside a 44px icon. A stack of three full-width rows reads better and keeps
+     the phone and the tablet the same shape. */
+  .cat-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .hero-title { font-size: 1.9rem; }
   .stats-grid { grid-template-columns: 1fr 1fr 1fr; }
 }
@@ -1880,6 +3799,1007 @@ body {
 .sharing-meta { font-size: 0.74rem; color: var(--c-text-soft); margin-top: 2px; }
 .sharing-row .btn { flex-shrink: 0; }
 
+/* The way in for a code the employer read out loud or wrote down. */
+.sharing-code-btn { margin-top: 14px; }
+
+/* ---- Rewards: credits and the sticker album ---- */
+.rewards-card { margin-bottom: 12px; }
+
+.rewards-balance {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  margin: 4px 0 2px;
+}
+.rewards-credits {
+  font-size: 2.1rem;
+  font-weight: 700;
+  color: var(--c-primary);
+  line-height: 1.1;
+}
+.rewards-credit-word { font-size: 0.92rem; color: var(--c-text-soft); font-weight: 600; }
+.rewards-count {
+  margin-left: auto;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--c-text-soft);
+  background: #f1f1f5;
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+.rewards-hint { font-size: 0.82rem; color: var(--c-text-soft); line-height: 1.5; margin: 8px 0 12px; }
+
+.rewards-next { background: #fff8f8; border: 1px solid #f6dfe1; border-radius: 10px; padding: 10px 12px; }
+.rewards-next-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--c-text-soft);
+}
+.rewards-next-name { font-weight: 600; font-size: 0.9rem; margin: 3px 0 7px; }
+.rewards-complete { font-weight: 600; color: var(--c-primary); font-size: 0.9rem; margin: 4px 0 12px; }
+
+/* ---- The album ---------------------------------------------------------
+   Twenty-four stickers in four shelves. The brief was "funny and nice", so
+   the tile is drawn to read as an actual sticker rather than as a table cell:
+   a tinted squircle, a white ring and a soft shadow (which is what makes a
+   sticker look like it is stuck ON something), and a small alternating tilt so
+   a grid of them looks collected rather than generated.
+
+   The four shelf colours are the existing level tokens — a reward shelf is not
+   a reason to invent a second palette. --tier-line is written out per shelf
+   rather than derived with color-mix(), which is newer than some of the phones
+   this app runs on. */
+.sticker-album { margin-top: 16px; display: grid; gap: 18px; }
+
+.sticker-shelf-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--c-text-soft);
+  margin-bottom: 8px;
+}
+.sticker-shelf-count { font-variant-numeric: tabular-nums; letter-spacing: 0; }
+
+/* minmax(0, 1fr) and not 1fr: a 1fr track has a min-content floor, and these
+   tracks hold text. See the note in the project memory — it overflows by a few
+   pixels at 320px and nothing else notices. */
+.sticker-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.sticker-tile {
+  --tier: var(--c-primary);
+  --tier-tint: var(--c-primary-tint);
+  --tier-line: #f6cdd1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 1px;
+  min-width: 0;
+  padding: 11px 6px 9px;
+  border-radius: 15px;
+  border: 1px solid var(--tier-line);
+  background: var(--tier-tint);
+  font: inherit;
+  color: var(--c-text);
+  text-align: center;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sticker-tile.tier-first    { --tier: var(--lv1);       --tier-tint: var(--lv1-tint);       --tier-line: #c3e3d9; }
+.sticker-tile.tier-everyday { --tier: var(--lv2);       --tier-tint: var(--lv2-tint);       --tier-line: #eed9b8; }
+.sticker-tile.tier-out      { --tier: var(--lv3);       --tier-tint: var(--lv3-tint);       --tier-line: #c6dbf3; }
+.sticker-tile.tier-local    { --tier: var(--c-primary); --tier-tint: var(--c-primary-tint); --tier-line: #f6cdd1; }
+
+/* The sticker itself: white ring + shadow, and a tilt that repeats every three
+   so the shelf looks hand-placed. */
+.sticker-tile.is-unlocked {
+  cursor: pointer;
+  box-shadow: 0 0 0 3px #fff, 0 3px 9px rgba(26, 26, 46, 0.13);
+  transform: rotate(var(--tilt, 0deg));
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.sticker-tile.is-unlocked:nth-child(3n + 1) { --tilt: -2.4deg; }
+.sticker-tile.is-unlocked:nth-child(3n + 2) { --tilt: 1.5deg; }
+.sticker-tile.is-unlocked:nth-child(3n)     { --tilt: -0.8deg; }
+.sticker-tile.is-unlocked:hover,
+.sticker-tile.is-unlocked:focus-visible {
+  transform: rotate(0deg) translateY(-2px);
+  box-shadow: 0 0 0 3px #fff, 0 7px 16px rgba(26, 26, 46, 0.2);
+  outline: none;
+}
+.sticker-tile.is-unlocked:active { transform: rotate(0deg) scale(0.96); }
+
+/* Not collected yet: the real emoji, greyed. Twenty-four padlocks read as a
+   wall of nothing; a faint silhouette of what is coming reads as a shelf with
+   gaps in it, which is the thing that makes someone want to fill them. */
+.sticker-tile.is-locked {
+  background: #f5f5f8;
+  border-style: dashed;
+  border-color: #dcdce4;
+  box-shadow: none;
+}
+.sticker-tile.is-locked .sticker-emoji { filter: grayscale(1); opacity: 0.26; }
+
+.sticker-emoji {
+  font-size: 1.85rem;
+  line-height: 1.15;
+  filter: drop-shadow(0 2px 3px rgba(26, 26, 46, 0.16));
+}
+.sticker-tile.is-locked .sticker-emoji { filter: grayscale(1); opacity: 0.26; }
+.sticker-name {
+  font-size: 0.67rem;
+  font-weight: 700;
+  margin-top: 3px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  color: var(--c-text);
+}
+.sticker-tile.is-locked .sticker-name { color: var(--c-text-soft); }
+.sticker-canto { font-size: 0.76rem; color: var(--tier); font-weight: 600; margin-top: 1px; }
+.sticker-tile.is-locked .sticker-canto { display: none; }
+
+/* The cost, as a pill — it is the number that matters on a locked tile. */
+.sticker-cost {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 0.64rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--c-text-soft);
+  background: #fff;
+  border: 1px solid #e2e2ea;
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+
+/* The "new sticker" block on the quiz result screen. */
+.sticker-celebrate {
+  margin: 18px auto 0;
+  max-width: 340px;
+  background: #fff8f8;
+  border: 1px solid #f3c9cd;
+  border-radius: 16px;
+  padding: 16px 14px 14px;
+}
+.sticker-celebrate-title {
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--c-primary);
+}
+.sticker-celebrate-row { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px; margin: 12px 0 8px; }
+.sticker-celebrate-tile {
+  font-size: 2.7rem;
+  line-height: 1;
+  filter: drop-shadow(0 4px 6px rgba(26, 26, 46, 0.2));
+  animation: sticker-pop 0.55s cubic-bezier(0.2, 1.35, 0.5, 1) both;
+}
+.sticker-celebrate-tile:nth-child(2) { animation-delay: 0.09s; }
+.sticker-celebrate-tile:nth-child(3) { animation-delay: 0.18s; }
+.sticker-celebrate-tile:nth-child(4) { animation-delay: 0.27s; }
+@keyframes sticker-pop {
+  0%   { transform: scale(0.3) rotate(-16deg); opacity: 0; }
+  65%  { transform: scale(1.14) rotate(5deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+.sticker-celebrate-body { font-size: 0.86rem; color: var(--c-text); font-weight: 600; }
+.sticker-celebrate-say {
+  margin-top: 4px;
+  font-size: 0.8rem;
+  color: var(--c-text-soft);
+  font-weight: 500;
+}
+
+/* ---- Share row ---------------------------------------------------------
+   One consistent strip under anything worth sharing, so the answer to "how do
+   I show my friend this?" is in the same place on the album, on a story and on
+   an article. WhatsApp first because that is where this community talks; the
+   picture button second because a text-only post dies in a busy group chat.
+
+   The label is DARK GREEN on the brand green, not white. White on #25d366 is
+   about 2.1:1 — it is the colour WhatsApp uses, but it is not readable at
+   0.8rem. Dark green on the same background clears 6:1 and still reads as
+   WhatsApp at a glance, which is the only reason the button exists. */
+.share-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+.share-row-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 10px;
+  border-radius: 12px;
+  border: 1px solid var(--c-border);
+  background: #fff;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--c-text);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.share-row-btn .share-glyph { width: 17px; height: 17px; }
+.share-row-btn:active { transform: scale(0.98); }
+.share-row-btn--wa {
+  background: #25d366;
+  border-color: #25d366;
+  color: #0b3d2c;
+  font-weight: 700;
+}
+.share-row-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---- Social icons on a culture post -----------------------------------------
+   Three icon-only buttons, one per network, under a culture article. Icons
+   only: the brand shapes are recognised before any label is read, and the
+   brand name lives in the title/aria-label rather than on the button face.
+   44px keeps them a real touch target at 320px. */
+.social-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+.social-row-btn {
+  width: 44px;
+  height: 44px;
+  min-width: 0;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--c-border);
+  background: var(--c-surface);
+  color: var(--c-text-soft);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.social-row-btn .share-glyph { width: 19px; height: 19px; display: block; }
+.social-row-btn:active { transform: scale(0.95); }
+.social-row-btn--facebook { color: #1877f2; }
+.social-row-btn--instagram { color: #c13584; }
+.social-row-btn--whatsapp { color: #1faa54; }
+
+/* ---- Share hub ---------------------------------------------------------
+   The Share page lists the different things a helper can show a friend, each
+   with its own picture. Cards rather than buttons because the picture IS the
+   pitch: a friend who sees the sticker album understands the app faster than
+   one who reads about it. */
+.share-hub { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; margin: 14px 0 4px; }
+.share-hub-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--c-border);
+  background: var(--c-surface);
+  font: inherit;
+  color: var(--c-text);
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.share-hub-card:active { transform: scale(0.99); }
+.share-hub-card:disabled { opacity: 0.55; cursor: default; }
+.share-hub-icon {
+  flex: none;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-size: 1.35rem;
+  background: var(--c-primary-tint);
+}
+.share-hub-text { min-width: 0; flex: 1; overflow: hidden; }
+.share-hub-title { display: block; font-size: 0.9rem; font-weight: 700; }
+.share-hub-sub {
+  display: block;
+  font-size: 0.76rem;
+  color: var(--c-text-soft);
+  line-height: 1.35;
+  margin-top: 1px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.share-hub-go { flex: none; color: var(--c-text-soft); font-size: 1.1rem; }
+.share-hub-heading {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--c-text-soft);
+  margin-top: 22px;
+}
+
 /* ---- Link on the portal's reset card ---- */
 .portal-link { color: var(--c-primary); font-weight: 600; text-decoration: none; }
 .portal-link:hover { text-decoration: underline; }
+
+/* Prominent "how to get started" callout, pinned to the TOP of the employer
+   sign-in card so a first-time employer sees it before the form. Uses a left
+   accent bar rather than a filled block so it reads as helpful, not an alert. */
+.portal-promo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 22px;
+  padding: 12px 14px;
+  background: var(--c-surface-alt, #f1f5f9);
+  border: 1px solid var(--c-primary, #1d3557);
+  border-left: 4px solid var(--c-primary, #1d3557);
+  border-radius: var(--radius-sm, 8px);
+  color: var(--c-text, #1d3557);
+  text-decoration: none;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+.portal-promo:hover { background: var(--c-surface-alt-hover, #e7eef6); text-decoration: none; }
+.portal-promo .pp-emoji { font-size: 1.25rem; line-height: 1; }
+.portal-promo strong { color: var(--c-primary, #1d3557); }
+
+/* ===========================================================================
+   Employer landing content on /portal
+   ===========================================================================
+
+   Server-rendered into #portal-auth by seo.js#portalPage(), so /portal is a
+   landing page rather than a bare sign-in form.
+
+   It sits BELOW the sign-in card deliberately: a returning employer wants the
+   form and gets it without scrolling, while a cold visitor (and a crawler,
+   which reads the whole document either way) gets the full pitch underneath.
+
+   Capped at 680px rather than .portal-main's 800px because this is a reading
+   column, not a dashboard — the lede and the FAQ want a comfortable measure.
+   =========================================================================== */
+.portal-landing {
+  max-width: 680px;
+  margin: 4px auto 44px;
+  padding: 32px 26px 28px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-lg);
+  color: var(--c-text);
+  line-height: 1.65;
+  /* The sticky header would otherwise cover the H1 when the promo card links
+     down to #employers. */
+  scroll-margin-top: 72px;
+}
+
+.portal-landing .pl-eyebrow {
+  margin: 0 0 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--c-primary);
+}
+
+.portal-landing .pl-h1 {
+  margin: 0 0 14px;
+  font-size: clamp(1.45rem, 4.6vw, 1.95rem);
+  line-height: 1.25;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.portal-landing .pl-lede {
+  margin: 0 0 14px;
+  font-size: 1.05rem;
+  color: var(--c-text-soft);
+}
+
+.portal-landing h2 {
+  margin: 32px 0 10px;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.portal-landing h3 {
+  margin: 20px 0 6px;
+  font-size: 0.98rem;
+  font-weight: 600;
+}
+
+.portal-landing p { margin: 0 0 12px; }
+.portal-landing a { color: var(--c-primary-dark); text-decoration: underline; }
+.portal-landing strong { font-weight: 600; }
+
+.portal-landing .pl-steps,
+.portal-landing .pl-tips { margin: 0 0 14px; padding-left: 22px; }
+.portal-landing .pl-steps li,
+.portal-landing .pl-tips li { margin-bottom: 9px; }
+
+/* "What you can see / cannot see" — the trust section, and the reason an
+   employer says yes. Two tinted panels side by side so the contrast between
+   them is visual, not something to read carefully. */
+.portal-landing .pl-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 4px 0 14px;
+}
+.portal-landing .pl-col {
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--c-border);
+  background: var(--c-bg);
+}
+.portal-landing .pl-col h3 { margin: 0 0 8px; font-size: 0.9rem; }
+.portal-landing .pl-col ul { margin: 0; padding-left: 18px; }
+.portal-landing .pl-col li { margin-bottom: 5px; font-size: 0.9rem; }
+.portal-landing .pl-yes {
+  background: #f1f8f4;
+  border-color: #cfe8d8;
+}
+.portal-landing .pl-yes h3 { color: #2f7a52; }
+.portal-landing .pl-no {
+  background: #f7f8fa;
+  border-color: var(--c-border);
+}
+.portal-landing .pl-no h3 { color: var(--c-text-soft); }
+
+.portal-landing .pl-faq { margin-bottom: 6px; }
+.portal-landing .pl-faq h3 { margin-top: 18px; }
+.portal-landing .pl-faq p { color: var(--c-text-soft); }
+
+.portal-landing .pl-cta { margin: 26px 0 10px; }
+.portal-landing .pl-cta .cta {
+  display: inline-block;
+  padding: 13px 24px;
+  border-radius: 999px;
+  background: var(--c-primary);
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 2px 10px var(--c-shadow);
+}
+.portal-landing .pl-cta .cta:hover { background: var(--c-primary-dark); }
+.portal-landing .pl-more { font-size: 0.92rem; }
+
+@media (max-width: 560px) {
+  .portal-landing { padding: 26px 18px 22px; border-radius: var(--radius); }
+  .portal-landing .pl-split { grid-template-columns: 1fr; }
+}
+
+/* ---- Reports: platform totals, activity chart, employer engagement ---- */
+.report-chart {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  padding: 10px 6px 4px;
+  margin: 4px 0 10px;
+}
+
+/* The SVG scales to its container, so one markup serves a 320px phone and a
+   desktop. display:block removes the inline-baseline gap under the graphic. */
+.report-svg { display: block; width: 100%; height: auto; }
+
+.report-notes { margin: 0 0 4px; }
+
+.report-note {
+  font-size: 0.84rem;
+  color: var(--c-text-soft);
+  padding: 3px 0;
+}
+.report-note strong { color: var(--c-text); }
+
+/* Range chips sit in the admin's own row, not the learner app's filter bar. */
+#admin-report-range { margin: 4px 0 10px; }
+
+.report-export {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.report-export .btn { text-decoration: none; }
+
+/* ---- Learner statistics (inside My Progress) ------------------------------ */
+
+/* The streak leads with a number big enough to read at arm's length. It is the
+   one figure with a reason attached: the only thing she can lose by not coming
+   back tomorrow. Warm tint so it reads as a reward, not as an error. */
+.stats-streak { background: #fffdf7; border-color: #ffe08a; }
+.stats-streak h4 { color: #8a5a00; }
+.stats-streak-row { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.stats-streak-value { font-size: 1.9rem; font-weight: 700; line-height: 1.15; color: #8a5a00; }
+.stats-streak-suffix { font-size: 0.9rem; color: var(--c-text-soft); }
+.stats-streak-sub { font-size: 0.84rem; color: var(--c-text-soft); margin-top: 2px; }
+.stats-streak-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px solid #f3e6c8;
+  font-size: 0.78rem;
+  color: var(--c-text-soft);
+}
+
+/* Three figures across, so "this week" reads at a glance. */
+.stats-week { display: flex; gap: 10px; }
+.stats-week > div { flex: 1; text-align: center; min-width: 0; }
+.stats-week-num { font-size: 1.3rem; font-weight: 700; }
+.stats-week-lbl { font-size: 0.72rem; color: var(--c-text-soft); margin-top: 1px; }
+.stats-compare {
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px solid #f0f0f0;
+  font-size: 0.78rem;
+  color: var(--c-text-soft);
+}
+
+/* Range chips mirror the admin's report ranges, so the two views agree on what
+   "the last 30 days" means. */
+.stats-ranges { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 10px; }
+.stats-range {
+  border: 1px solid var(--c-border);
+  background: var(--c-surface);
+  color: var(--c-text-soft);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+.stats-range.active {
+  background: var(--c-primary);
+  border-color: var(--c-primary);
+  color: #fff;
+}
+
+.stats-axis {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 2px;
+  font-size: 0.68rem;
+  color: var(--c-text-soft);
+}
+.stats-chart-hint { text-align: center; font-size: 0.68rem; color: #a0a0ad; padding: 2px 0 4px; }
+
+.stats-type { margin-bottom: 12px; }
+.stats-type:last-child { margin-bottom: 2px; }
+.stats-type-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.stats-type-name { font-weight: 600; font-size: 0.86rem; }
+.stats-type-num { font-size: 0.78rem; color: var(--c-text-soft); white-space: nowrap; }
+
+/* ---- Site footer ----------------------------------------------------------
+   Holds the crawlable links into the server-rendered vocabulary pages (see
+   seo.js). Kept visually quiet — it is a real navigational aid for anyone who
+   scrolls to the bottom, and the only non-JS path into the content layer for
+   a crawler, so it must stay in the layout rather than be hidden. */
+.site-footer {
+  border-top: 1px solid var(--c-border);
+  background: var(--c-surface);
+  margin-top: 28px;
+  padding: 22px 16px 26px;
+}
+.site-footer-inner { max-width: var(--max-w); margin: 0 auto; }
+.site-footer-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--c-text-soft);
+  margin-bottom: 12px;
+}
+.site-footer-links { display: flex; flex-wrap: wrap; gap: 8px 10px; }
+.site-footer-links a {
+  font-size: 0.85rem;
+  color: var(--c-text-soft);
+  text-decoration: none;
+  border: 1px solid var(--c-border);
+  border-radius: 999px;
+  padding: 6px 13px;
+  transition: color 0.15s, border-color 0.15s;
+}
+.site-footer-links a:hover { color: var(--c-primary); border-color: var(--c-primary); }
+
+@media (min-width: 768px) {
+  .site-footer { padding: 26px 20px 30px; }
+}
+
+/* ===========================================================================
+   INSTALL PROMPT — "keep CantoBuddy on your phone"
+   =========================================================================== */
+
+/* Scoped by the id so it beats the base .modal-box (340px) on specificity, not
+   on source order. */
+#install-modal .install-box { max-width: 360px; }
+#install-modal h3,
+#install-modal .modal-hint { text-align: center; }
+
+.install-icon { font-size: 2.6rem; margin-bottom: 8px; text-align: center; }
+
+/* The per-phone branch heading, e.g. "On iPhone / iPad". */
+.install-sub {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--c-text-soft);
+  margin: 2px 0 10px;
+}
+
+/* Numbered steps. A CSS counter rather than <ol> markers so the number can be a
+   filled circle, which reads as a sequence at a glance on a small screen. */
+.install-steps { counter-reset: step; list-style: none; margin: 0 0 16px; }
+.install-steps li {
+  counter-increment: step;
+  position: relative;
+  padding-left: 32px;
+  margin-bottom: 12px;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+.install-steps li:last-child { margin-bottom: 0; }
+.install-steps li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 1px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--c-primary);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* The in-app-browser explanation. Not a procedure — a "not here, not yet" — so
+   it reads as a note rather than a numbered list. */
+.install-note {
+  margin: 0 0 16px;
+  padding: 11px 13px;
+  background: var(--c-bg);
+  border-left: 3px solid var(--c-accent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+/* Filipino labels are long ("Idagdag sa Home screen") — let the buttons wrap
+   and share the row instead of overflowing the 360px box. */
+#install-modal .modal-actions { flex-wrap: wrap; }
+#install-modal .modal-actions .btn { flex: 1 1 auto; }
+
+/* ===========================================================================
+   FEEDBACK — "tell us what you think"
+   =========================================================================== */
+
+/* Same scoping trick as the install box: beat the base .modal-box on
+   specificity rather than on source order, so a later change to the base width
+   cannot silently widen this dialog past a phone. */
+#feedback-modal .feedback-box { max-width: 400px; }
+#feedback-modal h3,
+#feedback-modal .modal-hint { text-align: center; }
+
+.feedback-icon { font-size: 2.6rem; margin-bottom: 8px; text-align: center; }
+
+/* 16px, not the usual 0.9rem: iOS Safari zooms the whole page when a form
+   control smaller than 16px receives focus, and a zoomed-in dialog on a phone
+   is how "I typed my message and the screen jumped" happens. */
+.feedback-input {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--c-text);
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  resize: vertical;
+}
+.feedback-input:focus {
+  outline: none;
+  border-color: var(--c-primary);
+  background: var(--c-surface);
+}
+.feedback-contact { margin-bottom: 8px; }
+
+.feedback-label {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--c-text-soft);
+  margin-bottom: 6px;
+}
+
+/* The anonymity promise, given its own line rather than folded into the hint:
+   it is the reason someone will actually write the complaint. */
+.feedback-note {
+  margin: 0 0 14px;
+  padding: 9px 12px;
+  background: var(--c-bg);
+  border-left: 3px solid var(--c-secondary);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--c-text-soft);
+}
+
+/* Filipino and Chinese labels are long ("Magpadala ng puna", "给我们反馈") —
+   let the buttons wrap and share the row instead of overflowing the box. */
+#feedback-modal .modal-actions { flex-wrap: wrap; }
+#feedback-modal .modal-actions .btn { flex: 1 1 auto; }
+
+/* The card at the bottom of My Progress, and the footer link. */
+.feedback-card-hint {
+  font-size: 0.85rem;
+  color: var(--c-text-soft);
+  line-height: 1.45;
+  margin: 0 0 12px;
+}
+
+.footer-feedback {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--c-text-soft);
+  background: none;
+  border: 1px solid var(--c-border);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.footer-feedback:hover { color: var(--c-primary); border-color: var(--c-primary); }
+
+/* Employer portal: the feedback form is inline on the dashboard, so it is capped
+   rather than stretched across a desktop monitor. */
+.portal-feedback { max-width: 560px; }
+.portal-feedback .form-error:empty { display: none; }
+
+/* ===========================================================================
+   ADMIN · FEEDBACK
+   =========================================================================== */
+
+/* The unread count on the tab, so the operator can tell something is waiting
+   without opening the tab. */
+.tab-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--c-primary);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.5;
+  vertical-align: 1px;
+}
+
+.feedback-item {
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  background: var(--c-surface);
+}
+
+.feedback-item-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.fb-role { font-size: 0.82rem; font-weight: 600; }
+.fb-when { margin-left: auto; font-size: 0.78rem; color: var(--c-text-soft); }
+
+/* The status pill. Colour carries the workflow state at a glance, which is the
+   entire reason the status exists: an unanswered message is how you lose the
+   trust of the person who bothered to write. */
+.fb-status {
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.fb-status-new       { background: #fdece0; color: #a8541c; }
+.fb-status-reviewing { background: #e0f2f0; color: #1f6f66; }
+.fb-status-resolved  { background: #e3f4ea; color: #2c6e4c; }
+/* Stories reuse the same pill, with the states a story actually has. Pending
+   shares the amber of "new" because it means the same thing here — somebody is
+   waiting on the operator. */
+.fb-status-pending   { background: #fdece0; color: #a8541c; }
+.fb-status-published { background: #e3f4ea; color: #2c6e4c; }
+.fb-status-rejected  { background: #eceef1; color: #5b6570; }
+
+/* ---- Stories in the moderation queue ---- */
+.story-item-title {
+  font-size: 1.05rem;
+  line-height: 1.35;
+  margin: 2px 0 6px;
+  color: var(--c-text);
+  overflow-wrap: anywhere;
+}
+/* Her words, in full. The operator has to read the whole thing to moderate it,
+   so this is not clamped — it is the one place in the admin area where a wall
+   of text is the point. */
+.story-quote {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--c-text);
+  overflow-wrap: anywhere;
+}
+.story-edit {
+  margin: 12px 0;
+  padding: 14px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  background: var(--c-bg);
+}
+.story-edit textarea,
+.story-edit input[type="text"] {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  font-size: 0.95rem;
+  color: var(--c-text);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  padding: 9px 10px;
+}
+.story-edit textarea { line-height: 1.55; resize: vertical; }
+
+/* The message itself — the reason the operator opened the tab, so it gets the
+   most space and the darkest ink. */
+.fb-quote {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--c-text);
+  white-space: pre-wrap;      /* a line break she typed is part of what she said */
+  overflow-wrap: anywhere;    /* a pasted URL must not widen the page */
+}
+
+.fb-meta { font-size: 0.78rem; color: var(--c-text-soft); margin-bottom: 10px; }
+
+.fb-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* ---- Living (situational support passages) --------------------------------
+   Reuses .post-card (list), .post-hero / .post-content (article) and .share-row
+   (share). Everything below is Living-specific: the grouped shelf, the
+   Facebook-style reaction bar, and the comment thread. Kept on the same design
+   tokens as the rest of the app so it reads as one product, not a bolt-on. */
+
+/* The Discover shelf: passages grouped by situation, newest first per group. */
+.living-group { margin-bottom: 22px; }
+.living-group:last-child { margin-bottom: 0; }
+.living-group-title {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 1.02rem; font-weight: 700; color: var(--c-text);
+  margin: 0 0 10px;
+}
+.living-group-icon {
+  flex: 0 0 auto;
+  width: 30px; height: 30px; border-radius: 9px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--c-primary-tint); font-size: 1.05rem;
+}
+.living-group-list { display: flex; flex-direction: column; gap: 10px; }
+
+/* The Facebook-style footer on each card (reacts / comments / share). */
+.living-card-footer {
+  display: flex; align-items: center; gap: 14px;
+  margin-top: 4px; font-size: 0.8rem; color: var(--c-text-soft);
+}
+.living-card-stat { display: inline-flex; align-items: center; gap: 4px; }
+
+/* Reaction bar: summary chips (tap to toggle) plus a hidden picker. */
+.living-reactions { margin-top: 18px; }
+.living-react-summary {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; border-radius: 12px;
+  background: var(--c-surface); border: 1px solid var(--c-border);
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.living-react-total { font-weight: 700; color: var(--c-text); font-size: 0.9rem; }
+.living-react-chips { display: flex; align-items: center; gap: 3px; flex-wrap: wrap; }
+.living-react-hint { font-size: 0.82rem; color: var(--c-text-soft); }
+.living-react-chip {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 3px 9px; border-radius: 999px;
+  background: var(--c-primary-tint); border: 1px solid transparent;
+  font: inherit; font-size: 0.9rem; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.living-react-chip.is-active { border-color: var(--c-primary-dark); }
+.living-react-emoji { font-size: 1.05rem; line-height: 1; }
+.living-react-count { font-size: 0.78rem; font-weight: 700; color: var(--c-text); }
+.living-react-picker {
+  display: flex; gap: 4px; margin-top: 8px; padding: 6px;
+  border-radius: 999px; background: var(--c-surface);
+  border: 1px solid var(--c-border); box-shadow: 0 2px 8px var(--c-shadow);
+  width: fit-content;
+}
+.living-react-pick {
+  width: 40px; height: 40px; border-radius: 50%;
+  border: none; background: transparent; cursor: pointer;
+  font-size: 1.45rem; line-height: 1; padding: 0;
+  transition: transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+}
+.living-react-pick:hover, .living-react-pick:active { transform: scale(1.25); }
+
+/* Comment thread. */
+.living-comments { margin-top: 22px; }
+.living-comments-title { font-size: 1.05rem; font-weight: 700; margin: 0 0 10px; color: var(--c-text); }
+.living-comments-list { display: flex; flex-direction: column; gap: 10px; }
+.living-comment {
+  background: var(--c-surface); border: 1px solid var(--c-border);
+  border-radius: 12px; padding: 10px 12px;
+}
+.living-comment-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 8px; margin-bottom: 4px;
+}
+.living-comment-name { font-weight: 700; font-size: 0.85rem; color: var(--c-text); }
+.living-comment-date { font-size: 0.72rem; color: var(--c-text-soft); white-space: nowrap; }
+.living-comment-body {
+  font-size: 0.92rem; line-height: 1.5; color: var(--c-text);
+  white-space: pre-wrap; word-break: break-word;
+}
+.living-comments-empty { font-size: 0.86rem; color: var(--c-text-soft); font-style: italic; }
+.living-comment-form { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.living-comment-name-input,
+.living-comment-input {
+  width: 100%; box-sizing: border-box;
+  font: inherit; font-size: 0.92rem; color: var(--c-text);
+  background: var(--c-surface); border: 1px solid var(--c-border);
+  border-radius: 12px; padding: 11px 12px;
+}
+.living-comment-name-input { min-height: 44px; }
+.living-comment-input { min-height: 76px; resize: vertical; }
+.living-comment-name-input:focus,
+.living-comment-input:focus {
+  outline: none; border-color: var(--c-primary-dark);
+  box-shadow: 0 0 0 3px var(--c-primary-tint);
+}
+.living-comment-submit { align-self: flex-end; }

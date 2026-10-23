@@ -1,0 +1,19 @@
+category,category_id,current_total,empty_combos,need_add_to_clear_empty,new_total_if_cleared
+"Greetings",1,6,2,8,14
+"Common",2,6,2,8,14
+"Kitchen",3,9,0,0,9
+"Cleaning",4,5,1,4,9
+"Children",5,5,1,4,9
+"Daily Life",6,6,1,4,10
+"Shopping",7,6,1,4,10
+"Weather",8,6,0,0,6
+"Home",9,6,1,4,10
+"Safety",10,10,0,0,10
+"Elder Care",11,19,0,0,19
+"Health & Symptoms",12,8,0,0,8
+"Medicine & Appointments",13,8,0,0,8
+"Mobility & Walking",14,8,0,0,8
+"Toilet & Personal Care",15,8,0,0,8
+"Meals & Feeding",16,8,0,0,8
+"Comfort & Reassurance",17,8,0,0,8
+"Restaurant",18,10,0,0,10

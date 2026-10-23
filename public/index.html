@@ -4,8 +4,108 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
   <meta name="theme-color" content="#e63946" />
-  <meta name="description" content="Learn practical Cantonese for daily life in Hong Kong — vocabulary, audio and quizzes. Free for helpers." />
-  <title>CantoBuddy – Learn Cantonese</title>
+  <meta name="description" content="Learn practical Cantonese for daily life in Hong Kong — vocabulary, audio and quizzes. Free for Filipino and Indonesian domestic helpers." />
+  <title>CantoBuddy – Learn Cantonese for Daily Life in Hong Kong</title>
+
+  <!-- Google Search Console, URL-prefix property for https://cantobuddy.com/.
+       This tag has to be written HERE, by hand, and that is the whole point.
+       seo.js emits the same tag from the GOOGLE_SITE_VERIFICATION env var, but
+       only on the pages it server-renders — and "/" is this file, which
+       express.static serves first and which therefore shadows them. So the env
+       var can never verify the homepage, no matter how it is set. Google
+       re-checks periodically; deleting this line lapses verification silently,
+       which is why seo-pillar-test asserts it is still here. -->
+  <meta name="google-site-verification" content="qrG0jeGcYgQqTjw6GqxSkJZ_u7RdvliFJmacydYG90Y" />
+
+  <!-- Google AdSense (Auto Ads), publisher ca-pub-6845142564408798.
+       Written here by hand for the same reason the verification tag above is:
+       this file is what express.static serves for "/", so it shadows every
+       server-rendered page, and no generator syncs it. seo.js emits the same
+       snippet into its own template, because the SEO pages never pass through
+       this file — both have to carry it or half the site would be ad-free.
+       AdSense is loaded with `async`, so it never blocks first paint. -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6845142564408798"
+         crossorigin="anonymous"></script>
+
+  <!-- Google Analytics (GA4), measurement G-877054DW3X.
+       Same two-places rule as the AdSense tag above: express.static serves
+       THIS file for "/", so it shadows every page seo.js renders, and the SEO
+       pages never pass through this file. Both carry the snippet or half the
+       site is invisible to analytics. seo.js emits the identical block from
+       GA_MEASUREMENT_ID so the two cannot drift.
+
+       `async`, so it never blocks first paint. GA4 anonymises IP addresses when
+       it processes them — which is why the privacy policy can say so — and it
+       is disclosed, named, with its opt-out route, in the "Statistics" section
+       of the policy, exactly as AdSense is. -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-877054DW3X"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-877054DW3X');
+  </script>
+
+  <!-- Canonical. Absolute, and pointing at the real domain on purpose: this
+       same document is also reachable at cantobuddy.onrender.com, and without
+       this tag the two hosts compete as duplicates and split whatever ranking
+       signal the app earns. -->
+  <link rel="canonical" href="https://cantobuddy.com/" />
+
+  <!-- Social preview. The app has a Share button, so a bare link with no
+       og:image was the actual result of sharing it. -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="CantoBuddy" />
+  <meta property="og:title" content="CantoBuddy – Learn Cantonese for Daily Life in Hong Kong" />
+  <meta property="og:description" content="Practical Cantonese words and phrases with audio, pictures and quizzes. Free for Filipino and Indonesian domestic helpers in Hong Kong." />
+  <meta property="og:url" content="https://cantobuddy.com/" />
+  <meta property="og:image" content="https://cantobuddy.com/icons/icon-512.png" />
+  <meta property="og:locale" content="en_HK" />
+  <meta property="og:locale:alternate" content="fil_PH" />
+  <meta property="og:locale:alternate" content="zh_CN" />
+  <meta property="og:locale:alternate" content="id_ID" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="CantoBuddy – Learn Cantonese for Daily Life in Hong Kong" />
+  <meta name="twitter:description" content="Practical Cantonese words and phrases with audio, pictures and quizzes. Free for Filipino and Indonesian domestic helpers in Hong Kong." />
+  <meta name="twitter:image" content="https://cantobuddy.com/icons/icon-512.png" />
+
+  <!-- Structured data: tells search engines this is a free educational app
+       aimed at a specific audience, which is the one thing the page copy
+       cannot say in a machine-readable way. -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "EducationalOrganization",
+        "name": "CantoBuddy",
+        "url": "https://cantobuddy.com",
+        "logo": "https://cantobuddy.com/icons/icon-512.png",
+        "description": "A free Cantonese learning app for Filipino and Indonesian domestic helpers in Hong Kong: practical vocabulary with audio, pictures and quizzes.",
+        "areaServed": { "@type": "Place", "name": "Hong Kong" },
+        "audience": { "@type": "Audience", "audienceType": "Filipino and Indonesian domestic helpers" }
+      },
+      {
+        "@type": "WebApplication",
+        "name": "CantoBuddy",
+        "url": "https://cantobuddy.com/",
+        "applicationCategory": "EducationalApplication",
+        "operatingSystem": "Any (web browser)",
+        "inLanguage": ["en", "fil", "zh-Hans", "id"],
+        "isAccessibleForFree": true,
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "HKD" },
+        "description": "Learn practical Cantonese for daily life in Hong Kong with vocabulary, Jyutping romanisation, audio and quizzes.",
+        "featureList": [
+          "Cantonese vocabulary with Jyutping romanisation",
+          "Translations in English, Filipino, Simplified Chinese and Indonesian",
+          "Audio pronunciation",
+          "Quizzes and progress tracking"
+        ]
+      }
+    ]
+  }
+  </script>
+
   <link rel="manifest" href="/manifest.json" />
   <link rel="icon" href="/favicon.ico" sizes="any" />
   <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
@@ -28,9 +128,46 @@
       <span class="logo-text">CantoBuddy</span>
     </div>
     <div class="header-right">
-      <button id="lang-btn" class="lang-btn" onclick="toggleLang()" title="Change language" aria-label="Change language">EN</button>
+      <!-- Share. Sits first in this group and is styled like the buttons beside
+           it, rather than living in the bottom nav. Opens the Share page. -->
+      <button class="site-btn" onclick="navigate('share')" title="Share CantoBuddy" aria-label="Share CantoBuddy"
+              data-i18n="header.shareSite" data-i18n-attr="title" data-i18n-aria="1"><span data-share-icon></span></button>
+      <!-- Public cross-link: the employer portal is open to anyone, so it gets
+           an icon here. The admin area deliberately does NOT — see the note
+           at the bottom of this header block.
+           Drawn as an inline SVG rather than an emoji, for the same reason as
+           the share glyph: it renders identically on every device. The shape is
+           a head-and-shoulders bust wearing suit lapels, which is what reads as
+           "the employer" — a plain person would look like your own account next
+           to the name badge, and glasses blur into a smudge at 19px. -->
+      <a href="/portal" class="site-btn" title="For employers" aria-label="For employers"
+         data-i18n="header.employerSite" data-i18n-attr="title" data-i18n-aria="1"><svg class="site-glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7.6" r="3.6"/><path d="M5.1 20.4c0-3.6 3.1-5.9 6.9-5.9s6.9 2.3 6.9 5.9"/><path d="M9.5 14.9 12 18.3l2.5-3.4"/></svg></a>
+      <!-- Shows the language you would switch TO: "FIL" while reading English,
+           "EN" while reading Filipino. i18n.js keeps this in sync. -->
+      <button id="lang-btn" class="lang-btn" onclick="openLangModal()" title="Change language" aria-label="Change language" aria-haspopup="dialog">EN</button>
       <button id="voice-btn" class="voice-btn" onclick="openVoiceModal()" title="Choose practice voice" aria-label="Choose practice voice">👩</button>
-      <span id="learner-badge" class="learner-badge" onclick="editLearnerName()" data-i18n="header.setName">Set your name</span>
+      <!-- "Add to home screen".
+           The install offer used to appear ONLY at the end of a quiz, which
+           meant a helper who never finished a quiz was never asked — and the
+           app is worth much more to her installed (one tap from her home
+           screen, no searching for the URL). This is the standing, voluntary
+           entry point; the end-of-quiz offer stays as the well-timed nudge.
+
+           Hidden by default (`hidden` attribute) and revealed by
+           syncInstallEntry() in app.js ONLY when all of these hold: the install
+           is actually possible on this device, she has not already installed
+           it, and she has not already answered. That is why it is not styled
+           like a call to action — for most visitors it does not exist. -->
+      <button id="install-btn" class="site-btn" hidden onclick="openInstallModal()"
+              title="Add to home screen" aria-label="Add to home screen"
+              data-i18n="header.install" data-i18n-attr="title" data-i18n-aria="1">⬇︎</button>
+      <!-- Deliberately NOT data-i18n: this label is dynamic (the helper's name,
+           or "Set your name" when she has none), and updateLearnerBadge() in
+           app.js owns it. applyTranslations() overwrites every [data-i18n]
+           element's textContent, so tagging this one would wipe her name back
+           to the placeholder on every launch. The placeholder below is just the
+           pre-boot default; app.js replaces it, translating it if needed. -->
+      <span id="learner-badge" class="learner-badge" onclick="editLearnerName()">Set your name</span>
       <!-- The admin link was deliberately removed from the learner header.
            Helpers (and future employer accounts) must never see a route into
            the operator area. The admin dashboard is reached by typing
@@ -44,44 +181,154 @@
 
   <!-- ---- HOME VIEW ---- -->
   <section id="view-home" class="view active">
-    <div class="hero">
+    <!-- The hero is the way INTO learning, not a poster. It was a plain <div>:
+         the most prominent thing on the first screen read as a call to action
+         ("Start at your level!") and did nothing when tapped.
+
+         It is an <a>, and the anchor earns its place three times over:
+           - with JS, the inline handler cancels the default and opens the
+             in-app Categories view, so she never leaves the app;
+           - WITHOUT JS — or if app.js fails to load — href="/learn" is a real
+             page that works, so the tap is never a dead end;
+           - it is the one crawlable link into the vocabulary index from the
+             home page, which the app otherwise renders entirely into "/".
+         A <button> cannot legally wrap an <h1> (phrasing content only); an <a>
+         may contain flow content, so this is the valid choice as well as the
+         better one.
+
+         aria-label, not the visible text: the anchor's name would otherwise be
+         the whole paragraph. Screen readers get "Start learning, link" and meet
+         the heading separately. data-i18n-attr keeps the label translated
+         without touching the contents. -->
+    <a class="hero" href="/learn" onclick="goCategories(); return false;"
+       data-i18n="home.heroCta" data-i18n-attr="aria-label" aria-label="Start learning">
+      <!-- Trust chip. The one fact that decides whether a helper gives this app
+           a second minute is that it costs nothing — so it is the first thing on
+           the page rather than a line in a footer. -->
+      <span class="hero-chip" data-i18n="home.freeChip">Free for helpers</span>
       <h1 class="hero-title"><span data-i18n="home.title">Learn Cantonese</span> <span class="hero-sub" data-i18n="home.subtitle">for daily life in Hong Kong</span></h1>
       <p class="hero-desc" data-i18n="home.desc">Practical words and phrases with audio, pictures, and quizzes. Start at your level!</p>
-    </div>
+    </a>
 
+    <!-- ---- Returning-learner cards ------------------------------------
+         Both are filled by JS and both are EMPTY for a device that has never
+         practised, so a first-time visitor sees exactly the screen that
+         existed before: hero, levels, quick actions, categories. A learner
+         who has practised sees her streak and a way back in, above the fold.
+         Deliberately not [data-i18n] — these carry her own data, and
+         applyTranslations() would overwrite them with a static label. -->
+    <div id="home-resume"></div>
+
+    <!-- ---- Coming up: the next festival ------------------------------------
+         Above Today's Culture on purpose. The culture card is "something to
+         read"; this one is "something to prepare for", and it is only here for
+         three days either side of the event, so it earns the higher slot for a
+         short time rather than permanently. Empty the other 350 days a year —
+         see renderHomeFestival() in app.js. -->
+    <!-- ---- Daily Culture --------------------------------------------------
+         One culture article per day, chosen by the server so every device
+         shows the same pick. Empty when there are no culture posts. -->
+    <div id="home-festival"></div>
+
+    <div id="home-daily-culture"></div>
+
+    <!-- ---- Discover Channels ----------------------------------------------
+         Three compact cards so a learner sees what Discover offers without
+         opening the tab first. -->
+    <div id="home-discover-promo"></div>
+
+    <!-- ---- Games promo ---------------------------------------------------
+         The Games tab is new, and a badge on a fixed nav bar is easy to miss —
+         this is the actual promotion. It sits above the levels because a game
+         is a reason to come back tomorrow, and it names both live games so a
+         first-time visitor knows what is behind the tab before tapping it.
+         Filled by JS (renderHomeGamesPromo) exactly like the Discover promo
+         beside it, so it re-translates on a language switch. -->
+    <div id="home-games-promo"></div>
+
+    <!-- ---- Levels ---------------------------------------------------------
+         Three compact colour-coded rows rather than three tall centred cards.
+         The old cards were ~150px each to hold a 30px emoji and two lines, so
+         the single most important choice on the screen was also the emptiest
+         thing on it — a whole phone screen for three words. As rows they cost
+         about a third of that and each level carries its own colour, which is
+         the same colour it wears on Browse and in the quiz.
+
+         The class names are load-bearing: ui-mandarin asserts .hero-title's
+         text, and home-retention-test counts .level-card (3) and
+         .home-quick .btn (2). The h3/p inside each card are what the level's
+         name and description are read from. -->
     <div class="level-cards">
-      <div class="level-card" onclick="goBrowse(1)">
-        <div class="level-icon">🌱</div>
-        <h3 data-i18n="home.beginner">Beginner</h3>
-        <p data-i18n="home.beginnerDesc">Basic greetings &amp; common words</p>
-        <span class="level-count" id="count-1">—</span>
+      <div class="level-card lv1" onclick="goBrowse(1)">
+        <span class="level-icon">🌱</span>
+        <div class="level-body">
+          <h3 data-i18n="home.beginner">Beginner</h3>
+          <p data-i18n="home.beginnerDesc">Basic greetings &amp; common words</p>
+        </div>
+        <span class="level-arrow" aria-hidden="true">›</span>
       </div>
-      <div class="level-card" onclick="goBrowse(2)">
-        <div class="level-icon">🌿</div>
-        <h3 data-i18n="home.intermediate">Intermediate</h3>
-        <p data-i18n="home.intermediateDesc">Daily activities &amp; routines</p>
-        <span class="level-count" id="count-2">—</span>
+      <div class="level-card lv2" onclick="goBrowse(2)">
+        <span class="level-icon">🌿</span>
+        <div class="level-body">
+          <h3 data-i18n="home.intermediate">Intermediate</h3>
+          <p data-i18n="home.intermediateDesc">Daily activities &amp; routines</p>
+        </div>
+        <span class="level-arrow" aria-hidden="true">›</span>
       </div>
-      <div class="level-card" onclick="goBrowse(3)">
-        <div class="level-icon">🌳</div>
-        <h3 data-i18n="home.advanced">Advanced</h3>
-        <p data-i18n="home.advancedDesc">Full sentences &amp; phrases</p>
-        <span class="level-count" id="count-3">—</span>
+      <div class="level-card lv3" onclick="goBrowse(3)">
+        <span class="level-icon">🌳</span>
+        <div class="level-body">
+          <h3 data-i18n="home.advanced">Advanced</h3>
+          <p data-i18n="home.advancedDesc">Full sentences &amp; phrases</p>
+        </div>
+        <span class="level-arrow" aria-hidden="true">›</span>
       </div>
     </div>
 
     <div class="home-quick">
-      <button class="btn btn-primary btn-lg" onclick="goQuizSelect()" data-i18n="home.startQuiz">📝 Start Quiz</button>
-      <button class="btn btn-outline btn-lg" onclick="navigate('progress')" data-i18n="home.myProgress">📊 My Progress</button>
+      <button class="btn btn-primary" onclick="goQuizSelect()" data-i18n="home.startQuiz">📝 Start Quiz</button>
+      <button class="btn btn-outline" onclick="navigate('progress')" data-i18n="home.myProgress">📊 My Progress</button>
     </div>
 
+    <!-- ---- Tell a friend ------------------------------------------------
+         Deliberately NOT on this screen. As a card at the bottom of Home it
+         sat below the category grid, more than a screen down, and was easy to
+         miss. Sharing now has its own page (#view-share) reached from the
+         Share tab in the bottom nav. -->
     <div class="home-categories" id="home-categories"></div>
+  </section>
+
+  <!-- ---- CATEGORIES VIEW ---- -->
+  <!-- Every category, on its own page, one tap away from the Learn tab.
+
+       WHY. The category list used to exist in two places that were both wrong
+       for the same reason: a horizontal strip of pills on Home, and a scrolling
+       chip row inside Browse. Both show the same N categories and neither lets
+       her see all of them at once, because neither scrolls far enough or is big
+       enough to count. She was choosing where to learn from a row she had to
+       hunt through.
+
+       So Learn now lands HERE: the full list, with a word count each, and
+       tapping one goes to Browse already filtered. The strip on Home stays —
+       it is a shortcut for someone who knows what she wants, and this page is
+       for someone who is still deciding. -->
+  <section id="view-categories" class="view">
+    <div class="browse-header">
+      <button class="btn-back" onclick="navigate('home')" data-i18n="categories.backHome">← Home</button>
+      <h2 data-i18n="categories.title">Categories</h2>
+    </div>
+
+    <p class="categories-lead" id="categories-lead"></p>
+
+    <!-- Filled by renderCategoriesPage(). A grid rather than a strip because the
+         whole point is that every category is visible at once. -->
+    <div class="categories-grid" id="categories-grid"></div>
   </section>
 
   <!-- ---- BROWSE VIEW ---- -->
   <section id="view-browse" class="view">
     <div class="browse-header">
-      <button class="btn-back" onclick="navigate('home')" data-i18n="browse.backHome">← Home</button>
+      <button class="btn-back" onclick="backFromBrowse()" data-i18n="browse.backHome">← Home</button>
       <h2 id="browse-title" data-i18n="browse.title">Vocabulary</h2>
     </div>
 
@@ -155,22 +402,393 @@
     </div>
     <div id="progress-content" class="progress-content"></div>
   </section>
+  <!-- ---- DISCOVER VIEW ---- -->
+  <!-- Culture, news and stories, in one screen with three tabs.
+       All three channels are the same kind of thing (a dated piece of reading
+       in a feed), so they share this view, its card markup and its renderer;
+       only the query differs. The channel is held in STATE, not in the URL,
+       because the whole app renders into `/` — the crawlable version of these
+       pages is server-rendered by seo.js at /discover and /stories.
+
+       WHY STORIES IS A CHANNEL HERE AND NOT A SEVENTH NAV TAB. It was asked
+       for as its own tab, and a seventh tab does not fit: measured at 320px,
+       the bar overflows the viewport in English, Filipino and Indonesian (the
+       last tab is pushed off-screen), and at 360px it fits with 0px to spare.
+       Discover already means "things to read", and a story is a thing to read,
+       so it belongs here on its own merits — and this costs no nav change and
+       no label rewording in three languages. See tools/nav-shot.js. -->
+  <section id="view-discover" class="view">
+    <div class="browse-header">
+      <button class="btn-back" onclick="navigate('home')" data-i18n="browse.backHome">← Home</button>
+      <h2 data-i18n="discover.title">Discover: HK life, news &amp; stories from home</h2>
+    </div>
+
+    <p class="discover-lead" data-i18n="discover.lead">Hong Kong life, news from the Philippines and Indonesia, and stories written by helpers.</p>
+
+    <div class="discover-tabs" role="tablist">
+      <button class="discover-tab active" data-channel="culture" role="tab"
+              onclick="showChannel('culture')" data-i18n="discover.tabCulture">Culture</button>
+      <button class="discover-tab" data-channel="news" role="tab"
+              onclick="showChannel('news')" data-i18n="discover.tabNews">News</button>
+      <button class="discover-tab" data-channel="living" role="tab"
+              onclick="showChannel('living')" data-i18n="discover.tabLiving">Living</button>
+    </div>
+
+    <!-- One line saying what this channel is, filled by renderDiscover(). Not a
+         data-i18n element: it changes with the tab, and applyTranslations()
+         would overwrite it with a fixed string on every language switch. -->
+    <p class="discover-note" id="discover-note"></p>
+
+    <!-- The News channel's topic filter. Rendered and shown/hidden by
+         renderDiscover() — the other two channels have no topics, and a row of
+         chips that does nothing is worse than no row at all. -->
+    <div class="discover-filters" id="discover-filters" role="group" aria-label="Filter" hidden></div>
+    <!-- The News channel's region filter (Hong Kong / Philippines / Indonesia).
+         Only meaningful for news, so it is shown/hidden with the topic row. -->
+    <div class="discover-filters" id="discover-region-filters" role="group" aria-label="Region" hidden></div>
+
+    <!-- The Stories channel carries one extra control the other two do not: a
+         way to add to it. Shown only on that channel. -->
+    <button class="btn btn-primary btn-block story-write-cta" id="story-write-cta"
+            onclick="navigate('story-new')" data-i18n="story.shareYours" hidden>Share your story</button>
+
+    <div id="discover-feed" class="discover-feed"></div>
+
+    <!-- The pager. A sibling of the feed rather than its last card, so the
+         feed element keeps holding exactly the cards and a test that counts
+         them is still counting cards. -->
+    <div id="discover-pager" class="discover-pager" hidden></div>
+  </section>
+
+  <!-- ---- ARTICLE VIEW ---- -->
+  <!-- One post, opened from the feed. Rendered by renderPost() — the body is
+       sanitised against a small tag allowlist, because a body may come from an
+       operator edit and an href from a feed. -->
+  <section id="view-post" class="view">
+    <div class="browse-header">
+      <button class="btn-back" onclick="navigate('discover')" data-i18n="discover.back">← Discover</button>
+    </div>
+    <article id="post-body" class="post-article"></article>
+  </section>
+
+  <!-- ---- STORY VIEW ---- -->
+  <!-- One story, opened from the Stories channel. Rendered by renderStory().
+       The body is PLAIN TEXT, never HTML: this is the one page on the site
+       whose words a stranger wrote, so the renderer escapes and then adds
+       paragraph breaks itself. It never calls sanitizePostHtml(), because
+       there is nothing here that is ever meant to be markup. -->
+  <section id="view-story" class="view">
+    <div class="browse-header">
+      <button class="btn-back" onclick="navigate('discover')" data-i18n="story.back">← Discover</button>
+    </div>
+    <article id="story-body" class="post-article"></article>
+  </section>
+
+  <!-- ---- LIVING VIEW ---- -->
+  <!-- Supportive passages about life in Hong Kong, grouped by situation. Facebook-
+       style reactions, comments and share live on the passage page. Plain text
+       only (no HTML): the words are editorial and rendered with paragraph breaks
+       the renderer adds itself. -->
+  <section id="view-living" class="view">
+    <div class="browse-header">
+      <button class="btn-back" onclick="navigate('discover'); showChannel('living')" data-i18n="living.back">← Living</button>
+    </div>
+    <article id="living-body" class="post-article"></article>
+  </section>
+
+  <!-- ---- WRITE A STORY VIEW ---- -->
+  <!-- A real form, not a modal, and STATIC MARKUP rather than JS-rendered.
+       That is deliberate: a language switch re-translates labels in place
+       through applyTranslations(), so switching language mid-sentence does not
+       throw away what she has written. A renderer that rebuilds the form would
+       delete her draft. Only the list of her past submissions below is drawn
+       by JS.
+       
+       THE PRIVACY CONTROL IS THE CHECKBOX. It is UNCHECKED by default, and
+       unchecking it is not a display preference — the server never stores her
+       name at all unless it is ticked. See createStory() in db.js. -->
+  <section id="view-story-new" class="view">
+    <div class="browse-header">
+      <button class="btn-back" onclick="navigate('discover')" data-i18n="story.back">← Discover</button>
+      <h2 data-i18n="story.introTitle">Tell your story</h2>
+    </div>
+
+    <p class="story-intro" data-i18n="story.introBody">Your daily life, where you come from, or something that happened to you.</p>
+    <p class="story-rule" data-i18n="story.introRule">We read every story before it appears.</p>
+
+    <form id="story-form" onsubmit="submitStory(event)">
+      <label class="story-label" for="story-title" data-i18n="story.titleLabel">Title</label>
+      <input id="story-title" class="story-input" type="text" maxlength="120"
+             placeholder="A few words about your story"
+             data-i18n="story.titlePlaceholder" data-i18n-attr="placeholder" />
+
+      <label class="story-label" for="story-body" data-i18n="story.bodyLabel">Your story</label>
+      <textarea id="story-body" class="story-textarea" rows="10" maxlength="6000"
+                placeholder="Write as much as you like."
+                data-i18n="story.bodyPlaceholder" data-i18n-attr="placeholder"></textarea>
+
+      <label class="story-label" for="story-topic" data-i18n="story.topicLabel">What is it about?</label>
+      <select id="story-topic" class="story-input">
+        <option value="daily" data-i18n="story.topicDaily">My daily life</option>
+        <option value="background" data-i18n="story.topicBackground">Where I come from</option>
+        <option value="interesting" data-i18n="story.topicInteresting">Something that happened</option>
+      </select>
+
+      <!-- The language the story is WRITTEN in, and it is asked rather than
+           inferred. It used to be assumed from the language she was reading
+           the app in, and that is wrong often enough to matter: a helper who
+           keeps the app in English and writes in Filipino had her story
+           labelled "English" — and the label is the point of publishing a
+           story in the original language. Defaults to her reading language,
+           which is right most of the time and one tap to correct.
+           
+           The options are written in their OWN language (endonyms), not
+           translated: "中文" is recognisable to a Mandarin speaker in a way
+           that "Chinese" is not, and this is the same rule the footer language
+           switcher follows. -->
+      <label class="story-label" for="story-lang" data-i18n="story.langLabel">What language is your story in?</label>
+      <select id="story-lang" class="story-input" onchange="markStoryLangPicked()">
+        <option value="en">English</option>
+        <option value="fil">Filipino</option>
+        <option value="zh">中文</option>
+        <option value="id">Bahasa Indonesia</option>
+      </select>
+
+      <label class="story-check" for="story-sign">
+        <input type="checkbox" id="story-sign" onchange="syncStorySign()" />
+        <span data-i18n="story.signLabel">Show my name with my story</span>
+      </label>
+      <p class="story-hint" data-i18n="story.signHint">Leave this unticked and your story is published without a name.</p>
+
+      <div id="story-name-row" hidden>
+        <label class="story-label" for="story-name" data-i18n="story.nameLabel">The name to show</label>
+        <input id="story-name" class="story-input" type="text" maxlength="40" />
+      </div>
+
+      <p id="story-error" class="story-error" role="alert" hidden></p>
+      <button type="submit" class="btn btn-primary btn-block" id="story-submit"
+              data-i18n="story.submit">Send to be read</button>
+    </form>
+
+    <div id="story-sent" class="story-sent" hidden></div>
+    <div id="story-mine" class="story-mine"></div>
+  </section>
+
+  <!-- ---- GAMES HUB ---- -->
+  <!-- A hub, not a game. The tab opens this page; each card leaves the app for
+       a real page of its own. That split is deliberate:
+
+         · a card table wants the whole viewport (the bottom nav would sit on
+           top of her hand), and
+         · UNO streams its state over Server-Sent Events, which the app-shell
+           service worker would happily cache if it lived at an app route.
+
+       So the game is at /games/uno, its own page, its own cache rules. The way
+       back is a link on the game's own lobby (`/?view=games`), which app.js
+       reads on boot — that is why this page has to be reachable by URL and not
+       only by tapping the tab.
+
+       All three games are live links. A disabled card is only honest while the
+       game does not exist; once it does, a dead button is a dead end. Add a game
+       by replacing one, not by adding a fourth. -->
+  <section id="view-games" class="view">
+    <div class="browse-header">
+      <button class="btn-back" onclick="navigate('home')" data-i18n="games.backHome">← Home</button>
+      <h2 data-i18n="games.title">Games</h2>
+    </div>
+
+    <p class="games-lead" data-i18n="games.lead">Play together, online. One person makes a room and sends the code to the rest — no account, no install.</p>
+
+    <div class="games-grid">
+      <a class="game-card game-card-live" href="/games/uno">
+        <span class="game-art" aria-hidden="true"><i>U</i><i>N</i><i>O</i></span>
+        <span class="game-body">
+          <span class="game-name">UNO</span>
+          <span class="game-desc" data-i18n="games.unoDesc">2–8 players · one room code · full rules, chat and card counts</span>
+          <span class="game-tags">
+            <span class="game-tag game-tag-on" data-i18n="games.online">Online, live</span>
+            <span class="game-tag" data-i18n="games.family">With family</span>
+          </span>
+        </span>
+        <span class="game-go" aria-hidden="true">›</span>
+      </a>
+
+      <a class="game-card game-card-live" href="/games/bigtwo">
+        <span class="game-art" aria-hidden="true"><i>2</i><i class="suit">♠</i><i class="suit">♥</i></span>
+        <span class="game-body">
+          <span class="game-name" data-i18n="games.bigtwoName">Big Two</span>
+          <span class="game-desc" data-i18n="games.bigtwoDesc">The Hong Kong table game — 鋤大D. 2 is the biggest card, spades the strongest suit.</span>
+          <span class="game-tags">
+            <span class="game-tag game-tag-on" data-i18n="games.online">Online, live</span>
+            <span class="game-tag" data-i18n="games.twoToFour">2–4 players</span>
+          </span>
+        </span>
+        <span class="game-go" aria-hidden="true">›</span>
+      </a>
+
+      <a class="game-card game-card-live" href="/games/wordmatch">
+        <span class="game-art" aria-hidden="true"><i class="cjk">配</i><i class="cjk">對</i><i>?</i></span>
+        <span class="game-body">
+          <span class="game-name" data-i18n="games.matchName">Word match</span>
+          <span class="game-desc" data-i18n="games.matchDesc">Race a partner to match the Cantonese word with its meaning.</span>
+          <span class="game-tags">
+            <span class="game-tag game-tag-on" data-i18n="games.online">Online, live</span>
+            <span class="game-tag" data-i18n="games.twoPlayers">2 players</span>
+          </span>
+        </span>
+        <span class="game-go" aria-hidden="true">›</span>
+      </a>
+    </div>
+
+    <p class="games-note" data-i18n="games.note">More games are on the way. UNO is the first — try it and tell us what to build next.</p>
+  </section>
+
+  <!-- ---- SHARE VIEW ---- -->
+  <!-- Its own page rather than a card on Home: word of mouth is how this app
+       spreads, so it gets a permanent tab instead of something to scroll past.
+       The link is filled in by renderSharePage(). -->
+  <section id="view-share" class="view">
+    <div class="browse-header">
+      <button class="btn-back" onclick="navigate('home')" data-i18n="browse.backHome">← Home</button>
+      <h2 data-i18n="sharePage.title">Share CantoBuddy</h2>
+    </div>
+
+    <div class="share-hero">
+      <div class="share-hero-icon">💬</div>
+      <h3 class="share-hero-title" data-i18n="sharePage.hero">Tell a friend</h3>
+      <p class="share-hero-body" data-i18n="sharePage.body">Learning is easier with company. Send CantoBuddy to a friend — it's free for helpers, always.</p>
+    </div>
+
+    <div class="share-preview">
+      <div class="share-preview-label" data-i18n="sharePage.previewLabel">What your friend will see</div>
+      <div class="share-bubble">
+        <p class="share-bubble-text" id="share-preview-text"></p>
+        <span class="share-bubble-link" id="share-preview-link"></span>
+      </div>
+    </div>
+
+    <!-- WhatsApp first. It is where this community actually talks — helpers are
+         in group chats with each other — and one tap beats digging through the
+         OS share sheet, which is the difference between a share happening and
+         not happening. The generic share button below stays for everything
+         else (Viber, Messenger, SMS, email). -->
+    <button class="btn btn-whatsapp btn-lg btn-block" onclick="shareAppWhatsApp()">
+      <span data-whatsapp-icon></span><span data-i18n="sharePage.whatsappBtn">Send on WhatsApp</span>
+    </button>
+
+    <!-- The icon is injected by mountShareIcons() so the glyph lives in exactly
+         one place (SHARE_ICON_SVG in app.js). -->
+    <button class="btn btn-primary btn-block" onclick="shareApp()"><span data-share-icon></span><span data-i18n="sharePage.shareBtn">Share CantoBuddy</span></button>
+    <button class="btn btn-outline btn-block share-copy-btn" onclick="copyShareLink()" data-i18n="sharePage.copyBtn">🔗 Copy link</button>
+
+    <p class="share-footnote" data-i18n="sharePage.footnote">Every link you share carries your own code, so we can see how CantoBuddy is spreading through the community. No names, no personal details.</p>
+
+    <!-- ---- Share what you did ----
+         The second half of the page, and the answer to "how do I show my friend
+         THIS part of the app?". Filled in by renderSharePage() so each card can
+         reflect her real state — a helper with no stickers yet is not offered a
+         sticker album, and a helper who has just finished a quiz is offered her
+         score. Each one sends a PICTURE, because a friend who sees the album
+         understands the app faster than one who reads about it. -->
+    <h3 class="share-hub-heading" id="share-hub-heading" data-i18n="sharePage.hubHeading">Or share what you did</h3>
+    <div class="share-hub" id="share-hub"></div>
+  </section>
 
 </main>
+
+<!-- ============================ FOOTER ============================ -->
+<!-- Real, crawlable links into the server-rendered vocabulary pages (see
+     seo.js). Every view in this app renders into `/`, so without these the
+     whole content layer is unreachable: a crawler would have exactly one URL
+     to work with and no path to the 64 words behind it. These are ordinary
+     anchors, not JS navigation, precisely so they can be followed. -->
+<footer class="site-footer">
+  <div class="site-footer-inner">
+    <p class="site-footer-title" data-i18n="footer.title">Browse Cantonese vocabulary</p>
+    <nav class="site-footer-links" aria-label="Vocabulary">
+      <a href="/learn" data-i18n="footer.allWords">All words &amp; categories</a>
+      <!-- A real crawlable link into the server-rendered Discover pages, for the
+           same reason the vocabulary links above exist: this app renders every
+           view into `/`, so a crawler would otherwise have no path to the feed. -->
+      <a href="/discover" data-i18n="nav.discover">Discover</a>
+      <!-- The server-rendered Stories hub, for the same reason as the Discover
+           link above: the app renders every view into `/`, so without this a
+           crawler has no path to a story page at all. -->
+      <a href="/stories" data-i18n="discover.tabStories">Stories</a>
+      <a href="/guide/learn-cantonese" data-i18n="footer.guide">Learn Cantonese: the beginner's guide</a>
+      <!-- Statutory holidays for domestic helpers — the one page here that answers
+           "when am I off?", so it gets a footer link beside the guide rather than
+           being buried inside it. -->
+      <a href="/guide/statutory-holidays-for-domestic-helpers" data-i18n="footer.holidays">Statutory holidays for domestic helpers 2026 &amp; 2027</a>
+      <a href="/level/1" data-i18n="home.beginner">Beginner</a>
+      <a href="/level/2" data-i18n="home.intermediate">Intermediate</a>
+      <a href="/level/3" data-i18n="home.advanced">Advanced</a>
+      <a href="/fil/learn" data-i18n="footer.filipino">Filipino</a>
+      <a href="/zh/learn" data-i18n="footer.mandarin">中文</a>
+      <a href="/id/learn" data-i18n="footer.indonesian">Bahasa Indonesia</a>
+      <a href="/portal" data-i18n="header.employerSite">For employers</a>
+      <!-- Required by AdSense, and genuinely useful: the three concrete things
+           this policy promises (no account, no location, no learner-linked
+           feedback) are the app's real behaviour, not boilerplate. -->
+      <a href="/privacy" data-i18n="footer.privacy">Privacy</a>
+    </nav>
+    <!-- Not a crawlable link like the ones above — this one opens a dialog. Kept
+         on its own line so it reads as "talk to us" rather than as one more
+         vocabulary page. This is no longer the only route in (see the bottom nav
+         below, which is on screen from every view), but it stays because a footer
+         link is where a reader who has scrolled to the end looks for it. -->
+    <button class="footer-feedback" onclick="openFeedbackModal()" data-i18n="feedback.footerLink">💬 Send feedback</button>
+  </div>
+</footer>
 
 <!-- ============================ BOTTOM NAV ============================ -->
 <nav class="bottom-nav">
   <button class="nav-btn active" data-view="home" onclick="navigate('home')">
-    <span class="nav-icon">🏠</span><span data-i18n="nav.home">Home</span>
+    <span class="nav-icon">🏠</span><span class="nav-label" data-i18n="nav.home">Home</span>
   </button>
-  <button class="nav-btn" data-view="browse" onclick="goBrowse()">
-    <span class="nav-icon">📖</span><span data-i18n="nav.learn">Learn</span>
+  <button class="nav-btn" data-view="discover" onclick="navigate('discover')">
+    <span class="nav-icon">🌏</span><span class="nav-label" data-i18n="nav.discover">Discover</span>
   </button>
-  <button class="nav-btn" data-view="quiz" onclick="goQuizSelect()">
-    <span class="nav-icon">📝</span><span data-i18n="nav.quiz">Quiz</span>
+  <!-- Discover. Two channels — culture and news — behind one tab, and a third
+       since Stories joined them.
+
+       FIVE TABS, and the count is measured rather than assumed: at 320px the
+       six-tab bar fitted with 0px to spare in Filipino and Indonesian, and a
+       seventh overflowed the viewport in three of the four languages. Quiz and
+       Progress left this bar on 2026-10-21 to make room for Games — they were
+       the two least-opened tabs, and both screens are still reached from the
+       two buttons on Home, so nothing was removed from the app, only from the
+       bar. `node tools/nav-shot.js` prints the spare pixels per label per
+       width; run it before changing anything here. -->
+  <!-- Learn opens the CATEGORIES page, not the word list. The category is the
+       decision she has to make first — "what do I want to learn" — and the word
+       list is the answer to it, so the list is the second step rather than the
+       first. See the note on #view-categories for why this replaced a chip row
+       inside Browse. -->
+  <button class="nav-btn" data-view="categories" onclick="goCategories()">
+    <span class="nav-icon">📖</span><span class="nav-label" data-i18n="nav.learn">Learn</span>
   </button>
-  <button class="nav-btn" data-view="progress" onclick="navigate('progress')">
-    <span class="nav-icon">📊</span><span data-i18n="nav.progress">Progress</span>
+  <!-- Games. A hub, not a single game: UNO is the first one playable and the
+       page is built to hold the next ones beside it. The screen it opens is
+       #view-games; the game itself is a real page at /games/uno, because a card
+       table wants the whole viewport and its own server-sent events stream. -->
+  <button class="nav-btn" data-view="games" onclick="navigate('games')">
+    <!-- "New" tag. A nav bar is scanned, not read, so a brand-new tab is easy to
+         walk straight past. The badge lives INSIDE .nav-icon and is positioned
+         off its top-right corner, because anchoring it to the button let it
+         spill 8px into the next tab at 320px. Absolute, so it adds no width:
+         the bar is measured to the pixel (tools/nav-shot.js). -->
+    <span class="nav-icon">🎮<span class="nav-badge" data-i18n="nav.gamesNew">New</span></span><span class="nav-label" data-i18n="nav.games">Games</span>
+  </button>
+  <!-- The fifth tab is an ACTION, not a location: it opens the feedback dialog
+       instead of switching views, so it deliberately carries no data-view and
+       never lights up as active. It lives here because this bar is the only
+       surface fixed to the viewport — a helper who has just hit a problem can
+       reach us from wherever she is, without scrolling to the page footer or
+       navigating to My Progress. That was the whole complaint: the form was
+       reachable, but only by someone who already knew where to look. -->
+  <button class="nav-btn" id="nav-feedback" onclick="openFeedbackModal()">
+    <span class="nav-icon">💬</span><span class="nav-label" data-i18n="nav.feedback">Feedback</span>
   </button>
 </nav>
 
@@ -183,11 +801,11 @@
 <div id="name-modal" class="modal-overlay" onclick="closeNameModal(event)">
   <div class="modal-box" onclick="event.stopPropagation()">
     <h3 data-i18n="name.title">Your Name</h3>
-    <p class="modal-hint" data-i18n="name.hint">Enter your name so your quiz scores are saved.</p>
-    <input type="text" id="name-input" placeholder="e.g. Maria" maxlength="30" data-i18n="name.placeholder" data-i18n-attr="placeholder" />
+    <p class="modal-hint" id="name-hint" data-i18n="name.hint">Enter your name so your quiz scores are saved.</p>
+    <input type="text" id="name-input" placeholder="e.g. Maria" maxlength="30" data-i18n="name.placeholder" data-i18n-attr="placeholder" onkeydown="if(event.key==='Enter'){event.preventDefault();saveLearnerName();}" />
     <div class="modal-actions">
-      <button class="btn btn-outline" onclick="closeNameModal()" data-i18n="name.cancel">Cancel</button>
-      <button class="btn btn-primary" onclick="saveLearnerName()" data-i18n="name.save">Save</button>
+      <button class="btn btn-outline" id="name-cancel" onclick="closeNameModal()" data-i18n="name.cancel">Cancel</button>
+      <button class="btn btn-primary" id="name-save" onclick="saveLearnerName()" data-i18n="name.save">Save</button>
     </div>
   </div>
 </div>
@@ -218,6 +836,110 @@
   </div>
 </div>
 
+<!-- ============================ LANGUAGE PICKER ============================ -->
+<!-- Three languages, so the header control is a picker rather than a toggle.
+     A two-way toggle cannot express a choice of three without either a second
+     button or a button whose meaning depends on where you are in the cycle.
+     The rows are rendered by openLangModal() in app.js. -->
+<div id="lang-modal" class="modal-overlay" onclick="closeLangModal(event)">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="join-icon">🌏</div>
+    <h3 data-i18n="header.langTitle">Change language</h3>
+    <div id="lang-options" class="lang-options"></div>
+    <button class="btn btn-outline btn-block" onclick="closeLangModal()" data-i18n="misc.close">Close</button>
+  </div>
+</div>
+
+<!-- ============================ CONNECT BY CODE ============================ -->
+<!-- The other way in. An invitation link needs the employer to send it, which
+     is not always possible — the code can just be read out loud or written on
+     paper. Both routes end at the same card, so the consent wording, the name
+     field and the accept call are shared rather than duplicated. -->
+<div id="code-modal" class="modal-overlay" onclick="closeCodeModal(event)">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="join-icon">🔑</div>
+    <h3 data-i18n="connect.codeTitle">Connect to your employer</h3>
+    <p class="modal-hint" data-i18n="connect.codeHint">Type the code your employer gave you.</p>
+    <div class="form-field">
+      <label for="code-input" data-i18n="connect.codeLabel">Employer code</label>
+      <input type="text" id="code-input" maxlength="16" autocapitalize="characters"
+             autocomplete="off" spellcheck="false"
+             placeholder="e.g. 4GTBVT6R" data-i18n="connect.codePlaceholder" data-i18n-attr="placeholder" />
+    </div>
+    <div id="code-error" class="form-error"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeCodeModal()" data-i18n="connect.notNow">Not now</button>
+      <button class="btn btn-primary" id="code-submit" onclick="submitEmployerCode()" data-i18n="connect.codeSubmit">Connect</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ INSTALL PROMPT ============================ -->
+<!-- "Keep CantoBuddy on your phone." Offered once, right after she finishes a
+     quiz — the moment she has just had a good experience — and never again once
+     she answers. A prompt that reappears is a nag, so the answer is remembered
+     in localStorage (see maybeOfferInstall() in app.js).
+
+     The body is deliberately EMPTY here and filled in by renderInstallModal(),
+     because "add to home screen" is a different procedure on each phone:
+     Android can be handed a real install dialog, iPhone has no install API and
+     needs the Share → Add to Home Screen steps spelled out, and an in-app
+     browser (a link opened inside WhatsApp or Facebook) cannot install at all —
+     there the only honest answer is "open this in Safari or Chrome first".
+     Nothing has data-i18n except the two fixed lines, so a language switch
+     cannot leave half-translated instructions behind. -->
+<div id="install-modal" class="modal-overlay" onclick="closeInstallModal(event)">
+  <div class="modal-box install-box" onclick="event.stopPropagation()">
+    <div class="install-icon">📲</div>
+    <h3 data-i18n="install.title">Keep CantoBuddy on your phone</h3>
+    <p class="modal-hint" data-i18n="install.lead">Add it to your home screen and it opens like a normal app.</p>
+    <div id="install-body"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="install-later" onclick="dismissInstall()"></button>
+      <button class="btn btn-primary" id="install-add" onclick="doInstall()" style="display:none"></button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ FEEDBACK ============================ -->
+<!-- "Tell us what you think." Opened from the bottom of My Progress and from the
+     footer, because a helper who has just hit a problem should not have to guess
+     where to report it.
+
+     ANONYMOUS BY DEFAULT, and the form says so out loud. She is a live-in worker
+     whose employer can already see her progress, so a complaint that could be
+     traced back to her — about the app, or about the family she works for —
+     would simply never get written. The server enforces that: it stores the role
+     but no identity at all for a learner (see createFeedback in db.js). The
+     optional contact box is the only route back to her, and it is hers to fill
+     in or leave empty.
+
+     The two fixed lines carry data-i18n so a language switch cannot leave half
+     the dialog translated; the placeholder is translated through data-i18n-attr
+     because a textarea's textContent is her typed message, not a label. -->
+<div id="feedback-modal" class="modal-overlay" onclick="closeFeedbackModal(event)">
+  <div class="modal-box feedback-box" onclick="event.stopPropagation()">
+    <div class="feedback-icon">💬</div>
+    <h3 data-i18n="feedback.title">Tell us what you think</h3>
+    <p class="modal-hint" data-i18n="feedback.lead">Found a problem, or have an idea? Write it here.</p>
+
+    <textarea id="feedback-message" class="feedback-input" rows="5" maxlength="2000"
+              data-i18n="feedback.placeholder" data-i18n-attr="placeholder"
+              placeholder="What would you like us to know?"></textarea>
+
+    <label class="feedback-label" for="feedback-contact" data-i18n="feedback.contactLabel">Want a reply? Leave a contact (optional)</label>
+    <input id="feedback-contact" class="feedback-input feedback-contact" type="text" maxlength="200"
+           data-i18n="feedback.contactPlaceholder" data-i18n-attr="placeholder" placeholder="Optional" />
+
+    <p class="feedback-note" data-i18n="feedback.anon">Your name is not sent with this message.</p>
+
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeFeedbackModal()" data-i18n="feedback.cancel">Cancel</button>
+      <button class="btn btn-primary" id="feedback-send" onclick="submitFeedback()" data-i18n="feedback.send">Send</button>
+    </div>
+  </div>
+</div>
+
 <!-- ============================ TOAST ============================ -->
 <div id="toast" class="toast"></div>
 
@@ -225,5 +947,8 @@
      relative "app.js" would resolve to /join/app.js and 404. -->
 <script src="/i18n.js"></script>
 <script src="/app.js"></script>
+<!-- Opt-in push notifications (also loaded by the SEO landing pages). Self-
+     contained, so it works whether or not app.js is present. -->
+<script src="/push-client.js" defer></script>
 </body>
 </html>

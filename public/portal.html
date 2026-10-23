@@ -4,7 +4,17 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
   <meta name="theme-color" content="#1d3557" />
-  <!-- Operator-facing, like /admin.html: reachable by typing the URL, never indexed. -->
+  <!-- PORTAL_SEO_HEAD — this block is replaced at request time by
+       seo.js#portalPage() with the indexable head (title, description,
+       canonical, Open Graph, JSON-LD) so /portal can rank as the employer
+       landing page. What is written here is what /portal.html and /reset serve
+       directly: the bare app shell, which must stay out of the index.
+
+       The marker must stay on its own line, and the title element must stay
+       inside this block: seo.js slices from the marker to the closing title
+       tag and throws if it cannot find them, so a silent regression to noindex
+       is impossible. Do not write a literal closing title tag in this comment
+       — that is the tag the slice searches for. -->
   <meta name="robots" content="noindex, nofollow" />
   <title>CantoBuddy – Employer</title>
   <link rel="icon" href="/favicon.ico" sizes="any" />
@@ -13,6 +23,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <!-- Google AdSense (Auto Ads), publisher ca-pub-6845142564408798. The employer
+       portal is the monetised surface, so it carries the same loader the SPA and
+       the SEO pages use. This page is already network-first in sw.js, so the
+       script is never served from a stale cache. -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6845142564408798" crossorigin="anonymous"></script>
 </head>
 <body class="admin-body portal-body">
 
@@ -24,7 +39,7 @@
       <span class="logo-text">CantoBuddy <span class="logo-sub">Employer</span></span>
     </div>
     <div class="header-right">
-      <a href="/" class="admin-link">← Learner App</a>
+      <a href="/" class="admin-link" title="Learner app" aria-label="Learner app">📚 Learner App</a>
       <button id="logout-btn" class="btn btn-sm btn-outline" style="display:none" onclick="portalLogout()">Log Out</button>
     </div>
   </div>
@@ -39,33 +54,46 @@
       <h2 id="auth-title">Employer Sign In</h2>
       <p class="login-hint" id="auth-hint">See how your helper's Cantonese is coming along.</p>
 
-      <div class="portal-auth-tabs">
-        <button type="button" class="portal-auth-tab active" data-mode="login" onclick="setAuthMode('login')">Sign In</button>
-        <button type="button" class="portal-auth-tab" data-mode="register" onclick="setAuthMode('register')">Create Account</button>
-      </div>
+      <a href="#employers" class="portal-promo">
+        <span class="pp-emoji">🤝</span>
+        <span><strong>New here?</strong> How to get your helper started ↓</span>
+      </a>
 
+      <!-- No email, no password, and no access code to forget. The employer types
+           their name; the browser quietly holds a device token, so re-signing in
+           on the same phone or laptop just works. Sending a helper the invite
+           link and having her accept it is what establishes consent — that is the
+           real gate, and it is the only thing that ever reads the helper's data. -->
       <form id="auth-form" onsubmit="submitAuth(event)">
-        <div class="form-field" id="field-name" style="display:none">
+        <div class="form-field">
           <label for="auth-name">Your Name</label>
-          <input type="text" id="auth-name" placeholder="e.g. Mrs Chan" autocomplete="name" />
+          <input type="text" id="auth-name" placeholder="e.g. Mrs Chan" required
+                 autocomplete="name" maxlength="60" />
+          <p class="form-hint">This is how your helper will see you on her screen.</p>
         </div>
-        <div class="form-field">
-          <label for="auth-email">Email</label>
-          <input type="email" id="auth-email" placeholder="you@example.com" required autocomplete="username" />
+
+        <!-- Shown when the server returns needsLink: the browser presenting no
+             recognised device token. The fix is to use a device already signed
+             in before, or ask the operator to allow this one. -->
+        <div id="auth-link-help" class="form-field form-note" style="display:none">
+          <p id="auth-link-message"></p>
         </div>
-        <div class="form-field">
-          <label for="auth-pass">Password</label>
-          <input type="password" id="auth-pass" placeholder="••••••••" required autocomplete="current-password" />
-          <p class="form-hint" id="pass-hint" style="display:none">At least 8 characters.</p>
-        </div>
+
         <div id="auth-error" class="form-error"></div>
-        <button type="submit" id="auth-submit" class="btn btn-primary btn-lg btn-block">Sign In</button>
+        <button type="submit" id="auth-submit" class="btn btn-primary btn-lg btn-block">Continue</button>
       </form>
 
       <p class="portal-fineprint">
-        Forgot your password? Ask the CantoBuddy operator to send you a reset link.
+        No password needed. You connect to your helper by sending her the invite
+        link from your dashboard.
       </p>
     </div>
+
+    <!-- PORTAL_SEO_LANDING — seo.js#portalPage() injects the server-rendered
+         employer landing content on the line after this marker. It lives
+         inside #portal-auth so a cold visitor (and a crawler) gets the full
+         pitch, and a signed-in employer — whose section is switched to
+         #portal-dash — never sees it again. -->
   </section>
 
   <!-- ======================= SET NEW PASSWORD (/reset?token=…) ======================= -->
@@ -119,6 +147,33 @@
       never misheard.
     </p>
     <div id="invites-list" class="portal-invite-list"></div>
+
+    <!-- ---- feedback ---- -->
+    <!-- Inline rather than a modal: this is a desktop dashboard, and a form that
+         is simply there beats a button that hides one.
+         An employer is signed in and IS recorded, because a question asked from
+         her own dashboard expects an answer. A helper's message is not — see the
+         note on the learner's dialog in index.html for why that asymmetry is
+         deliberate. -->
+    <div class="admin-toolbar" style="margin-top:28px">
+      <h3>Send Us Feedback</h3>
+    </div>
+    <p class="admin-hint">
+      Something missing, or something that does not work? Tell us — we read every message.
+    </p>
+    <div class="portal-feedback">
+      <div class="form-field">
+        <label for="fb-message">Your message</label>
+        <textarea id="fb-message" rows="4" maxlength="2000" placeholder="What would you like us to know?"></textarea>
+      </div>
+      <div class="form-field">
+        <label for="fb-contact">Contact <span class="optional">(optional)</span></label>
+        <input type="text" id="fb-contact" maxlength="200" placeholder="Email or phone, if you want a reply" />
+        <p class="form-hint">Only used to answer you. It is never shown to a helper.</p>
+      </div>
+      <div id="fb-error" class="form-error"></div>
+      <button class="btn btn-primary" id="fb-send" onclick="submitPortalFeedback()">Send Feedback</button>
+    </div>
 
   </section>
 </main>

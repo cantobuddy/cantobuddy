@@ -10,7 +10,6 @@
 const PORTAL = {
   helpers: [],
   invites: [],
-  authMode: 'login',
   created: null, // { link, code } for the "invitation ready" modal
 };
 
@@ -98,7 +97,9 @@ async function apiSend(method, url, body) {
   });
   if (!r.ok) {
     const e = await r.json().catch(() => ({}));
-    throw new Error(e.error || `Request failed (${r.status})`);
+    const err = new Error(e.error || `Request failed (${r.status})`);
+    err.body = e; // carries needsCode and other server flags to the caller
+    throw err;
   }
   return r.json();
 }
@@ -108,21 +109,33 @@ const apiDelete = (url) => apiSend('DELETE', url);
 
 // ---- Auth ------------------------------------------------------------------
 
-function setAuthMode(mode) {
-  PORTAL.authMode = mode;
-  const isRegister = mode === 'register';
-
-  document.querySelectorAll('.portal-auth-tab').forEach((t) => {
-    t.classList.toggle('active', t.dataset.mode === mode);
-  });
-  document.getElementById('field-name').style.display = isRegister ? '' : 'none';
-  document.getElementById('pass-hint').style.display = isRegister ? '' : 'none';
-  document.getElementById('auth-title').textContent = isRegister ? 'Create Employer Account' : 'Employer Sign In';
-  document.getElementById('auth-hint').textContent = isRegister
-    ? 'Set up an account to invite your helper and follow her progress.'
-    : "See how your helper's Cantonese is coming along.";
-  document.getElementById('auth-submit').textContent = isRegister ? 'Create Account' : 'Sign In';
-  document.getElementById('auth-pass').setAttribute('autocomplete', isRegister ? 'new-password' : 'current-password');
+/**
+ * Employers give a NAME, not an email and password.
+ *
+ * The reason this is safe enough: the thing that actually protects a helper's
+ * data is not this form. It is the invitation. An employer only ever sees a
+ * helper who accepted a code the employer generated, and the helper can revoke
+ * that in one tap from her own screen. A password on top of that bought very
+ * little and cost a lot — it is one more thing for a busy person to lose, and
+ * the reset flow needed the operator anyway.
+ *
+ * So the flow is: type your name → the session is remembered on this device →
+ * invite your helper. On a new phone, type the same name.
+ *
+ * `setAuthMode` used to switch between Sign In and Create Account tabs. There is
+ * only one path now, kept as a function because it still owns the copy on the
+ * card and other callers reset the error through it.
+ */
+function setAuthMode() {
+  document.getElementById('auth-title').textContent = 'Employer Sign In';
+  document.getElementById('auth-hint').textContent =
+    'Enter your name to see how your helper is getting on.';
+  document.getElementById('auth-submit').textContent = 'Continue';
+  document.getElementById('auth-submit').onclick = null;
+  document.getElementById('auth-name').setAttribute('autocomplete', 'name');
+  document.getElementById('auth-name').disabled = false;
+  const linkHelp = document.getElementById('auth-link-help');
+  if (linkHelp) linkHelp.style.display = 'none';
   document.getElementById('auth-error').textContent = '';
 }
 
@@ -131,22 +144,43 @@ async function submitAuth(e) {
   const errEl = document.getElementById('auth-error');
   errEl.textContent = '';
 
-  const email = document.getElementById('auth-email').value.trim();
-  const password = document.getElementById('auth-pass').value;
   const name = document.getElementById('auth-name').value.trim();
+  if (!name) {
+    errEl.textContent = 'Please enter your name.';
+    return;
+  }
+  // The device token this browser was given on first sign-in. Null on a browser
+  // that has never signed in as this employer — in which case the server either
+  // links this device (operator opened pairing) or reports needsLink.
+  const deviceToken = localStorage.getItem('cb_emp_device') || '';
+
   const submit = document.getElementById('auth-submit');
   submit.disabled = true;
 
   try {
-    if (PORTAL.authMode === 'register') {
-      await apiPost('/api/auth/register', { email, name, password });
-    } else {
-      await apiPost('/api/auth/login', { username: email, password });
+    const r = await apiPost('/api/auth/employer', { name, deviceToken });
+    // First sign-in, or a device just linked via an open pairing window: the
+    // server returns a fresh device token exactly once. Store it so the next
+    // sign-in on this browser is silent.
+    if (r.firstTime && r.deviceToken) {
+      try { localStorage.setItem('cb_emp_device', r.deviceToken); } catch {}
     }
     document.getElementById('auth-form').reset();
-    await showDashboard();
+    // Route through checkSession() rather than calling showDashboard()
+    // directly, so an operator session on this machine still gets the notice
+    // instead of a dashboard that was not theirs.
+    await checkSession();
   } catch (err) {
-    errEl.textContent = err.message;
+    const needsLink = err.needsLink || (err.body && err.body.needsLink);
+    if (needsLink) {
+      const help = document.getElementById('auth-link-help');
+      const msg = document.getElementById('auth-link-message');
+      if (help && msg) {
+        help.style.display = '';
+        msg.textContent = err.message || 'This device is not recognised.';
+      }
+    }
+    errEl.textContent = err.message || (err.body && err.body.error) || 'Something went wrong.';
   } finally {
     submit.disabled = false;
   }
@@ -161,16 +195,57 @@ async function portalLogout() {
   location.reload();
 }
 
-/** If the session belongs to an employer (or the operator), go straight in. */
+/**
+ * Send the visitor to the right place for whoever the session belongs to.
+ *
+ * Only role 'employer' gets the dashboard. An operator session is deliberately
+ * NOT accepted here, and that is a fix rather than a restriction:
+ *
+ *   The operator signs in at /admin.html. That is the same origin, so the same
+ *   session cookie is sent to /portal — and this function used to accept
+ *   role 'admin' as well. Clicking the employer link in the learner header while
+ *   signed in as the operator therefore dropped you into a dashboard you never
+ *   asked for: greeted with the admin account's own name, which is literally
+ *   "Operator" (a role, not a person), an empty helper list, because nothing is
+ *   linked to the operator's account, and a Log Out button for a session that
+ *   was never started on this page. It looked signed in, looked empty, and
+ *   named nobody.
+ *
+ * Nothing is lost by asking them to use an employer account here: the operator
+ * already sees every employer and every connected helper under People in
+ * /admin.html.
+ */
 async function checkSession() {
+  let me;
   try {
-    const me = await apiGet('/api/auth/me');
-    if (me.authenticated && (me.role === 'employer' || me.role === 'admin')) {
-      await showDashboard(me);
-    }
+    me = await apiGet('/api/auth/me');
   } catch {
     /* not signed in — the auth card is already showing */
+    return;
   }
+  if (!me.authenticated) return;
+
+  if (me.role === 'employer') return showDashboard(me);
+  if (me.role === 'admin') return showEmployerSignIn();
+
+  // Any other role has no business in the portal. Say so, rather than
+  // resetting the form and leaving the visitor staring at a card that did
+  // nothing when they pressed the button.
+  document.getElementById('auth-error').textContent =
+    'That account cannot use the employer portal.';
+}
+
+/**
+ * An operator (admin) session does not get the employer dashboard: it is sent
+ * back to the employer sign-in card.
+ *
+ * Deliberately does not touch the dashboard: the point is that an operator
+ * session never reaches it.
+ */
+function showEmployerSignIn() {
+  document.getElementById('portal-auth').classList.add('active');
+  document.getElementById('portal-dash').classList.remove('active');
+  document.getElementById('logout-btn').style.display = 'none';
 }
 
 async function showDashboard(me) {
@@ -501,6 +576,57 @@ async function revokeInvite(id) {
   }
 }
 
+// ---- Feedback ---------------------------------------------------------------
+
+/**
+ * The employer's note to the operator.
+ *
+ * Unlike a helper's, this one is ATTRIBUTED — the server records the signed-in
+ * employer, because a question asked from her own dashboard expects an answer,
+ * and she is already identified by having signed in. The contact box is still
+ * offered for the case where the name on the account is not how she wants to be
+ * reached.
+ *
+ * The button is disabled while the request is in flight: on a slow connection a
+ * double tap would post the message twice and the operator would answer it twice.
+ */
+async function submitPortalFeedback() {
+  const msg = document.getElementById('fb-message');
+  const contact = document.getElementById('fb-contact');
+  const err = document.getElementById('fb-error');
+  const btn = document.getElementById('fb-send');
+  const text = (msg.value || '').trim();
+
+  err.textContent = '';
+  if (!text) {
+    err.textContent = 'Please write something first.';
+    msg.focus();
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+  try {
+    await apiPost('/api/feedback', {
+      message: text,
+      contact: (contact.value || '').trim(),
+      lang: 'en',
+      page: '/portal',
+    });
+    // Cleared only on success, so a failed send does not throw away what she
+    // wrote — that is the one thing that would make her give up rather than
+    // retry.
+    msg.value = '';
+    contact.value = '';
+    showToast('Thank you — we read every message');
+  } catch (e) {
+    err.textContent = e.message || 'Could not send that. Please try again.';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Send Feedback';
+  }
+}
+
 // ---- Password reset (/reset?token=…) ---------------------------------------
 //
 // The reset link is minted by the operator (there is no mail provider) and
@@ -541,7 +667,7 @@ async function submitReset(e) {
 
 // ---- Init ------------------------------------------------------------------
 
-setAuthMode('login');
+setAuthMode();
 if (RESET_TOKEN) {
   showResetCard();
 } else {

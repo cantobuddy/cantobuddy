@@ -1,0 +1,237 @@
+CANTOBUDDY — FACEBOOK HK HELPER GROUPS
+Copy-paste posts, with tagged links
+=========================================================================
+
+HOW TO USE THIS FILE
+Open it on your phone. Long-press → Select all inside a block → Copy.
+Everything between the dashed lines is the post, exactly as it goes out.
+
+The images are in the  images/  folder next to this file.
+The full version of this pack, with the reasoning, is
+facebook-hk-groups.html
+
+READ THIS FIRST. Five things decide whether the post lives or dies:
+  1. Ask the group admin for permission BEFORE posting. Most HK helper
+     groups have an anti-advertising rule and enforce it.
+  2. Post as yourself, not as a brand. Don't lead with "CantoBuddy".
+  3. Post in Tagalog / Bahasa, not English. English gets scrolled past.
+  4. UPLOAD AN IMAGE with the post. Do not rely on the link preview —
+     the site's og:image is a small square app icon, so a bare link
+     looks like a thumbnail. Put the link in the text or a comment.
+  5. Answer every comment. That, not the post, is what grows it.
+
+
+=========================================================================
+THE LINKS — use a different one per group, so you can tell what worked
+=========================================================================
+
+  Filipino group #1        https://cantobuddy.com/?ref=fb-fil-1
+  Filipino group #2        https://cantobuddy.com/?ref=fb-fil-2
+  Indonesian group #1      https://cantobuddy.com/?ref=fb-id-1
+  Indonesian group #2      https://cantobuddy.com/?ref=fb-id-2
+  Mixed helper group       https://cantobuddy.com/?ref=fb-mix-1
+  Employer / HK community  https://cantobuddy.com/?ref=fb-emp-1
+
+The app records where a learner FIRST arrived from, and counts it. So in
+a month you can say which group actually brought people in, instead of
+guessing. Ask me for the numbers.
+
+
+=========================================================================
+ASK PERMISSION — send this to the mods first
+=========================================================================
+
+Hi po! Admin, I made a free Cantonese learning app for helpers — no
+ads, no sign-up, no cost. Pwede po bang i-share sa group? If not,
+understood po. Thank you! 🙏
+
+--- Indonesian ---
+Halo Admin, saya membuat aplikasi belajar bahasa Kanton gratis untuk
+ART — tanpa iklan, tanpa daftar. Boleh saya bagikan di grup? Kalau
+tidak boleh, tidak masalah. Terima kasih!
+
+
+=========================================================================
+POST A — FILIPINO GROUPS (Tagalog)
+Image: images/fb-post-1-preview.png
+=========================================================================
+
+Hi mga ate! 🇭🇰 Gumawa ako ng libreng app para sa mga helper na
+nag-aaral ng Cantonese, at gusto ko itong i-share.
+
+Alam ko ang pakiramdam — puro "m4 goi1" ang naririnig mo at hindi mo
+alam kung ano ang ibig sabihin. Yung lola nag-uutos, nakatingin ka
+lang. Nakakahiya, di ba?
+
+Hindi ito app pang-turista. Ang mga salita, yung talagang
+maririnig mo sa bahay:
+🏠 pag-aalaga sa matanda
+🍳 kusina at pagkain
+🧹 paglilinis
+💊 gamot at check-up
+🚑 emergency
+
+Bawat salita may audio, may quiz, at may paliwanag sa Filipino.
+LIBRE lahat — walang bayad, walang sign-up, at pwede pang gamitin
+offline pagkatapos ma-open minsan.
+
+10 minuto lang kada araw. Sa loob ng isang buwan, mga 60 words na
+ang alam mo — sapat na para maintindihan ang mga utos sa bahay.
+
+👉 https://cantobuddy.com/?ref=fb-fil-1
+
+Ako ang gumawa nito, hindi ito kumpanya. Gusto ko lang makatulong.
+Kung may tanong kayo, o may salitang gusto niyong idagdag, sabihin
+lang sa comment — idadagdag ko. 🙏
+
+
+=========================================================================
+POST B — INDONESIAN GROUPS (Bahasa Indonesia)
+Image: images/fb-post-1-preview.png
+=========================================================================
+
+Halo teman-teman! 🇭🇰 Saya membuat aplikasi GRATIS untuk asisten
+rumah tangga yang mau belajar bahasa Kanton, dan saya ingin
+membagikannya.
+
+Saya tahu rasanya — majikan bicara cepat, kita cuma bisa diam dan
+tersenyum. Apalagi kalau yang diurus nenek: beliau hampir tidak bisa
+bahasa Inggris.
+
+Ini bukan aplikasi untuk turis. Isinya kata-kata yang benar-benar
+dipakai di rumah:
+🏠 merawat lansia
+🍳 dapur dan makan
+🧹 kebersihan
+💊 obat dan kontrol ke dokter
+🚑 keadaan darurat
+
+Setiap kata ada audionya, ada kuis, dan ada artinya dalam bahasa
+Indonesia. GRATIS — tanpa bayar, tanpa daftar, dan bisa dipakai
+offline setelah dibuka sekali.
+
+Sepuluh menit sehari. Setelah sebulan, sekitar 60 kata — sudah cukup
+untuk paham permintaan sehari-hari di rumah.
+
+👉 https://cantobuddy.com/?ref=fb-id-1
+
+Saya sendiri yang membuatnya, bukan perusahaan. Kalau ada pertanyaan,
+atau ada kata yang ingin ditambahkan, tulis di komentar ya —
+saya tambahkan. 🙏
+
+
+=========================================================================
+POST C — MIXED / ENGLISH-LANGUAGE HELPER GROUPS
+Image: images/vertical-2-eldercare.png
+=========================================================================
+
+The four Cantonese words that matter most when you're caring for an
+elderly person in Hong Kong 🇭🇰
+
+痛   tung3  —  pain / it hurts
+藥   joek6  —  medicine
+咳   kat1   —  cough
+水   seoi2  —  water
+
+Listen for these four and you'll catch the important half of what she
+says. Everything else you can usually work out from context.
+
+I built a free app that teaches exactly this — the Cantonese that
+actually gets used at home, with audio and quizzes, in English,
+Filipino and Bahasa Indonesia. No cost, no sign-up, works offline.
+
+👉 https://cantobuddy.com/?ref=fb-mix-1
+
+If you want a specific word added, comment it and I'll put it in. 🙏
+
+
+=========================================================================
+POST D — EMPLOYER / HONG KONG COMMUNITY GROUPS
+Image: images/fb-cover.png
+=========================================================================
+
+Something for anyone who employs a domestic helper in Hong Kong.
+
+Most helpers arrive speaking English and learn Cantonese on the job —
+usually from the person in the household who speaks English least. If
+your mother is the one at home all day, she's the one your helper
+cannot talk to. That's where misunderstandings start.
+
+I built a free app for this. It teaches the Cantonese that actually
+gets used at home — elder care, kitchen, medication, emergencies —
+with audio and quizzes, in English, Filipino, Bahasa Indonesia and
+Simplified Chinese.
+
+Ten minutes a day is enough to make a real difference.
+
+No cost, no sign-up, works offline:
+👉 https://cantobuddy.com/?ref=fb-emp-1
+
+Happy to answer anything about it here.
+
+
+=========================================================================
+COMMENT REPLIES — most of the value is here, not in the post
+=========================================================================
+
+--- "May app na ba nito sa iPhone?" / "Ada versi iOS?" ---
+
+Yes po! Hindi siya kailangan i-download sa App Store — website siya
+na pwede i-save sa home screen:
+
+iPhone: buksan sa Safari → tap ang Share button → "Add to Home
+Screen"
+Android: buksan sa Chrome → tap ang ⋮ menu → "Add to Home screen"
+
+Tapos parang app na siya — may sariling icon, at gagana offline. 🙏
+
+
+--- "Paano sabihin ang [salita]?" / "Bagaimana bilang [kata]?" ---
+
+Good question! [WORD] po — [JYUTPING]. Ibibigay ko sa [LEVEL] level,
+sa [CATEGORY] category. Dinagdag ko na sa app, i-refresh niyo lang
+po. Salamat sa suggestion! 🙏
+
+*** THIS REPLY IS THE WHOLE GROWTH ENGINE ***
+Someone who asked for a word, saw it appear, and got a reply is far
+more likely to share the app than someone who just read a post.
+
+
+--- "Scam ba ito? Bakit libre?" / "Ini penipuan?" ---
+
+Fair question po! Libre siya kasi hindi kailangan ng pera para
+patakbuhin — walang ads, walang bayad, at hindi ako humihingi ng
+pangalan, email, o numero. Buksan niyo lang at tingnan, walang
+kahit anong kailangang i-sign up. Kung may makita kayong
+kahit anong hihingi ng bayad, sabihin niyo sa akin agad. 🙏
+
+--- Indonesian ---
+Pertanyaan bagus! Gratis karena tidak butuh biaya untuk
+menjalankannya — tanpa iklan, tanpa bayar, dan saya tidak meminta
+nama, email, atau nomor telepon. Silakan dibuka dan dilihat, tidak
+perlu daftar apa pun.
+
+
+=========================================================================
+FIRST WEEK — the order that works
+=========================================================================
+
+Day 1    Message the mods of 3-4 groups for permission. Do NOT post yet.
+Day 2    Post A in the first Filipino group that said yes. Stay near
+         your phone for two hours and answer everything.
+Day 3    Post B in an Indonesian group. Same routine.
+Day 4-5  Answer the word requests. Add each word to the app, then reply.
+Day 6-7  Post C or D in a different group. Ask me for the referral
+         numbers — you will already be able to see which group works.
+
+
+=========================================================================
+TWO THINGS TO KNOW
+=========================================================================
+
+1. The vocabulary in the app is machine-drafted and has not been checked
+   by a native Cantonese speaker yet. If someone in a comment corrects a
+   word, that is genuinely useful — take it, and fix it in the app.
+
+2. Nothing here costs anything and nothing collects personal data. If
+   anyone in a group claims otherwise, that is worth knowing about.

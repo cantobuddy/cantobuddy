@@ -18,6 +18,8 @@ Dockerfile
 proposal
 upload-to-github
 tools
+.env
+.env.*
 Start CantoBuddy.cmd
 icon-preview.png
 header-preview.png

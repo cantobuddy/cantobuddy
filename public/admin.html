@@ -55,14 +55,41 @@
   <section id="admin-dash" class="admin-section">
 
     <!-- tabs -->
+    <!-- Order asked for by the operator: Reports, People, Vocabulary,
+         Categories, Progress, Feedback. The last three are the broadcast and
+         moderation queues, which stay after them in this order.
+
+         Reports is also the LANDING TAB (asked for on 2026-10-20): the
+         `active` classes below are on the Reports button and #tab-reports,
+         not on Vocabulary. loadAdminData() calls renderAdminReport() on every
+         login, so the panel already has its data when it is first shown. If a
+         seventh tab is ever added before Reports, the landing tab does not
+         follow it — it stays where these two `active` classes say it is. -->
     <div class="admin-tabs">
-      <button class="admin-tab active" data-tab="vocab" onclick="switchTab('vocab')">📚 Vocabulary</button>
+      <button class="admin-tab active" data-tab="reports" onclick="switchTab('reports')">📈 Reports</button>
+      <button class="admin-tab" data-tab="people" onclick="switchTab('people')">👥 People</button>
+      <button class="admin-tab" data-tab="vocab" onclick="switchTab('vocab')">📚 Vocabulary</button>
       <button class="admin-tab" data-tab="categories" onclick="switchTab('categories')">📁 Categories</button>
       <button class="admin-tab" data-tab="progress" onclick="switchTab('progress')">📊 Progress</button>
+      <!-- The badge is the count of unanswered items, so the operator sees there
+           is something waiting without opening the tab. Hidden at zero. -->
+      <button class="admin-tab" data-tab="feedback" onclick="switchTab('feedback')">💬 Feedback<span
+        id="admin-feedback-badge" class="tab-badge" style="display:none"></span></button>
+      <button class="admin-tab" data-tab="posts" onclick="switchTab('posts')">📰 Posts</button>
+      <!-- Push notifications: a separate surface from Posts because broadcasting
+           goes to opted-in browser subscribers (learners), not the Discover feed. -->
+      <button class="admin-tab" data-tab="push" onclick="switchTab('push')">🔔 Push</button>
+      <!-- Stories. Sits next to Feedback because both are queues of things a
+           stranger wrote that a human has to read — but this one is different
+           in kind: an item here is INVISIBLE TO EVERYONE until it is approved
+           from this tab, so the badge is not a nudge, it is the only way a
+           story ever becomes readable. -->
+      <button class="admin-tab" data-tab="stories" onclick="switchTab('stories')">📖 Stories<span
+        id="admin-stories-badge" class="tab-badge" style="display:none"></span></button>
     </div>
 
     <!-- ---- vocab tab ---- -->
-    <div id="tab-vocab" class="admin-tab-content active">
+    <div id="tab-vocab" class="admin-tab-content">
       <div class="admin-toolbar">
         <h3>Vocabulary List</h3>
         <button class="btn btn-primary" onclick="openVocabForm()">+ Add Word</button>
@@ -85,14 +112,292 @@
         <h3>Categories</h3>
         <button class="btn btn-primary" onclick="openCategoryForm()">+ Add Category</button>
       </div>
+      <p class="admin-hint" id="admin-cat-summary"></p>
       <p class="admin-hint">Use ↑ / ↓ to set the order. This is the order learners see in the app.</p>
-      <div id="admin-cat-list" class="admin-cat-grid"></div>
+      <div id="admin-cat-list" class="admin-list"></div>
     </div>
 
     <!-- ---- progress tab ---- -->
     <div id="tab-progress" class="admin-tab-content">
       <h3>Learner Progress Overview</h3>
       <div id="admin-stats" class="stats-grid"></div>
+    </div>
+
+    <!-- ---- people tab ---- -->
+    <div id="tab-people" class="admin-tab-content">
+      <div class="admin-toolbar">
+        <h3>Employers &amp; helpers</h3>
+        <button class="btn btn-outline btn-sm" onclick="renderAdminPeople()">↻ Refresh</button>
+      </div>
+      <p class="admin-hint">Read-only. An employer can see a helper only after that helper has agreed to share.</p>
+      <div id="admin-people-summary" class="stats-grid"></div>
+      <div id="admin-employers" class="admin-list"></div>
+
+      <h3 class="admin-subhead">Learners with no employer</h3>
+      <p class="admin-hint">Helpers using the app on their own — not connected to anyone.</p>
+      <div id="admin-unconnected" class="admin-list"></div>
+    </div>
+
+    <!-- ---- reports tab ---- -->
+    <div id="tab-reports" class="admin-tab-content active">
+      <div class="admin-toolbar">
+        <h3>Statistics &amp; reporting</h3>
+        <button class="btn btn-outline btn-sm" onclick="renderAdminReport()">↻ Refresh</button>
+      </div>
+      <p class="admin-hint" id="admin-report-stamp"></p>
+
+      <h4 class="admin-subhead">Platform totals</h4>
+      <div id="admin-report-totals" class="stats-grid"></div>
+
+      <h4 class="admin-subhead">Visitors &amp; practice</h4>
+      <p class="admin-hint">
+        Everyone who arrived — counted the moment the app or a landing page loads,
+        whether or not they ever opened a quiz. Until now only quiz activity was
+        visible, so a visitor who studied and never tested herself left no trace.
+      </p>
+      <div id="admin-visitor-totals" class="stats-grid"></div>
+      <div id="admin-visitor-chart" class="report-chart"></div>
+      <div id="admin-visitor-notes" class="report-notes"></div>
+
+      <h4 class="admin-subhead">Activity</h4>
+      <div class="chip-group" id="admin-report-range">
+        <button class="chip" data-days="7" onclick="setReportDays(7)">7 days</button>
+        <button class="chip active" data-days="30" onclick="setReportDays(30)">30 days</button>
+        <button class="chip" data-days="90" onclick="setReportDays(90)">90 days</button>
+      </div>
+      <div id="admin-report-chart" class="report-chart"></div>
+      <div id="admin-report-notes" class="report-notes"></div>
+
+      <h4 class="admin-subhead">Employer engagement</h4>
+      <p class="admin-hint">
+        How actively each employer's helpers are practising. A helper working for
+        two families appears under both, so these rows must not be added up.
+      </p>
+      <div id="admin-report-employers" class="admin-list"></div>
+
+      <h4 class="admin-subhead">Practising vs quizzing, by day</h4>
+      <p class="admin-hint">
+        Each day, how much was studied and how much was tested. A day with a tall
+        practice bar and a flat quiz bar is a learner working through the
+        vocabulary without ever testing herself — the people the quiz-only
+        reports could not see at all. Counts are per day and anonymous; no
+        learner is attached to a bar.
+      </p>
+      <div class="chip-group" id="admin-practice-metric">
+        <button class="chip active" data-metric="words_viewed" onclick="setPracticeMetric('words_viewed')">Words viewed</button>
+        <button class="chip" data-metric="cards_opened" onclick="setPracticeMetric('cards_opened')">Cards opened</button>
+      </div>
+      <div id="admin-practice-chart" class="report-chart"></div>
+      <div id="admin-practice-notes" class="report-notes"></div>
+      <p class="admin-hint">
+        The named list of learners who have never quizzed is in the CSV export
+        below (<em>Practice only</em>) — it is a list to act on, not a chart, so
+        it lives in the export rather than on this page.
+      </p>
+      <div id="admin-practice-only" hidden></div>
+
+      <h4 class="admin-subhead">Top landing pages</h4>
+      <p class="admin-hint">
+        Where visitors arrive from search. Page views are counted anonymously —
+        which page was read, never who read it.
+      </p>
+      <div id="admin-top-paths" class="admin-list"></div>
+
+      <h4 class="admin-subhead">Export</h4>
+      <p class="admin-hint">Download as CSV — opens in Excel or Google Sheets.</p>
+      <div class="report-export">
+        <a class="btn btn-outline btn-sm" href="/api/admin/report.csv?type=summary">Summary</a>
+        <a class="btn btn-outline btn-sm" href="/api/admin/report.csv?type=employers">Employers</a>
+        <a class="btn btn-outline btn-sm" href="/api/admin/report.csv?type=helpers">Helpers</a>
+        <a class="btn btn-outline btn-sm" href="/api/admin/report.csv?type=daily">Daily activity</a>
+        <a class="btn btn-outline btn-sm" href="/api/admin/report.csv?type=visitors">Visitors</a>
+        <a class="btn btn-outline btn-sm" href="/api/admin/report.csv?type=practice_only">Practice only</a>
+      </div>
+    </div>
+
+    <!-- ---- feedback tab ---- -->
+    <!-- What PROPOSAL.md specifies for Phase 5 and what proposal/prototype.html
+         sketches: submissions from helpers and employers, visible only here.
+
+         A helper's message carries no identity at all (see createFeedback in
+         db.js), so the card for one can only ever say "Anonymous" — that is the
+         design, not missing data. An employer's is attributed, because she is
+         signed in and expects an answer.
+
+         Status tracking is the point of the tab: an unanswered message is how
+         you lose the trust of the person who bothered to write. -->
+    <div id="tab-feedback" class="admin-tab-content">
+      <div class="admin-toolbar">
+        <h3>Feedback</h3>
+        <button class="btn btn-outline btn-sm" onclick="renderAdminFeedback()">↻ Refresh</button>
+      </div>
+      <p class="admin-hint">
+        Submissions from helpers and employers — visible only here. Helper feedback is
+        anonymous by default, so people speak honestly.
+      </p>
+
+      <div class="chip-group" id="admin-feedback-filter">
+        <button class="chip active" data-status="" onclick="setFeedbackFilter('')">All</button>
+        <button class="chip" data-status="new" onclick="setFeedbackFilter('new')">New</button>
+        <button class="chip" data-status="reviewing" onclick="setFeedbackFilter('reviewing')">Reviewing</button>
+        <button class="chip" data-status="resolved" onclick="setFeedbackFilter('resolved')">Resolved</button>
+      </div>
+
+      <div id="admin-feedback-summary" class="stats-grid"></div>
+      <div id="admin-feedback-list" class="admin-list"></div>
+    </div>
+
+    <!-- ---- posts tab ---- -->
+    <!-- The Discover feed: the culture channel (written here) and the news
+         channel (imported from public Hong Kong sources — see news.js).
+
+         The two live in one tab because they are one feed with two channels,
+         and because the thing an operator does to them is the same: look at the
+         list, publish or hide an item, add one by hand. The only asymmetry is
+         the "Fetch news now" button, which only makes sense for news — it is
+         labelled as such rather than hidden, so it is obvious why it exists. -->
+    <div id="tab-posts" class="admin-tab-content">
+      <div class="admin-toolbar">
+        <h3>Discover feed</h3>
+        <div class="admin-toolbar-actions">
+          <button class="btn btn-outline btn-sm" onclick="renderAdminPosts()">↻ Refresh</button>
+          <button class="btn btn-outline btn-sm" onclick="classifyNewsPosts()" title="Fill in the topic of any news item that has none. Never changes a topic you have already set by hand.">🏷 Re-classify news</button>
+          <button class="btn btn-outline btn-sm" onclick="fetchNewsNow()" title="Import the latest stories from the public HK sources">⬇ Fetch news now</button>
+          <button class="btn btn-primary" onclick="openPostForm()">+ New post</button>
+        </div>
+      </div>
+      <p class="admin-hint" id="admin-posts-summary"></p>
+      <p class="admin-hint">
+        <strong>Culture</strong> posts are written here. <strong>News</strong> posts are imported
+        from Philippine, Indonesian and Hong Kong public sources (Philippine Daily Inquirer,
+        Antara News and RTHK) as a headline, a short summary and a link — never the full article,
+        which would be a copyright problem.
+      </p>
+      <p class="admin-hint">
+        Each news item is given a <strong>topic</strong> on import, by keyword — see
+        <code>news-category.js</code>. It is a guess, so it can be corrected on any single post
+        with the Topic field below; <em>Re-classify news</em> only ever fills in topics that are
+        empty and will never overwrite one you have set.
+      </p>
+
+      <div class="chip-group" id="admin-posts-filter">
+        <button class="chip active" data-channel="" onclick="setPostFilter('')">All</button>
+        <button class="chip" data-channel="culture" onclick="setPostFilter('culture')">🏮 Culture</button>
+        <button class="chip" data-channel="news" onclick="setPostFilter('news')">📰 News</button>
+      </div>
+      <!-- The topic row. Only meaningful for the News channel, so it is shown
+           and hidden with the channel filter rather than left on screen doing
+           nothing. -->
+      <div class="chip-group" id="admin-posts-category" hidden>
+        <button class="chip active" data-category="" onclick="setNewsCategoryFilter('')">Every topic</button>
+        <button class="chip" data-category="hongkong" onclick="setNewsCategoryFilter('hongkong')">🏙 Hong Kong</button>
+        <button class="chip" data-category="work" onclick="setNewsCategoryFilter('work')">💼 Work</button>
+        <button class="chip" data-category="money" onclick="setNewsCategoryFilter('money')">💰 Money</button>
+        <button class="chip" data-category="health" onclick="setNewsCategoryFilter('health')">🩺 Health</button>
+        <button class="chip" data-category="home" onclick="setNewsCategoryFilter('home')">🏠 Home</button>
+        <button class="chip" data-category="politics" onclick="setNewsCategoryFilter('politics')">🏛 Government</button>
+        <button class="chip" data-category="other" onclick="setNewsCategoryFilter('other')">📌 Other</button>
+      </div>
+
+      <div id="admin-posts-list" class="admin-list"></div>
+    </div>
+
+    <!-- ---- push tab ---- -->
+    <!-- Browser push to opted-in learners. Two jobs: a one-off broadcast (e.g. an
+         announcement or a nudge to read a new story) and the recurring practice
+         reminder, which can also be fired by hand here for the daily sweep the
+         free-tier server misses while asleep. -->
+    <div id="tab-push" class="admin-tab-content">
+      <div class="admin-toolbar">
+        <h3>Push notifications</h3>
+        <button class="btn btn-outline btn-sm" onclick="renderAdminPush()">↻ Refresh</button>
+      </div>
+      <p class="admin-hint" id="admin-push-summary"></p>
+
+      <div class="admin-card">
+        <h4 class="admin-subhead">Send to all subscribers</h4>
+        <p class="admin-hint">
+          Goes to everyone who turned on notifications in their browser. Used for
+          announcements or to point learners at a new story or category. Keep it rare.
+        </p>
+        <div class="form-field">
+          <label for="push-title">Title *</label>
+          <input type="text" id="push-title" maxlength="100" placeholder="A new story just arrived" />
+        </div>
+        <div class="form-field">
+          <label for="push-body">Message</label>
+          <textarea id="push-body" rows="3" maxlength="200" placeholder="Open CantoBuddy to read it."></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label for="push-url">Open link</label>
+            <input type="text" id="push-url" maxlength="200" placeholder="/" />
+            <p class="form-hint">Where the tap lands. Default is the app home.</p>
+          </div>
+          <div class="form-field">
+            <label for="push-tag">Group tag</label>
+            <input type="text" id="push-tag" maxlength="40" placeholder="admin" />
+            <p class="form-hint">Same tag replaces a prior card instead of stacking.</p>
+          </div>
+        </div>
+        <div id="push-send-error" class="form-error"></div>
+        <button class="btn btn-primary" id="push-send-btn" onclick="adminSendPush()">Send now</button>
+        <span id="push-send-result" class="admin-result"></span>
+      </div>
+
+      <div class="admin-card">
+        <h4 class="admin-subhead">Practice reminders</h4>
+        <p class="admin-hint">
+          Nudges quiet learners to practise. The server runs this daily, but only
+          while it is awake — fire it by hand to cover the gaps.
+        </p>
+        <div class="form-row" style="align-items:end">
+          <div class="form-field">
+            <label for="push-remind-days">Quiet for (days)</label>
+            <input type="number" id="push-remind-days" min="1" max="60" value="3" />
+          </div>
+          <button class="btn btn-primary" id="push-remind-btn" onclick="adminSendReminders()">Send reminders now</button>
+          <span id="push-remind-result" class="admin-result"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---- stories tab ---- -->
+    <!-- The moderation queue for helper-written stories.
+    
+         THIS IS THE ONLY PLACE A STORY CAN BE PUBLISHED. A submission is stored
+         'pending' and is invisible to every public surface — the shelf, the
+         reader page, the sitemap — until the operator approves it here. There is
+         no other route in the app that sets a story to 'published'.
+    
+         The operator is shown the body, the language and the name field,
+         because moderating means reading the thing; and NOT the device identity,
+         because the job is to judge words, not people. The English gloss box is
+         the one editorial power that matters: a story written in Filipino
+         reaches a reader who does not speak it only through a gloss the
+         operator writes by hand. -->
+    <div id="tab-stories" class="admin-tab-content">
+      <div class="admin-toolbar">
+        <h3>Stories</h3>
+        <button class="btn btn-outline btn-sm" onclick="renderAdminStories()">↻ Refresh</button>
+      </div>
+      <p class="admin-hint">
+        Stories written by helpers, in their own language. <strong>Nothing here is visible to
+        anyone until you approve it.</strong> Please read for an address, a phone number, an
+        employer's full name or anything else that could identify her or the family she works
+        for — and remove it before publishing. If you add an English gloss, a reader who does
+        not speak her language can follow the story too.
+      </p>
+
+      <div class="chip-group" id="admin-stories-filter">
+        <button class="chip active" data-status="pending" onclick="setStoryFilter('pending')">Waiting</button>
+        <button class="chip" data-status="published" onclick="setStoryFilter('published')">Published</button>
+        <button class="chip" data-status="rejected" onclick="setStoryFilter('rejected')">Not published</button>
+        <button class="chip" data-status="" onclick="setStoryFilter('')">All</button>
+      </div>
+
+      <div id="admin-stories-summary" class="stats-grid"></div>
+      <div id="admin-stories-list" class="admin-list"></div>
     </div>
 
   </section>
@@ -119,6 +424,20 @@
       <div class="form-field">
         <label>Tagalog Translation</label>
         <input type="text" id="vf-tagalog" placeholder="Kumusta" />
+      </div>
+      <div class="form-field">
+        <label>中文释义（简体）</label>
+        <input type="text" id="vf-mandarin" placeholder="你好" lang="zh-Hans" />
+        <p class="form-hint">The meaning in Simplified Chinese, for learners who arrived from
+          the mainland speaking Mandarin. Optional — leave blank for a word the Mandarin
+          version does not need yet.</p>
+      </div>
+      <div class="form-field">
+        <label>Arti Bahasa Indonesia</label>
+        <input type="text" id="vf-indonesian" placeholder="Halo" lang="id" />
+        <p class="form-hint">The meaning in Bahasa Indonesia, for Indonesian domestic helpers.
+          Indonesian, not Malay — <em>asisten rumah tangga</em>, not <em>pembantu rumah</em>.
+          Optional — a blank falls back to the English meaning.</p>
       </div>
       <div class="form-field">
         <label>Image (Emoji)</label>
@@ -166,11 +485,138 @@
         <input type="text" id="cf-name-fil" placeholder="Bati" />
       </div>
       <div class="form-field">
+        <label>中文名称（简体）</label>
+        <input type="text" id="cf-name-zh" placeholder="问候" lang="zh-Hans" />
+      </div>
+      <div class="form-field">
+        <label>Nama Bahasa Indonesia</label>
+        <input type="text" id="cf-name-id" placeholder="Sapaan" lang="id" />
+      </div>
+      <div class="form-field">
         <label>Icon (Emoji)</label>
         <input type="text" id="cf-icon" placeholder="👋" maxlength="4" />
       </div>
       <div class="modal-actions">
         <button type="button" class="btn btn-outline" onclick="closeCatForm()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============================ POST FORM MODAL ============================ -->
+<!-- One form for both channels. English is the required language — a post with
+     no English title has nothing to show in the feed — and every other language
+     falls back to English when left blank, so a post can be published before its
+     translations exist. That is the same order the vocabulary content used:
+     approve the English first, then translate. -->
+<div id="post-form-modal" class="modal-overlay" onclick="closePostForm(event)">
+  <div class="modal-form" onclick="event.stopPropagation()">
+    <h3 id="post-form-title">New post</h3>
+    <form onsubmit="submitPostForm(event)">
+      <input type="hidden" id="pf-id" />
+
+      <div class="form-row">
+        <div class="form-field">
+          <label>Channel *</label>
+          <select id="pf-channel" onchange="togglePostCategoryRow()">
+            <option value="culture">🏮 Culture</option>
+            <option value="news">📰 News</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Status *</label>
+          <select id="pf-status">
+            <option value="draft">Draft — hidden from learners</option>
+            <option value="published">Published — live in the feed</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Icon</label>
+          <input type="text" id="pf-icon" placeholder="🏮" maxlength="4" />
+        </div>
+      </div>
+
+      <!-- The News topic. Blank means "let the importer guess", which is what
+           an imported item gets; the operator comes here to OVERRIDE a guess,
+           not to supply one for a post that has not been written yet. Culture
+           posts have no topics at all, so this row is hidden for that channel
+           rather than shown with a select that would be ignored. -->
+      <div class="form-row" id="pf-category-row" hidden>
+        <div class="form-field">
+          <label>Topic</label>
+          <select id="pf-category">
+            <option value="">— guess it on save (news only) —</option>
+            <option value="hongkong">🏙 Hong Kong</option>
+            <option value="work">💼 Work &amp; your rights</option>
+            <option value="money">💰 Money &amp; prices</option>
+            <option value="health">🩺 Health</option>
+            <option value="home">🏠 Home &amp; family</option>
+            <option value="politics">🏛 Government</option>
+            <option value="other">📌 Other news</option>
+          </select>
+          <p class="form-hint">Only used by the News channel. Set it here to correct a wrong guess.</p>
+        </div>
+      </div>
+
+      <div class="form-field">
+        <label>Title — English *</label>
+        <input type="text" id="pf-title-en" placeholder="唔該 and 多謝 Are Not the Same Word" required />
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label>Title — 中文（简体）</label>
+          <input type="text" id="pf-title-zh" lang="zh-Hans" placeholder="「唔该」和「多谢」不是同一个词" />
+        </div>
+        <div class="form-field">
+          <label>Title — Filipino</label>
+          <input type="text" id="pf-title-fil" lang="tl" placeholder="Optional" />
+        </div>
+        <div class="form-field">
+          <label>Title — Bahasa Indonesia</label>
+          <input type="text" id="pf-title-id" lang="id" placeholder="Optional" />
+        </div>
+      </div>
+
+      <div class="form-field">
+        <label>Summary — English</label>
+        <textarea id="pf-summary-en" rows="3" placeholder="One or two sentences shown on the feed card."></textarea>
+        <p class="form-hint">Shown under the headline in the feed and as the page's meta description.</p>
+      </div>
+      <div class="form-field">
+        <label>Summary — 中文（简体）</label>
+        <textarea id="pf-summary-zh" rows="2" lang="zh-Hans" placeholder="留空则使用英文"></textarea>
+      </div>
+
+      <div class="form-field">
+        <label>Body — English</label>
+        <textarea id="pf-body-en" rows="10" placeholder="<p>…</p>"></textarea>
+        <p class="form-hint">
+          A small HTML subset: <code>&lt;p&gt;</code>, <code>&lt;h2&gt;</code>, <code>&lt;ul&gt;</code>,
+          <code>&lt;ol&gt;</code>, <code>&lt;li&gt;</code>, <code>&lt;strong&gt;</code>,
+          <code>&lt;em&gt;</code>, <code>&lt;a&gt;</code>. Anything else is stripped when it renders.
+          <strong>Leave empty for an imported news item</strong> — a news post is a headline, a
+          summary and a link, never the article.
+        </p>
+      </div>
+
+      <div class="form-row">
+        <div class="form-field">
+          <label>Source name</label>
+          <input type="text" id="pf-source-name" placeholder="RTHK News — Local" />
+        </div>
+        <div class="form-field">
+          <label>Source URL</label>
+          <input type="text" id="pf-source-url" placeholder="https://…" />
+        </div>
+      </div>
+      <p class="form-hint">
+        Filling these in adds an attribution line and a “Read the full story” link to the article.
+        Required for anything summarising someone else's reporting.
+      </p>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-outline" onclick="closePostForm()">Cancel</button>
         <button type="submit" class="btn btn-primary">Save</button>
       </div>
     </form>

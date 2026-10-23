@@ -1274,7 +1274,7 @@ const CONTENT_VERSION = 9; // v1 = original 64 · v2 = Tier A expansion · v3 = 
 // CASCADE) survive untouched. Guarded so a content drop runs exactly once per
 // version on every deployment, including the production database that already
 // carries the original 14 short passages.
-const LIVING_CONTENT_VERSION = 2; // v1 = original 14 short passages · v2 = expanded 18 passages (English, ~500 words each) via the Living upgrade
+const LIVING_CONTENT_VERSION = 3; // v1 = original 14 short passages · v2 = expanded 18 passages (English, ~500 words each) via the Living upgrade · v3 = wage correction: FDW Minimum Allowable Wage stated as HK$5,220/month (was wrong HK$42.1/hr)
 // NOTE: the Simplified glosses (vocabulary.mandarin), the Indonesian glosses
 // (vocabulary.indonesian) and BOTH per-language category name sets
 // (categories.name_zh, categories.name_id) are NOT applied by migrateContent() —

@@ -201,10 +201,54 @@
   }
   .pop{animation:pop .28s cubic-bezier(.3,1.6,.5,1)}
   @keyframes pop{from{transform:scale(.7) rotate(-8deg);opacity:.4}to{transform:scale(1) rotate(0);opacity:1}}
-  .metaline{display:flex;align-items:center;justify-content:center;gap:14px;font-size:14px;color:var(--muted);padding-bottom:6px}
+  /* ---- the status line under the table ----
+     This was a 13px grey strip — the quietest thing on the screen — and it
+     carries the two facts a player needs most: the colour to match, and
+     whose turn it is. The operator's complaint (sent from a phone, with the
+     line circled) was that it was "very small, difficult to notice", and
+     that an elderly player could not comfortably play with her grandson.
+
+     Two changes, both measured rather than guessed (tools/uno-elder-measure.js):
+
+     1. HIERARCHY. The turn is the fact a player acts on, so it gets its own
+        row in its own pill, at a larger size, in ink rather than grey. The
+        colour and the direction are context, so they share a quieter row
+        above it. The row is now TWO rows on purpose and always two rows —
+        the alternative, one row that wraps only when the turn belongs to
+        someone else, would change the height of the table from turn to turn
+        and move the cards under the player's thumb.
+
+     2. SIZE. 13px -> 14.5px for the context row, 16.5px for the turn pill.
+        The colour swatch grows from an 11px dot to an 18px one with a white
+        ring, because "which colour" was being answered by a dot that read
+        as punctuation next to a word.
+
+     The pill is a separate element from the row above it, so the two never
+     compete for the same line — that is what keeps the height fixed. Its
+     text is allowed to WRAP rather than being clipped: a name the server
+     allows to be twelve characters long must still be readable, and a
+     half-printed name is worse than a taller pill. */
+  .metaline{
+    display:flex;flex-direction:column;align-items:center;gap:4px;
+    font-size:14.5px;color:var(--muted);padding:0 4px 5px;
+  }
+  .metaline-row{display:flex;align-items:center;justify-content:center;gap:12px;min-width:0;max-width:100%;line-height:1.2}
   .metaline b{color:var(--ink)}
-  .swatch{width:11px;height:11px;border-radius:50%;display:inline-block;vertical-align:-1px;margin-right:4px}
-  .dirbadge{font-size:13px}
+  #colorMeta{font-weight:700;color:var(--ink)}
+  .swatch{
+    width:18px;height:18px;border-radius:50%;display:inline-block;vertical-align:-3px;margin-right:6px;
+    box-shadow:0 0 0 2px rgba(255,255,255,.95),0 1px 3px rgba(0,0,0,.18);
+  }
+  .dirbadge{font-size:14px}
+  #turnMeta{
+    font-size:16.5px;font-weight:800;color:var(--ink);max-width:100%;
+    background:#fff;border:1.5px solid var(--line);border-radius:999px;
+    padding:3px 15px;box-shadow:0 4px 12px rgba(23,26,35,.07);text-align:center;
+  }
+  /* "Your turn" is the one line on the screen that says the game is waiting
+     for YOU, so it is the one line that gets the accent colour. The wording
+     still says it in words, so the meaning does not depend on the colour. */
+  #turnMeta.mine{background:#e9f0ff;border-color:#c9dcff;color:#1a4fd0}
   .roundchip{font-size:13.5px;color:var(--muted);background:#fff;border:1px solid var(--line);border-radius:11px;padding:8px 12px;white-space:nowrap;box-shadow:0 4px 12px rgba(23,26,35,.05)}
 
   /* hand */
@@ -363,7 +407,7 @@
   }
   @media(max-width:560px){
     #room{padding:8px 10px 0}
-    .topbar{gap:6px;padding:4px 0 8px}
+    .topbar{gap:6px;padding:4px 0 5px}
     .codechip{padding:6px 10px;border-radius:11px;gap:6px}
     .codechip b{font-size:18px;letter-spacing:2px}
     .codechip small{font-size:13px}
@@ -380,11 +424,21 @@
     .card{--w:76px}
     .stack{width:76px;height:110px}
     #room{justify-content:space-between}
-    .table{flex:1 1 auto;height:auto;min-height:132px;gap:18px}
+    .table{flex:1 1 auto;height:auto;min-height:128px;gap:18px}
     .table::before{width:94%;height:100%;box-shadow:0 18px 34px -30px rgba(23,26,35,.2)}
-    .metaline{gap:10px;font-size:13px;flex-wrap:wrap;padding-bottom:4px}
+    /* The status line keeps the two-row shape it has everywhere else, at the
+       same sizes. It used to shrink to 13px here — the one place the type was
+       SMALLEST was the phone, which is backwards: that is where an elderly
+       player's face is closest to the screen. */
+    .metaline{gap:4px;font-size:15px;padding:0 4px 3px}
+    #turnMeta{font-size:16.5px;padding:4px 12px}
     .me-bar{padding:6px 10px;gap:8px;border-radius:15px}
     .me-bar .av{font-size:24px}
+    .me-bar .nm{font-size:18px}
+    .me-bar .cnt{font-size:15px}
+    .opp .nm{font-size:15.5px;max-width:92px}
+    .opp .cnt{font-size:14.5px}
+    .pile .lbl{font-size:15.5px}
     /* The turn tag duplicates the metaline directly above it, which names the
        player in full on its own line at the same 13px. On a 320px phone the tag
        got 99px of room for 168px of text and rendered "Waiting fo…", while the
@@ -392,7 +446,7 @@
        conveyed less. Absent beats truncated; the card's blue edge and the
        metaline both still say whose turn it is. */
     .me-bar .tag{display:none}
-    .hand .card{--w:70px;margin-left:-22px}
+    .hand .card{--w:66px;margin-left:-22px}
     .hand-scroll{padding:12px 4px 6px}
     .actions{gap:6px;padding:2px 2px calc(8px + env(safe-area-inset-bottom))}
     .act{padding:12px 14px;font-size:16px;border-radius:15px;min-height:52px}
@@ -471,8 +525,10 @@
   </div>
 
   <div class="metaline">
-    <span id="colorMeta"></span>
-    <span id="dirMeta"></span>
+    <div class="metaline-row">
+      <span id="colorMeta"></span>
+      <span id="dirMeta"></span>
+    </div>
     <span id="turnMeta"></span>
   </div>
 
@@ -1183,6 +1239,10 @@ function renderTop() {
   $('#turnMeta').innerHTML = S.state === 'playing'
     ? (S.you.isTurn ? '👉 <b>' + t('turnMine') + '</b>' : t('turnTheirs', { name: '<b>' + esc(S.turnName) + '</b>' }))
     : (S.state === 'lobby' ? t('waitingStart') : t('roundOver'));
+  /* "Your turn" is the only state that means the game is waiting on YOU, so
+     it is the only one that gets the accent pill. The wording carries the
+     meaning; the colour only makes it findable. */
+  $('#turnMeta').classList.toggle('mine', S.state === 'playing' && !!S.you.isTurn);
 
   $('#roundChip').textContent = S.state === 'lobby'
     ? t('roundWaiting', { n: S.players.length })

@@ -23,6 +23,7 @@ const {
   INDONESIAN_GLOSSES, CATEGORY_ID_NAMES,
   SEED_POSTS,
   SEED_LIVING,
+  SEED_LIVING_COMMENTS,
 } = require('./data');
 const { SEED_STICKERS } = require('./stickers');
 // The news taxonomy and the keyword classifier that fills it. Required here
@@ -320,6 +321,32 @@ db.exec(`
     UNIQUE(learner_id, sticker_key)
   );
   CREATE INDEX IF NOT EXISTS idx_learner_stickers ON learner_stickers(learner_id);
+
+  /* Credits earned by something other than a quiz answer.
+
+     Until now a credit WAS a correct answer: getCredits() summed progress.score
+     and that was the whole model. The daily reaction needs a credit that is not
+     a quiz, and inventing a fake progress row to carry it would corrupt the two
+     things progress is used for — her streak and her practice statistics — to
+     buy a coin. So small non-quiz rewards live here instead, and a credit is now
+     progress.score plus this table.
+
+     The UNIQUE key is the rule, not a safety net: one credit per device per kind
+     per Hong Kong day, enforced by SQLite rather than by whoever calls it. A
+     double tap, a retry, or two tabs cannot pay twice, and there is no counter to
+     drift. 'day' is the HKT date string, because the day has to change when HER
+     day changes, not when UTC's does. */
+  CREATE TABLE IF NOT EXISTS credit_events (
+    id         INTEGER PRIMARY KEY,
+    public_id  TEXT NOT NULL,
+    learner_id INTEGER REFERENCES learners(id) ON DELETE CASCADE,
+    kind       TEXT NOT NULL,
+    points     INTEGER NOT NULL DEFAULT 1,
+    day        TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    UNIQUE(public_id, kind, day)
+  );
+  CREATE INDEX IF NOT EXISTS idx_credit_events_learner ON credit_events(learner_id);
 
   CREATE TABLE IF NOT EXISTS sessions (
     sid        TEXT PRIMARY KEY,
@@ -663,6 +690,36 @@ db.exec(`
     PRIMARY KEY (endpoint, sent_on)
   );
   CREATE INDEX IF NOT EXISTS idx_push_log_endpoint ON push_log(endpoint, sent_on);
+
+  -- One row per player per finished game, across all four tables.
+  --
+  -- The games kept their win tally on an in-memory room object, so a restart
+  -- erased it and there was never a reason to come back tomorrow: no record, no
+  -- rivalry, nothing to defend. This is that record.
+  --
+  -- The won column is 0 or 1 rather than a stored total, because a total can
+  -- drift out of step with the games it was built from. Wins are a SUM, exactly
+  -- like credits.
+  --
+  -- Rows are keyed on public_id, the device identity the app already uses
+  -- (cb_device), so a win at Sudoku on Sunday and a quiz on Monday belong to the
+  -- same person. A player whose device id is unknown is simply not recorded —
+  -- inventing an identity would attach someone else's history to her.
+  --
+  -- There is deliberately no unique constraint tying a row to a room: a rematch
+  -- is a new result, and two friends on one phone in the same room are two rows.
+  CREATE TABLE IF NOT EXISTS game_results (
+    id           INTEGER PRIMARY KEY,
+    public_id    TEXT NOT NULL,
+    display_name TEXT NOT NULL DEFAULT '',
+    game         TEXT NOT NULL,
+    won          INTEGER NOT NULL DEFAULT 0,
+    players      INTEGER NOT NULL DEFAULT 0,
+    room_code    TEXT NOT NULL DEFAULT '',
+    created_at   TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_game_results_device ON game_results(public_id, game);
+  CREATE INDEX IF NOT EXISTS idx_game_results_game   ON game_results(game, created_at);
 `);
 
 // ---------------------------------------------------------------------------
@@ -1179,6 +1236,19 @@ function migrateSchema() {
     changes.push('push_subscriptions.lang');
   }
 
+  /* ---- living_comments.seed_key ------------------------------------------ */
+  /* Seeded starter comments need to be insert-once-per-version without ever
+     touching a real helper's comment. A nullable seed_key with a UNIQUE index
+     does that: every seeded row carries a stable key like
+     'seed:living-medical-sick:1', every user comment leaves it NULL, and SQLite
+     allows many NULLs in a UNIQUE index — so the constraint only ever applies to
+     the rows this code writes. A version bump can then replace or retire one
+     seeded comment by key without a table scan or a LIKE. */
+  if (addColumnIfMissing('living_comments', 'seed_key', 'TEXT')) {
+    changes.push('living_comments.seed_key');
+  }
+  db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_living_comments_seed ON living_comments(seed_key)');
+
   return changes;
 }
 
@@ -1557,6 +1627,63 @@ function seedLivingIfNeeded() {
 
 const livingSeeded = seedLivingIfNeeded();
 
+/* Starter comments under the Living passages.
+
+   Versioned separately from the passages themselves (living_comments_version),
+   because a comment drop and a passage drop have no reason to move together —
+   editing a passage must not re-open a thread, and adding a comment must not
+   rewrite eighteen bodies.
+
+   Insert-once per seed_key via INSERT OR IGNORE against the UNIQUE index. That
+   means this is safe to run on every boot AND safe to run on a database where
+   an operator has since deleted one of these comments on purpose: a deleted
+   row is gone, but the version guard stops the next boot from resurrecting it.
+   The one case that re-inserts is a version bump, which is a deliberate act.
+
+   The public_id is 'seed_curator' — a device id that no browser will ever
+   present, so a seeded comment can never be mistaken for one of her own. */
+const LIVING_COMMENTS_VERSION = 1;
+
+function seedLivingCommentsIfNeeded() {
+  const row = db.prepare("SELECT value FROM meta WHERE key = 'living_comments_version'").get();
+  const current = row ? Number(row.value) || 0 : 0;
+  if (current >= LIVING_COMMENTS_VERSION) return 0;
+
+  const findPost = db.prepare('SELECT id FROM living_posts WHERE slug = ?');
+  const insert = db.prepare(`
+    INSERT OR IGNORE INTO living_comments
+      (post_id, public_id, display_name, body, status, created_at, seed_key)
+    VALUES (?, 'seed_curator', ?, ?, 'published', ?, ?)
+  `);
+
+  let added = 0;
+  db.exec('BEGIN');
+  try {
+    for (const c of SEED_LIVING_COMMENTS) {
+      const post = findPost.get(c.slug);
+      // A seed entry for a slug that no longer exists is a no-op, not an
+      // error: passages get retired, and a retired passage taking its starter
+      // comment with it is correct.
+      if (!post) continue;
+      // Dated a little in the past so a starter note never appears above a
+      // real helper's reply — it is context, not the newest news.
+      const when = new Date(Date.now() - 36 * 3600 * 1000).toISOString();
+      added += insert.run(post.id, c.display_name || 'CantoBuddy team', c.body, when, c.seed_key).changes;
+    }
+    db.prepare('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)').run(
+      'living_comments_version',
+      String(LIVING_COMMENTS_VERSION)
+    );
+    db.exec('COMMIT');
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
+  return added;
+}
+
+const livingCommentsSeeded = seedLivingCommentsIfNeeded();
+
 // ---------------------------------------------------------------------------
 // Content migration — bring an EXISTING database up to the current CONTENT set.
 //
@@ -1669,6 +1796,16 @@ const S = {
   countScenarios: db.prepare('SELECT COUNT(*) AS n FROM scenarios'),
 
   listVocabulary: db.prepare('SELECT * FROM vocabulary ORDER BY level, id'),
+  /* The pool behind the daily phrase card. Bounded to the kitchen categories so
+     the card is not offering her "aeroplane" under a heading that says kitchen —
+     the ids are the SEED_CATEGORIES ids 3 (Kitchen), 16 (Meals & Feeding) and
+     20 (Food); see daily-phrase.js, which owns that decision. */
+  listDailyPhrasePool: db.prepare(`
+    SELECT id, cantonese, jyutping, english, tagalog, mandarin, indonesian, emoji, level, category_id
+      FROM vocabulary
+     WHERE category_id IN (3, 16, 20)
+     ORDER BY id
+  `),
   listVocabularyByLevel: db.prepare('SELECT * FROM vocabulary WHERE level = ? ORDER BY id'),
   listVocabularyByCategory: db.prepare('SELECT * FROM vocabulary WHERE category_id = ? ORDER BY level, id'),
   listVocabularyByBoth: db.prepare('SELECT * FROM vocabulary WHERE level = ? AND category_id = ? ORDER BY id'),
@@ -1879,6 +2016,23 @@ const S = {
   `),
 
   sumScoreByLearner: db.prepare('SELECT COALESCE(SUM(score), 0) AS n FROM progress WHERE learner_id = ?'),
+  // The second half of a credit balance — see credit_events in the schema.
+  sumCreditEventsByLearner: db.prepare('SELECT COALESCE(SUM(points), 0) AS n FROM credit_events WHERE learner_id = ?'),
+  // OR IGNORE + UNIQUE(public_id, kind, day) is the whole rate limit: the second
+  // attempt on the same day changes 0 rows and the caller learns it paid nothing.
+  insertCreditEvent: db.prepare(`
+    INSERT OR IGNORE INTO credit_events (public_id, learner_id, kind, points, day, created_at)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `),
+  // A device can react before it has ever entered a name. Those credits are
+  // real and must not be lost when she finally identifies herself, so the
+  // learner link is backfilled rather than required up front.
+  backfillCreditEventsLearner: db.prepare(
+    'UPDATE credit_events SET learner_id = ? WHERE public_id = ? AND learner_id IS NULL'
+  ),
+  creditEventsForDay: db.prepare(
+    'SELECT kind, points FROM credit_events WHERE public_id = ? AND day = ?'
+  ),
   listStickersByLearner: db.prepare('SELECT sticker_key, unlocked_at FROM learner_stickers WHERE learner_id = ?'),
   // OR IGNORE + the UNIQUE constraint is what makes unlocking safe to repeat:
   // a second call for an already-earned sticker changes nothing.
@@ -2368,12 +2522,18 @@ const S = {
 
   /* Credits per subscribed learner — the sticker message needs the distance to
      the next threshold, and a push must never write (getRewards() unlocks as a
-     side effect, so it is not used here). */
+     side effect, so it is not used here).
+
+     This must match getCredits() exactly, including credit_events: a reminder
+     that says "4 more answers" when she is one reaction away is wrong in the one
+     message she is most likely to act on. Two definitions of a balance is how
+     they drift, so both halves are summed here too. */
   pushCredits: db.prepare(`
-    SELECT learner_id, COALESCE(SUM(score), 0) AS credits
-      FROM progress
-     WHERE learner_id IN (SELECT learner_id FROM push_subscriptions WHERE learner_id IS NOT NULL)
-     GROUP BY learner_id
+    SELECT l.id AS learner_id,
+           (SELECT COALESCE(SUM(score), 0)  FROM progress      WHERE learner_id = l.id)
+         + (SELECT COALESCE(SUM(points), 0) FROM credit_events WHERE learner_id = l.id) AS credits
+      FROM learners l
+     WHERE l.id IN (SELECT learner_id FROM push_subscriptions WHERE learner_id IS NOT NULL)
   `),
 
   /* The newest published post, for "New today: …". Only the title in the
@@ -2406,6 +2566,27 @@ const S = {
      WHERE endpoint = ? AND learner_id IS NULL
   `),
   setPushLang: db.prepare('UPDATE push_subscriptions SET lang = ? WHERE endpoint = ?'),
+
+  // --- game results (see recordGameResults below) ---
+  insertGameResult: db.prepare(`
+    INSERT INTO game_results (public_id, display_name, game, won, players, room_code, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `),
+  gameRecordTotals: db.prepare(`
+    SELECT game, COUNT(*) AS played, COALESCE(SUM(won), 0) AS wins
+      FROM game_results
+     WHERE public_id = ?
+     GROUP BY game
+  `),
+  // The same sums, bounded to games finished since a moment. created_at is an
+  // ISO-8601 UTC string, so a string comparison is a time comparison — no date
+  // parsing in SQL, and no timezone to get wrong.
+  gameRecordTotalsSince: db.prepare(`
+    SELECT game, COUNT(*) AS played, COALESCE(SUM(won), 0) AS wins
+      FROM game_results
+     WHERE public_id = ? AND created_at >= ?
+     GROUP BY game
+  `),
 
   // --- Living: supportive passages about life in Hong Kong ---
   listLivingPosts: db.prepare(`
@@ -2442,6 +2623,29 @@ const S = {
   getLivingPostBySlug: db.prepare(`
     SELECT * FROM living_posts
      WHERE slug = ? AND status = 'published'
+  `),
+
+  /* The Sunday Table needs a cheap catalogue, not eighteen full bodies: it picks
+     one passage of the week and links to it, and the passage page fetches its own
+     body. Ordered by slug because sunday-table.js chooses by index and must not
+     depend on insertion order. */
+  sundayTablePassages: db.prepare(`
+    SELECT slug, category, icon, title_en, title_fil, title_zh, title_id
+      FROM living_posts
+     WHERE status = 'published'
+     ORDER BY slug ASC
+  `),
+
+  /* "What happened in Hong Kong this week" — bounded by date, not by count, so a
+     quiet week reads as quiet instead of reaching back a month to fill four
+     slots. */
+  sundayTableDigest: db.prepare(`
+    SELECT slug, channel, icon, title_en, title_fil, title_zh, title_id,
+           summary_en, summary_fil, summary_zh, summary_id, published_at
+      FROM posts
+     WHERE status = 'published' AND published_at >= ?
+     ORDER BY published_at DESC, id DESC
+     LIMIT ?
   `),
   insertLivingPost: db.prepare(`
     INSERT INTO living_posts
@@ -2660,6 +2864,85 @@ function claimPush(endpoint, kind, sentOn) {
     console.error('claimPush failed:', e.message);
     return false;
   }
+}
+
+/* ---------------------------------------------------------------------------
+   Game results — the record a helper can defend
+   --------------------------------------------------------------------------- */
+
+const GAME_KEYS = ['uno', 'bigtwo', 'wordmatch', 'sudoku'];
+
+/**
+ * Write one row per player who finished a game.
+ *
+ * `players` is `[{ deviceId, name, won }]`. A player with no device id is
+ * skipped rather than guessed at: the whole point of the record is that it is
+ * *hers*, and a row attached to the wrong person is worse than no row.
+ *
+ * Never throws into a game loop — a table must not break because its record
+ * could not be written.
+ */
+function recordGameResults({ game, roomCode = '', players = [] }) {
+  if (!GAME_KEYS.includes(game) || !Array.isArray(players) || !players.length) return 0;
+  const at = new Date().toISOString();
+  const total = players.length;
+  let written = 0;
+  for (const p of players) {
+    if (!p || !p.deviceId) continue;
+    try {
+      S.insertGameResult.run(
+        String(p.deviceId),
+        String(p.name || '').slice(0, 24),
+        game,
+        p.won ? 1 : 0,
+        total,
+        String(roomCode || '').slice(0, 8),
+        at
+      );
+      written += 1;
+    } catch (e) {
+      console.error('recordGameResults failed:', e.message);
+    }
+  }
+  return written;
+}
+
+/** Every game's record for one device. Missing games come back as zeros. */
+function gameRecordsForDevice(publicId, sinceIso = null) {
+  const out = {};
+  for (const g of GAME_KEYS) out[g] = { wins: 0, played: 0 };
+  if (!publicId) return out;
+  // `sinceIso` narrows the same sums to games finished on or after a moment —
+  // used by the Sunday Table card, which must say "I won 2 of 3 today" and not
+  // "I have won 2 of 3 ever". Same query shape either way, so the two cannot
+  // disagree about what a win is.
+  const rows = sinceIso
+    ? S.gameRecordTotalsSince.all(String(publicId), String(sinceIso))
+    : S.gameRecordTotals.all(String(publicId));
+  for (const r of rows) {
+    if (!GAME_KEYS.includes(r.game)) continue;
+    out[r.game] = { wins: Number(r.wins) || 0, played: Number(r.played) || 0 };
+  }
+  return out;
+}
+
+/**
+ * One game's record for several devices at once — the room's own scoreboard.
+ * One query for the whole table, because this runs on every join.
+ */
+function gameRecordsForDevices(publicIds, game) {
+  const map = new Map();
+  const ids = [...new Set((publicIds || []).filter(Boolean).map(String))];
+  if (!ids.length || !GAME_KEYS.includes(game)) return map;
+  const marks = ids.map(() => '?').join(',');
+  const rows = db.prepare(`
+    SELECT public_id, COUNT(*) AS played, COALESCE(SUM(won), 0) AS wins
+      FROM game_results
+     WHERE game = ? AND public_id IN (${marks})
+     GROUP BY public_id
+  `).all(game, ...ids);
+  for (const r of rows) map.set(r.public_id, { wins: Number(r.wins) || 0, played: Number(r.played) || 0 });
+  return map;
 }
 
 // ---------------------------------------------------------------------------
@@ -2986,7 +3269,8 @@ function getStats() {
 // ---------------------------------------------------------------------------
 
 /**
- * A learner's credit balance: one credit per correct quiz answer, ever.
+ * A learner's credit balance: one credit per correct quiz answer, ever, plus
+ * any small non-quiz rewards recorded in credit_events.
  *
  * Derived rather than stored. `progress` is already upserted on `session_id`,
  * so a quiz in progress holds exactly one row at any moment — summing `score`
@@ -2995,9 +3279,52 @@ function getStats() {
  * (a running ledger updated on every write) would need reconciliation the first
  * time a row is updated rather than inserted, which is exactly the bug this
  * avoids.
+ *
+ * credit_events follows the same rule for the same reason: the balance is a SUM
+ * of facts, so it cannot drift from the facts that produced it.
  */
 function getCredits(learnerId) {
-  return Number(S.sumScoreByLearner.get(Number(learnerId)).n) || 0;
+  const id = Number(learnerId);
+  return (Number(S.sumScoreByLearner.get(id).n) || 0)
+    + (Number(S.sumCreditEventsByLearner.get(id).n) || 0);
+}
+
+/**
+ * Award a small non-quiz credit, at most once per device per kind per HKT day.
+ *
+ * Returns `{ awarded, points, day }`. `awarded: false` is the normal case for
+ * the second and later attempts in a day, and is not an error — the caller uses
+ * it to decide whether to say "+1" or say nothing.
+ *
+ * The learner is resolved from the device id, not accepted from the caller: a
+ * client must never be able to name the balance it is adding to. A device with
+ * no learner yet still gets the row (learner_id NULL); identifyLearner backfills
+ * the link later.
+ */
+function awardDailyCredit({ publicId, kind, points = 1, nowMs = Date.now() } = {}) {
+  const pub = String(publicId || '').trim();
+  const k = String(kind || '').trim();
+  if (!pub || !k) return { awarded: false, points: 0, day: null };
+
+  const n = Math.max(1, Math.min(10, Number(points) || 1));
+  const day = hktDayString(nowMs);
+  const learner = getLearnerByPublicId(pub);
+  const info = S.insertCreditEvent.run(
+    pub,
+    learner ? learner.id : null,
+    k,
+    n,
+    day,
+    new Date(nowMs).toISOString()
+  );
+  const awarded = info.changes > 0;
+  return { awarded, points: awarded ? n : 0, day };
+}
+
+/** The Hong Kong calendar date (YYYY-MM-DD) for a moment. HKT is UTC+8, always
+ *  — no daylight saving has ever applied here, so a fixed offset is exact. */
+function hktDayString(nowMs = Date.now()) {
+  return new Date(Number(nowMs) + 8 * 3600 * 1000).toISOString().slice(0, 10);
 }
 
 /**
@@ -3343,6 +3670,11 @@ function identifyLearner({ public_id, display_name, referrer }) {
     // a referrer is already recorded, so a later visit from a different link
     // cannot steal credit from the one that actually brought her in.
     if (ref) S.setLearnerReferrer.run(ref, existing.id);
+    // Credits earned before she had a name (a reaction on her very first visit)
+    // are attached to the device only. Now that the device has a learner, they
+    // belong to her — otherwise the first thing the app asks her to do is the
+    // one thing that pays nothing.
+    S.backfillCreditEventsLearner.run(existing.id, pid);
     return getLearnerById(existing.id);
   }
 
@@ -3355,11 +3687,13 @@ function identifyLearner({ public_id, display_name, referrer }) {
       S.adoptLearnerPublicId.run(pid, now, legacy.id);
       S.setLearnerReferralCode.run(uniqueReferralCode(pid), legacy.id);
       if (ref) S.setLearnerReferrer.run(ref, legacy.id);
+      S.backfillCreditEventsLearner.run(legacy.id, pid);
       return getLearnerById(legacy.id);
     }
   }
 
   const info = S.insertLearner.run(pid, name, now, now, ref || null, uniqueReferralCode(pid));
+  S.backfillCreditEventsLearner.run(Number(info.lastInsertRowid), pid);
   return getLearnerById(Number(info.lastInsertRowid));
 }
 
@@ -5003,6 +5337,9 @@ module.exports = {
   deleteScenario,
 
   listVocabulary,
+  dailyPhrasePool: () => S.listDailyPhrasePool.all(),
+  sundayTablePassages: () => S.sundayTablePassages.all(),
+  sundayTableDigest: (fromIso, limit = 4) => S.sundayTableDigest.all(String(fromIso), Number(limit)),
   getVocabulary,
   createVocabulary,
   updateVocabulary,
@@ -5013,6 +5350,8 @@ module.exports = {
   getStats,
 
   getCredits,
+  awardDailyCredit,
+  hktDayString,
   getRewards,
 
   findUserByUsername,
@@ -5110,6 +5449,11 @@ module.exports = {
   linkSubscriptionLearner,
   setSubscriptionLang,
   latestPost,
+  // Game results — the record behind "You 7 · Ana 5".
+  recordGameResults,
+  gameRecordsForDevice,
+  gameRecordsForDevices,
+  GAME_KEYS,
   getStoryForModeration,
   getStoryCounts,
   setStoryStatus,

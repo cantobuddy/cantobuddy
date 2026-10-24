@@ -2649,6 +2649,82 @@ const SEED_LIVING = [
   }
 ];
 
+/* Starter comments on the Living passages.
+
+   WHY THESE EXIST: an empty comment thread is not neutral. It tells a first
+   visitor that nobody comes here, and she leaves before she has read a word.
+   A few genuinely useful notes under the passages that matter most turn a dead
+   room into a room where someone has already been helpful.
+
+   WHY THEY ARE CREDITED TO THE TEAM AND NOT TO A HELPER: these are written by
+   us, so they say so. Inventing "Maria, 34, Wan Chai" to look like social
+   proof would be a lie told to someone deciding whether to trust this app with
+   a wage dispute — the exact person we cannot afford to mislead. The content
+   has to stand on being useful, not on seeming popular.
+
+   The same rule applies to reactions: the counts are NOT seeded. A fabricated
+   tally is the same lie in a different shape, so the card hides a zero instead
+   (see livingCardHtml in app.js).
+
+   `seed_key` is the idempotency handle — stable per comment, UNIQUE in the
+   table, and NULL for anything a real device writes. */
+const SEED_LIVING_COMMENTS = [
+  {
+    seed_key: 'seed:living-before-system:1',
+    slug: 'living-before-system',
+    display_name: 'CantoBuddy team',
+    body: 'The two-week rule is the one to remember before you sign anything: if your contract ends or is terminated, you must leave Hong Kong within 14 days. If you are thinking of changing employers, talk to the Labour Department or a helper support group BEFORE the contract ends — the clock starts the day it ends, not the day you find a new family.',
+  },
+  {
+    seed_key: 'seed:living-before-contract:1',
+    slug: 'living-before-contract',
+    display_name: 'CantoBuddy team',
+    body: 'Keep your own copy of the signed contract (ID 407) and photograph every page with your phone. If there is ever a disagreement about pay, rest days or duties, that copy is your evidence — your employer holds the other one, and the photos take ten seconds.',
+  },
+  {
+    seed_key: 'seed:living-before-contract:2',
+    slug: 'living-before-contract',
+    display_name: 'CantoBuddy team',
+    body: 'Your contract must state your wages, your rest day, and whether you get free food. If your employer gives you money instead of food, the food allowance is HK$1,236 a month and it comes ON TOP of your wages — it is not part of the HK$5,220 minimum.',
+  },
+  {
+    seed_key: 'seed:living-medical-sick:1',
+    slug: 'living-medical-sick',
+    display_name: 'CantoBuddy team',
+    body: 'Free medical treatment is part of your contract, not a favour from your employer. If you are sick, tell your employer and go to a public clinic or a hospital A&E — and keep every receipt and every sick-leave certificate. If you are too sick to work, that doctor\u2019s note is what protects your pay.',
+  },
+  {
+    seed_key: 'seed:living-food-cook:1',
+    slug: 'living-food-cook',
+    display_name: 'CantoBuddy team',
+    body: 'In your first week, ask the family two things: how salty they like their food, and whether anyone cannot eat pork or seafood. Write it on a note and stick it inside a cupboard door. Most disagreements about cooking in the first month are about those two answers, not about skill.',
+  },
+  {
+    seed_key: 'seed:living-transport-mtr:1',
+    slug: 'living-transport-mtr',
+    display_name: 'CantoBuddy team',
+    body: 'Get an Octopus card in your first week — every MTR station sells them, and the same card works in supermarkets and convenience stores. You can also check the fare before you travel: the MTR app shows the exact price of any journey, so a day out never costs more than you planned.',
+  },
+  {
+    seed_key: 'seed:living-homesick-lonely:1',
+    slug: 'living-homesick-lonely',
+    display_name: 'CantoBuddy team',
+    body: 'Missing home is not a weakness and it does not mean you made a mistake. The first three months are the hardest and almost everyone feels it. If it gets heavy, call a helper support line or go to a Sunday gathering — talking to someone who has been here longer helps more than you expect, and sometimes more than a video call.',
+  },
+  {
+    seed_key: 'seed:living-holiday-rest:1',
+    slug: 'living-holiday-rest',
+    display_name: 'CantoBuddy team',
+    body: 'Your rest day is 24 continuous hours every week, and it is in the law, not only in your contract. If you agree to work on it, that is your choice and it should be paid by agreement — and you are allowed to say no. Nobody can take the day away as a punishment.',
+  },
+  {
+    seed_key: 'seed:living-churches-community:1',
+    slug: 'living-churches-community',
+    display_name: 'CantoBuddy team',
+    body: 'Sunday gatherings are where most helpers find their people — a church, a mosque, or a Filipino or Indonesian community group. You do not have to be religious to go. Most of them are simply a place to sit, eat, and speak your own language for a few hours.',
+  },
+];
+
 module.exports = {
   load,
   save,
@@ -2662,6 +2738,7 @@ module.exports = {
   SEED_USERS,
   SEED_POSTS,
   SEED_LIVING,
+  SEED_LIVING_COMMENTS,
   MANDARIN_GLOSSES,
   CATEGORY_ZH_NAMES,
   INDONESIAN_GLOSSES,

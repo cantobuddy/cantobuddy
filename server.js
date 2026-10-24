@@ -17,6 +17,8 @@ const seo = require('./seo');
 const news = require('./news');
 const push = require('./push');
 const reminders = require('./push-reminders');
+const dailyPhrase = require('./daily-phrase');
+const sundayTable = require('./sunday-table');
 const { createSweeper } = require('./push-sweep');
 
 const app = express();
@@ -697,6 +699,50 @@ app.get('/api/festival', (req, res) => {
   res.json({ festival: seo.upcomingFestivalPayload() });
 });
 
+/**
+ * GET /api/phrase/today — one kitchen phrase, the same one for every device.
+ *
+ * Chosen by the Hong Kong date, not by the request, so two helpers comparing
+ * phones on a Sunday see the same phrase and the card cannot be "refreshed"
+ * into a different word. daily-phrase.js owns the choice and is pure, so the
+ * rotation is testable at any date.
+ *
+ * A five-minute cache for the same reason as /api/festival above: the answer
+ * changes at midnight HKT and at no other moment.
+ */
+app.get('/api/phrase/today', (req, res) => {
+  res.setHeader('Cache-Control', 'public, max-age=300');
+  const date = store.hktDayString();
+  const phrase = dailyPhrase.pickPhrase(store.dailyPhrasePool(), date);
+  if (!phrase) return res.json({ date, phrase: null });
+  res.json({ date, phrase });
+});
+
+/**
+ * GET /api/sunday-table — the weekly appointment: when it is, which game is
+ * featured, the passage of the week, and what happened in Hong Kong.
+ *
+ * A short cache (60s) because the answer changes at 16:00 and 18:00 HKT, and a
+ * card that says "starts in 3 minutes" for an hour is the kind of small lie that
+ * makes the whole surface untrustworthy.
+ *
+ * The featured game and the passage are chosen from the ISO week, not stored:
+ * there is no table row to fall out of sync with the calendar, and every server
+ * computes the same answer for the same week.
+ */
+app.get('/api/sunday-table', (req, res) => {
+  res.setHeader('Cache-Control', 'public, max-age=60');
+  const nowMs = Date.now();
+  const table = sundayTable.tableFor(nowMs);
+  const passage = sundayTable.passageOfWeek(store.sundayTablePassages(), table.week);
+  const fromIso = new Date(nowMs - sundayTable.DIGEST_DAYS * sundayTable.DAY_MS).toISOString();
+  const digest = sundayTable.digest(
+    store.sundayTableDigest(fromIso, sundayTable.DIGEST_MAX),
+    nowMs
+  );
+  res.json({ now: new Date(nowMs).toISOString(), ...table, passage, digest });
+});
+
 app.get('/api/posts/:slug', (req, res) => {
   const post = store.getPostBySlug(req.params.slug);
   // A draft is a 404 to a learner, exactly as if it did not exist.
@@ -941,7 +987,15 @@ app.post('/api/living/:slug/react', livingRateLimit, (req, res) => {
   if (!emoji) return res.status(400).json({ error: 'Missing reaction.' });
   const result = store.setLivingReaction(post.id, publicId, emoji);
   if (!result) return res.status(400).json({ error: 'Could not save reaction.' });
-  res.json(result);
+  // A standing reaction pays one credit a day, enforced by the database (see
+  // credit_events). A toggle-OFF pays nothing on purpose: the point is to make
+  // saying something about a passage a habit, not to make tapping the same emoji
+  // twice a way to farm stickers.
+  let creditsAwarded = 0;
+  if (result.myReaction) {
+    creditsAwarded = store.awardDailyCredit({ publicId, kind: 'reaction' }).points;
+  }
+  res.json({ ...result, creditsAwarded });
 });
 
 /**
@@ -1242,6 +1296,29 @@ app.get('/api/learners/rewards', (req, res) => {
   if (!learner) return res.json({ credits: 0, stickers: [], newly_unlocked: [], next: null });
 
   res.json(store.getRewards(learner.id));
+});
+
+/**
+ * A device's record across all four tables.
+ *
+ * Public, and safe to be: the device id is the only key, exactly like
+ * /api/learners/rewards, and it returns nothing but counts. An unknown device
+ * gets four zeroed records rather than an error, because a device the server has
+ * not seen yet is the ordinary first-visit case.
+ *
+ * The game pages are served outside the SPA and have no session, so this is the
+ * only way their menus can show "7 wins · 12 games" before she has joined a room.
+ */
+app.get('/api/games/record', (req, res) => {
+  const publicId = req.query.public_id;
+  // `since` is an optional HKT calendar date (YYYY-MM-DD). The Sunday Table
+  // needs "what she did today", not "what she has ever done", and a result card
+  // that quietly reports a lifetime total as Sunday's score would be a small
+  // lie in the one artefact she sends to her friends.
+  const since = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query.since || ''))
+    ? new Date(`${req.query.since}T00:00:00+08:00`).toISOString()
+    : null;
+  res.json({ games: store.gameRecordsForDevice(publicId, since) });
 });
 
 /**
@@ -1639,7 +1716,7 @@ async function notifySubscribers(payload) {
  * impossible — lives in push-sweep.js, where it can be tested against a fake
  * sender instead of only in production.
  */
-const runPushSweep = createSweeper({ store, push, reminders });
+const runPushSweep = createSweeper({ store, push, reminders, sundayTable });
 
 // How often to look. The ladder sends at most once a day, but it must be *asked*
 // far more often than that: the window is 40 minutes wide and a free-tier host

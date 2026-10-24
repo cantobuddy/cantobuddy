@@ -7,7 +7,7 @@
 // Bump this whenever index.html / app.js / i18n.js / styles.css / the icons
 // change. The app shell is cached cache-first, so without a version bump
 // installed PWAs would keep serving the previous build from cache.
-const CACHE = 'cantobuddy-v102';
+const CACHE = 'cantobuddy-v103';
 
 // Which paths are server-rendered SEO documents rather than app-shell assets.
 // Kept as one matcher so it can be asserted against `LANG_PREFIX` in seo.js —

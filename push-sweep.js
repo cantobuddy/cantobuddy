@@ -26,12 +26,15 @@
  * costs the permission.
  */
 
-function createSweeper({ store, push, reminders }) {
+function createSweeper({ store, push, reminders, sundayTable }) {
   return async function runPushSweep({ dryRun = false, nowMs = Date.now() } = {}) {
     if (!push.isEnabled()) return { disabled: true, planned: [], sent: 0 };
 
     const targets = store.listPushTargets(nowMs);
-    const plan = reminders.planSweep(targets, nowMs);
+    // The Sunday Table's featured game is the only thing the planner needs from
+    // the outside world; everything else it decides from her own history.
+    const table = sundayTable ? sundayTable.tableFor(nowMs) : null;
+    const plan = reminders.planSweep(targets, nowMs, { table });
     const sentOn = reminders.hktParts(nowMs).date;
 
     const summary = {

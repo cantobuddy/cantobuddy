@@ -38,6 +38,8 @@
   /* ---- menu ----------------------------------------------------------- */
   .menu { text-align: center; }
   .menu .lead { color: var(--muted); font-size: 0.92rem; margin: 6px 0 18px; }
+  /* Her lifetime record. Muted on purpose: it is a fact, not a challenge. */
+  .recline { color: var(--muted); font-size: 0.82rem; text-align: center; margin: 12px 0 0; }
   .levels { display: flex; gap: 8px; justify-content: center; margin: 14px 0 22px; }
   .level {
     flex: 1 1 0; max-width: 130px; padding: 12px 6px; border-radius: 14px;
@@ -214,6 +216,9 @@
       </div>
       <button class="btn btn-ghost" id="joinBtn"></button>
     </div>
+    <!-- Her record across every game. Empty and hidden until she has finished
+         one, so a stranger's first screen is unchanged. -->
+    <p id="myRecord" class="recline hidden"></p>
   </section>
 
   <!-- ROOM -->
@@ -253,6 +258,7 @@
     <div class="emoji" id="ovEmoji">🎉</div>
     <h2 id="ovTitle"></h2>
     <p id="ovBody"></p>
+    <p id="ovRecord" class="recline hidden"></p>
     <button class="btn btn-primary" id="ovAgain"></button>
     <button class="btn btn-ghost" id="ovHome" style="margin-top:10px"></button>
   </div>
@@ -279,6 +285,7 @@
       wrong: 'Not correct — try another number', soloOnly: 'Hints are for playing alone',
       roomNotFound: 'Room not found. Check the code.', needName: 'Please enter a name.',
       ended: 'Game over', youSolved: 'You solved it!', waInvite: 'Invite on WhatsApp', inviteText: 'Come play Sudoku! Room code {code} → {url}',
+      recordLine: '🏆 {wins} won · {played} played',
       codeChipLabel: 'Room code · tap to share', soundTitle: 'Sound', chatTitle: 'Chat', leaveTitle: 'Leave the room', liveOnline: 'Live', confirmLeave: 'Leave this room?',
     },
     fil: {
@@ -296,6 +303,7 @@
       wrong: 'Mali — subukan ang ibang numero', soloOnly: 'Ang tulong ay para sa mag-isa',
       roomNotFound: 'Hindi mahanap ang kuwarto. I-check ang code.', needName: 'Ilagay ang pangalan.',
       ended: 'Tapos na', youSolved: 'Na-solve mo!', waInvite: 'Anyayahan sa WhatsApp', inviteText: 'Halina, mag-Sudoku tayo! Code {code} → {url}',
+      recordLine: '🏆 {wins} panalo · {played} laro',
       codeChipLabel: 'Code ng kuwarto · i-tap para i-share', soundTitle: 'Tunog', chatTitle: 'Chat', leaveTitle: 'Umalis sa kuwarto', liveOnline: 'Live', confirmLeave: 'Umalis sa kuwartong ito?',
     },
     zh: {
@@ -313,6 +321,7 @@
       wrong: '不对——换个数字试试', soloOnly: '提示只供单人玩',
       roomNotFound: '找不到房间，请检查房间码。', needName: '请输入名字。',
       ended: '游戏结束', youSolved: '你解出来了！', waInvite: '用 WhatsApp 邀请家人', inviteText: '来玩数独！房间配对码 {code} → {url}',
+      recordLine: '🏆 贏了 {wins} 場 · 共 {played} 場',
       codeChipLabel: '房间码 · 点按分享', soundTitle: '音效', chatTitle: '聊天', leaveTitle: '离开房间', liveOnline: '连线中', confirmLeave: '离开这个房间？',
     },
     id: {
@@ -330,6 +339,7 @@
       wrong: 'Salah — coba angka lain', soloOnly: 'Petunjuk hanya untuk main sendiri',
       roomNotFound: 'Ruang tak ditemukan. Cek kodenya.', needName: 'Masukkan nama.',
       ended: 'Selesai', youSolved: 'Kamu menyelesaikannya!', waInvite: 'Undang lewat WhatsApp', inviteText: 'Ayo main Sudoku! Kode ruang {code} → {url}',
+      recordLine: '🏆 {wins} menang · {played} main',
       codeChipLabel: 'Kode ruangan · ketuk untuk bagikan', soundTitle: 'Suara', chatTitle: 'Obrolan', leaveTitle: 'Keluar ruangan', liveOnline: 'Langsung', confirmLeave: 'Keluar dari ruang ini?',
     },
   };
@@ -494,7 +504,46 @@
     });
   }
 
+  /**
+   * The same device identity the rest of the app uses (DEVICE_KEY in app.js).
+   *
+   * It is what lets a win here and a quiz there belong to one person, and it is
+   * why the record survives closing the tab. Created here if the app has never
+   * been opened on this device — the format matches, so the two agree whichever
+   * gets there first.
+   */
+  function deviceId() {
+    try {
+      var id = localStorage.getItem('cb_device');
+      if (!id) {
+        var b = new Uint8Array(16);
+        crypto.getRandomValues(b);
+        id = 'dev_' + Array.prototype.map.call(b, function (x) {
+          return x.toString(16).padStart(2, '0');
+        }).join('');
+        localStorage.setItem('cb_device', id);
+      }
+      return id;
+    } catch (e) { return null; }
+  }
+
+  /** Her record at this game, for the menu. Nothing at all if she has never played. */
+  function loadMyRecord() {
+    var el = $('myRecord');
+    if (!el) return;
+    fetch('/api/games/record?public_id=' + encodeURIComponent(deviceId() || ''))
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var rec = d && d.games && d.games.sudoku;
+        if (!rec || !rec.played) { el.classList.add('hidden'); return; }
+        el.textContent = t('recordLine').replace('{wins}', rec.wins).replace('{played}', rec.played);
+        el.classList.remove('hidden');
+      })
+      .catch(function () { /* a record is not worth an error message */ });
+  }
+
   function buildMenu() {
+    loadMyRecord();
     document.documentElement.lang = lang === 'zh' ? 'zh-Hans' : lang;
     $('title').textContent = t('title');
     $('lead').textContent = t('lead');
@@ -535,7 +584,7 @@
   function startAlone() {
     var name = $('nameInput').value.trim();
     localStorage.setItem('sudoku.name', name);
-    api('/games/sudoku/api/solo', { level: level, name: name || t('title'), avatar: myAvatar })
+    api('/games/sudoku/api/solo', { level: level, name: name || t('title'), avatar: myAvatar, deviceId: deviceId() })
       .then(function (r) {
         if (!r.ok) { toast(t('roomNotFound')); return; }
         session = { token: r.data.token, code: r.data.code };
@@ -548,7 +597,7 @@
     var name = $('nameInput').value.trim();
     if (!name) { toast(t('needName')); return; }
     localStorage.setItem('sudoku.name', name);
-    api('/games/sudoku/api/create', { level: level, name: name, avatar: myAvatar })
+    api('/games/sudoku/api/create', { level: level, name: name, avatar: myAvatar, deviceId: deviceId() })
       .then(function (r) {
         if (!r.ok) { toast(t('roomNotFound')); return; }
         session = { token: r.data.token, code: r.data.code };
@@ -563,7 +612,7 @@
     if (!name) { toast(t('needName')); return; }
     if (!code) { toast(t('roomNotFound')); return; }
     localStorage.setItem('sudoku.name', name);
-    api('/games/sudoku/api/join', { code: code, name: name, avatar: myAvatar })
+    api('/games/sudoku/api/join', { code: code, name: name, avatar: myAvatar, deviceId: deviceId() })
       .then(function (r) {
         if (!r.ok) { toast(t('roomNotFound')); return; }
         session = { token: r.data.token, code: r.data.code };
@@ -765,6 +814,15 @@
       $('ovEmoji').textContent = '🏁';
       $('ovTitle').textContent = t('ended');
       $('ovBody').textContent = w ? (t('winner') + w.name) : '';
+    }
+    // The number that just changed, on the screen where she can see it change.
+    var rec = S.you && S.you.record;
+    var recEl = $('ovRecord');
+    if (rec && rec.played) {
+      recEl.textContent = t('recordLine').replace('{wins}', rec.wins).replace('{played}', rec.played);
+      recEl.classList.remove('hidden');
+    } else {
+      recEl.classList.add('hidden');
     }
     $('ovAgain').textContent = S.solo ? t('newPuzzle') : t('rematch');
     $('ovHome').textContent = t('backHome');

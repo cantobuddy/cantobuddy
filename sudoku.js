@@ -29,6 +29,9 @@ const path = require('path');
 const crypto = require('crypto');
 
 const Core = require('./public/sudoku/core.js');
+// Wins used to live only on the in-memory room object, so a restart erased them
+// and there was nothing to come back to tomorrow. This writes them down.
+const records = require('./game-records');
 
 const PUBLIC = path.join(__dirname, 'public', 'sudoku');
 
@@ -80,13 +83,17 @@ function loadPool() {
 }
 
 /* ------------------------------------------------------------------ rooms */
-function newPlayer(name, avatar, lang) {
+function newPlayer(name, avatar, lang, deviceId) {
   return {
     id: uid(),
     token: uid(),
     name: String(name || '').slice(0, 12).trim() || 'Player',
     avatar: String(avatar || '🙂').slice(0, 8),
     lang: LANGS.includes(lang) ? lang : 'en',
+    // Her identity across sessions. Null is legitimate: a player who has not
+    // been identified still plays, she just has no record to show yet.
+    deviceId: deviceId || null,
+    record: null,
     conns: 0,
     disconnectedAt: 0,
     board: [],            // their current placements (givens pre-filled)
@@ -101,7 +108,7 @@ function createRoom(opts) {
   const level = ['easy', 'medium', 'hard', 'expert'].includes(opts.level) ? opts.level : 'easy';
   const gen = Core.generate(level);
   const code = solo ? uid() : makeCode();
-  const host = newPlayer(opts.name, opts.avatar, opts.lang);
+  const host = newPlayer(opts.name, opts.avatar, opts.lang, opts.deviceId);
   host.board = gen.puzzle.slice();
   const room = {
     code,
@@ -123,6 +130,7 @@ function createRoom(opts) {
   };
   if (solo) { room.state = 'playing'; room.startedAt = now(); }
   rooms.set(code, room);
+  records.attachRecords(room.players, 'sudoku');
   pushLog(room, { k: solo ? 'soloCreated' : 'roomCreated', code, level, n: gen.n });
   return room;
 }
@@ -220,6 +228,10 @@ function finishGame(room, winnerId) {
   room.winner = winnerId;
   const winner = room.players.find((p) => p.id === winnerId);
   if (winner) winner.wins += 1;
+  // Written down before anything else: the room's own tally dies with the
+  // process, and this is the only part of the result that outlives it. A solo
+  // board is recorded too, with a table of one — she did finish it.
+  records.recordFinish({ game: 'sudoku', room, winnerId });
   pushLog(room, { k: 'ended', winner: winner ? winner.name : '' });
   broadcast(room, { type: 'ended' });
 }
@@ -242,6 +254,7 @@ function stateFor(room, viewer) {
       name: viewer.name,
       avatar: viewer.avatar,
       lang: viewer.lang,
+      record: viewer.record || null,
       isHost: viewer.id === room.hostId,
       done: viewer.done,
       mistakes: viewer.mistakes,
@@ -255,6 +268,8 @@ function stateFor(room, viewer) {
     players: room.players.map((p) => ({
       id: p.id, name: p.name, avatar: p.avatar, done: p.done,
       mistakes: p.mistakes, progress: progressOf(room, p),
+      // Lifetime record, not this room's tally.
+      record: p.record || null,
       connected: p.conns > 0, isHost: p.id === room.hostId,
     })),
     chat: room.chat.slice(-40),
@@ -356,11 +371,11 @@ async function handle(req, res) {
     const ip = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
     if (!allowCreate(ip)) return json(res, 429, { error: 'tooManyRooms' });
     const body = await readBody(req);
-    const room = createRoom({ solo: false, level: body.level, name: body.name, avatar: body.avatar, lang: body.lang });
+    const room = createRoom({ solo: false, level: body.level, name: body.name, avatar: body.avatar, lang: body.lang, deviceId: records.deviceIdFrom(body) });
     const host = room.players[0];
     return json(res, 200, {
       code: room.code, token: host.token, playerId: host.id,
-      name: host.name, avatar: host.avatar, lang: host.lang, level: room.level,
+      name: host.name, avatar: host.avatar, lang: host.lang, level: room.level, record: host.record,
     });
   }
 
@@ -368,11 +383,11 @@ async function handle(req, res) {
     const ip = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
     if (!allowCreate(ip)) return json(res, 429, { error: 'tooManyRooms' });
     const body = await readBody(req);
-    const room = createRoom({ solo: true, level: body.level, name: body.name || 'You', avatar: body.avatar, lang: body.lang });
+    const room = createRoom({ solo: true, level: body.level, name: body.name || 'You', avatar: body.avatar, lang: body.lang, deviceId: records.deviceIdFrom(body) });
     const host = room.players[0];
     return json(res, 200, {
       code: room.code, token: host.token, playerId: host.id,
-      name: host.name, avatar: host.avatar, lang: host.lang, level: room.level,
+      name: host.name, avatar: host.avatar, lang: host.lang, level: room.level, record: host.record,
     });
   }
 
@@ -387,14 +402,15 @@ async function handle(req, res) {
     const name = String(body.name || '').slice(0, 12).trim();
     if (!name) return json(res, 400, { error: 'nameRequired' });
     if (room.players.some((x) => x.name === name)) return json(res, 409, { error: 'nameTaken' });
-    const player = newPlayer(name, body.avatar, body.lang);
+    const player = newPlayer(name, body.avatar, body.lang, records.deviceIdFrom(body));
     player.board = room.puzzle.slice();
     room.players.push(player);
+    records.attachRecords(room.players, 'sudoku');
     pushLog(room, { k: 'join', name: player.name });
     broadcast(room, { type: 'join', name: player.name });
     return json(res, 200, {
       code: room.code, token: player.token, playerId: player.id,
-      name: player.name, avatar: player.avatar, lang: player.lang,
+      name: player.name, avatar: player.avatar, lang: player.lang, record: player.record,
     });
   }
 

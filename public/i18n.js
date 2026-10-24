@@ -69,6 +69,20 @@ const I18N = {
     'games.promoBadge': 'New',
     'games.note': 'Four games are live now — UNO, Big Two, Word match and Sudoku.',
 
+    // The Sunday Table — the one weekly appointment. Sunday afternoon is the
+    // only time she reliably has to herself, so the product is built around it.
+    'sunday.title': 'The Sunday Table',
+    'sunday.when': 'Every Sunday, 4–6pm',
+    'sunday.openNow': 'Open now',
+    'sunday.startsIn': 'Starts in {n} min',
+    'sunday.featured': 'This week\u2019s game',
+    'sunday.passage': 'Passage of the week',
+    'sunday.digest': 'Hong Kong this week',
+    'sunday.play': 'Play',
+    'sunday.share': 'Share my result',
+    'sunday.resultLine': '{wins} won of {played} today',
+    'sunday.shareText': 'I won {wins} of {played} at the CantoBuddy Sunday Table 🎉',
+
 
     // discover — the culture + news feed
     'discover.title': 'Discover: HK life, news & stories from home',
@@ -139,7 +153,12 @@ const I18N = {
     'living.catTransport': 'Transport',
     'living.catChurches': 'Churches',
     'living.catBefore': 'Before You Come',
-    'living.reactTitle': 'Tap an emoji to react',
+    'living.reactTitle': 'Be the first to react',
+    // Shown on a Living card that has no reactions and no comments yet. It is
+    // deliberately an invitation, not a zero: an empty shelf should read as
+    // "nobody has started" rather than "nobody came".
+    'living.cardInvite': 'Be the first to react',
+    'living.creditEarned': '+{n} credit — one a day for reacting',
     'living.reactionLike': 'Like',
     'living.reactionLove': 'Love',
     'living.reactionCare': 'Care',
@@ -231,6 +250,7 @@ const I18N = {
     'home.resumeWelcome': 'Welcome back',
     'home.resumeKeep': 'Practise today to keep your streak',
     'home.resumeDone': 'You practised today — nice work',
+    'home.phraseTitle': 'Today\u2019s phrase for your kitchen',
     'home.resumeStart': 'Start your streak today',
     'home.resumeContinue': 'Continue',
     'home.dailyCulture': "Today's Culture",
@@ -595,6 +615,18 @@ const I18N = {
     'games.promoBadge': 'Bago',
     'games.note': 'Apat na laro na ang live — UNO, Big Two, Tugma ng Salita at Sudoku.',
 
+    'sunday.title': 'Sunday Table',
+    'sunday.when': 'Tuwing Linggo, 4–6pm',
+    'sunday.openNow': 'Bukas na',
+    'sunday.startsIn': 'Magsisimula sa {n} min',
+    'sunday.featured': 'Laro ngayong linggo',
+    'sunday.passage': 'Babásahin ng linggo',
+    'sunday.digest': 'Hong Kong ngayong linggo',
+    'sunday.play': 'Maglaro',
+    'sunday.share': 'Ibahagi ang resulta',
+    'sunday.resultLine': 'Panalo {wins} sa {played} ngayon',
+    'sunday.shareText': 'Nanalo ako ng {wins} sa {played} sa CantoBuddy Sunday Table 🎉',
+
 
     // discover — ang feed ng kultura at balita
     'discover.title': 'Tuklasin: buhay sa HK, balita at mga kuwento',
@@ -655,7 +687,9 @@ const I18N = {
     'living.catTransport': 'Transportasyon',
     'living.catChurches': 'Simbahan',
     'living.catBefore': 'Bago Dumating',
-    'living.reactTitle': 'Pindutin ang emoji para mag-react',
+    'living.reactTitle': 'Ikaw ang unang mag-react',
+    'living.cardInvite': 'Ikaw ang unang mag-react',
+    'living.creditEarned': '+{n} credit — isa kada araw sa pag-react',
     'living.reactionLike': 'Like',
     'living.reactionLove': 'Love',
     'living.reactionCare': 'Care',
@@ -740,6 +774,7 @@ const I18N = {
     'home.resumeWelcome': 'Maligayang pagbabalik',
     'home.resumeKeep': 'Magpraktis ngayon para tuloy ang sunod-sunod mo',
     'home.resumeDone': 'Nagpraktis ka na ngayon — magaling',
+    'home.phraseTitle': 'Salita ngayong araw para sa kusina',
     'home.resumeStart': 'Simulan ang sunod-sunod mo ngayon',
     'home.resumeContinue': 'Ituloy',
     'home.dailyCulture': 'Kultura ngayong araw',
@@ -1103,6 +1138,18 @@ const I18N = {
     'games.promoBadge': '新',
     'games.note': '现在有四个游戏——UNO、鋤大D、配对游戏和数独。',
 
+    'sunday.title': '周日聚会',
+    'sunday.when': '每周日 16:00–18:00',
+    'sunday.openNow': '正在进行',
+    'sunday.startsIn': '{n} 分钟后开始',
+    'sunday.featured': '本周游戏',
+    'sunday.passage': '本周阅读',
+    'sunday.digest': '本周香港',
+    'sunday.play': '开始',
+    'sunday.share': '分享我的成绩',
+    'sunday.resultLine': '今天 {played} 局赢了 {wins} 局',
+    'sunday.shareText': '我在 CantoBuddy 周日聚会赢了 {wins}/{played} 局 🎉',
+
 
     // discover — 文化与新闻
     'discover.title': '发现：香港生活、新闻与家佣故事',
@@ -1163,7 +1210,9 @@ const I18N = {
     'living.catTransport': '交通',
     'living.catChurches': '教会',
     'living.catBefore': '赴港前',
-    'living.reactTitle': '点一个表情来回应',
+    'living.reactTitle': '第一个来回应',
+    'living.cardInvite': '第一个来回应',
+    'living.creditEarned': '+{n} 积分，每天回应一次就有',
     'living.reactionLike': '赞',
     'living.reactionLove': '爱心',
     'living.reactionCare': '关心',
@@ -1249,6 +1298,7 @@ const I18N = {
     'home.resumeWelcome': '欢迎回来',
     'home.resumeKeep': '今天练习，保持连续记录',
     'home.resumeDone': '今天已经练习了，做得好',
+    'home.phraseTitle': '今天的厨房一句话',
     'home.resumeStart': '今天开始你的连续记录',
     'home.resumeContinue': '继续',
     'home.dailyCulture': '今日文化',
@@ -1610,6 +1660,18 @@ const I18N = {
     'games.promoBadge': 'Baru',
     'games.note': 'Empat permainan sudah aktif — UNO, Big Two, Cocokkan kata dan Sudoku.',
 
+    'sunday.title': 'Sunday Table',
+    'sunday.when': 'Setiap Minggu, 16.00–18.00',
+    'sunday.openNow': 'Sedang berlangsung',
+    'sunday.startsIn': 'Mulai dalam {n} menit',
+    'sunday.featured': 'Game minggu ini',
+    'sunday.passage': 'Bacaan minggu ini',
+    'sunday.digest': 'Hong Kong minggu ini',
+    'sunday.play': 'Main',
+    'sunday.share': 'Bagikan hasilku',
+    'sunday.resultLine': '{wins} menang dari {played} hari ini',
+    'sunday.shareText': 'Aku menang {wins} dari {played} di CantoBuddy Sunday Table 🎉',
+
 
     // discover — umpan budaya dan berita
     'discover.title': 'Jelajahi: kehidupan HK, berita & kisah',
@@ -1670,7 +1732,9 @@ const I18N = {
     'living.catTransport': 'Transportasi',
     'living.catChurches': 'Gereja',
     'living.catBefore': 'Sebelum Datang',
-    'living.reactTitle': 'Ketuk emoji untuk bereaksi',
+    'living.reactTitle': 'Jadilah yang pertama bereaksi',
+    'living.cardInvite': 'Jadilah yang pertama bereaksi',
+    'living.creditEarned': '+{n} kredit — satu setiap hari untuk bereaksi',
     'living.reactionLike': 'Like',
     'living.reactionLove': 'Love',
     'living.reactionCare': 'Care',
@@ -1755,6 +1819,7 @@ const I18N = {
     'home.resumeWelcome': 'Selamat datang kembali',
     'home.resumeKeep': 'Latihan hari ini agar rentetanmu tetap berjalan',
     'home.resumeDone': 'Kamu sudah berlatih hari ini — bagus',
+    'home.phraseTitle': 'Frasa hari ini untuk dapur Anda',
     'home.resumeStart': 'Mulai rentetanmu hari ini',
     'home.resumeContinue': 'Lanjutkan',
     'home.dailyCulture': 'Budaya hari ini',

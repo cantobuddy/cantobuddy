@@ -84,6 +84,8 @@
   .join-row .field::placeholder{text-transform:none;letter-spacing:0;font-weight:600;font-size:15.5px;color:#8a909d}
   .join-row .btn{flex:0 0 auto;width:auto;padding:0 24px;background:var(--ink);color:#fff;white-space:nowrap;min-height:58px}
   .err{color:var(--red);font-size:15.5px;margin:10px 0 0;min-height:20px;text-align:center}
+  /* Her lifetime record. Muted on purpose: it is a fact, not a challenge. */
+  .recline{font-size:15px;color:var(--muted);text-align:center;margin:14px 0 0}
   .tips{margin:22px 0 0;padding:0;list-style:none;color:var(--muted);font-size:15px;line-height:1.85;text-align:center;max-width:min(360px,100%)}
 
   /* ---------------------------------------------------------- room shell */
@@ -486,6 +488,10 @@
     <p id="lobbyErr" class="err"></p>
   </div>
 
+  <!-- Her record across every game. Empty and hidden until she has finished
+       one, so a stranger's first screen is unchanged. -->
+  <p id="myRecord" class="recline hidden"></p>
+
   <ul class="tips">
     <li data-k="tip1"></li>
     <li data-k="tip2"></li>
@@ -616,6 +622,9 @@ const STR = {
     drawBtn: 'Draw a card', startBtn: 'Start game', againBtn: 'Play again', waitPlayers: 'Waiting for players…',
     colorTitle: 'Pick a colour', colorBody: 'The next card must match this colour', cancel: 'Cancel',
     winSelf: 'You win!', winOther: '{name} wins', winBody: 'Round {r} over · total 🏆 {w}',
+    // Lifetime record, not this room's tally. Hidden entirely at 0 played, so a
+    // first-time player never meets a "0 wins" badge that reads like a verdict.
+    recordLine: '🏆 {wins} won · {played} played',
     hostNext: 'Waiting for the host to start the next round…', viewTable: 'Back to the table',
     toastNotYourTurn: 'It is not your turn yet', toastCantPlay: 'Colour and number both differ — you cannot play that',
     toastCopied: 'Invite copied — send it to your family', promptCopy: 'Copy this link and send it to your family:',
@@ -685,6 +694,7 @@ const STR = {
     drawBtn: 'Bumunot', startBtn: 'Simulan', againBtn: 'Maglaro ulit', waitPlayers: 'Naghihintay ng manlalaro…',
     colorTitle: 'Pumili ng kulay', colorBody: 'Dapat pareho ang kulay ng susunod na baraha', cancel: 'Kanselahin',
     winSelf: 'Nanalo ka!', winOther: 'Nanalo si {name}', winBody: 'Tapos ang ika-{r} laro · kabuuan 🏆 {w}',
+    recordLine: '🏆 {wins} panalo · {played} laro',
     hostNext: 'Hinihintay na simulan ng host ang susunod na laro…', viewTable: 'Bumalik sa mesa',
     toastNotYourTurn: 'Hindi pa turno mo', toastCantPlay: 'Iba ang kulay at numero — hindi mo puwedeng ilagay',
     toastCopied: 'Nakopya ang imbitasyon — ipadala sa pamilya mo', promptCopy: 'Kopyahin ang link at ipadala sa pamilya mo:',
@@ -754,6 +764,7 @@ const STR = {
     drawBtn: '摸一张', startBtn: '开始游戏', againBtn: '再来一局', waitPlayers: '等家人进来…',
     colorTitle: '指定颜色', colorBody: '下一张牌必须接这个颜色', cancel: '取消',
     winSelf: '你赢啦！', winOther: '{name} 赢了', winBody: '第 {r} 局结束 · 累计 🏆 {w}',
+    recordLine: '🏆 贏了 {wins} 場 · 共 {played} 場',
     hostNext: '等房主开下一局…', viewTable: '看看牌桌',
     toastNotYourTurn: '还没轮到你', toastCantPlay: '颜色和数字都对不上，换一张吧',
     toastCopied: '邀请已复制，发给家人吧', promptCopy: '复制这个链接发给家人：',
@@ -823,6 +834,7 @@ const STR = {
     drawBtn: 'Ambil kartu', startBtn: 'Mulai main', againBtn: 'Main lagi', waitPlayers: 'Menunggu pemain…',
     colorTitle: 'Pilih warna', colorBody: 'Kartu berikutnya harus warna ini', cancel: 'Batal',
     winSelf: 'Kamu menang!', winOther: '{name} menang', winBody: 'Ronde {r} selesai · total 🏆 {w}',
+    recordLine: '🏆 {wins} menang · {played} main',
     hostNext: 'Menunggu tuan rumah memulai ronde berikutnya…', viewTable: 'Kembali ke meja',
     toastNotYourTurn: 'Belum giliranmu', toastCantPlay: 'Warna dan angkanya beda — kartu ini tidak bisa dipakai',
     toastCopied: 'Undangan tersalin — kirim ke keluargamu', promptCopy: 'Salin tautan ini dan kirim ke keluargamu:',
@@ -1110,6 +1122,41 @@ function myName() {
   return ($('#nameInput').value || '').trim() || 'Player' + Math.floor(Math.random() * 90 + 10);
 }
 
+/**
+ * The same device identity the rest of the app uses (DEVICE_KEY in app.js).
+ *
+ * It is what lets a win here and a quiz there belong to one person, and it is
+ * why the record survives closing the tab. Created here if the app has never
+ * been opened on this device — the format matches, so the two agree whichever
+ * gets there first.
+ */
+function deviceId() {
+  try {
+    let id = localStorage.getItem('cb_device');
+    if (!id) {
+      const b = new Uint8Array(16);
+      crypto.getRandomValues(b);
+      id = 'dev_' + Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
+      localStorage.setItem('cb_device', id);
+    }
+    return id;
+  } catch (e) { return null; }
+}
+
+/** Her record at this game, for the lobby. Nothing at all if she has never played. */
+async function loadMyRecord() {
+  const el = $('#myRecord');
+  if (!el) return;
+  try {
+    const r = await fetch('/api/games/record?public_id=' + encodeURIComponent(deviceId() || ''));
+    const d = await r.json();
+    const rec = d && d.games && d.games.uno;
+    if (!rec || !rec.played) { el.classList.add('hidden'); return; }
+    el.textContent = t('recordLine', { wins: rec.wins, played: rec.played });
+    el.classList.remove('hidden');
+  } catch (e) { /* a record is not worth an error message */ }
+}
+
 async function doCreate() {
   const btn = $('#createBtn');
   btn.disabled = true;
@@ -1117,7 +1164,7 @@ async function doCreate() {
   try {
     const name = myName();
     localStorage.setItem('uno.name', name);
-    const d = await api('api/create', { name, avatar: myAvatar });
+    const d = await api('api/create', { name, avatar: myAvatar, deviceId: deviceId() });
     session = { code: d.code, token: d.token, name: d.name, avatar: d.avatar };
     saveSession();
     enterRoom();
@@ -1135,7 +1182,7 @@ async function doJoin() {
   try {
     const name = myName();
     localStorage.setItem('uno.name', name);
-    const d = await api('api/join', { code, name, avatar: myAvatar });
+    const d = await api('api/join', { code, name, avatar: myAvatar, deviceId: deviceId() });
     session = { code: d.code, token: d.token, name: d.name, avatar: d.avatar };
     saveSession();
     enterRoom();
@@ -1521,6 +1568,14 @@ function confetti() {
   setTimeout(() => root.remove(), 3600);
 }
 
+/** Her lifetime record as one line, or nothing when there is no record yet. */
+function recordHtml() {
+  const rec = S && S.you && S.you.record;
+  if (!rec || !rec.played) return '';
+  return '<p class="recline" style="margin:2px 0 10px">' +
+    esc(t('recordLine', { wins: rec.wins, played: rec.played })) + '</p>';
+}
+
 function renderOverlay() {
   if (S.state !== 'ended' || !S.winner) { if ($('#winOv')) $('#winOv').remove(); return; }
   if ($('#winOv')) return;
@@ -1536,6 +1591,7 @@ function renderOverlay() {
     '<div class="big-av">' + w.avatar + '</div>' +
     '<h2>' + (iWon ? esc(t('winSelf')) : esc(t('winOther', { name: w.name }))) + '</h2>' +
     '<p>' + esc(t('winBody', { r: S.round, w: w.wins || 1 })) + '</p>' +
+    recordHtml() +
     (S.hostId === S.you.id
       ? '<button class="btn primary" id="againBtn">🔁 ' + esc(t('againBtn')) + '</button>'
       : '<p style="margin:0">' + esc(t('hostNext')) + '</p>') +
@@ -1574,6 +1630,7 @@ async function doDraw() {
 
 /* ============================================================ wiring */
 paintStatic();
+loadMyRecord();
 $('#createBtn').onclick = doCreate;
 $('#joinBtn').onclick = doJoin;
 $('#nameInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') doCreate(); });

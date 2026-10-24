@@ -41,6 +41,9 @@ const path = require('path');
 const crypto = require('crypto');
 
 const store = require('./db');
+// Wins used to live only on the in-memory room object, so a restart erased them
+// and there was nothing to come back to tomorrow. This writes them down.
+const records = require('./game-records');
 
 const PUBLIC = path.join(__dirname, 'public', 'wordmatch');
 
@@ -129,13 +132,17 @@ function loadPool() {
 }
 
 /* ------------------------------------------------------------------ rooms */
-function newPlayer(name, avatar, lang) {
+function newPlayer(name, avatar, lang, deviceId) {
   return {
     id: uid(),
     token: uid(),
     name: String(name || '').slice(0, 12).trim() || 'Player',
     avatar: String(avatar || '🙂').slice(0, 8),
     lang: LANGS.includes(lang) ? lang : 'en',
+    // Her identity across sessions. Null is legitimate: a player who has not
+    // been identified still plays, she just has no record to show yet.
+    deviceId: deviceId || null,
+    record: null,
     conns: 0,
     disconnectedAt: 0,
     score: 0,
@@ -148,9 +155,9 @@ function newPlayer(name, avatar, lang) {
   };
 }
 
-function createRoom(hostName, hostAvatar, hostLang) {
+function createRoom(hostName, hostAvatar, hostLang, hostDeviceId) {
   const code = makeCode();
-  const host = newPlayer(hostName, hostAvatar, hostLang);
+  const host = newPlayer(hostName, hostAvatar, hostLang, hostDeviceId);
   const room = {
     code,
     hostId: host.id,
@@ -176,6 +183,7 @@ function createRoom(hostName, hostAvatar, hostLang) {
     createdAt: now(),
   };
   rooms.set(code, room);
+  records.attachRecords(room.players, 'wordmatch');
   pushLog(room, { k: 'roomCreated', code });
   return room;
 }
@@ -277,6 +285,9 @@ function nextRound(room) {
 function startGame(room) {
   room.state = 'asking';
   room.round = 0;
+  // Round numbers restart here, so the "already recorded" guard has to restart
+  // too — otherwise the second game of a rematch is silently never written.
+  room.recordedRound = -1;
   room.used = [];
   room.winner = null;
   room.result = null;
@@ -316,6 +327,9 @@ function finishGame(room) {
   const tie = sorted.length > 1 && sorted[1].score === top.score;
   room.winner = tie ? null : (top ? top.id : null);
   if (!tie && top) top.wins += 1;
+  // A draw is recorded too: a helper who played four games and drew all of them
+  // must not have no record at all.
+  records.recordFinish({ game: 'wordmatch', room, winnerId: room.winner });
   room.result = {
     winnerId: room.winner,
     winnerName: room.winner ? top.name : '',
@@ -360,6 +374,7 @@ function stateFor(room, viewer) {
       name: viewer.name,
       avatar: viewer.avatar,
       lang: viewer.lang,
+      record: viewer.record || null,
       score: viewer.score,
       locked: viewer.locked,
       answeredId: viewer.answerId,
@@ -369,6 +384,8 @@ function stateFor(room, viewer) {
     },
     players: room.players.map((p) => ({
       id: p.id, name: p.name, avatar: p.avatar, score: p.score, wins: p.wins,
+      // Lifetime record, not this room's tally.
+      record: p.record || null,
       connected: p.conns > 0, isHost: p.id === room.hostId,
       // Whether the other player has locked in is public — that is the race.
       // WHAT they answered is not.
@@ -495,11 +512,11 @@ async function handle(req, res) {
     const ip = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
     if (!allowCreate(ip)) return json(res, 429, { error: 'tooManyRooms' });
     const body = await readBody(req);
-    const room = createRoom(body.name, body.avatar, body.lang);
+    const room = createRoom(body.name, body.avatar, body.lang, records.deviceIdFrom(body));
     const host = room.players[0];
     return json(res, 200, {
       code: room.code, token: host.token, playerId: host.id,
-      name: host.name, avatar: host.avatar, lang: host.lang,
+      name: host.name, avatar: host.avatar, lang: host.lang, record: host.record,
     });
   }
 
@@ -513,13 +530,14 @@ async function handle(req, res) {
     const name = String(body.name || '').slice(0, 12).trim();
     if (!name) return json(res, 400, { error: 'nameRequired' });
     if (room.players.some((x) => x.name === name)) return json(res, 409, { error: 'nameTaken' });
-    const player = newPlayer(name, body.avatar, body.lang);
+    const player = newPlayer(name, body.avatar, body.lang, records.deviceIdFrom(body));
     room.players.push(player);
+    records.attachRecords(room.players, 'wordmatch');
     pushLog(room, { k: 'join', name: player.name });
     broadcast(room, { type: 'join', name: player.name });
     return json(res, 200, {
       code: room.code, token: player.token, playerId: player.id,
-      name: player.name, avatar: player.avatar, lang: player.lang,
+      name: player.name, avatar: player.avatar, lang: player.lang, record: player.record,
     });
   }
 

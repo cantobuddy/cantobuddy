@@ -141,6 +141,11 @@ const STATE = {
   // above: most of the year there is no festival within the window, and that
   // "no" must not be re-asked on every language switch.
   homeFestival: null,
+  // Today's kitchen phrase, from /api/phrase/today. Cached for the day so a
+  // language switch repaints it without a second fetch.
+  homePhrase: null,
+  // The Sunday Table, from /api/sunday-table. Same null/false distinction.
+  sundayTable: null,
 };
 
 // ---- TTS (Cantonese text-to-speech) with selectable practice voices --------
@@ -752,6 +757,8 @@ async function init() {
     // card simply does not appear.
     await fetchLearnerStats();
     renderHomeCards();
+    renderHomePhrase();
+    renderHomeSundayTable();
     renderHomeFestival();
     renderHomeDailyCulture();
     renderHomeDiscoverPromo();
@@ -780,6 +787,8 @@ async function init() {
 function rerenderForLanguage() {
   renderHomeCategories();
   renderHomeCards();
+  renderHomePhrase();
+  renderHomeSundayTable();
   renderHomeFestival();
   renderHomeDailyCulture();
   renderHomeDiscoverPromo();
@@ -948,6 +957,209 @@ function continueLearning() {
  */
 function renderHomeCards() {
   renderHomeResume();
+}
+
+/**
+ * Today's phrase for her kitchen — one phrase, one tap, ten seconds.
+ *
+ * Shown to EVERY device, including one that has never practised. That is a
+ * deliberate exception to the "a stranger sees the old screen" rule the streak
+ * card follows: the streak is a reward for having started, but this card is the
+ * reason to start, so hiding it from new devices would hide it from the only
+ * people it can help.
+ *
+ * Silent on failure. A daily phrase that cannot load is not worth an error
+ * message, and an empty div is the same screen as before the feature existed.
+ */
+async function renderHomePhrase() {
+  const wrap = document.getElementById('home-phrase');
+  if (!wrap) return;
+  try {
+    if (STATE.homePhrase === null) {
+      const res = await apiGet('/api/phrase/today');
+      STATE.homePhrase = (res && res.phrase) || false;
+    }
+    const p = STATE.homePhrase;
+    if (!p) { wrap.innerHTML = ''; return; }
+
+    wrap.innerHTML = `
+      <button class="home-phrase" onclick="speakHomePhrase(this)">
+        <span class="home-phrase-emoji">${escapeHtml(p.emoji || '🍳')}</span>
+        <span class="home-phrase-main">
+          <span class="home-phrase-label">${escapeHtml(t('home.phraseTitle'))}</span>
+          <span class="home-phrase-canto">${escapeHtml(p.cantonese)}</span>
+          <span class="home-phrase-jyutping">${escapeHtml(p.jyutping)}</span>
+          <span class="home-phrase-meaning">${escapeHtml(meaning(p))}</span>
+        </span>
+        <span class="home-phrase-play" aria-hidden="true">🔊</span>
+      </button>`;
+  } catch (err) {
+    wrap.innerHTML = '';
+  }
+}
+
+/** Hear today's phrase. Reuses the practice voice she already chose. */
+function speakHomePhrase(btn) {
+  const p = STATE.homePhrase;
+  if (!p) return;
+  speak(p.cantonese, btn);
+}
+
+/**
+ * The four games, as the Sunday Table needs them: where to send her, what to
+ * call it, and the emoji it already wears on the Games tab.
+ */
+const SUNDAY_GAME_META = {
+  uno: { emoji: '🎴', path: '/games/uno', name: () => 'UNO' },
+  bigtwo: { emoji: '🃏', path: '/games/bigtwo', name: () => t('games.bigtwoName') },
+  wordmatch: { emoji: '🔤', path: '/games/wordmatch', name: () => t('games.matchName') },
+  sudoku: { emoji: '🔢', path: '/games/sudoku', name: () => t('games.sudokuName') },
+};
+
+function sundayGameMeta(key) {
+  return SUNDAY_GAME_META[key] || SUNDAY_GAME_META.uno;
+}
+
+/**
+ * The Sunday Table card.
+ *
+ * Shown only while a Table is open, on the day itself, or within two days of it.
+ * A weekly appointment that advertises itself seven days a week is not an
+ * appointment, it is a banner — and this screen already carries a phrase card
+ * and a festival card that both earn their space by being occasional.
+ *
+ * Nothing here invents social proof. The proposal sketched "Ana is already in",
+ * and that line is not shippable: there is no presence system, so the sentence
+ * would be fabricated. The card says what is actually true — what the Table is,
+ * when it opens, which game is featured, which passage to read, and what
+ * happened in Hong Kong this week.
+ */
+async function renderHomeSundayTable() {
+  const wrap = document.getElementById('home-sunday-table');
+  if (!wrap) return;
+  try {
+    if (STATE.sundayTable === null) {
+      STATE.sundayTable = await apiGet('/api/sunday-table');
+    }
+    const st = STATE.sundayTable;
+    if (!st || !st.date) { wrap.innerHTML = ''; return; }
+
+    // Two days out, or open now. Outside that the card is noise.
+    const soon = st.active || st.minutesUntil <= 2 * 24 * 60;
+    if (!soon) { wrap.innerHTML = ''; return; }
+
+    const game = sundayGameMeta(st.featuredGame);
+    const status = st.active
+      ? `<span class="sunday-status is-open">${escapeHtml(t('sunday.openNow'))}</span>`
+      : st.minutesUntil <= 60
+        ? `<span class="sunday-status">${escapeHtml(t('sunday.startsIn').replace('{n}', st.minutesUntil))}</span>`
+        : `<span class="sunday-status">${escapeHtml(t('sunday.when'))}</span>`;
+
+    const passage = st.passage
+      ? `<button class="sunday-row" onclick="openLiving('${escapeHtml(st.passage.slug)}')">
+           <span class="sunday-row-icon">${escapeHtml(st.passage.icon || '📖')}</span>
+           <span class="sunday-row-main">
+             <span class="sunday-row-label">${escapeHtml(t('sunday.passage'))}</span>
+             <span class="sunday-row-title">${escapeHtml(livingField(st.passage, 'title'))}</span>
+           </span>
+           <span class="post-card-arrow" aria-hidden="true">›</span>
+         </button>`
+      : '';
+
+    const digest = (st.digest || []).map((p) => `
+      <button class="sunday-digest-row" onclick="openStory('${escapeHtml(p.slug)}')">
+        <span class="sunday-digest-dot">·</span>
+        <span class="sunday-digest-title">${escapeHtml(postField(p, 'title'))}</span>
+      </button>`).join('');
+
+    wrap.innerHTML = `
+      <section class="sunday-card">
+        <header class="sunday-head">
+          <span class="sunday-title">🫖 ${escapeHtml(t('sunday.title'))}</span>
+          ${status}
+        </header>
+        <button class="sunday-row sunday-row-game" onclick="location.href='${game.path}'">
+          <span class="sunday-row-icon">${game.emoji}</span>
+          <span class="sunday-row-main">
+            <span class="sunday-row-label">${escapeHtml(t('sunday.featured'))}</span>
+            <span class="sunday-row-title">${escapeHtml(game.name())}</span>
+          </span>
+          <span class="sunday-play">${escapeHtml(t('sunday.play'))} ›</span>
+        </button>
+        ${passage}
+        ${digest ? `<div class="sunday-digest">
+          <div class="sunday-row-label">${escapeHtml(t('sunday.digest'))}</div>
+          ${digest}
+        </div>` : ''}
+        <div id="sunday-result"></div>
+      </section>`;
+
+    renderSundayResult(st);
+  } catch (err) {
+    wrap.innerHTML = '';
+  }
+}
+
+/**
+ * Her own result from today's Table, and a card she can send to a friend.
+ *
+ * Only rendered when she has actually finished a game today. An empty "share my
+ * result" button would ask her to send a lie, and the first thing a friend would
+ * see is that there was nothing to share.
+ */
+async function renderSundayResult(st) {
+  const host = document.getElementById('sunday-result');
+  if (!host || !STATE.deviceId) return;
+  try {
+    const res = await apiGet(`/api/games/record?public_id=${encodeURIComponent(STATE.deviceId)}&since=${encodeURIComponent(st.date)}`);
+    const rec = res && res.games ? res.games[st.featuredGame] : null;
+    if (!rec || !rec.played) { host.innerHTML = ''; return; }
+    STATE.sundayRecord = rec;
+    host.innerHTML = `
+      <div class="sunday-result">
+        <span class="sunday-result-line">${escapeHtml(t('sunday.resultLine')
+          .replace('{wins}', rec.wins).replace('{played}', rec.played))}</span>
+        <button class="btn btn-secondary sunday-share" onclick="shareSundayResult()">
+          ${escapeHtml(t('sunday.share'))}
+        </button>
+      </div>`;
+  } catch (err) {
+    host.innerHTML = '';
+  }
+}
+
+/** The shareable Sunday Table card, built from her actual result. */
+function sundaySpec(st, rec) {
+  const k = cardTokens();
+  const game = sundayGameMeta(st.featuredGame);
+  return {
+    accent: k.secondary,
+    tint: '#e6f5f3',
+    eyebrow: t('sunday.title'),
+    blocks: [
+      { type: 'emoji', value: game.emoji, size: 130, y: 290 },
+      { type: 'wrap', value: game.name(), size: 60, y: 450, maxLines: 2, lineHeight: 74 },
+      { type: 'text', value: `${rec.wins} / ${rec.played}`, weight: 700, size: 96, color: k.secondary, y: 640 },
+      { type: 'text', value: t('sunday.when'), weight: 500, size: 40, color: k.soft, y: 790 },
+    ],
+  };
+}
+
+async function shareSundayResult() {
+  const st = STATE.sundayTable;
+  const rec = STATE.sundayRecord;
+  if (!st || !rec || !rec.played) return;
+  const game = sundayGameMeta(st.featuredGame);
+  const text = t('sunday.shareText')
+    .replace('{wins}', rec.wins)
+    .replace('{played}', rec.played)
+    .replace('{game}', game.name());
+  await sharePicture({
+    spec: sundaySpec(st, rec),
+    text: `${text} ${shareUrl('/')}`,
+    url: shareUrl('/'),
+    filename: 'cantobuddy-sunday-table.png',
+  });
 }
 
 /**
@@ -4505,6 +4717,18 @@ function livingCardHtml(post) {
   const excerpt = (body.split(/\n{2,}/)[0] || '').trim();
   const reacts = Number(post.reaction_count) || 0;
   const comments = Number(post.comment_count) || 0;
+
+  // A tally is only worth showing when it is real. "💬 0" is not a small
+  // number, it is a verdict on the whole shelf: it tells a first visitor that
+  // nobody comes here. So zero renders nothing at all, and a card with nothing
+  // to count says what it wants instead of counting to nothing.
+  const stats = [];
+  if (reacts) stats.push(`👍 ${reacts}`);
+  if (comments) stats.push(`💬 ${comments}`);
+  const footerStats = stats.length
+    ? stats.map((s) => `<span class="living-card-stat">${s}</span>`).join('')
+    : `<span class="living-card-stat living-card-invite">${escapeHtml(t('living.cardInvite'))}</span>`;
+
   return `
     <button class="post-card living-card" onclick="openLiving('${escapeHtml(post.slug)}')">
       <span class="post-card-icon">${escapeHtml(post.icon || '🏠')}</span>
@@ -4513,8 +4737,7 @@ function livingCardHtml(post) {
         <span class="post-card-title">${escapeHtml(title)}</span>
         <span class="post-card-summary">${escapeHtml(excerpt)}</span>
         <span class="living-card-footer">
-          <span class="living-card-stat">${reacts ? '👍 ' + reacts : '👍'}</span>
-          <span class="living-card-stat">💬 ${comments}</span>
+          ${footerStats}
           <span class="living-card-stat">↗</span>
         </span>
       </span>
@@ -4663,6 +4886,11 @@ async function reactLiving(slug, emoji) {
     STATE.living.reactions = res.reactions || {};
     STATE.living.myReaction = res.myReaction || null;
     renderLivingReactions();
+    // The first reaction of her day is worth one credit. It is a 2-second
+    // action, so the reward has to be visible immediately or it teaches
+    // nothing — but it is said quietly, because a coin pop-up on a passage
+    // about a wage dispute would be grotesque.
+    if (res.creditsAwarded) showToast(t('living.creditEarned').replace('{n}', res.creditsAwarded));
   } catch (err) {
     console.warn('Could not react:', err);
     showToast(t('share.failed'));

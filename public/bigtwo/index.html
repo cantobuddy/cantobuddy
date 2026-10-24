@@ -88,7 +88,10 @@
      (uppercase, wide spacing, bold) or "Enter code" itself reads as a code. */
   .join-row .field::placeholder{text-transform:none;letter-spacing:0;font-weight:600;font-size:13px;color:#a7aeba}
   .join-row .btn{width:auto;padding:13px 20px}
-  .err{margin:12px 0 0;color:var(--red);font-size:12.5px;min-height:16px;text-align:center}
+  .err{
+  /* Her lifetime record. Muted on purpose: it is a fact, not a challenge. */
+  .recline{font-size:12.5px;color:var(--muted);text-align:center;margin:14px 0 0}
+margin:12px 0 0;color:var(--red);font-size:12.5px;min-height:16px;text-align:center}
   .tips{list-style:none;padding:0;margin:22px 0 0;max-width:360px;font-size:12px;color:var(--muted);line-height:1.7}
   .tips li{padding-left:16px;position:relative}
   .tips li::before{content:"•";position:absolute;left:2px;color:var(--green)}
@@ -361,6 +364,9 @@
     </div>
     <p id="lobbyErr" class="err"></p>
   </div>
+  <!-- Her record across every game. Empty and hidden until she has finished
+       one, so a stranger's first screen is unchanged. -->
+  <p id="myRecord" class="recline hidden"></p>
 
   <ul class="tips">
     <li data-k="tip1"></li>
@@ -499,6 +505,7 @@ const STR = {
     typeStraight: 'straight', typeFlush: 'flush', typeFullhouse: 'full house',
     typeQuads: 'four of a kind', typeStraightflush: 'straight flush',
     winTitle: 'You win!', winSub: 'You got rid of all your cards first.',
+    recordLine: '🏆 {wins} won · {played} played',
     loseTitle: '{name} wins', loseSub: 'Better luck in the next round.',
     againBtn: 'Play again', backToHub: 'Back to the games',
     errNotStarted: 'The game has not started yet.',
@@ -563,6 +570,7 @@ const STR = {
     typeStraight: 'straight', typeFlush: 'flush', typeFullhouse: 'full house',
     typeQuads: 'apat na magkapareho', typeStraightflush: 'straight flush',
     winTitle: 'Nanalo ka!', winSub: 'Naubos mo ang baraha mo bago pa ang iba.',
+    recordLine: '🏆 {wins} panalo · {played} laro',
     loseTitle: 'Nanalo si {name}', loseSub: 'Bawi na lang sa susunod.',
     againBtn: 'Maglaro ulit', backToHub: 'Bumalik sa mga laro',
     errNotStarted: 'Hindi pa nagsisimula ang laro.',
@@ -627,6 +635,7 @@ const STR = {
     typeStraight: '顺子', typeFlush: '同花', typeFullhouse: '葫芦',
     typeQuads: '四条', typeStraightflush: '同花顺',
     winTitle: '你赢了！', winSub: '你比别人先出完所有的牌。',
+    recordLine: '🏆 贏了 {wins} 場 · 共 {played} 場',
     loseTitle: '{name} 赢了', loseSub: '下一局再来。',
     againBtn: '再来一局', backToHub: '回到游戏',
     errNotStarted: '游戏还没开始。',
@@ -691,6 +700,7 @@ const STR = {
     typeStraight: 'straight', typeFlush: 'flush', typeFullhouse: 'full house',
     typeQuads: 'empat kartu sama', typeStraightflush: 'straight flush',
     winTitle: 'Kamu menang!', winSub: 'Kamu menghabiskan kartumu lebih dulu.',
+    recordLine: '🏆 {wins} menang · {played} main',
     loseTitle: '{name} menang', loseSub: 'Coba lagi di ronde berikutnya.',
     againBtn: 'Main lagi', backToHub: 'Kembali ke permainan',
     errNotStarted: 'Permainan belum dimulai.',
@@ -892,6 +902,43 @@ function paintStatic() {
 }
 
 function myName() {
+
+/**
+ * The same device identity the rest of the app uses (DEVICE_KEY in app.js).
+ *
+ * It is what lets a win here and a quiz there belong to one person, and it is
+ * why the record survives closing the tab. Created here if the app has never
+ * been opened on this device — the format matches, so the two agree whichever
+ * gets there first.
+ */
+function deviceId() {
+  try {
+    let id = localStorage.getItem('cb_device');
+    if (!id) {
+      const b = new Uint8Array(16);
+      crypto.getRandomValues(b);
+      id = 'dev_' + Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
+      localStorage.setItem('cb_device', id);
+    }
+    return id;
+  } catch (e) { return null; }
+}
+
+/** Her record at this game, for the lobby. Nothing at all if she has never played. */
+async function loadMyRecord() {
+  const el = document.getElementById('myRecord');
+  if (!el) return;
+  try {
+    const r = await fetch('/api/games/record?public_id=' + encodeURIComponent(deviceId() || ''));
+    const d = await r.json();
+    const rec = d && d.games && d.games.bigtwo;
+    if (!rec || !rec.played) { el.classList.add('hidden'); return; }
+    el.textContent = t('recordLine', { wins: rec.wins, played: rec.played });
+    el.classList.remove('hidden');
+  } catch (e) { /* a record is not worth an error message */ }
+}
+
+
   return ($('#nameInput').value || '').trim().slice(0, 12);
 }
 
@@ -924,7 +971,7 @@ function showLobbyError(msg) {
 async function createRoom() {
   const name = myName();
   if (!name) { showLobbyError(t('errNameRequired')); $('#nameInput').focus(); return; }
-  const r = await post('/api/create', { name, avatar: myAvatar });
+  const r = await post('/api/create', { name, avatar: myAvatar, deviceId: deviceId() });
   if (r.status !== 200) { showLobbyError(errorText(r.body.error)); return; }
   enterRoom(r.body);
 }
@@ -934,7 +981,7 @@ async function joinRoom() {
   const c = ($('#codeInput').value || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
   if (!name) { showLobbyError(t('errNameRequired')); $('#nameInput').focus(); return; }
   if (c.length !== 4) { showLobbyError(errorText('roomNotFound')); return; }
-  const r = await post('/api/join', { code: c, name, avatar: myAvatar });
+  const r = await post('/api/join', { code: c, name, avatar: myAvatar, deviceId: deviceId() });
   if (r.status !== 200) { showLobbyError(errorText(r.body.error)); return; }
   enterRoom(r.body);
 }
@@ -1344,6 +1391,14 @@ function confetti() {
   setTimeout(() => box.remove(), 3600);
 }
 
+/** Her lifetime record as one line, or nothing when there is no record yet. */
+function recordHtml() {
+  const rec = S && S.you && S.you.record;
+  if (!rec || !rec.played) return '';
+  return '<p class="recline" style="margin:2px 0 10px">' +
+    esc(t('recordLine', { wins: rec.wins, played: rec.played })) + '</p>';
+}
+
 function renderOverlay() {
   const root = $('#modalRoot');
   if (S.state !== 'ended' || !S.winner) {
@@ -1360,6 +1415,7 @@ function renderOverlay() {
         <div class="big-av">${iWon ? '🏆' : (win ? win.avatar : '🙂')}</div>
         <h2>${esc(iWon ? t('winTitle') : t('loseTitle', { name: win ? win.name : '' }))}</h2>
         <p>${esc(iWon ? t('winSub') : t('loseSub'))}</p>
+        ${recordHtml()}
         ${S.you.canStart ? `<button class="btn primary" id="againBtn">${esc(t('againBtn'))}</button>` : ''}
         <button class="btn" id="hubBtn" style="margin-top:8px">${esc(t('backToHub'))}</button>
       </div>
@@ -1373,6 +1429,7 @@ function renderOverlay() {
 /* ----------------------------------------------------------------- boot */
 function initLobby() {
   paintStatic();
+loadMyRecord();
   renderAvatars();
   const sess = loadSession();
   if (sess && sess.name) $('#nameInput').value = sess.name;

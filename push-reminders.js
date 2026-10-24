@@ -51,6 +51,22 @@ const DAY_MS = 24 * 3600000;
 const WINDOW_FROM = 19 * 60 + 20; // 19:20
 const WINDOW_TO = 19 * 60 + 59; // 19:59
 
+/**
+ * The Sunday Table window: Sunday morning only, 09:00–09:59 HKT.
+ *
+ * This is a SECOND window, not a second message. push_log has one row per
+ * (endpoint, day), so a Sunday-morning send claims the day and the evening
+ * ladder is suppressed by the same primary key that already stops a duplicate
+ * sweep. That is the whole reason the Table reminder can exist without breaking
+ * the "one notification a day" rule that the rest of this file is built around.
+ *
+ * Sunday morning rather than Sunday afternoon because the point is to get her
+ * to 4pm — a reminder that arrives when the Table has already started is a
+ * notification about something she has missed.
+ */
+const SUNDAY_WINDOW_FROM = 9 * 60;      // 09:00
+const SUNDAY_WINDOW_TO = 9 * 60 + 59;   // 09:59
+
 /** Idle thresholds, in whole days since her last practice. */
 const RUNG_NEW = 3;
 const RUNG_STICKER = 7;
@@ -74,6 +90,8 @@ const COPY = {
     stickerBody: 'Your next sticker is that close — a short quiz gets you there.',
     phraseTitle: 'One phrase for your kitchen: {cantonese}',
     phraseBody: '{jyutping} — {english}. Tap to hear it.',
+    sundayTitle: 'Sunday Table at 4',
+    sundayBody: '{game} and one passage — two hours, no rush.',
   },
   fil: {
     streakTitle: 'Araw {n} — 2 minuto lang, tuloy pa rin',
@@ -84,6 +102,8 @@ const COPY = {
     stickerBody: 'Malapit na ang susunod na sticker — isang maikling quiz lang.',
     phraseTitle: 'Isang parirala para sa kusina: {cantonese}',
     phraseBody: '{jyutping} — {english}. Pindutin para marinig.',
+    sundayTitle: 'Sunday Table sa 4',
+    sundayBody: '{game} at isang passage — dalawang oras, walang pagmamadali.',
   },
   zh: {
     streakTitle: '第 {n} 天 — 2 分鐘就保得住',
@@ -94,6 +114,8 @@ const COPY = {
     stickerBody: '差一點就有新貼紙，做個兩分鐘小測驗吧。',
     phraseTitle: '廚房一句話：{cantonese}',
     phraseBody: '{jyutping} — {english}。點一下聽發音。',
+    sundayTitle: '周日聚會 4 點',
+    sundayBody: '{game} 加一段閱讀 — 兩小時，慢慢來。',
   },
   id: {
     streakTitle: 'Hari {n} — 2 menit saja, tetap jalan',
@@ -104,7 +126,21 @@ const COPY = {
     stickerBody: 'Stiker berikutnya sudah dekat — kuis sebentar saja.',
     phraseTitle: 'Satu frasa untuk dapurmu: {cantonese}',
     phraseBody: '{jyutping} — {english}. Ketuk untuk dengar.',
+    sundayTitle: 'Sunday Table jam 4',
+    sundayBody: '{game} dan satu bacaan — dua jam, tidak perlu buru-buru.',
   },
+};
+
+/**
+ * The featured game's name in each language. A push that says "Word Match" to
+ * someone reading the app in Chinese is the same mistake as nudging her in
+ * English — smaller, but the same mistake.
+ */
+const GAME_NAMES = {
+  en: { uno: 'UNO', bigtwo: 'Big Two', wordmatch: 'Word Match', sudoku: 'Sudoku' },
+  fil: { uno: 'UNO', bigtwo: 'Big Two', wordmatch: 'Word Match', sudoku: 'Sudoku' },
+  zh: { uno: 'UNO', bigtwo: '大老二', wordmatch: '詞語配對', sudoku: '數獨' },
+  id: { uno: 'UNO', bigtwo: 'Big Two', wordmatch: 'Word Match', sudoku: 'Sudoku' },
 };
 
 // ---------------------------------------------------------------------------
@@ -116,6 +152,7 @@ function hktParts(nowMs) {
   const d = new Date(nowMs + HKT_OFFSET_MS);
   return {
     date: d.toISOString().slice(0, 10),
+    dow: d.getUTCDay(),          // 0 = Sunday; the Table is the only Sunday rule
     hour: d.getUTCHours(),
     minute: d.getUTCMinutes(),
     minutes: d.getUTCHours() * 60 + d.getUTCMinutes(),
@@ -277,17 +314,74 @@ function planPush(target, nowMs = Date.now()) {
 }
 
 /** Plan for a whole list of targets. One entry per device that should be sent to. */
-function planSweep(targets, nowMs = Date.now()) {
+function planSweep(targets, nowMs = Date.now(), opts = {}) {
   const out = [];
+  // `opts` may arrive as null from a caller that has no Table to pass. A
+  // default parameter only covers `undefined`, so this is read defensively
+  // rather than relying on the default.
+  const table = opts && opts.table ? opts.table : null;
   for (const t of targets || []) {
-    const plan = planPush(t, nowMs);
+    // Sunday morning gets first refusal. If the Table message fires it claims
+    // the day in push_log, and the evening ladder is suppressed by that same
+    // claim — so trying Sunday first cannot produce two notifications, it can
+    // only decide which single one she gets.
+    const plan = planSundayPush(t, nowMs, table) || planPush(t, nowMs);
     if (plan) out.push({ endpoint: t.endpoint, ...plan });
   }
   return out;
 }
 
+/**
+ * The Sunday Table reminder: Sunday 09:00–09:59 HKT, at most once.
+ *
+ * Deliberately NOT gated on her streak or on whether she practised today. Every
+ * other message in this file is about a habit she is at risk of losing; this one
+ * is an invitation to the only two hours in her week when she has real free
+ * time, and it is just as relevant to someone who practised this morning.
+ *
+ * What it IS gated on is the give-up rule. A device that has been gone three
+ * weeks does not want an invitation either — silence after three weeks is a
+ * decision this file already made, and a new message type does not get to
+ * quietly reverse it.
+ *
+ * `table` is the object from sunday-table.js (only `featuredGame` is read). It
+ * is passed in rather than computed here so this module stays pure.
+ */
+function planSundayPush(target, nowMs = Date.now(), table = null) {
+  if (!target || !target.endpoint) return null;
+
+  const now = hktParts(nowMs);
+  if (now.dow !== 0) return null;
+  if (now.minutes < SUNDAY_WINDOW_FROM || now.minutes > SUNDAY_WINDOW_TO) return null;
+  if (target.pushedToday) return null;
+
+  const sinceDay = target.lastPracticeDay
+    || (target.lastActiveAt ? hktParts(Date.parse(target.lastActiveAt)).date : null);
+  if (sinceDay) {
+    const idle = Math.round((dayNumber(now.date) - dayNumber(sinceDay)) / DAY_MS);
+    if (idle >= GIVE_UP) return null;
+  }
+
+  const lang = LANGS.includes(target.lang) ? target.lang : 'en';
+  const copy = COPY[lang];
+  const game = table && table.featuredGame ? String(table.featuredGame) : 'uno';
+  const names = GAME_NAMES[lang] || GAME_NAMES.en;
+
+  return {
+    kind: 'sunday',
+    lang,
+    payload: {
+      title: copy.sundayTitle,
+      body: fill(copy.sundayBody, { game: names[game] || game }),
+      url: '/?view=games',
+      tag: 'reminder',
+    },
+  };
+}
+
 module.exports = {
   planPush,
+  planSundayPush,
   planSweep,
   hktParts,
   shiftDay,
@@ -295,10 +389,13 @@ module.exports = {
   nextSticker,
   WINDOW_FROM,
   WINDOW_TO,
+  SUNDAY_WINDOW_FROM,
+  SUNDAY_WINDOW_TO,
   RUNG_NEW,
   RUNG_STICKER,
   RUNG_PHRASE,
   GIVE_UP,
   LANGS,
   COPY,
+  GAME_NAMES,
 };

@@ -87,7 +87,10 @@
      or "Enter code" itself reads as a code already filled in. */
   .join-row .field::placeholder{text-transform:none;letter-spacing:0;font-weight:600;font-size:13px;color:#a7aeba}
   .join-row .btn{width:auto;padding:13px 20px}
-  .err{margin:12px 0 0;color:var(--red);font-size:12.5px;min-height:16px;text-align:center}
+  .err{
+  /* Her lifetime record. Muted on purpose: it is a fact, not a challenge. */
+  .recline{font-size:12.5px;color:var(--muted);text-align:center;margin:14px 0 0}
+margin:12px 0 0;color:var(--red);font-size:12.5px;min-height:16px;text-align:center}
   .tips{list-style:none;padding:0;margin:22px 0 0;max-width:360px;font-size:12px;color:var(--muted);line-height:1.7}
   .tips li{padding-left:16px;position:relative}
   .tips li::before{content:"•";position:absolute;left:2px;color:var(--blue)}
@@ -362,6 +365,9 @@
     </div>
     <p id="lobbyErr" class="err"></p>
   </div>
+  <!-- Her record across every game. Empty and hidden until she has finished
+       one, so a stranger's first screen is unchanged. -->
+  <p id="myRecord" class="recline hidden"></p>
 
   <ul class="tips">
     <li data-k="tip1"></li>
@@ -494,6 +500,7 @@ const STR = {
     verdictBothWrong: 'Nobody got it',
     verdictTimeout: "Time's up",
     winTitle: 'You win!',
+    recordLine: '🏆 {wins} won · {played} played',
     winSub: 'You matched more words than your partner.',
     loseTitle: '{name} wins',
     loseSub: 'Good game — go again?',
@@ -553,6 +560,7 @@ const STR = {
     verdictBothWrong: 'Walang nakakuha',
     verdictTimeout: 'Ubos na ang oras',
     winTitle: 'Panalo ka!',
+    recordLine: '🏆 {wins} panalo · {played} laro',
     winSub: 'Mas marami kang natumbok na salita kaysa sa kalaro mo.',
     loseTitle: 'Panalo si {name}',
     loseSub: 'Magandang laro — subukan ulit?',
@@ -612,6 +620,7 @@ const STR = {
     verdictBothWrong: '两个人都没答对',
     verdictTimeout: '时间到',
     winTitle: '你赢了！',
+    recordLine: '🏆 贏了 {wins} 場 · 共 {played} 場',
     winSub: '你配对了更多词。',
     loseTitle: '{name} 赢了',
     loseSub: '打得不错——再来一局？',
@@ -671,6 +680,7 @@ const STR = {
     verdictBothWrong: 'Tidak ada yang benar',
     verdictTimeout: 'Waktu habis',
     winTitle: 'Kamu menang!',
+    recordLine: '🏆 {wins} menang · {played} main',
     winSub: 'Kamu mencocokkan lebih banyak kata daripada lawanmu.',
     loseTitle: '{name} menang',
     loseSub: 'Permainan bagus — coba lagi?',
@@ -882,6 +892,43 @@ function paintStatic() {
 }
 
 function myName() {
+
+/**
+ * The same device identity the rest of the app uses (DEVICE_KEY in app.js).
+ *
+ * It is what lets a win here and a quiz there belong to one person, and it is
+ * why the record survives closing the tab. Created here if the app has never
+ * been opened on this device — the format matches, so the two agree whichever
+ * gets there first.
+ */
+function deviceId() {
+  try {
+    let id = localStorage.getItem('cb_device');
+    if (!id) {
+      const b = new Uint8Array(16);
+      crypto.getRandomValues(b);
+      id = 'dev_' + Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
+      localStorage.setItem('cb_device', id);
+    }
+    return id;
+  } catch (e) { return null; }
+}
+
+/** Her record at this game, for the lobby. Nothing at all if she has never played. */
+async function loadMyRecord() {
+  const el = document.getElementById('myRecord');
+  if (!el) return;
+  try {
+    const r = await fetch('/api/games/record?public_id=' + encodeURIComponent(deviceId() || ''));
+    const d = await r.json();
+    const rec = d && d.games && d.games.wordmatch;
+    if (!rec || !rec.played) { el.classList.add('hidden'); return; }
+    el.textContent = t('recordLine', { wins: rec.wins, played: rec.played });
+    el.classList.remove('hidden');
+  } catch (e) { /* a record is not worth an error message */ }
+}
+
+
   return ($('#nameInput').value || '').trim().slice(0, 12);
 }
 
@@ -914,7 +961,7 @@ function showLobbyError(msg) {
 async function createRoom() {
   const name = myName();
   if (!name) { showLobbyError(t('errNameRequired')); $('#nameInput').focus(); return; }
-  const r = await post('/api/create', { name, avatar: myAvatar, lang: LANG });
+  const r = await post('/api/create', { name, avatar: myAvatar, lang: LANG, deviceId: deviceId() });
   if (r.status !== 200) { showLobbyError(errorText(r.body.error)); return; }
   enterRoom(r.body);
 }
@@ -924,7 +971,7 @@ async function joinRoom() {
   const c = ($('#codeInput').value || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
   if (!name) { showLobbyError(t('errNameRequired')); $('#nameInput').focus(); return; }
   if (c.length !== 4) { showLobbyError(errorText('roomNotFound')); return; }
-  const r = await post('/api/join', { code: c, name, avatar: myAvatar, lang: LANG });
+  const r = await post('/api/join', { code: c, name, avatar: myAvatar, lang: LANG, deviceId: deviceId() });
   if (r.status !== 200) { showLobbyError(errorText(r.body.error)); return; }
   enterRoom(r.body);
 }
@@ -1360,6 +1407,14 @@ function confetti() {
   setTimeout(() => box.remove(), 3600);
 }
 
+/** Her lifetime record as one line, or nothing when there is no record yet. */
+function recordHtml() {
+  const rec = S && S.you && S.you.record;
+  if (!rec || !rec.played) return '';
+  return '<p class="recline" style="margin:2px 0 10px">' +
+    esc(t('recordLine', { wins: rec.wins, played: rec.played })) + '</p>';
+}
+
 function renderOverlay() {
   const root = $('#modalRoot');
   if (S.state !== 'ended' || !S.result) {
@@ -1399,6 +1454,7 @@ function renderOverlay() {
         <div class="big-av">${tie ? '🤝' : (iWon ? '🏆' : '🧠')}</div>
         <h2>${esc(title)}</h2>
         <p>${esc(sub)}</p>
+        ${recordHtml()}
         <div class="tally">${tally}</div>
         ${S.you.canStart ? `<button class="btn primary" id="againBtn">${esc(t('againBtn'))}</button>` : ''}
         <button class="btn" id="hubBtn" style="margin-top:8px">${esc(t('backToHub'))}</button>
@@ -1413,6 +1469,7 @@ function renderOverlay() {
 /* ----------------------------------------------------------------- boot */
 function initLobby() {
   paintStatic();
+loadMyRecord();
   renderAvatars();
   const sess = loadSession();
   if (sess && sess.name) $('#nameInput').value = sess.name;

@@ -63,6 +63,15 @@
     border-radius: 12px; background: var(--surface); color: var(--ink);
   }
   .field input:focus { outline: none; border-color: var(--primary); }
+  /* ---- avatar picker (mirrors the UNO lobby) ----------------------------- */
+  .av-label { display: block; text-align: left; font-size: 0.78rem; font-weight: 700; color: var(--muted); margin: 2px 0 8px; }
+  .avatars { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin: 0 0 18px; }
+  .avatars button {
+    aspect-ratio: 1; min-height: 48px; padding: 0; border-radius: 14px; font-size: 26px;
+    background: var(--surface); border: 2px solid var(--border);
+    display: grid; place-items: center; transition: .15s; cursor: pointer;
+  }
+  .avatars button.on { border-color: var(--primary); background: var(--primary-tint); transform: translateY(-2px); box-shadow: 0 6px 14px rgba(43,108,240,.18); }
   .join-row { display: flex; gap: 10px; }
   .join-row .field { flex: 1 1 auto; }
   .join-row .btn { flex: 0 0 auto; width: auto; align-self: flex-end; padding: 13px 18px; }
@@ -70,7 +79,13 @@
   /* ---- room ----------------------------------------------------------- */
   .room-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
   .code-chip { background: var(--primary-tint); color: var(--primary); font-weight: 800; letter-spacing: 0.12em; padding: 6px 12px; border-radius: 10px; font-size: 1rem; }
+  .room-actions { display: flex; align-items: center; gap: 8px; }
   .copy { background: var(--surface); border: 2px solid var(--border); border-radius: 10px; padding: 6px 12px; font-weight: 700; cursor: pointer; color: var(--ink); }
+  /* The WhatsApp invite — same green + white treatment as UNO, sized to match the
+     .copy button so the two sit side by side as a pair in the room head. */
+  .wa-btn { background: #fff; border: 2px solid #25d366; border-radius: 10px; padding: 6px 10px; font-weight: 700; cursor: pointer; color: #25d366; display: inline-grid; place-items: center; transition: .15s; }
+  .wa-btn:active { transform: scale(.94); }
+  .wa-btn svg { width: 20px; height: 20px; display: block; }
   .stat-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0 14px; }
   .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 8px 12px; flex: 1 1 0; min-width: 84px; text-align: center; }
   .stat b { display: block; font-size: 1.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -149,17 +164,17 @@
   <!-- MENU -->
   <section id="menu" class="menu">
     <p class="lead" id="lead"></p>
-    <div class="levels" id="levels"></div>
-    <button class="btn btn-primary" id="aloneBtn"></button>
-    <div class="divider" id="divider"></div>
     <div class="field">
       <label id="nameLbl"></label>
       <input id="nameInput" maxlength="12" placeholder="" />
     </div>
-    <div class="btn-row">
-      <button class="btn btn-ghost" id="createBtn" style="flex:1"></button>
-    </div>
-    <div class="join-row" style="margin-top:10px">
+    <label class="av-label" id="avatarLbl"></label>
+    <div class="avatars" id="avatarPicker"></div>
+    <div class="levels" id="levels"></div>
+    <button class="btn btn-primary" id="aloneBtn"></button>
+    <button class="btn btn-ghost" id="createBtn" style="margin-top:10px"></button>
+    <div class="divider" id="divider"></div>
+    <div class="join-row">
       <div class="field" style="margin:0">
         <label id="codeLbl"></label>
         <input id="codeInput" maxlength="4" placeholder="" />
@@ -172,7 +187,10 @@
   <section id="room" class="hidden">
     <div class="room-head">
       <span class="code-chip" id="roomCode"></span>
-      <button class="copy" id="copyBtn"></button>
+      <span class="room-actions">
+        <button class="copy" id="copyBtn"></button>
+        <button class="wa-btn" id="waBtn" type="button"></button>
+      </span>
     </div>
     <div class="stat-row" id="statRow"></div>
     <div class="players hidden" id="players"></div>
@@ -209,7 +227,7 @@
       title: 'Sudoku', lead: 'Numbers, not words. Play alone or race a room.',
       chooseLevel: 'Level', easy: 'Easy', easySub: '4×4', medium: 'Medium', mediumSub: '6×6', hard: 'Hard', hardSub: '9×9', expert: 'Expert', expertSub: '9×9',
       aloneBtn: 'Play alone', divider: 'or play together',
-      nameLbl: 'Your name', namePh: 'e.g. Mama', createBtn: 'Create room',
+      nameLbl: 'Your name', namePh: 'e.g. Mama', createBtn: 'Create room', avatarLbl: 'Pick an avatar',
       codeLbl: 'Room code', codePh: '4 letters', joinBtn: 'Join',
       copy: 'Copy link', copied: 'Copied!', invite: 'Share this room link',
       progress: 'Progress', mistakes: 'Mistakes', time: 'Time', players: 'Players',
@@ -219,13 +237,13 @@
       clear: 'Clear', hint: 'Hint', send: 'Send', say: 'Say something…',
       wrong: 'Not correct — try another number', soloOnly: 'Hints are for playing alone',
       roomNotFound: 'Room not found. Check the code.', needName: 'Please enter a name.',
-      ended: 'Game over', youSolved: 'You solved it!',
+      ended: 'Game over', youSolved: 'You solved it!', waInvite: 'Invite on WhatsApp', inviteText: 'Come play Sudoku! Room code {code} → {url}',
     },
     fil: {
       title: 'Sudoku', lead: 'Mga numero, hindi salita. Mag-isa o sabay sa kuwarto.',
       chooseLevel: 'Level', easy: 'Madali', easySub: '4×4', medium: 'Katamtaman', mediumSub: '6×6', hard: 'Mahirap', hardSub: '9×9', expert: 'Expert', expertSub: '9×9',
       aloneBtn: 'Mag-isa', divider: 'o sabay-sama',
-      nameLbl: 'Pangalan mo', namePh: 'hal. Mama', createBtn: 'Gumawa ng kuwarto',
+      nameLbl: 'Pangalan mo', namePh: 'hal. Mama', createBtn: 'Gumawa ng kuwarto', avatarLbl: 'Pumili ng avatar',
       codeLbl: 'Code ng kuwarto', codePh: '4 letra', joinBtn: 'Sumali',
       copy: 'Kopyahin link', copied: 'Nakopya!', invite: 'Ibahagi ang link ng kuwarto',
       progress: 'Progreso', mistakes: 'Mali', time: 'Oras', players: 'Mga manlalaro',
@@ -235,13 +253,13 @@
       clear: 'Burahin', hint: 'Tulong', send: 'Sugo', say: 'Magsabi…',
       wrong: 'Mali — subukan ang ibang numero', soloOnly: 'Ang tulong ay para sa mag-isa',
       roomNotFound: 'Hindi mahanap ang kuwarto. I-check ang code.', needName: 'Ilagay ang pangalan.',
-      ended: 'Tapos na', youSolved: 'Na-solve mo!',
+      ended: 'Tapos na', youSolved: 'Na-solve mo!', waInvite: 'Anyayahan sa WhatsApp', inviteText: 'Halina, mag-Sudoku tayo! Code {code} → {url}',
     },
     zh: {
       title: '数独', lead: '填数字，不用词语。单人玩或和朋友比赛。',
       chooseLevel: '难度', easy: '简单', easySub: '4×4', medium: '中等', mediumSub: '6×6', hard: '困难', hardSub: '9×9', expert: '专家', expertSub: '9×9',
       aloneBtn: '单人玩', divider: '或一起玩',
-      nameLbl: '你的名字', namePh: '例如 妈妈', createBtn: '创建房间',
+      nameLbl: '你的名字', namePh: '例如 妈妈', createBtn: '创建房间', avatarLbl: '挑个头像',
       codeLbl: '房间码', codePh: '4 个字母', joinBtn: '加入',
       copy: '复制链接', copied: '已复制！', invite: '分享这个房间链接',
       progress: '进度', mistakes: '错误', time: '时间', players: '玩家',
@@ -251,13 +269,13 @@
       clear: '清除', hint: '提示', send: '发送', say: '说点什么…',
       wrong: '不对——换个数字试试', soloOnly: '提示只供单人玩',
       roomNotFound: '找不到房间，请检查房间码。', needName: '请输入名字。',
-      ended: '游戏结束', youSolved: '你解出来了！',
+      ended: '游戏结束', youSolved: '你解出来了！', waInvite: '用 WhatsApp 邀请家人', inviteText: '来玩数独！房间配对码 {code} → {url}',
     },
     id: {
       title: 'Sudoku', lead: 'Angka, bukan kata. Main sendiri atau bareng di ruang.',
       chooseLevel: 'Level', easy: 'Mudah', easySub: '4×4', medium: 'Sedang', mediumSub: '6×6', hard: 'Sulit', hardSub: '9×9', expert: 'Ahli', expertSub: '9×9',
       aloneBtn: 'Main sendiri', divider: 'atau bareng',
-      nameLbl: 'Nama kamu', namePh: 'mis. Mama', createBtn: 'Buat ruang',
+      nameLbl: 'Nama kamu', namePh: 'mis. Mama', createBtn: 'Buat ruang', avatarLbl: 'Pilih avatar',
       codeLbl: 'Kode ruang', codePh: '4 huruf', joinBtn: 'Gabung',
       copy: 'Salin tautan', copied: 'Tersalin!', invite: 'Bagikan tautan ruang',
       progress: 'Progres', mistakes: 'Salah', time: 'Waktu', players: 'Pemain',
@@ -267,7 +285,7 @@
       clear: 'Hapus', hint: 'Petunjuk', send: 'Kirim', say: 'Bilang sesuatu…',
       wrong: 'Salah — coba angka lain', soloOnly: 'Petunjuk hanya untuk main sendiri',
       roomNotFound: 'Ruang tak ditemukan. Cek kodenya.', needName: 'Masukkan nama.',
-      ended: 'Selesai', youSolved: 'Kamu menyelesaikannya!',
+      ended: 'Selesai', youSolved: 'Kamu menyelesaikannya!', waInvite: 'Undang lewat WhatsApp', inviteText: 'Ayo main Sudoku! Kode ruang {code} → {url}',
     },
   };
 
@@ -284,6 +302,28 @@
   var evSource = null;
   var wrongFlash = {};   // index -> true, cleared on next state render
   var timerId = null;
+
+  // The same twelve animal avatars the UNO lobby uses, in the same order, so a
+  // player picks the same face everywhere in the game centre.
+  var AVATARS = ['🦊','🐼','🐯','🐸','🐧','🦄','🐙','🐨','🐰','🦁','🐳','🐝'];
+  var myAvatar = AVATARS[0];
+
+  // The WhatsApp mark — a speech bubble with a handset, in currentColor so the
+  // button decides the green. Copied from the UNO table's WA_ICON.
+  var WA_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
+    '<path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Z" fill="none" stroke="currentColor" stroke-width="2"/>' +
+    '<path d="M8.6 7.6c.3-.1.6 0 .8.3l.8 1.3c.1.3.1.6-.1.8l-.5.5c-.2.2-.2.4-.1.6.5.9 1.3 1.7 2.2 2.2.2.1.4.1.6-.1l.5-.5c.2-.2.5-.3.8-.1l1.3.8c.3.2.4.5.3.8-.3 1-1.3 1.7-2.4 1.6-2.8-.3-5.2-2.7-5.5-5.5-.1-1.1.6-2.1 1.6-2.4Z" fill="currentColor"/>' +
+    '</svg>';
+
+  // Hand the room invite to WhatsApp instead of the clipboard. The link is the
+  // same /games/sudoku/ABCD the copy button writes; carrying it (not just the
+  // four-letter code) means the recipient taps once and lands in the room.
+  function shareOnWhatsApp() {
+    var code = session.code || (S && S.code) || '';
+    var url = location.origin + '/games/sudoku/' + code;
+    var msg = t('inviteText').replace('{code}', code).replace('{url}', url);
+    window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank', 'noopener');
+  }
 
   // ---- dom ----
   function $(id) { return document.getElementById(id); }
@@ -315,18 +355,45 @@
   }
 
   // ---- menu setup ----
+  function renderAvatars() {
+    var box = $('avatarPicker');
+    if (!box) return;
+    box.innerHTML = '';
+    AVATARS.forEach(function (a) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = a;
+      b.className = a === myAvatar ? 'on' : '';
+      b.setAttribute('aria-label', a);
+      b.addEventListener('click', function () { myAvatar = a; renderAvatars(); });
+      box.appendChild(b);
+    });
+  }
+
   function buildMenu() {
     document.documentElement.lang = lang === 'zh' ? 'zh-Hans' : lang;
     $('title').textContent = t('title');
     $('lead').textContent = t('lead');
     $('nameLbl').textContent = t('nameLbl');
     $('nameInput').placeholder = t('namePh');
+    $('avatarLbl').textContent = t('avatarLbl');
     $('codeLbl').textContent = t('codeLbl');
     $('codeInput').placeholder = t('codePh');
     $('aloneBtn').textContent = t('aloneBtn');
     $('divider').textContent = t('divider');
     $('createBtn').textContent = t('createBtn');
     $('joinBtn').textContent = t('joinBtn');
+    // Populate the WhatsApp invite button up front so it is never a blank box
+    // between showRoom() and the first state arriving over SSE.
+    $('waBtn').innerHTML = WA_ICON;
+    $('waBtn').title = t('waInvite');
+    $('waBtn').setAttribute('aria-label', t('waInvite'));
+
+    // Remember the name and a starting face, so a player does not retype it
+    // every time they come back to play.
+    var saved = localStorage.getItem('sudoku.name');
+    if (saved && !$('nameInput').value) $('nameInput').value = saved;
+    renderAvatars();
 
     var levels = [['easy', t('easy'), t('easySub')], ['medium', t('medium'), t('mediumSub')], ['hard', t('hard'), t('hardSub')], ['expert', t('expert'), t('expertSub')]];
     $('levels').innerHTML = levels.map(function (l) {
@@ -344,7 +411,9 @@
 
   // ---- actions ----
   function startAlone() {
-    api('/games/sudoku/api/solo', { level: level, name: $('nameInput').value.trim() || t('title') })
+    var name = $('nameInput').value.trim();
+    localStorage.setItem('sudoku.name', name);
+    api('/games/sudoku/api/solo', { level: level, name: name || t('title'), avatar: myAvatar })
       .then(function (r) {
         if (!r.ok) { toast(t('roomNotFound')); return; }
         session = { token: r.data.token, code: r.data.code };
@@ -356,7 +425,8 @@
   function createTogether() {
     var name = $('nameInput').value.trim();
     if (!name) { toast(t('needName')); return; }
-    api('/games/sudoku/api/create', { level: level, name: name })
+    localStorage.setItem('sudoku.name', name);
+    api('/games/sudoku/api/create', { level: level, name: name, avatar: myAvatar })
       .then(function (r) {
         if (!r.ok) { toast(t('roomNotFound')); return; }
         session = { token: r.data.token, code: r.data.code };
@@ -370,7 +440,8 @@
     var code = $('codeInput').value.trim().toUpperCase();
     if (!name) { toast(t('needName')); return; }
     if (!code) { toast(t('roomNotFound')); return; }
-    api('/games/sudoku/api/join', { code: code, name: name })
+    localStorage.setItem('sudoku.name', name);
+    api('/games/sudoku/api/join', { code: code, name: name, avatar: myAvatar })
       .then(function (r) {
         if (!r.ok) { toast(t('roomNotFound')); return; }
         session = { token: r.data.token, code: r.data.code };
@@ -418,6 +489,10 @@
     // header / status
     $('roomCode').textContent = S.solo ? 'SOLO' : S.code;
     $('copyBtn').textContent = t('copy');
+    // The WhatsApp invite button mirrors UNO: same icon, same label, same tooltip.
+    $('waBtn').innerHTML = WA_ICON;
+    $('waBtn').title = t('waInvite');
+    $('waBtn').setAttribute('aria-label', t('waInvite'));
 
     var elapsed = S.startedAt ? Math.max(0, Math.floor((S.serverNow - S.startedAt) / 1000)) : 0;
     var stats = '<div class="stat"><b>' + fmtTime(elapsed) + '</b><span>' + t('time') + '</span></div>'
@@ -577,6 +652,7 @@
     if (navigator.clipboard) navigator.clipboard.writeText(link).then(function () { toast(t('copied')); });
     else toast(link);
   });
+  $('waBtn').addEventListener('click', shareOnWhatsApp);
   $('chatSend').addEventListener('click', function () {
     var v = $('chatInput').value.trim();
     if (!v) return;

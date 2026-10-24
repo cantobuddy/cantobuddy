@@ -16,6 +16,8 @@ const SqliteSessionStore = require('./session-store');
 const seo = require('./seo');
 const news = require('./news');
 const push = require('./push');
+const reminders = require('./push-reminders');
+const { createSweeper } = require('./push-sweep');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -1617,37 +1619,65 @@ async function notifySubscribers(payload) {
   return res;
 }
 
-/** Mark quiet devices reminded and nudge them to practise. Fire-and-forget. */
-function runPracticeReminders(days) {
-  if (!push.isEnabled()) return { disabled: true };
-  const subs = store.listStaleForReminder(days);
-  if (!subs.length) return { sent: 0 };
-  // Mark first so an interrupted run cannot double-send.
-  for (const s of subs) store.markReminded(s.endpoint);
-  const subList = subs.map((r) => ({ endpoint: r.endpoint, keys: { p256dh: r.p256dh, auth: r.auth } }));
-  const payload = {
-    title: 'A quick Cantonese review?',
-    body: 'A few minutes a day keeps the words in your head. Open CantoBuddy and practise a few cards.',
-    url: '/',
-    tag: 'reminder',
-  };
-  push.broadcast(subList, payload)
-    .then((res) => {
-      if (res.expired > 0) for (const e of res.results) if (e.expired) store.removeSubscription(e.endpoint);
-    })
-    .catch((e) => console.error('practice reminder send failed:', e.message));
-  return { queued: subList.length };
-}
+/**
+ * One pass of the reminder ladder.
+ *
+ * Replaces the old flat "if idle for 3 days, send 'A quick Cantonese review?'"
+ * job. Two things were wrong with that and both are fixed here:
+ *
+ *   1. **The message was generic.** It is now built per device by
+ *      push-reminders.js — her streak length, her distance to the next sticker,
+ *      a headline that is genuinely new today, or one phrase for her kitchen,
+ *      in the language she reads.
+ *   2. **It fired at the wrong time.** A 3-day-idle trigger is already too late:
+ *      by the time it arrives the streak is dead, which is the only moment a
+ *      reminder was worth anything. The sweep now runs every few minutes and
+ *      acts inside one evening window (19:20–19:59 HKT), so the streak message
+ *      lands while the streak can still be saved.
+ *
+ * The send itself — and the claim that makes a second send in the same evening
+ * impossible — lives in push-sweep.js, where it can be tested against a fake
+ * sender instead of only in production.
+ */
+const runPushSweep = createSweeper({ store, push, reminders });
 
-const PUSH_REMINDER_DAYS = Number(process.env.PUSH_REMINDER_DAYS) || 3;
-// Daily practice-reminder sweep. On a free-tier host this only fires while the
-// process is awake; the admin "Send reminders now" button covers the rest.
-setInterval(() => runPracticeReminders(PUSH_REMINDER_DAYS), 24 * 60 * 60 * 1000).unref?.();
+// How often to look. The ladder sends at most once a day, but it must be *asked*
+// far more often than that: the window is 40 minutes wide and a free-tier host
+// sleeps, so a daily interval would routinely miss the evening entirely.
+const PUSH_SWEEP_MINUTES = Math.max(1, Number(process.env.PUSH_SWEEP_MINUTES) || 10);
+setInterval(() => {
+  runPushSweep().catch((e) => console.error('push sweep failed:', e.message));
+}, PUSH_SWEEP_MINUTES * 60 * 1000).unref?.();
+
+// A process that has just woken up should not wait ten minutes to notice that
+// the evening window is open.
+setTimeout(() => {
+  runPushSweep().catch(() => {});
+}, 45 * 1000).unref?.();
 
 // --- public endpoints: the opt-in invite calls these from the browser ---
 app.get('/api/push/config', (req, res) => {
   res.json({ enabled: push.isEnabled(), publicKey: push.getPublicKey() });
 });
+
+/**
+ * Resolve the device that is subscribing/pinging to a learner row.
+ *
+ * The browser sends the same `cb_device` id it already uses for every other
+ * API call (`public_id`), and the server resolves it — a client-supplied
+ * learner id is never trusted anywhere in this app, and this is no exception.
+ * The old `learnerId` body field is still accepted for compatibility but is
+ * only ever used as a fallback when no public id arrives.
+ */
+function learnerIdFromRequest(body) {
+  const publicId = body && (body.publicId || body.public_id);
+  if (publicId) {
+    const learner = store.getLearnerByPublicId(String(publicId).slice(0, 80));
+    if (learner) return learner.id;
+  }
+  const raw = body && body.learnerId;
+  return raw && Number.isFinite(Number(raw)) ? Number(raw) : null;
+}
 
 app.post('/api/push/subscribe', (req, res) => {
   const sub = req.body && req.body.subscription;
@@ -1658,7 +1688,8 @@ app.post('/api/push/subscribe', (req, res) => {
     endpoint: sub.endpoint,
     p256dh: sub.keys.p256dh,
     auth: sub.keys.auth,
-    learnerId: req.body && req.body.learnerId ? Number(req.body.learnerId) : null,
+    learnerId: learnerIdFromRequest(req.body),
+    lang: req.body && req.body.lang,
     source: 'web',
   });
   if (!saved) return res.status(500).json({ error: 'Could not save subscription.' });
@@ -1674,9 +1705,19 @@ app.post('/api/push/unsubscribe', (req, res) => {
 
 // Called by the app on each page load so last_active_at stays fresh and the
 // reminder job knows who has gone quiet. No auth — the endpoint is the token.
+//
+// It also backfills the learner link and the language. Every device that
+// subscribed before the ladder existed has `learner_id = NULL`, which would
+// make her streak unknowable; because this runs on every load, those devices
+// repair themselves without anyone being asked to opt in again.
 app.post('/api/push/ping', (req, res) => {
   const { endpoint } = req.body || {};
-  if (endpoint) store.updateLastActive(endpoint);
+  if (endpoint) {
+    store.updateLastActive(endpoint);
+    const learnerId = learnerIdFromRequest(req.body);
+    if (learnerId) store.linkSubscriptionLearner(endpoint, learnerId);
+    if (req.body && req.body.lang) store.setSubscriptionLang(endpoint, req.body.lang);
+  }
   res.json({ ok: true });
 });
 
@@ -1694,9 +1735,22 @@ app.post('/api/admin/push/send', requireAdmin, async (req, res) => {
   res.json(result);
 });
 
-app.post('/api/admin/push/reminders', requireAdmin, (req, res) => {
-  const days = Number(req.body && req.body.days) || PUSH_REMINDER_DAYS;
-  res.json(runPracticeReminders(days));
+/**
+ * Run the reminder ladder now.
+ *
+ * `{ dryRun: true }` returns the plan and sends nothing — the only way to see
+ * what the ladder would say without waiting for 19:20 and without touching a
+ * real phone. Combined with `{ now }` (a millisecond timestamp) it answers
+ * "what would this device get on day 7?" for any day and hour, which is how the
+ * window and the rungs are checked in practice.
+ */
+app.post('/api/admin/push/reminders', requireAdmin, async (req, res) => {
+  const body = req.body || {};
+  const dryRun = !!body.dryRun;
+  // A real send always uses the real clock: the send log is keyed on the HKT
+  // date, and a caller-supplied one could file a send under the wrong day.
+  const nowMs = dryRun && Number(body.now) ? Number(body.now) : Date.now();
+  res.json(await runPushSweep({ dryRun, nowMs }));
 });
 
 // Subscriber totals for the admin Push tab. No PII — just how many devices are

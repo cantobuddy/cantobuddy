@@ -636,6 +636,7 @@ db.exec(`
     auth             TEXT NOT NULL,
     learner_id       INTEGER REFERENCES learners(id) ON DELETE SET NULL,
     source           TEXT NOT NULL DEFAULT 'web',
+    lang             TEXT NOT NULL DEFAULT 'en',
     last_active_at   TEXT,
     last_reminded_at TEXT,
     created_at       TEXT NOT NULL,
@@ -643,6 +644,25 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_push_last_active ON push_subscriptions(last_active_at);
   CREATE INDEX IF NOT EXISTS idx_push_reminded   ON push_subscriptions(last_reminded_at);
+
+  -- Every reminder actually sent, one row per device per HKT day.
+  --
+  -- The PRIMARY KEY is the point: a sweep claims the day with an INSERT OR
+  -- IGNORE, and only a successful claim is allowed to send. Two overlapping
+  -- sweeps, a restarted process, or a doubled interval cannot produce two
+  -- notifications on the same evening — the database decides, not the clock.
+  --
+  -- The kind column is kept so the ladder knows which rung has already been
+  -- used. It is read back only for pushes sent on or after her last practice,
+  -- which is what lets the ladder start over when she returns and goes quiet.
+  CREATE TABLE IF NOT EXISTS push_log (
+    endpoint   TEXT NOT NULL,
+    sent_on    TEXT NOT NULL,          -- HKT date, 'YYYY-MM-DD'
+    kind       TEXT NOT NULL,          -- streak | new | sticker | phrase
+    created_at TEXT NOT NULL,
+    PRIMARY KEY (endpoint, sent_on)
+  );
+  CREATE INDEX IF NOT EXISTS idx_push_log_endpoint ON push_log(endpoint, sent_on);
 `);
 
 // ---------------------------------------------------------------------------
@@ -1146,6 +1166,17 @@ function migrateSchema() {
     const { shifted } = repairFutureDatedNews();
     db.prepare("INSERT OR REPLACE INTO meta (key, value) VALUES ('news_future_dates_repaired', '1')").run();
     if (shifted) changes.push(`shifted ${shifted} future-dated Inquirer post(s) back 8h`);
+  }
+
+  /* ---- push_subscriptions.lang ------------------------------------------- */
+  /* Reminders are the one message that reaches her outside the app, so they
+     are the one place English is least defensible: a Filipino helper who reads
+     the app in Filipino should not be nudged in English. The language is
+     captured from the page that subscribed (or last pinged) and stored here;
+     devices that subscribed before this column existed default to English and
+     are corrected on their next page load. */
+  if (addColumnIfMissing('push_subscriptions', 'lang', "TEXT NOT NULL DEFAULT 'en'")) {
+    changes.push('push_subscriptions.lang');
   }
 
   return changes;
@@ -2307,12 +2338,13 @@ const S = {
   listPushSubscriptions: db.prepare('SELECT * FROM push_subscriptions ORDER BY created_at DESC'),
   getPushSubscription: db.prepare('SELECT * FROM push_subscriptions WHERE endpoint = ?'),
   upsertPushSubscription: db.prepare(`
-    INSERT INTO push_subscriptions (endpoint, p256dh, auth, learner_id, source, last_active_at, created_at, updated_at)
-    VALUES (@endpoint, @p256dh, @auth, @learner_id, @source, @now, @now, @now)
+    INSERT INTO push_subscriptions (endpoint, p256dh, auth, learner_id, source, lang, last_active_at, created_at, updated_at)
+    VALUES (@endpoint, @p256dh, @auth, @learner_id, @source, @lang, @now, @now, @now)
     ON CONFLICT(endpoint) DO UPDATE SET
       p256dh = excluded.p256dh,
       auth = excluded.auth,
       learner_id = COALESCE(excluded.learner_id, push_subscriptions.learner_id),
+      lang = excluded.lang,
       last_active_at = excluded.last_active_at,
       updated_at = excluded.updated_at
   `),
@@ -2320,11 +2352,60 @@ const S = {
   countPushSubscriptions: db.prepare('SELECT COUNT(*) AS n FROM push_subscriptions'),
   touchPushSubscription: db.prepare('UPDATE push_subscriptions SET last_active_at = ?, updated_at = ? WHERE endpoint = ?'),
   markPushReminded: db.prepare('UPDATE push_subscriptions SET last_reminded_at = ?, updated_at = ? WHERE endpoint = ?'),
-  stalePushSubscriptions: db.prepare(`
-    SELECT * FROM push_subscriptions
-     WHERE last_active_at IS NOT NULL AND last_active_at < ?
-       AND (last_reminded_at IS NULL OR last_reminded_at < ?)
+
+  /* ---- The reminder ladder (see push-reminders.js) ---------------------- */
+
+  /* Practice days for every learner that has a subscribed device, in one
+     query. `+8 hours` converts to HKT, matching learnerActiveDays — a streak
+     counted in UTC would break at 8am Hong Kong time, which is the middle of
+     her morning. */
+  pushActiveDays: db.prepare(`
+    SELECT DISTINCT p.learner_id AS learner_id, date(p.created_at, '+8 hours') AS day
+      FROM progress p
+     WHERE p.learner_id IN (SELECT learner_id FROM push_subscriptions WHERE learner_id IS NOT NULL)
+     ORDER BY day DESC
   `),
+
+  /* Credits per subscribed learner — the sticker message needs the distance to
+     the next threshold, and a push must never write (getRewards() unlocks as a
+     side effect, so it is not used here). */
+  pushCredits: db.prepare(`
+    SELECT learner_id, COALESCE(SUM(score), 0) AS credits
+      FROM progress
+     WHERE learner_id IN (SELECT learner_id FROM push_subscriptions WHERE learner_id IS NOT NULL)
+     GROUP BY learner_id
+  `),
+
+  /* The newest published post, for "New today: …". Only the title in the
+     device's language, with English as the fallback. */
+  latestPublishedPost: db.prepare(`
+    SELECT slug, title_en, title_fil, title_zh, title_id
+      FROM posts
+     WHERE status = 'published'
+     ORDER BY COALESCE(published_at, created_at) DESC, id DESC
+     LIMIT 1
+  `),
+
+  /* Recent sends, keyed by endpoint. Read back to learn (a) whether anything
+     already went out today, and (b) which rung was last used after her most
+     recent practice. */
+  recentPushLog: db.prepare(`
+    SELECT endpoint, sent_on, kind FROM push_log WHERE sent_on >= ?
+  `),
+
+  /* The claim. INSERT OR IGNORE against the (endpoint, sent_on) primary key is
+     what makes "one message per evening" true even if two sweeps overlap. */
+  claimPushLog: db.prepare(`
+    INSERT OR IGNORE INTO push_log (endpoint, sent_on, kind, created_at) VALUES (?, ?, ?, ?)
+  `),
+
+  /* Links a device to a learner, but never re-links one that already has an
+     owner: two people sharing a phone must not steal each other's streak. */
+  linkPushLearner: db.prepare(`
+    UPDATE push_subscriptions SET learner_id = ?, updated_at = ?
+     WHERE endpoint = ? AND learner_id IS NULL
+  `),
+  setPushLang: db.prepare('UPDATE push_subscriptions SET lang = ? WHERE endpoint = ?'),
 
   // --- Living: supportive passages about life in Hong Kong ---
   listLivingPosts: db.prepare(`
@@ -2411,7 +2492,7 @@ const S = {
 // ---------------------------------------------------------------------------
 // Web Push subscriptions
 // ---------------------------------------------------------------------------
-function insertSubscription({ endpoint, p256dh, auth, learnerId = null, source = 'web' }) {
+function insertSubscription({ endpoint, p256dh, auth, learnerId = null, source = 'web', lang = 'en' }) {
   if (!endpoint) return null;
   const now = new Date().toISOString();
   try {
@@ -2421,6 +2502,7 @@ function insertSubscription({ endpoint, p256dh, auth, learnerId = null, source =
       auth,
       learner_id: learnerId ? Number(learnerId) : null,
       source,
+      lang: PUSH_LANGS.includes(lang) ? lang : 'en',
       now,
     });
     return S.getPushSubscription.get(endpoint);
@@ -2444,15 +2526,6 @@ function updateLastActive(endpoint) {
   S.touchPushSubscription.run(now, now, endpoint);
 }
 
-// Devices that have not interacted for `days` and were not reminded recently —
-// used by the practice-reminder job so a quiet helper gets a gentle nudge.
-function listStaleForReminder(days) {
-  const since = Math.max(1, Number(days) || 3);
-  const cutoff = new Date(Date.now() - since * 86400000).toISOString();
-  const remindCutoff = new Date(Date.now() - since * 86400000).toISOString();
-  return S.stalePushSubscriptions.all(cutoff, remindCutoff);
-}
-
 function markReminded(endpoint) {
   if (!endpoint) return;
   const now = new Date().toISOString();
@@ -2462,6 +2535,131 @@ function markReminded(endpoint) {
 function countSubscriptions() {
   const row = S.countPushSubscriptions.get();
   return row ? Number(row.n) || 0 : 0;
+}
+
+/* ---------------------------------------------------------------------------
+   The reminder ladder
+   --------------------------------------------------------------------------- */
+
+const PUSH_LANGS = ['en', 'fil', 'zh', 'id'];
+
+/**
+ * Attach a device to a learner.
+ *
+ * Subscriptions created before this existed have `learner_id = NULL`, which
+ * makes the streak unknowable for them. Every page load pings
+ * /api/push/ping, so this runs constantly and backfills those devices without
+ * asking anyone to opt in again. It only ever fills a NULL — a shared phone
+ * must not silently transfer one helper's streak to another.
+ */
+function linkSubscriptionLearner(endpoint, learnerId) {
+  if (!endpoint || !learnerId) return false;
+  try {
+    return S.linkPushLearner.run(Number(learnerId), new Date().toISOString(), endpoint).changes > 0;
+  } catch (e) {
+    console.error('linkSubscriptionLearner failed:', e.message);
+    return false;
+  }
+}
+
+/** Keep a device's notification language in step with the language she reads. */
+function setSubscriptionLang(endpoint, lang) {
+  if (!endpoint || !PUSH_LANGS.includes(lang)) return false;
+  try {
+    return S.setPushLang.run(lang, endpoint).changes > 0;
+  } catch (e) {
+    return false;
+  }
+}
+
+/** The newest published post, for the day-3 "New today: …" message. */
+function latestPost() {
+  return S.latestPublishedPost.get() || null;
+}
+
+/**
+ * Everything the planner needs, for every subscribed device, in three queries.
+ *
+ * Deliberately not one query per device: a push sweep runs every ten minutes,
+ * and the number of subscribed devices is the one number that is supposed to
+ * grow. Three table scans stay flat as that happens.
+ *
+ * `lastPushKind` is the last rung sent **on or after her most recent practice
+ * day**. Filtering on that date is what lets the ladder restart from the bottom
+ * when a helper comes back after a month and then goes quiet again — without it,
+ * she would be stuck on whatever rung she had reached before.
+ */
+function listPushTargets(nowMs = Date.now()) {
+  const subs = S.listPushSubscriptions.all();
+  if (!subs.length) return [];
+
+  const today = hktDate(nowMs);
+  const logSince = hktDate(nowMs - 30 * DAY_MS);
+
+  const daysByLearner = new Map();
+  for (const r of S.pushActiveDays.all()) {
+    if (!daysByLearner.has(r.learner_id)) daysByLearner.set(r.learner_id, []);
+    daysByLearner.get(r.learner_id).push(r.day);
+  }
+
+  const creditsByLearner = new Map();
+  for (const r of S.pushCredits.all()) creditsByLearner.set(r.learner_id, Number(r.credits) || 0);
+
+  const pushesByEndpoint = new Map();
+  for (const r of S.recentPushLog.all(logSince)) {
+    if (!pushesByEndpoint.has(r.endpoint)) pushesByEndpoint.set(r.endpoint, []);
+    pushesByEndpoint.get(r.endpoint).push(r);
+  }
+
+  const post = S.latestPublishedPost.get();
+
+  return subs.map((s) => {
+    const lang = PUSH_LANGS.includes(s.lang) ? s.lang : 'en';
+    const activeDays = (s.learner_id && daysByLearner.get(s.learner_id)) || [];
+    // pushActiveDays is ordered by day DESC, so the first entry is the latest.
+    const lastPracticeDay = activeDays.length ? activeDays[0] : null;
+
+    const pushes = pushesByEndpoint.get(s.endpoint) || [];
+    const pushedToday = pushes.some((p) => p.sent_on === today);
+    const sincePractice = pushes
+      .filter((p) => !lastPracticeDay || p.sent_on >= lastPracticeDay)
+      .sort((a, b) => a.sent_on.localeCompare(b.sent_on));
+
+    return {
+      endpoint: s.endpoint,
+      // The encryption keys stay here and are handed straight to the sender —
+      // the planner never sees them, and never needs to.
+      keys: { p256dh: s.p256dh, auth: s.auth },
+      lang,
+      learnerId: s.learner_id || null,
+      activeDays,
+      lastPracticeDay,
+      lastActiveAt: s.last_active_at || s.created_at || null,
+      credits: (s.learner_id && creditsByLearner.get(s.learner_id)) || 0,
+      headline: post ? (post[`title_${lang}`] || post.title_en) : null,
+      pushedToday,
+      practisedToday: activeDays.includes(today),
+      lastPushKind: sincePractice.length ? sincePractice[sincePractice.length - 1].kind : null,
+    };
+  });
+}
+
+/**
+ * Claim this evening's send for one device.
+ *
+ * Returns true only for the caller that actually inserted the row, so a send is
+ * permitted only after the claim succeeds. This is the whole reason push_log
+ * has a primary key instead of a "have we sent today?" flag that someone has to
+ * remember to set.
+ */
+function claimPush(endpoint, kind, sentOn) {
+  if (!endpoint || !kind || !sentOn) return false;
+  try {
+    return S.claimPushLog.run(endpoint, sentOn, kind, new Date().toISOString()).changes > 0;
+  } catch (e) {
+    console.error('claimPush failed:', e.message);
+    return false;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -4905,8 +5103,13 @@ module.exports = {
   listSubscriptions,
   countSubscriptions,
   updateLastActive,
-  listStaleForReminder,
   markReminded,
+  // The reminder ladder: who to consider, what to say, and the send claim.
+  listPushTargets,
+  claimPush,
+  linkSubscriptionLearner,
+  setSubscriptionLang,
+  latestPost,
   getStoryForModeration,
   getStoryCounts,
   setStoryStatus,

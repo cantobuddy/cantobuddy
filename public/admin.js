@@ -188,14 +188,48 @@ async function adminSendPush() {
   }
 }
 
-async function adminSendReminders() {
-  const days = Number(document.getElementById('push-remind-days').value) || 3;
+/** Turn a sweep summary into one line the operator can read. */
+function reminderSummary(r) {
+  if (r.disabled) return 'Push is disabled on the server.';
+  if (r.dryRun || r.sent === 0 && r.claimed === 0) {
+    const n = (r.planned || []).length;
+    return n
+      ? `${n} device(s) would be sent to this evening.`
+      : 'Nothing to send right now — no device is due a message.';
+  }
+  const parts = [`Sent ${r.sent}`];
+  if (r.failed) parts.push(`${r.failed} failed`);
+  if (r.expired) parts.push(`${r.expired} gone`);
+  return parts.join(' · ');
+}
+
+/** Show what the ladder would say tonight, without sending anything. */
+async function adminPreviewReminders() {
   const res = document.getElementById('push-remind-result');
-  res.textContent = 'Sending…';
+  const plan = document.getElementById('push-remind-plan');
+  res.textContent = 'Checking…';
+  plan.style.display = 'none';
   try {
-    const r = await apiPost('/api/admin/push/reminders', { days });
-    if (r.disabled) { res.textContent = 'Push is disabled on the server.'; return; }
-    res.textContent = `Queued ${r.queued != null ? r.queued : 0} reminder(s).`;
+    const r = await apiPost('/api/admin/push/reminders', { dryRun: true });
+    res.textContent = reminderSummary(r);
+    const lines = (r.planned || []).map((p) => `• [${p.kind}/${p.lang}] ${p.title}`);
+    if (lines.length) {
+      plan.textContent = lines.join('\n');
+      plan.style.display = 'block';
+    }
+  } catch (e) {
+    res.textContent = 'Error: ' + e.message;
+  }
+}
+
+async function adminSendReminders() {
+  const res = document.getElementById('push-remind-result');
+  const plan = document.getElementById('push-remind-plan');
+  res.textContent = 'Sending…';
+  plan.style.display = 'none';
+  try {
+    const r = await apiPost('/api/admin/push/reminders', {});
+    res.textContent = reminderSummary(r);
   } catch (e) {
     res.textContent = 'Error: ' + e.message;
   }

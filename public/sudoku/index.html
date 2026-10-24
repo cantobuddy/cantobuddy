@@ -76,15 +76,43 @@
   .join-row .field { flex: 1 1 auto; }
   .join-row .btn { flex: 0 0 auto; width: auto; align-self: flex-end; padding: 13px 18px; }
 
-  /* ---- room ----------------------------------------------------------- */
-  .room-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
-  .code-chip { background: var(--primary-tint); color: var(--primary); font-weight: 800; letter-spacing: 0.12em; padding: 6px 12px; border-radius: 10px; font-size: 1rem; }
-  .room-actions { display: flex; align-items: center; gap: 8px; }
-  .copy { background: var(--surface); border: 2px solid var(--border); border-radius: 10px; padding: 6px 12px; font-weight: 700; cursor: pointer; color: var(--ink); }
-  /* The WhatsApp invite — same green + white treatment as UNO, sized to match the
-     .copy button so the two sit side by side as a pair in the room head. */
-  .wa-btn { background: #fff; border: 2px solid #25d366; border-radius: 10px; padding: 6px 10px; font-weight: 700; cursor: pointer; color: #25d366; display: inline-grid; place-items: center; transition: .15s; }
-  .wa-btn:active { transform: scale(.94); }
+  /* ---- room topbar (mirrors Big Two / Word Match) --------------------- */
+  .room-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: nowrap; }
+  .codechip {
+    display: flex; align-items: center; gap: 8px; background: var(--surface);
+    border: 1px solid var(--border); padding: 7px 12px; border-radius: 13px;
+    box-shadow: 0 4px 12px rgba(23,26,35,.05); cursor: pointer;
+    flex: 0 1 auto; min-width: 0;   /* may shrink so the buttons never overflow */
+  }
+  .codechip > div { min-width: 0; }
+  .codechip small {
+    display: block; font-size: 9.5px; color: var(--muted); letter-spacing: .4px;
+    line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .codechip b { font-size: 16px; letter-spacing: 3px; line-height: 1.1; white-space: nowrap; }
+  .spacer { flex: 1; }
+  .status { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--muted); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: #c3c8d2; display: inline-block; }
+  .dot.on { background: #2fbf71; box-shadow: 0 0 0 3px rgba(47,191,113,.18); }
+  .iconbtn {
+    flex: 0 0 auto; width: 36px; height: 36px; border-radius: 11px; background: var(--surface);
+    border: 1px solid var(--border); display: grid; place-items: center; font-size: 15px;
+    box-shadow: 0 4px 12px rgba(23,26,35,.05); cursor: pointer; position: relative;
+  }
+  .iconbtn:active { transform: scale(.94); }
+  /* A red dot on the chat button when a message arrived while the panel is shut. */
+  .iconbtn.has-unread::after {
+    content: ""; position: absolute; top: 6px; right: 6px; width: 8px; height: 8px;
+    border-radius: 50%; background: #e63946; box-shadow: 0 0 0 2px #fff;
+  }
+  /* The WhatsApp invite — same green + white treatment as UNO, sized to the
+     36px topbar buttons so it reads as one of them. */
+  .wa-btn {
+    flex: 0 0 auto; width: 36px; height: 36px; border-radius: 11px; background: var(--surface);
+    border: 1px solid var(--border); color: #25d366; display: grid; place-items: center;
+    box-shadow: 0 4px 12px rgba(23,26,35,.05); transition: .15s; cursor: pointer;
+  }
+  .wa-btn:active { transform: scale(.93); }
   .wa-btn svg { width: 20px; height: 20px; display: block; }
   .stat-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0 14px; }
   .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 8px 12px; flex: 1 1 0; min-width: 84px; text-align: center; }
@@ -152,6 +180,11 @@
   .card p { color: var(--muted); margin: 0 0 18px; }
   .toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 999px; font-size: 0.85rem; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 60; }
   .toast.show { opacity: 1; }
+
+  /* Keep the topbar on one row on narrow phones: drop the "Live" word (the dot
+     still shows), and at 320px drop the chip's label so the code stays visible. */
+  @media (max-width: 560px) { .status span:last-child { display: none; } }
+  @media (max-width: 359px) { .codechip small { display: none; } .codechip { padding: 8px 10px; } }
 </style>
 </head>
 <body>
@@ -186,11 +219,19 @@
   <!-- ROOM -->
   <section id="room" class="hidden">
     <div class="room-head">
-      <span class="code-chip" id="roomCode"></span>
-      <span class="room-actions">
-        <button class="copy" id="copyBtn"></button>
-        <button class="wa-btn" id="waBtn" type="button"></button>
-      </span>
+      <div class="codechip" id="codeChip">
+        <div>
+          <small id="codeChipLabel"></small>
+          <b id="codeText">----</b>
+        </div>
+        <span style="font-size:15px">🔗</span>
+      </div>
+      <button class="wa-btn" id="waBtn" type="button"></button>
+      <span class="spacer"></span>
+      <div class="status"><span class="dot" id="liveDot"></span><span id="liveText"></span></div>
+      <button class="iconbtn" id="soundBtn"><span id="soundIcon"></span></button>
+      <button class="iconbtn" id="chatBtn"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 11.8a7.6 7.6 0 0 1-7.6 7.6H9.4L4.5 22v-4.6a7.6 7.6 0 1 1 16-5.6z"/></svg></button>
+      <button class="iconbtn" id="leaveBtn"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4.5h3.5A1.5 1.5 0 0 1 19 6v12a1.5 1.5 0 0 1-1.5 1.5H14"/><path d="M9.5 8 5.5 12l4 4"/><path d="M5.5 12H15"/></svg></button>
     </div>
     <div class="stat-row" id="statRow"></div>
     <div class="players hidden" id="players"></div>
@@ -238,6 +279,7 @@
       wrong: 'Not correct — try another number', soloOnly: 'Hints are for playing alone',
       roomNotFound: 'Room not found. Check the code.', needName: 'Please enter a name.',
       ended: 'Game over', youSolved: 'You solved it!', waInvite: 'Invite on WhatsApp', inviteText: 'Come play Sudoku! Room code {code} → {url}',
+      codeChipLabel: 'Room code · tap to share', soundTitle: 'Sound', chatTitle: 'Chat', leaveTitle: 'Leave the room', liveOnline: 'Live', confirmLeave: 'Leave this room?',
     },
     fil: {
       title: 'Sudoku', lead: 'Mga numero, hindi salita. Mag-isa o sabay sa kuwarto.',
@@ -254,6 +296,7 @@
       wrong: 'Mali — subukan ang ibang numero', soloOnly: 'Ang tulong ay para sa mag-isa',
       roomNotFound: 'Hindi mahanap ang kuwarto. I-check ang code.', needName: 'Ilagay ang pangalan.',
       ended: 'Tapos na', youSolved: 'Na-solve mo!', waInvite: 'Anyayahan sa WhatsApp', inviteText: 'Halina, mag-Sudoku tayo! Code {code} → {url}',
+      codeChipLabel: 'Code ng kuwarto · i-tap para i-share', soundTitle: 'Tunog', chatTitle: 'Chat', leaveTitle: 'Umalis sa kuwarto', liveOnline: 'Live', confirmLeave: 'Umalis sa kuwartong ito?',
     },
     zh: {
       title: '数独', lead: '填数字，不用词语。单人玩或和朋友比赛。',
@@ -270,6 +313,7 @@
       wrong: '不对——换个数字试试', soloOnly: '提示只供单人玩',
       roomNotFound: '找不到房间，请检查房间码。', needName: '请输入名字。',
       ended: '游戏结束', youSolved: '你解出来了！', waInvite: '用 WhatsApp 邀请家人', inviteText: '来玩数独！房间配对码 {code} → {url}',
+      codeChipLabel: '房间码 · 点按分享', soundTitle: '音效', chatTitle: '聊天', leaveTitle: '离开房间', liveOnline: '连线中', confirmLeave: '离开这个房间？',
     },
     id: {
       title: 'Sudoku', lead: 'Angka, bukan kata. Main sendiri atau bareng di ruang.',
@@ -286,6 +330,7 @@
       wrong: 'Salah — coba angka lain', soloOnly: 'Petunjuk hanya untuk main sendiri',
       roomNotFound: 'Ruang tak ditemukan. Cek kodenya.', needName: 'Masukkan nama.',
       ended: 'Selesai', youSolved: 'Kamu menyelesaikannya!', waInvite: 'Undang lewat WhatsApp', inviteText: 'Ayo main Sudoku! Kode ruang {code} → {url}',
+      codeChipLabel: 'Kode ruangan · ketuk untuk bagikan', soundTitle: 'Suara', chatTitle: 'Obrolan', leaveTitle: 'Keluar ruangan', liveOnline: 'Langsung', confirmLeave: 'Keluar dari ruang ini?',
     },
   };
 
@@ -328,6 +373,84 @@
   // ---- dom ----
   function $(id) { return document.getElementById(id); }
 
+  // ---- sound ----------------------------------------------------------
+  // A tiny synth, the same idea as the other tables: a short note for a correct
+  // cell, a low buzz for a wrong one, a rising chime on a win, a pop for chat.
+  // Sudoku had no audio at all before, so the topbar's sound button needed
+  // something to turn on. The choice is remembered between visits.
+  var soundOn = localStorage.getItem('sudoku.sound') !== 'off';
+  var audioCtx = null;
+  var ICON_SOUND_ON = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.2l4.3 3.5V6L7.2 9.5H4z"/><path d="M15.4 9a4.2 4.2 0 0 1 0 6"/><path d="M18 6.6a7.6 7.6 0 0 1 0 10.8"/></svg>';
+  var ICON_SOUND_OFF = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.2l4.3 3.5V6L7.2 9.5H4z"/><path d="M16 9.8l4.4 4.4M20.4 9.8 16 14.2"/></svg>';
+
+  function ac() {
+    if (!audioCtx) {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      audioCtx = new AC();
+    }
+    if (audioCtx.state === 'suspended') { try { audioCtx.resume(); } catch (e) {} }
+    return audioCtx;
+  }
+  function tone(freq, start, dur, type, gain) {
+    var ctx = ac(); if (!ctx) return;
+    var o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type || 'sine';
+    o.frequency.value = freq;
+    var t0 = ctx.currentTime + (start || 0);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(gain || 0.07, t0 + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(t0); o.stop(t0 + dur + 0.03);
+  }
+  function sfx(kind) {
+    if (!soundOn) return;
+    if (kind === 'tick') { tone(660, 0, 0.09, 'sine', 0.06); tone(990, 0.03, 0.09, 'sine', 0.04); }
+    else if (kind === 'wrong') { tone(190, 0, 0.16, 'sawtooth', 0.05); tone(150, 0.07, 0.18, 'sawtooth', 0.04); }
+    else if (kind === 'win') { tone(523, 0, 0.15, 'triangle', 0.07); tone(659, 0.13, 0.15, 'triangle', 0.07); tone(784, 0.26, 0.3, 'triangle', 0.08); }
+    else if (kind === 'pop') { tone(520, 0, 0.08, 'sine', 0.05); }
+  }
+  function renderSoundIcon() {
+    var el = $('soundIcon'); if (!el) return;
+    el.innerHTML = soundOn ? ICON_SOUND_ON : ICON_SOUND_OFF;
+    var btn = $('soundBtn');
+    btn.title = t('soundTitle');
+    btn.setAttribute('aria-label', t('soundTitle'));
+  }
+
+  // ---- room chrome / chat state --------------------------------------
+  var chatOpen = false;
+  var unreadChat = 0;
+  var chatPrimed = false;   // the first state is history, not news
+  var lastChatLen = 0;
+  var resultShown = false;  // the win chime plays once per round
+
+  // Fill the language-dependent chrome of the room topbar. Called from
+  // buildMenu() so it is ready before the room is ever shown, and again after a
+  // language switch or leaving a room.
+  function paintChrome() {
+    $('codeChipLabel').textContent = t('codeChipLabel');
+    $('waBtn').innerHTML = WA_ICON;
+    $('waBtn').title = t('waInvite');
+    $('waBtn').setAttribute('aria-label', t('waInvite'));
+    $('chatBtn').title = t('chatTitle');
+    $('chatBtn').setAttribute('aria-label', t('chatTitle'));
+    $('leaveBtn').title = t('leaveTitle');
+    $('leaveBtn').setAttribute('aria-label', t('leaveTitle'));
+    $('liveText').textContent = t('liveOnline');
+    renderSoundIcon();
+  }
+
+  function resetRoomUi() {
+    chatOpen = false;
+    unreadChat = 0;
+    chatPrimed = false;
+    lastChatLen = 0;
+    resultShown = false;
+    if ($('chatBtn')) $('chatBtn').classList.remove('has-unread');
+  }
+
   function api(path, body) {
     return fetch(path, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -348,10 +471,11 @@
         var d = JSON.parse(e.data);
         if (d.fatal === 'expired') { toast(t('roomNotFound')); return; }
         S = d;
+        $('liveDot').classList.add('on');
         render();
       } catch (err) { /* ignore */ }
     };
-    evSource.onerror = function () { /* EventSource retries on its own */ };
+    evSource.onerror = function () { $('liveDot').classList.remove('on'); };
   }
 
   // ---- menu setup ----
@@ -383,11 +507,9 @@
     $('divider').textContent = t('divider');
     $('createBtn').textContent = t('createBtn');
     $('joinBtn').textContent = t('joinBtn');
-    // Populate the WhatsApp invite button up front so it is never a blank box
-    // between showRoom() and the first state arriving over SSE.
-    $('waBtn').innerHTML = WA_ICON;
-    $('waBtn').title = t('waInvite');
-    $('waBtn').setAttribute('aria-label', t('waInvite'));
+    // Paint the room topbar (code chip label, WhatsApp, sound/chat/leave) up
+    // front so nothing is a blank box between showRoom() and the first state.
+    paintChrome();
 
     // Remember the name and a starting face, so a player does not retype it
     // every time they come back to play.
@@ -457,19 +579,23 @@
           wrongFlash[index] = true;
           renderBoard();
           toast(t('wrong'));
+          sfx('wrong');
+        } else if (r.ok && r.data && r.data.correct === true) {
+          sfx('tick');
         }
       });
   }
   function sendClear(index) { api('/games/sudoku/api/action', { token: session.token, type: 'clear', index: index }); }
   function sendHint(index) {
     api('/games/sudoku/api/action', { token: session.token, type: 'hint', index: index })
-      .then(function (r) { if (!r.ok) toast(t('soloOnly')); });
+      .then(function (r) { if (!r.ok) toast(t('soloOnly')); else sfx('tick'); });
   }
 
   function showRoom() {
     $('menu').classList.add('hidden');
     $('room').classList.remove('hidden');
     $('overlay').classList.add('hidden');
+    resetRoomUi();
   }
   function showMenu() {
     $('room').classList.add('hidden');
@@ -486,13 +612,12 @@
 
   function render() {
     if (!S) return;
-    // header / status
-    $('roomCode').textContent = S.solo ? 'SOLO' : S.code;
-    $('copyBtn').textContent = t('copy');
-    // The WhatsApp invite button mirrors UNO: same icon, same label, same tooltip.
-    $('waBtn').innerHTML = WA_ICON;
-    $('waBtn').title = t('waInvite');
-    $('waBtn').setAttribute('aria-label', t('waInvite'));
+    // Topbar: the code chip + invite are for a shared room only. Solo has no one
+    // to invite and its room cannot be joined, so those controls are hidden.
+    $('codeChip').classList.toggle('hidden', !!S.solo);
+    $('waBtn').classList.toggle('hidden', !!S.solo);
+    $('chatBtn').classList.toggle('hidden', !!S.solo);
+    if (!S.solo) $('codeText').textContent = S.code;
 
     var elapsed = S.startedAt ? Math.max(0, Math.floor((S.serverNow - S.startedAt) / 1000)) : 0;
     var stats = '<div class="stat"><b>' + fmtTime(elapsed) + '</b><span>' + t('time') + '</span></div>'
@@ -516,18 +641,28 @@
       }).join('');
     }
 
-    // chat (together only)
+    // chat (together only) — kept up to date even while hidden, shown on demand
     var chatBox = $('chat');
     if (S.solo) {
       chatBox.classList.add('hidden');
     } else {
-      chatBox.classList.remove('hidden');
       $('chatInput').placeholder = t('say');
       $('chatSend').textContent = t('send');
       $('chatLog').innerHTML = S.chat.map(function (m) {
         if (m.kind === 'shout') return '<div class="msg shout">' + escapeHtml(m.avatar || '') + ' ' + escapeHtml(m.text) + '</div>';
         return '<div class="msg"><b>' + escapeHtml(m.name) + ':</b> ' + escapeHtml(m.text) + '</div>';
       }).join('');
+      // Unread dot + pop: the first state is history, not news.
+      if (!chatPrimed) { chatPrimed = true; lastChatLen = S.chat.length; }
+      else if (S.chat.length > lastChatLen) {
+        var lastMsg = S.chat[S.chat.length - 1];
+        lastChatLen = S.chat.length;
+        if (lastMsg && lastMsg.id !== S.you.id) {
+          if (!chatOpen) { unreadChat++; $('chatBtn').classList.add('has-unread'); }
+          sfx('pop');
+        }
+      }
+      chatBox.classList.toggle('hidden', !chatOpen);
       var log = $('chatLog'); log.scrollTop = log.scrollHeight;
     }
 
@@ -606,6 +741,9 @@
     if (hi) hi.addEventListener('click', function () { if (selected >= 0) sendHint(selected); });
     var sh = $('shoutBtn');
     if (sh) sh.addEventListener('click', function () {
+      // Open the panel so the sender sees their own emoji land.
+      chatOpen = true;
+      $('chat').classList.remove('hidden');
       api('/games/sudoku/api/action', { token: session.token, type: 'shout', emoji: '👏' });
     });
   }
@@ -613,6 +751,7 @@
   function showResult() {
     var ov = $('overlay');
     ov.classList.remove('hidden');
+    if (!resultShown) { resultShown = true; sfx('win'); }
     if (S.solo) {
       $('ovEmoji').textContent = '🎉';
       $('ovTitle').textContent = t('youSolved');
@@ -632,6 +771,7 @@
     $('ovAgain').onclick = function () {
       if (S.solo) startAlone();
       else api('/games/sudoku/api/action', { token: session.token, type: 'start' });
+      resultShown = false;
       ov.classList.add('hidden');
     };
     $('ovHome').onclick = function () { showMenu(); buildMenu(); };
@@ -647,17 +787,49 @@
   $('aloneBtn').addEventListener('click', startAlone);
   $('createBtn').addEventListener('click', createTogether);
   $('joinBtn').addEventListener('click', joinTogether);
-  $('copyBtn').addEventListener('click', function () {
+
+  // Tapping the code chip copies the invite (code + link) — the same message the
+  // WhatsApp button sends, so it can be pasted into any chat.
+  $('codeChip').addEventListener('click', function () {
+    if (!S || S.solo) return;
     var link = location.origin + '/games/sudoku/' + S.code;
-    if (navigator.clipboard) navigator.clipboard.writeText(link).then(function () { toast(t('copied')); });
+    var msg = t('inviteText').replace('{code}', S.code).replace('{url}', link);
+    if (navigator.clipboard) navigator.clipboard.writeText(msg).then(function () { toast(t('copied')); }, function () { toast(link); });
     else toast(link);
   });
   $('waBtn').addEventListener('click', shareOnWhatsApp);
+
+  $('soundBtn').addEventListener('click', function () {
+    soundOn = !soundOn;
+    localStorage.setItem('sudoku.sound', soundOn ? 'on' : 'off');
+    renderSoundIcon();
+    if (soundOn) sfx('tick');
+  });
+  $('chatBtn').addEventListener('click', function () {
+    chatOpen = !chatOpen;
+    unreadChat = 0;
+    $('chatBtn').classList.remove('has-unread');
+    if (S && !S.solo) $('chat').classList.toggle('hidden', !chatOpen);
+  });
+  $('leaveBtn').addEventListener('click', function () {
+    if (!confirm(t('confirmLeave'))) return;
+    if (session.token) api('/games/sudoku/api/action', { token: session.token, type: 'leave' });
+    if (evSource) { evSource.close(); evSource = null; }
+    session = { token: null, code: null };
+    S = null;
+    resetRoomUi();
+    showMenu();
+    buildMenu();
+  });
+
   $('chatSend').addEventListener('click', function () {
     var v = $('chatInput').value.trim();
     if (!v) return;
     api('/games/sudoku/api/action', { token: session.token, type: 'chat', text: v });
     $('chatInput').value = '';
+  });
+  $('chatInput').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); $('chatSend').click(); }
   });
 
   // prefill join code from a shared link like /games/sudoku/ABCD

@@ -1067,7 +1067,7 @@ async function renderHomeSundayTable() {
       : '';
 
     const digest = (st.digest || []).map((p) => `
-      <button class="sunday-digest-row" onclick="openStory('${escapeHtml(p.slug)}')">
+      <button class="sunday-digest-row" onclick="openPost('${escapeHtml(p.slug)}')">
         <span class="sunday-digest-dot">·</span>
         <span class="sunday-digest-title">${escapeHtml(postField(p, 'title'))}</span>
       </button>`).join('');

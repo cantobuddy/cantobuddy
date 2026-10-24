@@ -1842,8 +1842,24 @@ app.get('/portal', (req, res) => res.type('html').send(seo.portalPage()));
 app.get('/reset', (req, res) => res.sendFile(path.join(__dirname, 'public', 'portal.html')));
 app.get('/join/:code', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 // A shared Living passage deep-link (from WhatsApp / a picture) lands here and
-// opens in the learner app, which then opens the passage by slug.
-app.get('/living/:slug', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+// opens in the learner app, which then opens the passage by slug. The shell is
+// server-rendered with a per-passage <head> (title/meta/OG/JSON-LD) so each
+// article has a distinct, crawlable identity instead of the generic app title.
+app.get('/living/:slug', (req, res) => {
+  const html = seo.livingPostShell(req.params.slug);
+  if (html) { res.type('html').send(html); }
+  else { res.status(404); res.sendFile(path.join(__dirname, 'public', 'index.html')); }
+});
+
+// The Living hub: a standalone, crawlable directory of every passage, so the
+// set has a real entry point and the sitemap's /living/<slug> links resolve to
+// a page with internal links rather than an orphan.
+app.get('/living', (req, res) => {
+  res.status(200);
+  res.type('html');
+  res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=3600');
+  res.send(seo.renderLivingHub());
+});
 
 // ---------------------------------------------------------------------------
 // SEO

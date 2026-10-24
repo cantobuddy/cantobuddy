@@ -3194,6 +3194,130 @@ function wordSlugMap() {
  */
 const SITE_STRUCTURE_DATE = '2026-10-17';
 
+// ---------------------------------------------------------------------------
+// Living passages (server-rendered head + hub)
+//
+// The Living passages are substantial, SEO-minded articles for prospective
+// foreign domestic helpers (the FDW system, the contract, real costs, everyday
+// life). They are served by the SPA at /living/<slug>, which deep-links and
+// renders them client-side — so a crawler DOES see the body after JS. The one
+// thing the SPA shell does not give them is a distinct <title> / meta / OG, so
+// every passage inherits the app's generic homepage title and competes with it.
+//
+// These helpers fix that without forking the page: livingPostShell() injects a
+// per-passage <head> (title, description, canonical, OG, Article JSON-LD) into
+// the SPA shell, so the SAME interactive page keeps a distinct identity for
+// search and social. renderLivingHub() is a standalone, crawlable directory of
+// every passage, so the set has a proper entry point and internal links.
+// ---------------------------------------------------------------------------
+
+const SPA_SHELL = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8');
+
+const LIVING_CAT_LABEL = {
+  medical: 'Medical', holiday: 'Holidays', entertainment: 'Entertainment',
+  homesick: 'Homesick', food: 'Food', transport: 'Transport',
+  churches: 'Churches', before: 'Before You Come',
+};
+
+/** Plain-text snippet for meta descriptions and hub cards. */
+function plainSnippet(s, n) {
+  const t = String(s || '').replace(/\s+/g, ' ').trim();
+  if (!t) return '';
+  return t.length > n ? t.slice(0, n).replace(/\s+\S*$/, '') + '…' : t;
+}
+
+/** Inject a per-passage <head> into the SPA shell, replacing the generic tags. */
+function injectLivingHead(shell, o) {
+  let h = shell;
+  h = h.replace(/<title>[^<]*<\/title>/, `<title>${esc(o.title)}</title>`);
+  h = h.replace(/<meta name="description"[^>]*>/, `<meta name="description" content="${esc(o.description)}" />`);
+  h = h.replace(/<link rel="canonical"[^>]*>/, `<link rel="canonical" href="${esc(SITE_ORIGIN + o.canonicalPath)}" />`);
+  h = h.replace(/<meta property="og:type"[^>]*>/, `<meta property="og:type" content="${esc(o.ogType || 'website')}" />`);
+  h = h.replace(/<meta property="og:title"[^>]*>/, `<meta property="og:title" content="${esc(o.title)}" />`);
+  h = h.replace(/<meta property="og:description"[^>]*>/, `<meta property="og:description" content="${esc(o.description)}" />`);
+  h = h.replace(/<meta property="og:url"[^>]*>/, `<meta property="og:url" content="${esc(SITE_ORIGIN + o.canonicalPath)}" />`);
+  h = h.replace(/<meta name="twitter:title"[^>]*>/, `<meta name="twitter:title" content="${esc(o.title)}" />`);
+  h = h.replace(/<meta name="twitter:description"[^>]*>/, `<meta name="twitter:description" content="${esc(o.description)}" />`);
+  const ld = o.jsonLd ? `\n  <script type="application/ld+json">${JSON.stringify(o.jsonLd)}</script>` : '';
+  return h.replace('</head>', `${ld}\n</head>`);
+}
+
+/** A passage's server-rendered shell, or null if it is missing/unpublished. */
+function livingPostShell(slug) {
+  const post = store.getLivingPostBySlug(String(slug || ''));
+  if (!post || post.status !== 'published') return null;
+  const title = `${post.title_en || post.slug} | CantoBuddy`;
+  const description = plainSnippet(post.sub_en || post.body_en, 155)
+    || 'A practical guide for foreign domestic helpers in Hong Kong.';
+  const canonicalPath = `/living/${post.slug}`;
+  const published = (post.published_at || SITE_STRUCTURE_DATE).slice(0, 10);
+  const modified = (post.updated_at || post.published_at || SITE_STRUCTURE_DATE).slice(0, 10);
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: post.title_en || post.slug,
+    description,
+    inLanguage: 'en',
+    datePublished: published,
+    dateModified: modified,
+    publisher: ORG_LD,
+    mainEntityOfPage: `${SITE_ORIGIN}${canonicalPath}`,
+  };
+  return injectLivingHead(SPA_SHELL, { title, description, canonicalPath, ogType: 'article', jsonLd });
+}
+
+/** Standalone, crawlable directory of every published Living passage. */
+function renderLivingHub() {
+  const posts = store.listLivingPosts({ limit: 300 });
+  const list = posts.length
+    ? `<ul class="guide-list">\n${posts.map((p) => {
+        const title = p.title_en || p.slug;
+        const sub = p.sub_en || '';
+        const snippet = plainSnippet(p.body_en, 160);
+        return `<li class="guide-card">
+  <a href="/living/${esc(p.slug)}">
+    <span class="em">${esc(p.icon || '🏠')}</span>
+    ${sub ? `<span class="pm">${esc(LIVING_CAT_LABEL[p.category] || p.category)} · ${esc(sub)}</span>` : `<span class="pm">${esc(LIVING_CAT_LABEL[p.category] || p.category)}</span>`}
+    <span class="gt">${esc(title)}</span>
+    ${snippet ? `<span class="gd">${esc(snippet)}</span>` : ''}
+  </a>
+</li>`;
+      }).join('\n')}\n</ul>`
+    : `<p class="lede">Practical guides for life in Hong Kong.</p>`;
+
+  const title = 'Practical guides for life in Hong Kong | CantoBuddy';
+  const description = 'Plain-English guides for foreign domestic helpers in Hong Kong — the FDW system, your contract, real costs, and everyday life before and after you arrive.';
+  const path = '/living';
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      ORG_LD,
+      breadcrumbLd([{ name: 'Living guides', path }]),
+      {
+        '@type': 'CollectionPage',
+        name: title,
+        description,
+        url: `${SITE_ORIGIN}${path}`,
+        inLanguage: 'en',
+        hasPart: posts.slice(0, 50).map((p) => ({
+          '@type': 'Article',
+          headline: p.title_en || p.slug,
+          url: `${SITE_ORIGIN}/living/${p.slug}`,
+          inLanguage: 'en',
+        })),
+      },
+    ],
+  };
+  const body = `
+${crumbs('en', [{ label: 'Living guides' }])}
+<h1>Living guides for domestic helpers in Hong Kong</h1>
+<p class="lede">${esc(description)}</p>
+${list}
+${ctaCard('en')}
+`;
+  return page({ lang: 'en', title, description, path, jsonLd, body });
+}
+
 function renderSitemap() {
   const urls = [];
 
@@ -3373,6 +3497,24 @@ ${alts}
     for (const s of bySlug.keys()) {
       add(`${prefix}/words/${s}`, '0.6', 'monthly', hreflangLinks((l) => `${LANG_PREFIX[l]}/words/${s}`), VOCAB_UPDATED);
     }
+  }
+
+  // Living passages — a server-rendered head + hub now exist for these (see
+  // livingPostShell / renderLivingHub). They are substantial, SEO-minded
+  // articles for prospective FDW helpers, and were previously absent from the
+  // sitemap, so Google was never told to crawl them. English only, like /portal:
+  // the fil/zh/id columns are empty, so the app falls back to English.
+  const livingPosts = store.listLivingPosts({ limit: 300 });
+  for (const p of livingPosts) {
+    const d = postDateShort(p.updated_at || p.published_at || SITE_STRUCTURE_DATE);
+    add(`/living/${p.slug}`, '0.7', 'monthly', null, d);
+  }
+
+  // Games — the UNO / Big Two / Word Match tables. App features, not search
+  // content, so they sit below the editorial pages; listed so they are at least
+  // discoverable and resolve to a real page rather than a soft 404 in the index.
+  for (const g of ['/games/uno', '/games/bigtwo', '/games/wordmatch']) {
+    add(g, '0.5', 'monthly', null, SITE_STRUCTURE_DATE);
   }
 
   return `<?xml version="1.0" encoding="UTF-8"?>
@@ -3778,4 +3920,4 @@ function mount(app) {
   console.log(`  SEO:          ${SITE_ORIGIN}/sitemap.xml  (${store.listVocabulary({ enabledOnly: true }).length} words, ${store.listEnabledCategories().length} categories, ${LANGS.length} languages)`);
 }
 
-module.exports = { mount, portalPage, SITE_ORIGIN, slugify, buildWordIndex, wordSlugMap, LANG_PREFIX, LANGS, ROUTE_FAMILIES, HK_FESTIVALS, upcomingFestivals, upcomingFestivalPayload, festivalBanner };
+module.exports = { mount, portalPage, livingPostShell, renderLivingHub, SITE_ORIGIN, slugify, buildWordIndex, wordSlugMap, LANG_PREFIX, LANGS, ROUTE_FAMILIES, HK_FESTIVALS, upcomingFestivals, upcomingFestivalPayload, festivalBanner };

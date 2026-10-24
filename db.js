@@ -2331,7 +2331,7 @@ const S = {
     SELECT id, slug, category, sub_key, icon,
            title_en, title_fil, title_zh, title_id,
            sub_en, sub_fil, sub_zh, sub_id,
-           published_at,
+           published_at, updated_at,
            (SELECT COALESCE(SUM(count), 0) FROM living_reactions WHERE post_id = living_posts.id) AS reaction_count,
            (SELECT COUNT(*) FROM living_comments WHERE post_id = living_posts.id AND status = 'published') AS comment_count
       FROM living_posts
@@ -2343,7 +2343,7 @@ const S = {
     SELECT id, slug, category, sub_key, icon,
            title_en, title_fil, title_zh, title_id,
            sub_en, sub_fil, sub_zh, sub_id,
-           published_at,
+           published_at, updated_at,
            (SELECT COALESCE(SUM(count), 0) FROM living_reactions WHERE post_id = living_posts.id) AS reaction_count,
            (SELECT COUNT(*) FROM living_comments WHERE post_id = living_posts.id AND status = 'published') AS comment_count
       FROM living_posts

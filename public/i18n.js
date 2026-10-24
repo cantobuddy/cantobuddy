@@ -56,10 +56,18 @@ const I18N = {
     'games.matchName': 'Word match',
     'games.matchDesc': '2 players · 8 rounds · race to match each Cantonese word with its meaning.',
     'games.twoPlayers': '2 players',
+    'games.sudokuName': 'Sudoku',
+    'games.sudokuDesc': 'Number puzzle · 3 levels · play alone or together.',
+    'games.solo': 'Play alone',
+    'games.together': 'Play together',
+    'games.levelLabel': 'Level',
+    'games.levelEasy': 'Easy',
+    'games.levelMedium': 'Medium',
+    'games.levelHard': 'Hard',
     'games.promoTitle': 'Play together, online',
-    'games.promoLead': 'UNO, Big Two and Word match — one room code, no account, no install.',
+    'games.promoLead': 'UNO, Big Two, Word match and Sudoku — one room code, no account, no install.',
     'games.promoBadge': 'New',
-    'games.note': 'Three games are live now — UNO, Big Two and Word match. Tell us what to build next.',
+    'games.note': 'Four games are live now — UNO, Big Two, Word match and Sudoku.',
 
 
     // discover — the culture + news feed
@@ -119,7 +127,7 @@ const I18N = {
     // Replaces the old Stories card in the Discover promo. Reactions, comments
     // and share live on each passage page, Facebook-style.
     'discover.tabLiving': 'Living',
-    'discover.livingLead': 'Real situations helpers face in Hong Kong — feeling sick, homesick, short of money, or just needing a rest. Passages that understand, and a place to react, comment and share.',
+    'discover.livingLead': 'Real Hong Kong life for helpers. Read, react and share.',
     'discover.livingEmpty': 'No Living passages have been published yet.',
     'discover.livingLoadFailed': 'Could not load Living. Please try again.',
     'living.back': '← Living',
@@ -574,10 +582,18 @@ const I18N = {
     'games.matchName': 'Tugma ng Salita',
     'games.matchDesc': '2 manlalaro · 8 round · magkarera sa pagtutugma ng salitang Cantonese sa kahulugan.',
     'games.twoPlayers': '2 manlalaro',
+    'games.sudokuName': 'Sudoku',
+    'games.sudokuDesc': 'Puzzle ng numero · 3 level · mag-isa o sama-sama.',
+    'games.solo': 'Mag-isa',
+    'games.together': 'Sama-sama',
+    'games.levelLabel': 'Level',
+    'games.levelEasy': 'Madali',
+    'games.levelMedium': 'Katamtaman',
+    'games.levelHard': 'Mahirap',
     'games.promoTitle': 'Maglaro nang sama-sama, online',
-    'games.promoLead': 'UNO, Big Two at Tugma ng Salita — isang code ng kuwarto, walang account.',
+    'games.promoLead': 'UNO, Big Two, Tugma ng Salita at Sudoku — isang code ng kuwarto, walang account.',
     'games.promoBadge': 'Bago',
-    'games.note': 'Tatlong laro na ang live — UNO, Big Two at Tugma ng Salita. Sabihin kung ano ang susunod.',
+    'games.note': 'Apat na laro na ang live — UNO, Big Two, Tugma ng Salita at Sudoku.',
 
 
     // discover — ang feed ng kultura at balita
@@ -627,7 +643,7 @@ const I18N = {
 
     // Living — sumusuportang mga pasulong tungkol sa buhay sa Hong Kong.
     'discover.tabLiving': 'Buhay',
-    'discover.livingLead': 'Totoong sitwasyon na hinaharap ng mga helper sa Hong Kong — pagkakasakit, pagkamiss sa tahanan, kulang sa pera, o simpleng paghinga. Mga pasulong na nakakaunawa, at lugar para mag-react, magkomento, at magbahagi.',
+    'discover.livingLead': 'Totoong buhay sa Hong Kong para sa mga helper. Basa, mag-react, ibahagi.',
     'discover.livingEmpty': 'Wala pang naipalimbag na bahagi ng Buhay.',
     'discover.livingLoadFailed': 'Hindi ma-load ang Buhay. Subukan muli.',
     'living.back': '← Buhay',
@@ -1074,10 +1090,18 @@ const I18N = {
     'games.matchName': '配对游戏',
     'games.matchDesc': '2 人 · 8 局 · 和伙伴比赛，把粤语词和它的意思配对起来。',
     'games.twoPlayers': '2 人',
+    'games.sudokuName': '数独',
+    'games.sudokuDesc': '数字拼图 · 3 个难度 · 单人或多人对战。',
+    'games.solo': '单人玩',
+    'games.together': '一起玩',
+    'games.levelLabel': '难度',
+    'games.levelEasy': '简单',
+    'games.levelMedium': '中等',
+    'games.levelHard': '困难',
     'games.promoTitle': '一起在线玩牌',
-    'games.promoLead': 'UNO、鋤大D 和配对游戏——一个房间码，无需账号。',
+    'games.promoLead': 'UNO、鋤大D、配对游戏和数独——一个房间码，无需账号。',
     'games.promoBadge': '新',
-    'games.note': '现在有三个游戏——UNO、鋤大D 和配对游戏。告诉我们下一个想玩什么。',
+    'games.note': '现在有四个游戏——UNO、鋤大D、配对游戏和数独。',
 
 
     // discover — 文化与新闻
@@ -1127,7 +1151,7 @@ const I18N = {
 
     // Living — 关于香港生活的有心文章。
     'discover.tabLiving': '生活',
-    'discover.livingLead': '家佣在香港真实会遇到的情况——生病、想家、钱不够，或只是想喘口气。这里有用心的文章，也有可以回应、留言和分享的地方。',
+    'discover.livingLead': '家佣在香港的真实生活。阅读、回应、分享。',
     'discover.livingEmpty': '暂时还没有「生活」文章。',
     'discover.livingLoadFailed': '「生活」加载失败，请重试。',
     'living.back': '← 生活',
@@ -1573,10 +1597,18 @@ const I18N = {
     'games.matchName': 'Cocokkan kata',
     'games.matchDesc': '2 pemain · 8 babak · berlomba mencocokkan kata Kanton dengan artinya.',
     'games.twoPlayers': '2 pemain',
+    'games.sudokuName': 'Sudoku',
+    'games.sudokuDesc': 'Teka-teki angka · 3 level · main sendiri atau bersama.',
+    'games.solo': 'Main sendiri',
+    'games.together': 'Main bersama',
+    'games.levelLabel': 'Level',
+    'games.levelEasy': 'Mudah',
+    'games.levelMedium': 'Sedang',
+    'games.levelHard': 'Sulit',
     'games.promoTitle': 'Main bersama, online',
-    'games.promoLead': 'UNO, Big Two dan Cocokkan kata — satu kode ruang, tanpa akun.',
+    'games.promoLead': 'UNO, Big Two, Cocokkan kata dan Sudoku — satu kode ruang, tanpa akun.',
     'games.promoBadge': 'Baru',
-    'games.note': 'Tiga permainan sudah aktif — UNO, Big Two dan Cocokkan kata. Bilang mau apa berikutnya.',
+    'games.note': 'Empat permainan sudah aktif — UNO, Big Two, Cocokkan kata dan Sudoku.',
 
 
     // discover — umpan budaya dan berita
@@ -1626,7 +1658,7 @@ const I18N = {
 
     // Living — tulisan yang mendukung tentang hidup di Hong Kong.
     'discover.tabLiving': 'Hidup',
-    'discover.livingLead': 'Situasi nyata yang dihadapi asisten di Hong Kong — jatuh sakit, rindu kampung, kekurangan uang, atau sekadar butuh istirahat. Tulisan yang mengerti, dan tempat untuk bereaksi, berkomentar, dan berbagi.',
+    'discover.livingLead': 'Hidup asisten di HK yang nyata. Baca, bereaksi, bagikan.',
     'discover.livingEmpty': 'Belum ada tulisan Hidup yang diterbitkan.',
     'discover.livingLoadFailed': 'Gagal memuat Hidup. Coba lagi.',
     'living.back': '← Hidup',

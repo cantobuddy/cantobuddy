@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Sudoku · CantoBuddy</title>
+<script src="core.js"></script>
+<style>
+  :root {
+    --primary: #2b6cf0;
+    --primary-tint: #e6efff;
+    --ink: #1f2937;
+    --muted: #6b7280;
+    --bg: #f5f7fb;
+    --surface: #ffffff;
+    --border: #e3e8ef;
+    --wrong: #e63946;
+    --given: #1f2937;
+    --radius: 16px;
+    --font-en: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: var(--font-en);
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 480px; margin: 0 auto; padding: 16px 16px 40px; }
+  .topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .back { color: var(--primary); text-decoration: none; font-weight: 700; font-size: 0.95rem; }
+  h1 { font-size: 1.35rem; margin: 0; }
+  .badge { background: var(--primary); color: #fff; font-size: 0.6rem; font-weight: 800; padding: 3px 8px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .hidden { display: none !important; }
+
+  /* ---- menu ----------------------------------------------------------- */
+  .menu { text-align: center; }
+  .menu .lead { color: var(--muted); font-size: 0.92rem; margin: 6px 0 18px; }
+  .levels { display: flex; gap: 8px; justify-content: center; margin: 14px 0 22px; }
+  .level {
+    flex: 1 1 0; max-width: 130px; padding: 12px 6px; border-radius: 14px;
+    border: 2px solid var(--border); background: var(--surface); cursor: pointer;
+    font-weight: 800; font-size: 0.95rem; color: var(--ink); transition: all .15s;
+  }
+  .level small { display: block; font-weight: 600; font-size: 0.68rem; color: var(--muted); margin-top: 3px; }
+  .level.active { border-color: var(--primary); background: var(--primary-tint); color: var(--primary); }
+  .btn {
+    display: block; width: 100%; padding: 16px; border: none; border-radius: 14px;
+    font-size: 1.05rem; font-weight: 800; cursor: pointer; transition: transform .1s, background .15s;
+  }
+  .btn:active { transform: scale(0.985); }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-ghost { background: var(--surface); color: var(--primary); border: 2px solid var(--border); }
+  .btn-row { display: flex; gap: 10px; }
+  .divider { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 0.82rem; margin: 22px 0 14px; }
+  .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+  .field { display: block; text-align: left; margin: 0 0 12px; }
+  .field label { display: block; font-size: 0.78rem; font-weight: 700; color: var(--muted); margin-bottom: 5px; }
+  .field input {
+    width: 100%; padding: 13px 14px; font-size: 1rem; border: 2px solid var(--border);
+    border-radius: 12px; background: var(--surface); color: var(--ink);
+  }
+  .field input:focus { outline: none; border-color: var(--primary); }
+  .join-row { display: flex; gap: 10px; }
+  .join-row .field { flex: 1 1 auto; }
+  .join-row .btn { flex: 0 0 auto; width: auto; align-self: flex-end; padding: 13px 18px; }
+
+  /* ---- room ----------------------------------------------------------- */
+  .room-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+  .code-chip { background: var(--primary-tint); color: var(--primary); font-weight: 800; letter-spacing: 0.12em; padding: 6px 12px; border-radius: 10px; font-size: 1rem; }
+  .copy { background: var(--surface); border: 2px solid var(--border); border-radius: 10px; padding: 6px 12px; font-weight: 700; cursor: pointer; color: var(--ink); }
+  .stat-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0 14px; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 8px 12px; flex: 1 1 0; min-width: 84px; text-align: center; }
+  .stat b { display: block; font-size: 1.15rem; }
+  .stat span { font-size: 0.68rem; color: var(--muted); }
+  .players { display: flex; flex-direction: column; gap: 8px; margin: 10px 0 14px; }
+  .player { display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 9px 12px; }
+  .player .av { font-size: 1.3rem; }
+  .player .pn { flex: 1 1 auto; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .player .pn small { color: var(--muted); font-weight: 600; margin-left: 4px; }
+  .pbar { flex: 0 0 70px; height: 8px; background: var(--border); border-radius: 999px; overflow: hidden; }
+  .pbar i { display: block; height: 100%; background: var(--primary); width: 0; }
+  .player.done { border-color: var(--primary); background: var(--primary-tint); }
+
+  /* ---- board ---------------------------------------------------------- */
+  .board {
+    --n: 9;
+    width: min(94vw, 384px); margin: 0 auto; background: var(--ink);
+    border: 3px solid var(--ink); border-radius: 8px; overflow: hidden;
+    display: grid; grid-template-columns: repeat(var(--n), 1fr); gap: 1px;
+    touch-action: manipulation; user-select: none;
+  }
+  .cell {
+    aspect-ratio: 1 / 1; background: var(--surface); display: grid; place-items: center;
+    font-size: clamp(14px, 5vw, 26px); font-weight: 700; color: var(--primary);
+    cursor: pointer; position: relative;
+  }
+  .cell.given { color: var(--given); font-weight: 800; background: #f0f3f8; cursor: default; }
+  .cell.peers { background: #eef3fb; }
+  .cell.sel { background: var(--primary-tint); box-shadow: inset 0 0 0 2px var(--primary); }
+  .cell.wrong { color: var(--wrong); }
+  .cell.box-r { box-shadow: inset -2px 0 0 var(--ink); }
+  .cell.box-b { box-shadow: inset 0 -2px 0 var(--ink); }
+  .cell.box-r.box-b { box-shadow: inset -2px 0 0 var(--ink), inset 0 -2px 0 var(--ink); }
+  .cell.box-r.sel, .cell.box-b.sel { box-shadow: inset 0 0 0 2px var(--primary), inset -2px 0 0 var(--ink); }
+
+  .pad { width: min(94vw, 384px); margin: 14px auto 0; display: grid; gap: 8px; }
+  .pad-nums { grid-template-columns: repeat(5, 1fr); }
+  .num {
+    padding: 14px 0; border: 2px solid var(--border); border-radius: 12px; background: var(--surface);
+    font-size: 1.2rem; font-weight: 800; color: var(--ink); cursor: pointer;
+  }
+  .num:active { transform: scale(0.96); background: var(--primary-tint); }
+  .pad-tools { grid-template-columns: 1fr 1fr; }
+  .tool { padding: 12px; border-radius: 12px; border: 2px solid var(--border); background: var(--surface); font-weight: 700; color: var(--ink); cursor: pointer; }
+  .tool.hint { color: var(--primary); border-color: var(--primary); }
+
+  /* ---- chat ----------------------------------------------------------- */
+  .chat { margin-top: 18px; }
+  .chat-log { display: flex; flex-direction: column; gap: 6px; max-height: 160px; overflow-y: auto; margin-bottom: 8px; }
+  .msg { font-size: 0.9rem; }
+  .msg b { color: var(--primary); }
+  .msg.shout { font-size: 1.3rem; }
+  .chat-input { display: flex; gap: 8px; }
+  .chat-input input { flex: 1 1 auto; padding: 11px 12px; border: 2px solid var(--border); border-radius: 12px; font-size: 0.95rem; }
+  .chat-input button { padding: 11px 16px; border: none; border-radius: 12px; background: var(--primary); color: #fff; font-weight: 700; cursor: pointer; }
+
+  /* ---- result overlay ------------------------------------------------- */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(20,28,40,0.55); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 50;
+  }
+  .card { background: var(--surface); border-radius: 20px; padding: 26px 22px; width: 100%; max-width: 340px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+  .card .emoji { font-size: 2.6rem; }
+  .card h2 { margin: 8px 0 4px; font-size: 1.3rem; }
+  .card p { color: var(--muted); margin: 0 0 18px; }
+  .toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 999px; font-size: 0.85rem; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 60; }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a class="back" href="/?view=games">← Games</a>
+    <h1 id="title">Sudoku</h1>
+  </div>
+
+  <!-- MENU -->
+  <section id="menu" class="menu">
+    <p class="lead" id="lead"></p>
+    <div class="levels" id="levels"></div>
+    <button class="btn btn-primary" id="aloneBtn"></button>
+    <div class="divider" id="divider"></div>
+    <div class="field">
+      <label id="nameLbl"></label>
+      <input id="nameInput" maxlength="12" placeholder="" />
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" id="createBtn" style="flex:1"></button>
+    </div>
+    <div class="join-row" style="margin-top:10px">
+      <div class="field" style="margin:0">
+        <label id="codeLbl"></label>
+        <input id="codeInput" maxlength="4" placeholder="" />
+      </div>
+      <button class="btn btn-ghost" id="joinBtn"></button>
+    </div>
+  </section>
+
+  <!-- ROOM -->
+  <section id="room" class="hidden">
+    <div class="room-head">
+      <span class="code-chip" id="roomCode"></span>
+      <button class="copy" id="copyBtn"></button>
+    </div>
+    <div class="stat-row" id="statRow"></div>
+    <div class="players hidden" id="players"></div>
+    <div class="board" id="board"></div>
+    <div class="pad pad-nums" id="padNums"></div>
+    <div class="pad pad-tools" id="padTools"></div>
+    <div class="chat hidden" id="chat">
+      <div class="chat-log" id="chatLog"></div>
+      <div class="chat-input">
+        <input id="chatInput" maxlength="140" placeholder="" />
+        <button id="chatSend"></button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="overlay hidden" id="overlay">
+  <div class="card">
+    <div class="emoji" id="ovEmoji">🎉</div>
+    <h2 id="ovTitle"></h2>
+    <p id="ovBody"></p>
+    <button class="btn btn-primary" id="ovAgain"></button>
+    <button class="btn btn-ghost" id="ovHome" style="margin-top:10px"></button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  var DICT = {
+    en: {
+      title: 'Sudoku', lead: 'Numbers, not words. Play alone or race a room.',
+      chooseLevel: 'Level', easy: 'Easy', easySub: '4×4', medium: 'Medium', mediumSub: '6×6', hard: 'Hard', hardSub: '9×9',
+      aloneBtn: 'Play alone', divider: 'or play together',
+      nameLbl: 'Your name', namePh: 'e.g. Mama', createBtn: 'Create room',
+      codeLbl: 'Room code', codePh: '4 letters', joinBtn: 'Join',
+      copy: 'Copy link', copied: 'Copied!', invite: 'Share this room link',
+      progress: 'Progress', mistakes: 'Mistakes', time: 'Time', players: 'Players',
+      waiting: 'Waiting for players… tap Start when ready', hostStart: 'Start game',
+      solved: 'Solved!', youWon: 'You won!', winner: 'Winner: ', rematch: 'Play again',
+      newPuzzle: 'New puzzle', backHome: '← Games', leave: 'Leave',
+      clear: 'Clear', hint: 'Hint', send: 'Send', say: 'Say something…',
+      wrong: 'Not correct — try another number', soloOnly: 'Hints are for playing alone',
+      roomNotFound: 'Room not found. Check the code.', needName: 'Please enter a name.',
+      ended: 'Game over', youSolved: 'You solved it!',
+    },
+    fil: {
+      title: 'Sudoku', lead: 'Mga numero, hindi salita. Mag-isa o sabay sa kuwarto.',
+      chooseLevel: 'Level', easy: 'Madali', easySub: '4×4', medium: 'Katamtaman', mediumSub: '6×6', hard: 'Mahirap', hardSub: '9×9',
+      aloneBtn: 'Mag-isa', divider: 'o sabay-sama',
+      nameLbl: 'Pangalan mo', namePh: 'hal. Mama', createBtn: 'Gumawa ng kuwarto',
+      codeLbl: 'Code ng kuwarto', codePh: '4 letra', joinBtn: 'Sumali',
+      copy: 'Kopyahin link', copied: 'Nakopya!', invite: 'Ibahagi ang link ng kuwarto',
+      progress: 'Progreso', mistakes: 'Mali', time: 'Oras', players: 'Mga manlalaro',
+      waiting: 'Hintay ng kalaro… pindutin ang Start kapag ready', hostStart: 'Simulan',
+      solved: 'Ayos!', youWon: 'Nanalo ka!', winner: 'Panalo: ', rematch: 'Laruin ulit',
+      newPuzzle: 'Bago puzzle', backHome: '← Mga Laro', leave: 'Umalis',
+      clear: 'Burahin', hint: 'Tulong', send: 'Sugo', say: 'Magsabi…',
+      wrong: 'Mali — subukan ang ibang numero', soloOnly: 'Ang tulong ay para sa mag-isa',
+      roomNotFound: 'Hindi mahanap ang kuwarto. I-check ang code.', needName: 'Ilagay ang pangalan.',
+      ended: 'Tapos na', youSolved: 'Na-solve mo!',
+    },
+    zh: {
+      title: '数独', lead: '填数字，不用词语。单人玩或和朋友比赛。',
+      chooseLevel: '难度', easy: '简单', easySub: '4×4', medium: '中等', mediumSub: '6×6', hard: '困难', hardSub: '9×9',
+      aloneBtn: '单人玩', divider: '或一起玩',
+      nameLbl: '你的名字', namePh: '例如 妈妈', createBtn: '创建房间',
+      codeLbl: '房间码', codePh: '4 个字母', joinBtn: '加入',
+      copy: '复制链接', copied: '已复制！', invite: '分享这个房间链接',
+      progress: '进度', mistakes: '错误', time: '时间', players: '玩家',
+      waiting: '等待玩家……准备好了点开始', hostStart: '开始游戏',
+      solved: '完成！', youWon: '你赢了！', winner: '获胜者：', rematch: '再来一局',
+      newPuzzle: '新题目', backHome: '← 游戏', leave: '离开',
+      clear: '清除', hint: '提示', send: '发送', say: '说点什么…',
+      wrong: '不对——换个数字试试', soloOnly: '提示只供单人玩',
+      roomNotFound: '找不到房间，请检查房间码。', needName: '请输入名字。',
+      ended: '游戏结束', youSolved: '你解出来了！',
+    },
+    id: {
+      title: 'Sudoku', lead: 'Angka, bukan kata. Main sendiri atau bareng di ruang.',
+      chooseLevel: 'Level', easy: 'Mudah', easySub: '4×4', medium: 'Sedang', mediumSub: '6×6', hard: 'Sulit', hardSub: '9×9',
+      aloneBtn: 'Main sendiri', divider: 'atau bareng',
+      nameLbl: 'Nama kamu', namePh: 'mis. Mama', createBtn: 'Buat ruang',
+      codeLbl: 'Kode ruang', codePh: '4 huruf', joinBtn: 'Gabung',
+      copy: 'Salin tautan', copied: 'Tersalin!', invite: 'Bagikan tautan ruang',
+      progress: 'Progres', mistakes: 'Salah', time: 'Waktu', players: 'Pemain',
+      waiting: 'Tunggu pemain… klik Mulai bila siap', hostStart: 'Mulai',
+      solved: 'Selesai!', youWon: 'Kamu menang!', winner: 'Pemenang: ', rematch: 'Main lagi',
+      newPuzzle: 'Soal baru', backHome: '← Game', leave: 'Keluar',
+      clear: 'Hapus', hint: 'Petunjuk', send: 'Kirim', say: 'Bilang sesuatu…',
+      wrong: 'Salah — coba angka lain', soloOnly: 'Petunjuk hanya untuk main sendiri',
+      roomNotFound: 'Ruang tak ditemukan. Cek kodenya.', needName: 'Masukkan nama.',
+      ended: 'Selesai', youSolved: 'Kamu menyelesaikannya!',
+    },
+  };
+
+  var lang = localStorage.getItem('cb_lang') || 'en';
+  if (!DICT[lang]) lang = 'en';
+  var D = DICT[lang];
+  function t(k) { return (DICT[lang] && DICT[lang][k]) || DICT.en[k] || k; }
+
+  // ---- state ----
+  var S = null;
+  var session = { token: null, code: null };
+  var level = 'easy';
+  var selected = -1;
+  var evSource = null;
+  var wrongFlash = {};   // index -> true, cleared on next state render
+  var timerId = null;
+
+  // ---- dom ----
+  function $(id) { return document.getElementById(id); }
+
+  function api(path, body) {
+    return fetch(path, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body || {}),
+    }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, status: r.status, data: j }; }); });
+  }
+
+  function toast(msg) {
+    var el = $('toast'); el.textContent = msg; el.classList.add('show');
+    setTimeout(function () { el.classList.remove('show'); }, 1600);
+  }
+
+  function connect(token) {
+    if (evSource) evSource.close();
+    evSource = new EventSource('/games/sudoku/api/events?token=' + encodeURIComponent(token));
+    evSource.onmessage = function (e) {
+      try {
+        var d = JSON.parse(e.data);
+        if (d.fatal === 'expired') { toast(t('roomNotFound')); return; }
+        S = d;
+        render();
+      } catch (err) { /* ignore */ }
+    };
+    evSource.onerror = function () { /* EventSource retries on its own */ };
+  }
+
+  // ---- menu setup ----
+  function buildMenu() {
+    document.documentElement.lang = lang === 'zh' ? 'zh-Hans' : lang;
+    $('title').textContent = t('title');
+    $('lead').textContent = t('lead');
+    $('nameLbl').textContent = t('nameLbl');
+    $('nameInput').placeholder = t('namePh');
+    $('codeLbl').textContent = t('codeLbl');
+    $('codeInput').placeholder = t('codePh');
+    $('aloneBtn').textContent = t('aloneBtn');
+    $('divider').textContent = t('divider');
+    $('createBtn').textContent = t('createBtn');
+    $('joinBtn').textContent = t('joinBtn');
+
+    var levels = [['easy', t('easy'), t('easySub')], ['medium', t('medium'), t('mediumSub')], ['hard', t('hard'), t('hardSub')]];
+    $('levels').innerHTML = levels.map(function (l) {
+      return '<button class="level' + (l[0] === level ? ' active' : '') + '" data-l="' + l[0] + '">' + l[1] + '<small>' + l[2] + '</small></button>';
+    }).join('');
+    Array.prototype.forEach.call(document.querySelectorAll('#levels .level'), function (b) {
+      b.addEventListener('click', function () {
+        level = b.getAttribute('data-l');
+        Array.prototype.forEach.call(document.querySelectorAll('#levels .level'), function (x) {
+          x.classList.toggle('active', x.getAttribute('data-l') === level);
+        });
+      });
+    });
+  }
+
+  // ---- actions ----
+  function startAlone() {
+    api('/games/sudoku/api/solo', { level: level, name: $('nameInput').value.trim() || t('title') })
+      .then(function (r) {
+        if (!r.ok) { toast(t('roomNotFound')); return; }
+        session = { token: r.data.token, code: r.data.code };
+        connect(session.token);
+        showRoom();
+      });
+  }
+
+  function createTogether() {
+    var name = $('nameInput').value.trim();
+    if (!name) { toast(t('needName')); return; }
+    api('/games/sudoku/api/create', { level: level, name: name })
+      .then(function (r) {
+        if (!r.ok) { toast(t('roomNotFound')); return; }
+        session = { token: r.data.token, code: r.data.code };
+        connect(session.token);
+        showRoom();
+      });
+  }
+
+  function joinTogether() {
+    var name = $('nameInput').value.trim();
+    var code = $('codeInput').value.trim().toUpperCase();
+    if (!name) { toast(t('needName')); return; }
+    if (!code) { toast(t('roomNotFound')); return; }
+    api('/games/sudoku/api/join', { code: code, name: name })
+      .then(function (r) {
+        if (!r.ok) { toast(t('roomNotFound')); return; }
+        session = { token: r.data.token, code: r.data.code };
+        connect(session.token);
+        showRoom();
+      });
+  }
+
+  function sendSet(index, value) {
+    return api('/games/sudoku/api/action', { token: session.token, type: 'set', index: index, value: value })
+      .then(function (r) {
+        if (r.ok && r.data && r.data.correct === false) {
+          wrongFlash[index] = true;
+          renderBoard();
+          toast(t('wrong'));
+        }
+      });
+  }
+  function sendClear(index) { api('/games/sudoku/api/action', { token: session.token, type: 'clear', index: index }); }
+  function sendHint(index) {
+    api('/games/sudoku/api/action', { token: session.token, type: 'hint', index: index })
+      .then(function (r) { if (!r.ok) toast(t('soloOnly')); });
+  }
+
+  function showRoom() {
+    $('menu').classList.add('hidden');
+    $('room').classList.remove('hidden');
+    $('overlay').classList.add('hidden');
+  }
+  function showMenu() {
+    $('room').classList.add('hidden');
+    $('menu').classList.remove('hidden');
+    $('overlay').classList.add('hidden');
+    if (evSource) { evSource.close(); evSource = null; }
+  }
+
+  // ---- render ----
+  function fmtTime(sec) {
+    var m = Math.floor(sec / 60), s = sec % 60;
+    return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+  }
+
+  function render() {
+    if (!S) return;
+    // header / status
+    $('roomCode').textContent = S.solo ? 'SOLO' : S.code;
+    $('copyBtn').textContent = t('copy');
+
+    var elapsed = S.startedAt ? Math.max(0, Math.floor((S.serverNow - S.startedAt) / 1000)) : 0;
+    var stats = '<div class="stat"><b>' + fmtTime(elapsed) + '</b><span>' + t('time') + '</span></div>'
+      + '<div class="stat"><b>' + S.you.progress + '/' + (S.n * S.n - S.givens) + '</b><span>' + t('progress') + '</span></div>'
+      + '<div class="stat"><b>' + S.you.mistakes + '</b><span>' + t('mistakes') + '</span></div>';
+    $('statRow').innerHTML = stats;
+
+    // players (only in together mode)
+    var playersBox = $('players');
+    if (S.solo) {
+      playersBox.classList.add('hidden');
+    } else {
+      playersBox.classList.remove('hidden');
+      playersBox.innerHTML = S.players.map(function (p) {
+        var total = S.n * S.n - S.givens;
+        var pct = total ? Math.round((p.progress / total) * 100) : 0;
+        var tag = p.isHost ? ' <small>★</small>' : (p.connected ? '' : ' <small>(…)</small>');
+        return '<div class="player' + (p.done ? ' done' : '') + '"><span class="av">' + p.avatar + '</span>'
+          + '<span class="pn">' + escapeHtml(p.name) + tag + '</span>'
+          + '<span class="pbar"><i style="width:' + pct + '%"></i></span></div>';
+      }).join('');
+    }
+
+    // chat (together only)
+    var chatBox = $('chat');
+    if (S.solo) {
+      chatBox.classList.add('hidden');
+    } else {
+      chatBox.classList.remove('hidden');
+      $('chatInput').placeholder = t('say');
+      $('chatSend').textContent = t('send');
+      $('chatLog').innerHTML = S.chat.map(function (m) {
+        if (m.kind === 'shout') return '<div class="msg shout">' + escapeHtml(m.avatar || '') + ' ' + escapeHtml(m.text) + '</div>';
+        return '<div class="msg"><b>' + escapeHtml(m.name) + ':</b> ' + escapeHtml(m.text) + '</div>';
+      }).join('');
+      var log = $('chatLog'); log.scrollTop = log.scrollHeight;
+    }
+
+    // board + controls
+    if (S.state === 'lobby') {
+      $('board').classList.add('hidden');
+      $('padNums').classList.add('hidden');
+      $('padTools').classList.add('hidden');
+      // host sees start
+      if (S.you.isHost) {
+        $('padTools').classList.remove('hidden');
+        $('padTools').innerHTML = '<button class="tool" id="startBtn" style="grid-column:1/3;background:var(--primary);color:#fff">' + t('hostStart') + '</button>';
+        $('startBtn').addEventListener('click', function () {
+          api('/games/sudoku/api/action', { token: session.token, type: 'start' });
+        });
+      } else {
+        $('padTools').innerHTML = '<div class="stat" style="grid-column:1/3">' + t('waiting') + '</div>';
+        $('padTools').classList.remove('hidden');
+      }
+    } else {
+      // playing or ended -> show board
+      $('board').classList.remove('hidden');
+      $('padNums').classList.remove('hidden');
+      $('padTools').classList.remove('hidden');
+      renderBoard();
+      renderPad();
+      if (S.state === 'ended') showResult();
+    }
+  }
+
+  function renderBoard() {
+    var board = $('board');
+    board.style.setProperty('--n', S.n);
+    var n = S.n, br = S.br, bc = S.bc;
+    var cells = '';
+    for (var i = 0; i < n * n; i++) {
+      var r = Math.floor(i / n), c = i % n;
+      var cls = 'cell';
+      var val = S.board[i];
+      if (S.puzzle[i] !== 0) cls += ' given';
+      else if (val !== 0) cls += ' filled';
+      if (i === selected) cls += ' sel';
+      if (wrongFlash[i]) cls += ' wrong';
+      if ((c + 1) % bc === 0 && c !== n - 1) cls += ' box-r';
+      if ((r + 1) % br === 0 && r !== n - 1) cls += ' box-b';
+      cells += '<div class="' + cls + '" data-i="' + i + '">' + (val !== 0 ? val : '') + '</div>';
+    }
+    board.innerHTML = cells;
+    Array.prototype.forEach.call(board.querySelectorAll('.cell'), function (el) {
+      var idx = Number(el.getAttribute('data-i'));
+      if (S.puzzle[idx] !== 0) return; // given not selectable
+      el.addEventListener('click', function () { selected = idx; wrongFlash = {}; renderBoard(); });
+    });
+  }
+
+  function renderPad() {
+    var nums = '';
+    for (var v = 1; v <= S.n; v++) {
+      nums += '<button class="num" data-v="' + v + '">' + v + '</button>';
+    }
+    $('padNums').innerHTML = nums;
+    Array.prototype.forEach.call($('padNums').querySelectorAll('.num'), function (b) {
+      b.addEventListener('click', function () {
+        if (selected < 0) return;
+        var v = Number(b.getAttribute('data-v'));
+        sendSet(selected, v);
+      });
+    });
+    var tools = '<button class="tool" id="clearBtn">' + t('clear') + '</button>';
+    if (S.solo) tools += '<button class="tool hint" id="hintBtn">' + t('hint') + '</button>';
+    else tools += '<button class="tool" id="shoutBtn">👏</button>';
+    $('padTools').innerHTML = tools;
+    var cl = $('clearBtn');
+    if (cl) cl.addEventListener('click', function () { if (selected >= 0) sendClear(selected); });
+    var hi = $('hintBtn');
+    if (hi) hi.addEventListener('click', function () { if (selected >= 0) sendHint(selected); });
+    var sh = $('shoutBtn');
+    if (sh) sh.addEventListener('click', function () {
+      api('/games/sudoku/api/action', { token: session.token, type: 'shout', emoji: '👏' });
+    });
+  }
+
+  function showResult() {
+    var ov = $('overlay');
+    ov.classList.remove('hidden');
+    if (S.solo) {
+      $('ovEmoji').textContent = '🎉';
+      $('ovTitle').textContent = t('youSolved');
+      $('ovBody').textContent = t('solved');
+    } else if (S.you.isWinner) {
+      $('ovEmoji').textContent = '🏆';
+      $('ovTitle').textContent = t('youWon');
+      $('ovBody').textContent = t('winner') + (S.players.find(function (p) { return p.id === S.winner; }) || {}).name;
+    } else {
+      var w = S.players.find(function (p) { return p.id === S.winner; });
+      $('ovEmoji').textContent = '🏁';
+      $('ovTitle').textContent = t('ended');
+      $('ovBody').textContent = w ? (t('winner') + w.name) : '';
+    }
+    $('ovAgain').textContent = S.solo ? t('newPuzzle') : t('rematch');
+    $('ovHome').textContent = t('backHome');
+    $('ovAgain').onclick = function () {
+      if (S.solo) startAlone();
+      else api('/games/sudoku/api/action', { token: session.token, type: 'start' });
+      ov.classList.add('hidden');
+    };
+    $('ovHome').onclick = function () { showMenu(); buildMenu(); };
+  }
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  // ---- events ----
+  $('aloneBtn').addEventListener('click', startAlone);
+  $('createBtn').addEventListener('click', createTogether);
+  $('joinBtn').addEventListener('click', joinTogether);
+  $('copyBtn').addEventListener('click', function () {
+    var link = location.origin + '/games/sudoku/' + S.code;
+    if (navigator.clipboard) navigator.clipboard.writeText(link).then(function () { toast(t('copied')); });
+    else toast(link);
+  });
+  $('chatSend').addEventListener('click', function () {
+    var v = $('chatInput').value.trim();
+    if (!v) return;
+    api('/games/sudoku/api/action', { token: session.token, type: 'chat', text: v });
+    $('chatInput').value = '';
+  });
+
+  // prefill join code from a shared link like /games/sudoku/ABCD
+  var m = location.pathname.match(/\/games\/sudoku\/([A-Z0-9]{4})$/);
+  if (m) { $('codeInput').value = m[1]; }
+
+  buildMenu();
+  // One global ticker drives the live clock off the local clock, anchored to the
+  // server's `startedAt` at the last state we received. No per-render intervals.
+  setInterval(function () {
+    if (S && S.state === 'playing' && S.startedAt) {
+      var sec = Math.max(0, Math.floor((S.startedAt + (Date.now() - S.serverNow)) / 1000));
+      var firstStat = document.querySelector('#statRow .stat b');
+      if (firstStat) firstStat.textContent = fmtTime(sec);
+    }
+  }, 1000);
+
+  // Expose a tiny hook for automated tests (mirrors the other game pages).
+  window.S = function () { return S; };
+  window.__sudoku = { get state() { return S; }, get session() { return session; } };
+})();
+</script>
+</body>
+</html>

@@ -3513,7 +3513,7 @@ ${alts}
   // Games — the UNO / Big Two / Word Match tables. App features, not search
   // content, so they sit below the editorial pages; listed so they are at least
   // discoverable and resolve to a real page rather than a soft 404 in the index.
-  for (const g of ['/games/uno', '/games/bigtwo', '/games/wordmatch']) {
+  for (const g of ['/games/uno', '/games/bigtwo', '/games/wordmatch', '/games/sudoku']) {
     add(g, '0.5', 'monthly', null, SITE_STRUCTURE_DATE);
   }
 

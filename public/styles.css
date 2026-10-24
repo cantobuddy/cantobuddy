@@ -817,27 +817,19 @@ body {
   line-height: 1.45;
   margin: -4px 0 10px;
 }
-#home-games-promo .games-grid {
-  display: grid;
-  gap: 8px;
-}
-#home-games-promo .game-card {
-  padding: 10px 12px;
-  gap: 11px;
+#home-games-promo .games-row { gap: 8px; }
+#home-games-promo .game-tile {
+  flex: 0 0 auto;
+  width: 62px;
+  padding: 4px 2px;
+  gap: 6px;
 }
 #home-games-promo .game-art {
   width: 44px;
   height: 44px;
-  border-radius: 12px;
+  border-radius: 13px;
 }
-#home-games-promo .game-art i {
-  width: 12px;
-  height: 17px;
-  font-size: 7px;
-}
-#home-games-promo .game-art i.suit { font-size: 9px; }
-#home-games-promo .game-name { font-size: 0.85rem; }
-#home-games-promo .game-desc { font-size: 0.68rem; line-height: 1.35; }
+#home-games-promo .game-tile-name { font-size: 0.72rem; }
 
 .home-categories {
   margin-top: 24px;
@@ -1123,6 +1115,47 @@ a.game-card:active { transform: scale(0.985); }
    made legible in a 15px tile, but at 11px it at least reads as a character
    rather than as dirt, and the gold ? tile beside it carries the meaning. */
 .game-art i.cjk { font-size: 11px; letter-spacing: -0.5px; }
+/* The three new marks (Big Two, Word match, Sudoku) are inline SVG. They fill
+   the art tile and scale with it, so they stay crisp at every density and need
+   no asset — same reason the UNO tiles are drawn in CSS. */
+.game-art svg { width: 100%; height: 100%; display: block; }
+
+/* The Games hub and the Home promo share one horizontal row of icon tiles — no
+   descriptions, no tags, just the mark and its name. The row scrolls if four
+   tiles ever outrun a very narrow phone, but it never pushes the page sideways
+   (only an inner element scrolls, so document scrollWidth is untouched). */
+.games-row {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 2px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.games-row::-webkit-scrollbar { display: none; }
+.game-tile {
+  flex: 1 1 0;
+  max-width: 84px;
+  min-width: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  text-decoration: none;
+  color: var(--c-text);
+  padding: 6px 4px;
+  border-radius: 16px;
+  border: 1px solid transparent;
+  transition: transform 0.12s, background 0.2s;
+}
+a.game-tile:active { transform: scale(0.96); background: var(--c-primary-tint); }
+.game-tile-name {
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
 
 .game-art-soon {
   font-size: 26px;

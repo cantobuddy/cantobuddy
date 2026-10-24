@@ -756,6 +756,7 @@ async function init() {
     renderHomeDailyCulture();
     renderHomeDiscoverPromo();
   renderHomeGamesPromo();
+  renderGamesHub();
 
     // A view named in the URL, so a page outside the SPA can send her back to a
     // specific screen. The Games tab needs this: the game is a real page at
@@ -783,6 +784,7 @@ function rerenderForLanguage() {
   renderHomeDailyCulture();
   renderHomeDiscoverPromo();
   renderHomeGamesPromo();
+  renderGamesHub();
   renderCategoryChips();
   renderQuizTypes();
   renderVocabList();
@@ -1070,48 +1072,90 @@ function renderHomeDiscoverPromo() {
  * she sees there. Rendered by JS — not markup — so a language switch re-reads
  * the strings, which static [data-i18n] text would not do.
  */
+/* ------------------------------------------------------------------ games
+   ONE source for every game icon, so the Games hub and the Home promo can never
+   drift apart — a tile added to one and forgotten in the other is how the hub
+   kept three games after a fourth went live. Each game has its own art class so
+   the four marks read as four DIFFERENT objects, not one template recoloured:
+   UNO keeps three tilted letter tiles; Big Two is a white playing card; Word
+   match is two speech bubbles; Sudoku is a mini grid. */
+const GAMES_CATALOG = [
+  {
+    href: '/games/uno',
+    artClass: 'game-art--uno',
+    art: '<i>U</i><i>N</i><i>O</i>',
+    nameFixed: 'UNO',
+  },
+  {
+    href: '/games/bigtwo',
+    artClass: 'game-art--bigtwo',
+    art: `<svg viewBox="0 0 48 48" aria-hidden="true">
+      <rect x="10" y="12" width="19" height="27" rx="3" fill="#ffffff" stroke="#cdd5df" stroke-width="1.4" transform="rotate(-14 19 25)"/>
+      <rect x="18" y="13" width="20" height="28" rx="3" fill="#ffffff" stroke="#cdd5df" stroke-width="1.4"/>
+      <text x="22.5" y="25" font-size="9" font-weight="800" fill="#222">2</text>
+      <text x="23" y="36" font-size="9" fill="#222">♠</text>
+      <text x="32" y="22" font-size="9" fill="#222">♠</text>
+    </svg>`,
+    nameKey: 'games.bigtwoName',
+  },
+  {
+    href: '/games/wordmatch',
+    artClass: 'game-art--wordmatch',
+    art: `<svg viewBox="0 0 48 48" aria-hidden="true">
+      <rect x="6" y="10" width="21" height="16" rx="6" fill="#14b8a6"/>
+      <text x="16.5" y="22" font-size="11" font-weight="700" fill="#fff" text-anchor="middle">文</text>
+      <rect x="21" y="22" width="21" height="16" rx="6" fill="#ec4899"/>
+      <text x="31.5" y="34" font-size="11" font-weight="700" fill="#fff" text-anchor="middle">字</text>
+    </svg>`,
+    nameKey: 'games.matchName',
+  },
+  {
+    href: '/games/sudoku',
+    artClass: 'game-art--sudoku',
+    art: `<svg viewBox="0 0 48 48" aria-hidden="true">
+      <rect x="9" y="9" width="30" height="30" rx="3" fill="#ffffff" stroke="#cdd5df" stroke-width="1.6"/>
+      <line x1="19" y1="9" x2="19" y2="39" stroke="#cdd5df" stroke-width="1"/>
+      <line x1="29" y1="9" x2="29" y2="39" stroke="#cdd5df" stroke-width="1"/>
+      <line x1="9" y1="19" x2="39" y2="19" stroke="#cdd5df" stroke-width="1"/>
+      <line x1="9" y1="29" x2="39" y2="29" stroke="#cdd5df" stroke-width="1"/>
+      <text x="14" y="22" font-size="9" fill="#222">5</text>
+      <text x="24" y="22" font-size="9" fill="#222">8</text>
+      <text x="34" y="22" font-size="9" fill="#222">3</text>
+      <text x="14" y="32" font-size="9" fill="#2b6cf0">7</text>
+      <text x="24" y="32" font-size="9" fill="#222">2</text>
+    </svg>`,
+    nameKey: 'games.sudokuName',
+  },
+];
+
+function gameTile(g) {
+  const name = g.nameKey ? t(g.nameKey) : g.nameFixed;
+  return `<a class="game-tile" href="${g.href}">`
+    + `<span class="game-art ${g.artClass}" aria-hidden="true">${g.art}</span>`
+    + `<span class="game-tile-name">${escapeHtml(name)}</span>`
+    + `</a>`;
+}
+
+/* The Games hub (#view-games). Filled by JS so it always matches the catalog. */
+function renderGamesHub() {
+  const row = document.getElementById('games-row');
+  if (!row) return;
+  row.innerHTML = GAMES_CATALOG.map(gameTile).join('');
+}
+
 function renderHomeGamesPromo() {
   const wrap = document.getElementById('home-games-promo');
   if (!wrap) return;
-  const games = [
-    {
-      href: '/games/uno',
-      art: '<i>U</i><i>N</i><i>O</i>',
-      name: 'UNO',
-      desc: t('games.unoDesc'),
-    },
-    {
-      href: '/games/bigtwo',
-      art: '<i>2</i><i class="suit">♠</i><i class="suit">♥</i>',
-      name: t('games.bigtwoName'),
-      desc: t('games.bigtwoDesc'),
-    },
-    {
-      href: '/games/wordmatch',
-      art: '<i class="cjk">配</i><i class="cjk">對</i><i>?</i>',
-      name: t('games.matchName'),
-      desc: t('games.matchDesc'),
-    },
-  ];
   wrap.innerHTML =
-    `<div class="games-promo">` +
-      `<div class="games-promo-head">` +
-        `<h4 class="home-section-title">${escapeHtml(t('games.promoTitle'))}</h4>` +
-        `<span class="games-promo-badge">${escapeHtml(t('games.promoBadge'))}</span>` +
-      `</div>` +
-      `<p class="games-promo-lead">${escapeHtml(t('games.promoLead'))}</p>` +
-      `<div class="games-grid">` +
-      games.map((g) => `
-        <a class="game-card game-card-live" href="${g.href}">
-          <span class="game-art" aria-hidden="true">${g.art}</span>
-          <span class="game-body">
-            <span class="game-name">${escapeHtml(g.name)}</span>
-            <span class="game-desc">${escapeHtml(g.desc)}</span>
-          </span>
-          <span class="game-go" aria-hidden="true">›</span>
-        </a>`).join('') +
-      `</div>` +
-    `</div>`;
+    `<div class="games-promo">`
+      + `<div class="games-promo-head">`
+        + `<h4 class="home-section-title">${escapeHtml(t('games.promoTitle'))}</h4>`
+        + `<span class="games-promo-badge">${escapeHtml(t('games.promoBadge'))}</span>`
+      + `</div>`
+      + `<div class="games-row games-row--home">`
+      + GAMES_CATALOG.map(gameTile).join('')
+      + `</div>`
+    + `</div>`;
 }
 
 function filterByCategory(catId) {

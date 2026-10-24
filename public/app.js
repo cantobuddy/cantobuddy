@@ -4796,10 +4796,28 @@ async function openLiving(slug) {
     STATE.living.comments = data.comments || [];
     renderLivingPage(data.post);
     markRead(`living:${slug}`);
+    awardReadingCredit(slug);
   } catch (err) {
     console.warn('Could not load the passage:', err);
     host.innerHTML = `<p class="discover-empty">${escapeHtml(t('story.notFound'))}</p>`;
   }
+}
+
+/**
+ * Opening a passage pays one credit a day.
+ *
+ * Fire-and-forget: a reading credit is never worth blocking the page she came
+ * to read, and a failure costs her one credit, not the passage. Silent unless
+ * it actually paid, so the toast appears on the first passage of the day and
+ * never again — a "+1" on every passage would turn reading into a slot machine.
+ */
+async function awardReadingCredit(slug) {
+  try {
+    const res = await apiPost(`/api/living/${encodeURIComponent(slug)}/read`, { public_id: STATE.deviceId });
+    if (res && res.creditsAwarded) {
+      showToast(t('living.creditRead').replace('{n}', res.creditsAwarded));
+    }
+  } catch { /* a credit is not worth an error message */ }
 }
 
 /** Draws the open passage: body, reaction bar, comments, share. */

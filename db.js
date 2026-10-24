@@ -336,6 +336,12 @@ db.exec(`
      double tap, a retry, or two tabs cannot pay twice, and there is no counter to
      drift. 'day' is the HKT date string, because the day has to change when HER
      day changes, not when UTC's does. */
+  /* One row per credit that is not a quiz answer. kind is a closed set -
+     'reaction', 'reading', 'game' - listed in CREDIT_KINDS below. The UNIQUE
+     key is the whole anti-farm design: one credit per device per kind per Hong
+     Kong day, so a double tap, a retry, two tabs or a replayed request all
+     collapse into a single row. This is why kind must never be built from user
+     input: a typo does not error, it silently opens a fresh daily allowance. */
   CREATE TABLE IF NOT EXISTS credit_events (
     id         INTEGER PRIMARY KEY,
     public_id  TEXT NOT NULL,
@@ -3306,10 +3312,25 @@ function getCredits(learnerId) {
  * no learner yet still gets the row (learner_id NULL); identifyLearner backfills
  * the link later.
  */
+/**
+ * The closed set of credit kinds. Anything else is refused rather than written,
+ * because an unknown kind does not fail loudly — it quietly starts a second
+ * daily allowance for the same activity, which is the one bug this table's
+ * UNIQUE key cannot catch.
+ *
+ *   reaction — she left a reaction standing on a Living passage.
+ *   reading  — she opened a passage to read it.
+ *   game     — she finished a game at one of the four tables, win or lose.
+ *
+ * Quiz answers are NOT here: they are `progress.score`, summed alongside these.
+ */
+const CREDIT_KINDS = ['reaction', 'reading', 'game'];
+
 function awardDailyCredit({ publicId, kind, points = 1, nowMs = Date.now() } = {}) {
   const pub = String(publicId || '').trim();
   const k = String(kind || '').trim();
   if (!pub || !k) return { awarded: false, points: 0, day: null };
+  if (!CREDIT_KINDS.includes(k)) return { awarded: false, points: 0, day: null, reason: 'unknown-kind' };
 
   const n = Math.max(1, Math.min(10, Number(points) || 1));
   const day = hktDayString(nowMs);
@@ -5356,6 +5377,7 @@ module.exports = {
 
   getCredits,
   awardDailyCredit,
+  CREDIT_KINDS,
   hktDayString,
   getRewards,
 

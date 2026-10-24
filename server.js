@@ -999,6 +999,29 @@ app.post('/api/living/:slug/react', livingRateLimit, (req, res) => {
 });
 
 /**
+ * POST /api/living/:slug/read — she opened a passage.
+ *
+ * A POST rather than a write inside the GET: a GET must stay safe to prefetch,
+ * cache and crawl, and a crawler that earns her credits would make the number
+ * meaningless. The client fires this after the passage has rendered, so the
+ * credit follows the reading rather than standing in for it.
+ *
+ * One credit a day, not one per passage — the database decides that, not this
+ * route. Per-passage would pay up to 18 a day for tapping through the shelf,
+ * which is more than a ten-question quiz and would make a sticker mean nothing.
+ * The habit being rewarded is "she reads something today", and that happens
+ * once a day by definition.
+ */
+app.post('/api/living/:slug/read', livingRateLimit, (req, res) => {
+  const post = store.getLivingPostBySlug(req.params.slug);
+  if (!post) return res.status(404).json({ error: 'Not found' });
+  const publicId = String((req.body || {}).public_id || '').trim();
+  if (!publicId) return res.status(400).json({ error: 'Missing device id.' });
+  const { points } = store.awardDailyCredit({ publicId, kind: 'reading' });
+  res.json({ creditsAwarded: points });
+});
+
+/**
  * POST /api/living/:slug/comment — add a comment to a passage's thread.
  * Body: { public_id, display_name, body }. display_name is optional (blank =>
  * Anonymous). Returns the new comment and the thread's comment count.

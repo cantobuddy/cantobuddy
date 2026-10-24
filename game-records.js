@@ -78,6 +78,17 @@ function recordFinish({ game, room, winnerId }) {
     })),
   });
 
+  // A finished game pays one credit a day, to every identified player, win or
+  // lose. Paying only the winner would teach her that losing costs her the
+  // sticker, which is the opposite of what a game played with friends is for.
+  //
+  // Inside the round guard on purpose: the award is idempotent per day anyway
+  // (credit_events has UNIQUE(public_id, kind, day)), but a finish handler that
+  // runs twice should not look like two games were played.
+  for (const p of room.players) {
+    if (p.deviceId) store.awardDailyCredit({ publicId: p.deviceId, kind: 'game' });
+  }
+
   attachRecords(room.players, game);
   return written;
 }

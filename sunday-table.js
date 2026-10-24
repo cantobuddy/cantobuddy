@@ -30,7 +30,7 @@ const SLOT_START_MINUTES = 16 * 60; // 16:00 HKT
 const SLOT_END_MINUTES = 18 * 60;   // 18:00 HKT
 const SLOT_MINUTES = SLOT_END_MINUTES - SLOT_START_MINUTES;
 
-/** How far back the "what happened in Hong Kong this week" digest reaches. */
+/** How far back the "in the news this week" digest reaches. */
 const DIGEST_DAYS = 7;
 const DIGEST_MAX = 4;
 
@@ -114,7 +114,12 @@ function passageOfWeek(posts, key) {
 }
 
 /**
- * The digest: what happened in Hong Kong this week, newest first.
+ * The digest: what has been published in the last week, newest first.
+ *
+ * Deliberately not labelled "Hong Kong": posts carry no region, and the news
+ * channel mixes Hong Kong with the Philippines and Indonesia. A label that
+ * promises Hong Kong and then shows Davao is a small lie, and this feature has
+ * no budget for small lies.
  *
  * A window rather than "the last N posts", so an empty week reads as an empty
  * week instead of reaching back a month to fill the space. A digest that is

@@ -1800,10 +1800,15 @@ const S = {
      the card is not offering her "aeroplane" under a heading that says kitchen —
      the ids are the SEED_CATEGORIES ids 3 (Kitchen), 16 (Meals & Feeding) and
      20 (Food); see daily-phrase.js, which owns that decision. */
+  /* The daily card promises a phrase she can say to her employer, so single
+     characters are excluded: the pool is vocabulary, and 26% of it is one
+     character (水, 食, 飲). Those are fine flashcards and useless sentences.
+     length() on TEXT counts characters in SQLite, so this is not a byte test. */
   listDailyPhrasePool: db.prepare(`
     SELECT id, cantonese, jyutping, english, tagalog, mandarin, indonesian, emoji, level, category_id
       FROM vocabulary
      WHERE category_id IN (3, 16, 20)
+       AND length(cantonese) >= 2
      ORDER BY id
   `),
   listVocabularyByLevel: db.prepare('SELECT * FROM vocabulary WHERE level = ? ORDER BY id'),

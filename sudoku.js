@@ -98,7 +98,7 @@ function newPlayer(name, avatar, lang) {
 
 function createRoom(opts) {
   const solo = !!opts.solo;
-  const level = ['easy', 'medium', 'hard'].includes(opts.level) ? opts.level : 'easy';
+  const level = ['easy', 'medium', 'hard', 'expert'].includes(opts.level) ? opts.level : 'easy';
   const gen = Core.generate(level);
   const code = solo ? uid() : makeCode();
   const host = newPlayer(opts.name, opts.avatar, opts.lang);

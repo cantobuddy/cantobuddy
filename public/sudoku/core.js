@@ -7,11 +7,12 @@
  * required in Node and loaded as a <script> in the browser (UMD below), means
  * the generation logic lives in exactly one place and the two can never drift.
  *
- * THE THREE LEVELS. Sudoku difficulty is mostly "how many cells are given", so
+ * THE FOUR LEVELS. Sudoku difficulty is mostly "how many cells are given", so
  * the levels also vary the GRID — a 4×4 (Easy) is genuinely playable by an
- * elderly first-timer, a 6×6 (Medium) is a step up, and the 9×9 (Hard) is the
- * classic board. Each size has its own box shape (2×2, 2×3, 3×3) and its own
- * number of givens, set so every board has exactly one solution.
+ * elderly first-timer, a 6×6 (Medium) is a step up, the 9×9 (Hard) is the
+ * classic board, and Expert keeps the 9×9 board with ~8 fewer clues than Hard.
+ * Each size has its own box shape (2×2, 2×3, 3×3) and its own number of givens,
+ * set so every board has exactly one solution.
  *
  * UNIQUENESS MATTERS. A puzzle with two solutions would let a player fill a cell
  * that is locally correct but not the server's stored answer, and the server
@@ -24,15 +25,18 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  // [rows per box, cols per box] for each supported size.
-  var BOX = { 4: [2, 2], 6: [2, 3], 9: [3, 3] };
-  // How many givens each level keeps (the rest are blanks to fill).
-  var CLUES = { 4: 6, 6: 14, 9: 34 };
+  // Per-level configuration: grid size (n), box [rows, cols], and how many cells
+  // are given (the rest are blanks to fill). Fewer givens => harder. Expert keeps
+  // the classic 9x9 board but with ~8 fewer clues than Hard.
+  var LEVELS = {
+    easy:   { n: 4, br: 2, bc: 2, clues: 6 },
+    medium: { n: 6, br: 2, bc: 3, clues: 14 },
+    hard:   { n: 9, br: 3, bc: 3, clues: 34 },
+    expert: { n: 9, br: 3, bc: 3, clues: 26 },
+  };
 
   function cfgFor(level) {
-    var n = level === 'easy' ? 4 : level === 'medium' ? 6 : 9;
-    var b = BOX[n];
-    return { n: n, br: b[0], bc: b[1] };
+    return LEVELS[level] || LEVELS.easy;
   }
 
   function range(a, b) {
@@ -107,7 +111,7 @@
     fill(solution, n, br, bc, rnd);
 
     var puzzle = solution.slice();
-    var target = CLUES[n];
+    var target = c.clues;
     var givens = n * n;
     var positions = shuffle(range(0, n * n - 1), rnd);
 
@@ -129,7 +133,8 @@
     generate: generate,
     canPlace: canPlace,
     countSolutions: countSolutions,
-    CLUES: CLUES,
-    BOX: BOX,
+    LEVELS: LEVELS,
+    CLUES: { 4: LEVELS.easy.clues, 6: LEVELS.medium.clues, 9: LEVELS.hard.clues },
+    BOX: { 4: [LEVELS.easy.br, LEVELS.easy.bc], 6: [LEVELS.medium.br, LEVELS.medium.bc], 9: [LEVELS.hard.br, LEVELS.hard.bc] },
   };
 });

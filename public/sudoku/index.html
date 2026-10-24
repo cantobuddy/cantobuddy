@@ -73,7 +73,7 @@
   .copy { background: var(--surface); border: 2px solid var(--border); border-radius: 10px; padding: 6px 12px; font-weight: 700; cursor: pointer; color: var(--ink); }
   .stat-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0 14px; }
   .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 8px 12px; flex: 1 1 0; min-width: 84px; text-align: center; }
-  .stat b { display: block; font-size: 1.15rem; }
+  .stat b { display: block; font-size: 1.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .stat span { font-size: 0.68rem; color: var(--muted); }
   .players { display: flex; flex-direction: column; gap: 8px; margin: 10px 0 14px; }
   .player { display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 9px 12px; }
@@ -207,7 +207,7 @@
   var DICT = {
     en: {
       title: 'Sudoku', lead: 'Numbers, not words. Play alone or race a room.',
-      chooseLevel: 'Level', easy: 'Easy', easySub: '4×4', medium: 'Medium', mediumSub: '6×6', hard: 'Hard', hardSub: '9×9',
+      chooseLevel: 'Level', easy: 'Easy', easySub: '4×4', medium: 'Medium', mediumSub: '6×6', hard: 'Hard', hardSub: '9×9', expert: 'Expert', expertSub: '9×9',
       aloneBtn: 'Play alone', divider: 'or play together',
       nameLbl: 'Your name', namePh: 'e.g. Mama', createBtn: 'Create room',
       codeLbl: 'Room code', codePh: '4 letters', joinBtn: 'Join',
@@ -223,7 +223,7 @@
     },
     fil: {
       title: 'Sudoku', lead: 'Mga numero, hindi salita. Mag-isa o sabay sa kuwarto.',
-      chooseLevel: 'Level', easy: 'Madali', easySub: '4×4', medium: 'Katamtaman', mediumSub: '6×6', hard: 'Mahirap', hardSub: '9×9',
+      chooseLevel: 'Level', easy: 'Madali', easySub: '4×4', medium: 'Katamtaman', mediumSub: '6×6', hard: 'Mahirap', hardSub: '9×9', expert: 'Expert', expertSub: '9×9',
       aloneBtn: 'Mag-isa', divider: 'o sabay-sama',
       nameLbl: 'Pangalan mo', namePh: 'hal. Mama', createBtn: 'Gumawa ng kuwarto',
       codeLbl: 'Code ng kuwarto', codePh: '4 letra', joinBtn: 'Sumali',
@@ -239,7 +239,7 @@
     },
     zh: {
       title: '数独', lead: '填数字，不用词语。单人玩或和朋友比赛。',
-      chooseLevel: '难度', easy: '简单', easySub: '4×4', medium: '中等', mediumSub: '6×6', hard: '困难', hardSub: '9×9',
+      chooseLevel: '难度', easy: '简单', easySub: '4×4', medium: '中等', mediumSub: '6×6', hard: '困难', hardSub: '9×9', expert: '专家', expertSub: '9×9',
       aloneBtn: '单人玩', divider: '或一起玩',
       nameLbl: '你的名字', namePh: '例如 妈妈', createBtn: '创建房间',
       codeLbl: '房间码', codePh: '4 个字母', joinBtn: '加入',
@@ -255,7 +255,7 @@
     },
     id: {
       title: 'Sudoku', lead: 'Angka, bukan kata. Main sendiri atau bareng di ruang.',
-      chooseLevel: 'Level', easy: 'Mudah', easySub: '4×4', medium: 'Sedang', mediumSub: '6×6', hard: 'Sulit', hardSub: '9×9',
+      chooseLevel: 'Level', easy: 'Mudah', easySub: '4×4', medium: 'Sedang', mediumSub: '6×6', hard: 'Sulit', hardSub: '9×9', expert: 'Ahli', expertSub: '9×9',
       aloneBtn: 'Main sendiri', divider: 'atau bareng',
       nameLbl: 'Nama kamu', namePh: 'mis. Mama', createBtn: 'Buat ruang',
       codeLbl: 'Kode ruang', codePh: '4 huruf', joinBtn: 'Gabung',
@@ -328,7 +328,7 @@
     $('createBtn').textContent = t('createBtn');
     $('joinBtn').textContent = t('joinBtn');
 
-    var levels = [['easy', t('easy'), t('easySub')], ['medium', t('medium'), t('mediumSub')], ['hard', t('hard'), t('hardSub')]];
+    var levels = [['easy', t('easy'), t('easySub')], ['medium', t('medium'), t('mediumSub')], ['hard', t('hard'), t('hardSub')], ['expert', t('expert'), t('expertSub')]];
     $('levels').innerHTML = levels.map(function (l) {
       return '<button class="level' + (l[0] === level ? ' active' : '') + '" data-l="' + l[0] + '">' + l[1] + '<small>' + l[2] + '</small></button>';
     }).join('');
@@ -593,7 +593,7 @@
   // server's `startedAt` at the last state we received. No per-render intervals.
   setInterval(function () {
     if (S && S.state === 'playing' && S.startedAt) {
-      var sec = Math.max(0, Math.floor((S.startedAt + (Date.now() - S.serverNow)) / 1000));
+      var sec = Math.max(0, Math.floor((Date.now() - S.startedAt) / 1000));
       var firstStat = document.querySelector('#statRow .stat b');
       if (firstStat) firstStat.textContent = fmtTime(sec);
     }

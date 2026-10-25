@@ -1316,7 +1316,18 @@ app.get('/api/learners/rewards', (req, res) => {
 
   const learner = store.getLearnerByPublicId(publicId);
   // An unknown device simply has no rewards yet — not an error worth failing on.
-  if (!learner) return res.json({ credits: 0, stickers: [], newly_unlocked: [], next: null });
+  // The same shape as a known device with nothing, so the client can render the
+  // checklist with every box still open rather than special-casing a newcomer.
+  if (!learner) {
+    return res.json({
+      credits: 0,
+      stickers: [],
+      newly_unlocked: [],
+      next: null,
+      today: [],
+      dailyKinds: store.CREDIT_KINDS,
+    });
+  }
 
   res.json(store.getRewards(learner.id));
 });
@@ -1878,6 +1889,20 @@ app.get('/api/admin/report', requireAdmin, (req, res) => {
 });
 
 /**
+ * GET /api/admin/report/games — who plays, alone or together, and how often.
+ *
+ * Separate from /api/admin/report because it answers a different question and
+ * reads a different table. The visitor report can see a learner who studied and
+ * never quizzed; this one can see a player who played and never quizzed, which
+ * is most of them.
+ *
+ * `days` is the same 7 / 30 / 90 window, defaulting to 30.
+ */
+app.get('/api/admin/report/games', requireAdmin, (req, res) => {
+  res.json(store.getGameReport(req.query.days));
+});
+
+/**
  * Escape one CSV cell.
  *
  * Two things matter beyond the obvious quoting:
@@ -1953,10 +1978,48 @@ const CSV_EXPORTS = {
       p.days_active, p.first_day, p.last_day, p.last_seen_at,
     ]),
   },
+  /* Games. Two files rather than one because the per-game table and the
+     per-player distribution answer different questions and do not share a row
+     shape — flattening them into one CSV would need a column that is sometimes
+     a game name and sometimes a device count. */
+  games: {
+    header: ['game', 'games', 'player_results', 'wins', 'win_rate_pct', 'players',
+      'solo_games', 'group_games', 'solo_players', 'group_players', 'biggest_table'],
+    rows: () => store.getGameReport(90).byGame.map((g) => [
+      g.game, g.played, g.results, g.wins, g.winRate === null ? '' : g.winRate, g.players,
+      g.soloGames, g.groupGames, g.soloPlayers, g.groupPlayers, g.biggestTable,
+    ]),
+  },
+  games_players: {
+    header: ['metric', 'value'],
+    rows: () => {
+      const g = store.getGameReport(90);
+      return [
+        ['players_all_time', g.playersAllTime],
+        ['games_all_time', g.gamesAllTime],
+        ['players_this_period', g.playersThisPeriod],
+        ['solo_games', g.soloGames],
+        ['group_games', g.groupGames],
+        ['solo_share_pct', g.soloShare === null ? '' : g.soloShare],
+        ['games_per_player_median', g.gamesPerPlayer.median === null ? '' : g.gamesPerPlayer.median],
+        ['games_per_player_mean', g.gamesPerPlayer.mean === null ? '' : g.gamesPerPlayer.mean],
+        ['played_exactly_once', g.gamesPerPlayer.playedOnce],
+        ['came_back', g.gamesPerPlayer.cameBack],
+        ['most_games_one_player', g.gamesPerPlayer.most],
+        ['active_days_per_player_median', g.activeDaysPerPlayer.median === null ? '' : g.activeDaysPerPlayer.median],
+        ['session_span_median_minutes_app_wide', g.sessionSpan.medianMinutes === null ? '' : g.sessionSpan.medianMinutes],
+        ['session_span_mean_minutes_app_wide', g.sessionSpan.meanMinutes === null ? '' : g.sessionSpan.meanMinutes],
+        ['credit_devices_with_any', g.credits.devicesWithAny],
+        ['credit_device_days_at_ceiling', g.credits.deviceDaysAtCeiling],
+        ['credit_daily_ceiling', g.credits.dailyCeiling],
+      ];
+    },
+  },
 };
 
 /**
- * GET /api/admin/report.csv?type=employers|helpers|daily|summary
+ * GET /api/admin/report.csv?type=employers|helpers|daily|summary|visitors|
+ *     practice_only|games|games_players
  *
  * Built on the server rather than in the browser so the file arrives with a
  * filename and the right encoding, and so the numbers in the export are the

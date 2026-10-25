@@ -566,6 +566,11 @@ function navigate(view) {
   if (view === 'share') renderSharePage();
   if (view === 'discover') renderDiscover();
   if (view === 'categories') renderCategoriesPage();
+  // The Games hub carries the credit strip, and the strip is only honest if it
+  // is fresh: she may have just come back from a game that paid a credit, and a
+  // stale strip would show yesterday's boxes. Fetched once and cached — the
+  // second visit costs nothing.
+  if (view === 'games') refreshGamesCreditStrip();
   // Opening the write form re-reads her own submissions: the point of the
   // screen is "here is what happened to the last one", and a stale list would
   // be worse than none.
@@ -1353,6 +1358,81 @@ function renderGamesHub() {
   const row = document.getElementById('games-row');
   if (!row) return;
   row.innerHTML = GAMES_CATALOG.map(gameTile).join('');
+  renderGamesCreditStrip();
+}
+
+/**
+ * Fetch the rewards if they are not cached yet, then redraw the strip.
+ *
+ * A failure leaves the strip hidden rather than showing a zero: an offline
+ * player who is told she has no credits has been told something false, and the
+ * games list below is the reason she opened this screen.
+ */
+async function refreshGamesCreditStrip() {
+  try {
+    if (!_rewards) await fetchRewards();
+  } catch { /* leave _rewards as it was */ }
+  renderGamesCreditStrip();
+}
+
+/**
+ * The credit strip on the Games hub.
+ *
+ * WHAT IT FIXES. Three defects found together, and this one block addresses all
+ * three:
+ *
+ *   1. **The games were silent.** All four game pages contained no mention of
+ *      credits at all, so a player finished a game, a credit was written
+ *      server-side, and nothing anywhere said so.
+ *   2. **The balance was buried.** The album is inside My Progress, which left
+ *      the bottom bar to make room for Games — so the reward was two taps deep
+ *      on a screen she has no reason to open, right after the activity that
+ *      earns it.
+ *   3. **The explanation was stale.** The album's hint still described quiz
+ *      answers only, so reading, reacting and playing were undocumented.
+ *
+ * The strip therefore shows two things: the balance, and which of today's three
+ * credits are already taken. A total on its own is a number she cannot act on;
+ * three boxes, one of which is still open, is a task.
+ *
+ * Hidden entirely when there is nothing to say — a first-time player with no
+ * device identity yet sees a games list, not an empty reward widget.
+ */
+function renderGamesCreditStrip() {
+  const el = document.getElementById('games-credit-strip');
+  if (!el) return;
+  const r = _rewards;
+  // No device, no rewards, or a device with no daily kinds at all: nothing
+  // useful to say yet. Rendering "0 credits" to a newcomer is a promise with no
+  // way to keep it.
+  if (!r || !STATE.deviceId || !r.dailyKinds || !r.dailyKinds.length) {
+    el.hidden = true;
+    el.innerHTML = '';
+    return;
+  }
+
+  const taken = new Set(r.today || []);
+  const creditWord = r.credits === 1 ? t('rewards.creditOne') : t('rewards.credits');
+  const open = r.dailyKinds.filter((k) => !taken.has(k));
+
+  const boxes = r.dailyKinds.map((k) => {
+    const done = taken.has(k);
+    return `<span class="games-credit-box${done ? ' is-done' : ''}">
+      <span class="games-credit-tick" aria-hidden="true">${done ? '✓' : ''}</span>
+      ${escapeHtml(t('credits.kind.' + k))}
+    </span>`;
+  }).join('');
+
+  el.hidden = false;
+  el.innerHTML = `
+    <div class="games-credit-head">
+      <span class="games-credit-balance">${r.credits}<span class="games-credit-word">${escapeHtml(creditWord)}</span></span>
+      <span class="games-credit-today">${open.length
+        ? escapeHtml(t('credits.todayLeft').replace('{n}', open.length))
+        : escapeHtml(t('credits.todayDone'))}</span>
+    </div>
+    <div class="games-credit-boxes">${boxes}</div>
+    <button class="games-credit-link" onclick="navigate('progress')">${escapeHtml(t('credits.seeAlbum'))}</button>`;
 }
 
 function renderHomeGamesPromo() {

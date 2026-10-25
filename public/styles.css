@@ -1147,6 +1147,93 @@ body {
   margin: -4px 0 16px;
 }
 
+/* ---- The credit strip on the Games hub -----------------------------------
+   The one place in the app where the reward is stated next to the behaviour
+   that earns it. Deliberately quiet: a badge, not a banner. It is hidden
+   entirely (not rendered as zeros) for a device with no identity yet, so a
+   first-time player sees a games list rather than an empty promise.          */
+.games-credit {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin: -4px 0 16px;
+}
+.games-credit-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.games-credit-balance {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--c-text);
+  line-height: 1;
+}
+.games-credit-word {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--c-text-soft);
+  margin-left: 5px;
+}
+.games-credit-today {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--c-text-soft);
+}
+.games-credit-boxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.games-credit-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--c-border);
+  color: var(--c-text-soft);
+  background: transparent;
+}
+.games-credit-box.is-done {
+  color: var(--c-text);
+  border-color: transparent;
+  background: color-mix(in srgb, var(--c-primary) 14%, transparent);
+}
+.games-credit-tick {
+  display: inline-grid;
+  place-items: center;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  font-size: 9px;
+  line-height: 1;
+}
+.games-credit-box.is-done .games-credit-tick {
+  background: var(--c-primary);
+  border-color: var(--c-primary);
+  color: #fff;
+}
+.games-credit-link {
+  margin-top: 10px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--c-primary);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
 .games-grid {
   display: flex;
   flex-direction: column;
@@ -4451,6 +4538,25 @@ a.game-tile:active { transform: scale(0.96); background: var(--c-primary-tint); 
   margin-top: 8px;
 }
 .report-export .btn { text-decoration: none; }
+
+/* Legend under the games chart: two stacked series, so the reader needs to be
+   told which colour is which. The swatch is a real box rather than a coloured
+   character so it inherits nothing from the surrounding font. */
+.report-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: 2px 0 8px;
+  font-size: 0.78rem;
+  color: var(--c-text-soft);
+}
+.report-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.report-legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  display: inline-block;
+}
 
 /* ---- Learner statistics (inside My Progress) ------------------------------ */
 

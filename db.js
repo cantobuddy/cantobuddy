@@ -3385,7 +3385,39 @@ function getRewards(learnerId) {
     newly_unlocked: newly,
     // What to aim for next, so the album can show a progress bar.
     next: SEED_STICKERS.find((s) => credits < s.credits) || null,
+    // WHICH of today's credits she has already taken.
+    //
+    // Without this the album could only ever show a balance, and a balance is a
+    // number she cannot act on: nothing on the screen says the three daily
+    // credits are three *separate* things, so she sees "4 credits", finishes a
+    // game, sees "4 credits" again, and concludes the system is broken. The
+    // checklist below is what turns a total into a task.
+    //
+    // Keyed on the device id, not the learner id, because a device can earn a
+    // credit before it has ever entered a name — the same reason credit_events
+    // carries both columns. `day` is the Hong Kong calendar date, so "today"
+    // means today where she is.
+    today: creditKindsTodayForLearner(id),
+    // Every kind there is, so the client can render the ones still open without
+    // hard-coding the list and drifting from it.
+    dailyKinds: CREDIT_KINDS.slice(),
   };
+}
+
+/**
+ * The credit kinds this learner has already taken today, in CREDIT_KINDS order.
+ *
+ * Reads through the learner row rather than taking a device id because
+ * getRewards is learner-keyed and every other field in that response is too.
+ * A learner with no device row (impossible in practice, but cheap to be safe
+ * about) simply has none.
+ */
+function creditKindsTodayForLearner(learnerId, nowMs = Date.now()) {
+  const learner = S.getLearnerById.get(Number(learnerId));
+  if (!learner) return [];
+  const day = hktDate(nowMs);
+  const taken = new Set(S.creditEventsForDay.all(String(learner.public_id), day).map((r) => r.kind));
+  return CREDIT_KINDS.filter((k) => taken.has(k));
 }
 
 // ---------------------------------------------------------------------------
@@ -5132,6 +5164,267 @@ function getVisitorReport(days) {
   };
 }
 
+/* --- games: who plays, alone or together, and for how long ---------------
+
+   These read game_results, which is written once per player per finished game
+   (see recordGameResults). Three of the operator's questions are answerable
+   from it directly and one is not, and the difference matters more than the
+   numbers:
+
+   ANSWERABLE  how many people play, which games, alone or in a group, how
+               often they come back. `players` is the table size at the moment
+               the game was recorded, so 1 means she played alone and 2+ means
+               she was at a table with someone.
+
+   NOT ANSWERABLE  how many MINUTES a game takes. There is no rooms table —
+               rooms live in memory and die with the process — so there is no
+               "room opened" instant to subtract from "result written". The
+               session span below is therefore the app-wide span from
+               learner_daily (first thing she did that day to last thing), and
+               it is labelled as such everywhere it is shown. Claiming it as
+               game time would be inventing a number. */
+// WHAT COUNTS AS "A GAME". recordGameResults writes ONE ROW PER PLAYER who
+// finished, so a four-person UNO table where one player has no device token
+// writes three rows. A game is therefore not a row: it is one call, and every
+// row from a call shares the same room_code AND the same created_at (the call
+// stamps one instant for the whole table). So `room_code || '|' || created_at`
+// is the game's identity, and counting rows would report a table of four as
+// three separate games — which is exactly the bug this comment exists to
+// prevent coming back.
+const GAME_KEY = `room_code || '|' || created_at`;
+
+const reportGameTotals = db.prepare(`
+  SELECT game,
+         COUNT(DISTINCT ${GAME_KEY})                                      AS played,
+         COUNT(*)                                                        AS results,
+         COALESCE(SUM(won), 0)                                           AS wins,
+         COUNT(DISTINCT public_id)                                       AS players,
+         COUNT(DISTINCT CASE WHEN players <= 1 THEN ${GAME_KEY} END)      AS solo_games,
+         COUNT(DISTINCT CASE WHEN players >= 2 THEN ${GAME_KEY} END)      AS group_games,
+         COUNT(DISTINCT CASE WHEN players <= 1 THEN public_id END)       AS solo_players,
+         COUNT(DISTINCT CASE WHEN players >= 2 THEN public_id END)       AS group_players,
+         MAX(players)                                                    AS biggest_table
+    FROM game_results
+   WHERE created_at >= ?
+   GROUP BY game
+`);
+// Everything, unbounded by the window: "how many people have ever played" is a
+// different question from "how many played this month", and the operator asks
+// both.
+const reportGameAllTime = db.prepare(`
+  SELECT COUNT(DISTINCT public_id) AS players, COUNT(DISTINCT ${GAME_KEY}) AS played
+    FROM game_results
+`);
+// Distinct players inside the window. Kept as its own statement rather than
+// summed from byGame, because a device that played two games is one person,
+// and adding the per-game counts would report her twice.
+const reportGamePlayersInWindow = db.prepare(`
+  SELECT DISTINCT public_id
+    FROM game_results
+   WHERE created_at >= ?
+`);
+const reportGameByDay = db.prepare(`
+  SELECT date(created_at, '+8 hours')                                    AS day,
+         COUNT(DISTINCT ${GAME_KEY})                                     AS games,
+         COUNT(DISTINCT public_id)                                       AS players,
+         COUNT(DISTINCT CASE WHEN players <= 1 THEN ${GAME_KEY} END)     AS solo,
+         COUNT(DISTINCT CASE WHEN players >= 2 THEN ${GAME_KEY} END)     AS grouped
+    FROM game_results
+   WHERE created_at >= ?
+   GROUP BY day
+   ORDER BY day
+`);
+// Per device, all time. GROUP BY rather than a window function because the
+// interesting output is a distribution ("how many played exactly once"), and a
+// distribution needs the rows, not an aggregate. `games` is distinct games, so
+// sitting at one four-person table counts once, not four times.
+const reportGamesPerPlayer = db.prepare(`
+  SELECT public_id,
+         COUNT(DISTINCT ${GAME_KEY})                       AS games,
+         COUNT(DISTINCT date(created_at, '+8 hours'))    AS active_days
+    FROM game_results
+   GROUP BY public_id
+`);
+// The whole-app session span. first_at/last_at are the first and last recorded
+// action of that Hong Kong day, so their difference is how long she stayed —
+// not what she did. See the block comment above.
+const reportSessionSpans = db.prepare(`
+  SELECT first_at, last_at
+    FROM learner_daily
+   WHERE first_at IS NOT NULL AND last_at IS NOT NULL
+`);
+const reportCreditByKind = db.prepare(`
+  SELECT kind,
+         COUNT(*)                    AS events,
+         COUNT(DISTINCT public_id)   AS devices,
+         COALESCE(SUM(points), 0)    AS points
+    FROM credit_events
+   WHERE created_at >= ?
+   GROUP BY kind
+`);
+// How many devices hit the ceiling — all three daily kinds on one day. This is
+// the number that says whether the once-a-day rule is a motivator or a wall.
+const reportCreditCeiling = db.prepare(`
+  SELECT COUNT(*) AS device_days
+    FROM (SELECT public_id, day
+            FROM credit_events
+           WHERE created_at >= ?
+           GROUP BY public_id, day
+          HAVING COUNT(DISTINCT kind) = 3)
+`);
+const reportCreditDevices = db.prepare(`
+  SELECT COUNT(DISTINCT public_id) AS devices
+    FROM credit_events
+   WHERE created_at >= ?
+`);
+
+/**
+ * The games report.
+ *
+ * Everything is keyed on the device identity, so two helpers who share a name
+ * stay two people — the same rule as every other report here.
+ *
+ * A NOTE ON WHAT `players` MEANS IN game_results. It is the size of the table
+ * the game was recorded for, not the number of rows written: a player with no
+ * device id is skipped (see recordGameResults), so a four-person UNO table
+ * where one person has no token records three rows, each saying players = 4.
+ * That is the honest reading — "she was at a table of four" — and it is why
+ * solo_games + group_games equals played while solo_players + group_players
+ * does not have to equal players.
+ */
+function getGameReport(days) {
+  const span = REPORT_RANGES.includes(Number(days)) ? Number(days) : 30;
+  const now = Date.now();
+  const from = hktDate(now - (span - 1) * DAY_MS);
+  const fromIso = new Date(now - (span + 1) * DAY_MS).toISOString();
+
+  const allTime = reportGameAllTime.get();
+  const totals = reportGameTotals.all(fromIso);
+
+  const byGame = GAME_KEYS.map((game) => {
+    const r = totals.find((t) => t.game === game);
+    // `played` is GAMES and `results` is PLAYER-RESULTS. They differ for every
+    // table game, and the win rate is deliberately computed from `results`:
+    // "of the times someone finished this game, how often did she win" is a
+    // question about players, and dividing wins by games would answer a
+    // different one — a four-person table where one player won would read as a
+    // 100% win rate, which is true of the table and false of the three who
+    // lost.
+    const played = r ? Number(r.played) || 0 : 0;
+    const results = r ? Number(r.results) || 0 : 0;
+    const wins = r ? Number(r.wins) || 0 : 0;
+    return {
+      game,
+      played,
+      results,
+      wins,
+      players: r ? Number(r.players) || 0 : 0,
+      winRate: results ? Math.round((wins / results) * 100) : null,
+      soloGames: r ? Number(r.solo_games) || 0 : 0,
+      groupGames: r ? Number(r.group_games) || 0 : 0,
+      soloPlayers: r ? Number(r.solo_players) || 0 : 0,
+      groupPlayers: r ? Number(r.group_players) || 0 : 0,
+      biggestTable: r ? Number(r.biggest_table) || 0 : 0,
+    };
+  });
+
+  const sum = (k) => byGame.reduce((n, g) => n + g[k], 0);
+  const soloGames = sum('soloGames');
+  const groupGames = sum('groupGames');
+
+  // ---- how long they stay -------------------------------------------------
+  const perPlayer = reportGamesPerPlayer.all();
+  const gamesCounts = perPlayer.map((r) => Number(r.games) || 0).sort((a, b) => a - b);
+  const dayCounts = perPlayer.map((r) => Number(r.active_days) || 0).sort((a, b) => a - b);
+  const median = (arr) => {
+    if (!arr.length) return null;
+    const mid = arr.length >> 1;
+    return arr.length % 2 ? arr[mid] : Math.round((arr[mid - 1] + arr[mid]) / 2);
+  };
+
+  // The session span, from the app-wide daily rollup. Values are clamped at
+  // both ends: a negative difference is a clock that moved, and anything over
+  // twelve hours is a day the rollup never closed rather than a session.
+  const spans = [];
+  for (const r of reportSessionSpans.all()) {
+    const mins = (Date.parse(r.last_at) - Date.parse(r.first_at)) / 60000;
+    if (Number.isFinite(mins) && mins >= 0 && mins <= 720) spans.push(mins);
+  }
+  spans.sort((a, b) => a - b);
+
+  // ---- credits ------------------------------------------------------------
+  const creditRows = reportCreditByKind.all(fromIso);
+  const byKind = {};
+  for (const k of CREDIT_KINDS) byKind[k] = { events: 0, devices: 0, points: 0 };
+  for (const r of creditRows) {
+    if (!(r.kind in byKind)) continue;
+    byKind[r.kind] = {
+      events: Number(r.events) || 0,
+      devices: Number(r.devices) || 0,
+      points: Number(r.points) || 0,
+    };
+  }
+
+  // ---- the trend, gap-filled ---------------------------------------------
+  const byDay = new Map(reportGameByDay.all(fromIso).map((r) => [r.day, r]));
+  const series = [];
+  for (let i = span - 1; i >= 0; i--) {
+    const day = hktDate(now - i * DAY_MS);
+    const r = byDay.get(day);
+    series.push({
+      day,
+      games: r ? Number(r.games) || 0 : 0,
+      players: r ? Number(r.players) || 0 : 0,
+      solo: r ? Number(r.solo) || 0 : 0,
+      grouped: r ? Number(r.grouped) || 0 : 0,
+    });
+  }
+
+  return {
+    days: span,
+    from,
+    // --- how many people play ---
+    playersAllTime: Number(allTime.players) || 0,
+    gamesAllTime: Number(allTime.played) || 0,
+    playersThisPeriod: reportGamePlayersInWindow.all(fromIso).length,
+    // --- alone or together ---
+    soloGames,
+    groupGames,
+    soloShare: soloGames + groupGames ? Math.round((soloGames / (soloGames + groupGames)) * 100) : null,
+    // --- how long they stay ---
+    gamesPerPlayer: {
+      median: median(gamesCounts),
+      mean: gamesCounts.length
+        ? Math.round((gamesCounts.reduce((a, b) => a + b, 0) / gamesCounts.length) * 10) / 10
+        : null,
+      playedOnce: gamesCounts.filter((n) => n <= 1).length,
+      cameBack: gamesCounts.filter((n) => n >= 2).length,
+      most: gamesCounts.length ? gamesCounts[gamesCounts.length - 1] : 0,
+    },
+    activeDaysPerPlayer: {
+      median: median(dayCounts),
+      most: dayCounts.length ? dayCounts[dayCounts.length - 1] : 0,
+    },
+    sessionSpan: {
+      // Minutes, app-wide. See the block comment: this is NOT game time.
+      medianMinutes: spans.length ? Math.round(median(spans)) : null,
+      meanMinutes: spans.length
+        ? Math.round(spans.reduce((a, b) => a + b, 0) / spans.length)
+        : null,
+      sampleDays: spans.length,
+    },
+    // --- credits ---
+    credits: {
+      byKind,
+      devicesWithAny: Number(reportCreditDevices.get(fromIso).devices) || 0,
+      deviceDaysAtCeiling: Number(reportCreditCeiling.get(fromIso).device_days) || 0,
+      dailyCeiling: CREDIT_KINDS.length,
+    },
+    byGame,
+    series,
+  };
+}
+
 /** Everything the Reports tab needs, in one read. */
 function getReport(days) {
   return {
@@ -5140,6 +5433,10 @@ function getReport(days) {
     trends: getReportTrends(days),
     employers: getReportEmployers(),
     visitors: getVisitorReport(days),
+    // The games report rides along so the Reports tab needs one round trip, not
+    // two. It reads a different table and answers a different question, but it
+    // is still the operator's numbers on the operator's screen.
+    games: getGameReport(days),
   };
 }
 
@@ -5417,6 +5714,7 @@ module.exports = {
   getReportEmployers,
   getReportHelpers,
   getVisitorReport,
+  getGameReport,
   REPORT_RANGES,
 
   // Feedback inbox — helper submissions are anonymous by design.

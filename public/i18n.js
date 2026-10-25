@@ -490,7 +490,7 @@ const I18N = {
 
     // rewards: credits and the sticker album
     'rewards.title': 'My Stickers',
-    'rewards.hint': 'You earn 1 credit for every correct answer. Reach a sticker\'s number and it is yours.',
+    'rewards.hint': 'You earn 1 credit for every correct answer, and 1 more each day for reacting to a story, reading one, and finishing a game. Reach a sticker\'s number and it is yours.',
     'rewards.credits': 'credits',
     'rewards.creditOne': 'credit',
     'rewards.next': 'Next sticker',
@@ -498,6 +498,16 @@ const I18N = {
     'rewards.locked': 'Locked',
     'rewards.complete': 'You collected the whole album! 🏆',
     'rewards.newTitle': 'New sticker!',
+
+    // credits: the three that reset every day, and the strip that shows them.
+    // The three labels are the whole point — before this existed, nothing in the
+    // app ever told a player that a game pays a credit.
+    'credits.todayLeft': '{n} left today',
+    'credits.todayDone': 'All 3 earned today — well done!',
+    'credits.seeAlbum': 'See my stickers',
+    'credits.kind.reaction': 'React to a story',
+    'credits.kind.reading': 'Read a story',
+    'credits.kind.game': 'Finish a game',
     'rewards.newBody': 'You earned {name}',
     'rewards.newBodyMany': 'You earned {n} new stickers!',
     'rewards.viewAlbum': 'See my album',
@@ -1007,7 +1017,7 @@ const I18N = {
 
     // rewards: credits and the sticker album
     'rewards.title': 'Aking mga Sticker',
-    'rewards.hint': 'May 1 credit ka sa bawat tamang sagot. Abutin ang numero ng sticker at sa iyo na ito.',
+    'rewards.hint': 'May 1 credit ka sa bawat tamang sagot, at 1 pa kada araw para sa pag-react sa kwento, pagbasa nito, at pagtapos ng laro. Abutin ang numero ng sticker at sa iyo na ito.',
     'rewards.credits': 'credits',
     'rewards.creditOne': 'credit',
     'rewards.next': 'Susunod na sticker',
@@ -1015,6 +1025,14 @@ const I18N = {
     'rewards.locked': 'Naka-lock',
     'rewards.complete': 'Nakuha mo na ang buong album! 🏆',
     'rewards.newTitle': 'Bagong sticker!',
+
+    // credits: ang tatlo na nagre-reset araw-araw
+    'credits.todayLeft': '{n} pa ngayon',
+    'credits.todayDone': 'Nakuha mo lahat ng 3 ngayon — ang galing!',
+    'credits.seeAlbum': 'Tingnan ang mga sticker ko',
+    'credits.kind.reaction': 'Mag-react sa kwento',
+    'credits.kind.reading': 'Magbasa ng kwento',
+    'credits.kind.game': 'Tapusin ang laro',
     'rewards.newBody': 'Nakuha mo ang {name}',
     'rewards.newBodyMany': 'Nakakuha ka ng {n} bagong sticker!',
     'rewards.viewAlbum': 'Tingnan ang album ko',
@@ -1532,7 +1550,7 @@ const I18N = {
 
     // rewards: credits and the sticker album
     'rewards.title': '我的贴纸',
-    'rewards.hint': '每答对一题得 1 分。攒到贴纸所需的分数，它就是你的了。',
+    'rewards.hint': '每答对一题得 1 分；每天回应故事、阅读故事、完成一局游戏，各再得 1 分。攒到贴纸所需的分数，它就是你的了。',
     'rewards.credits': '分',
     'rewards.creditOne': '分',
     'rewards.next': '下一张贴纸',
@@ -1540,6 +1558,14 @@ const I18N = {
     'rewards.locked': '未解锁',
     'rewards.complete': '你集齐了整本贴纸！🏆',
     'rewards.newTitle': '新贴纸！',
+
+    // credits：每天重置的三项
+    'credits.todayLeft': '今天还剩 {n} 项',
+    'credits.todayDone': '今天三项都拿到了——真棒！',
+    'credits.seeAlbum': '查看我的贴纸',
+    'credits.kind.reaction': '回应故事',
+    'credits.kind.reading': '阅读故事',
+    'credits.kind.game': '完成一局游戏',
     'rewards.newBody': '你获得了 {name}',
     'rewards.newBodyMany': '你获得了 {n} 张新贴纸！',
     'rewards.viewAlbum': '看我的贴纸册',
@@ -2054,7 +2080,7 @@ const I18N = {
 
     // rewards
     'rewards.title': 'Stiker Saya',
-    'rewards.hint': 'Anda mendapat 1 kredit untuk setiap jawaban benar. Capai angka sebuah stiker dan stiker itu jadi milik Anda.',
+    'rewards.hint': 'Anda mendapat 1 kredit untuk setiap jawaban benar, dan 1 lagi setiap hari untuk bereaksi terhadap cerita, membacanya, dan menyelesaikan permainan. Capai angka sebuah stiker dan stiker itu jadi milik Anda.',
     'rewards.credits': 'kredit',
     'rewards.creditOne': 'kredit',
     'rewards.next': 'Stiker berikutnya',
@@ -2062,6 +2088,14 @@ const I18N = {
     'rewards.locked': 'Terkunci',
     'rewards.complete': 'Anda mengumpulkan seluruh album! 🏆',
     'rewards.newTitle': 'Stiker baru!',
+
+    // credits: tiga yang berreset setiap hari
+    'credits.todayLeft': 'Sisa {n} hari ini',
+    'credits.todayDone': 'Ketiganya didapat hari ini — hebat!',
+    'credits.seeAlbum': 'Lihat stiker saya',
+    'credits.kind.reaction': 'Bereaksi pada cerita',
+    'credits.kind.reading': 'Baca cerita',
+    'credits.kind.game': 'Selesaikan permainan',
     'rewards.newBody': 'Anda mendapat {name}',
     'rewards.newBodyMany': 'Anda mendapat {n} stiker baru!',
     'rewards.viewAlbum': 'Lihat album saya',

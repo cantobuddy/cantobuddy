@@ -196,6 +196,26 @@
       </p>
       <div id="admin-practice-only" hidden></div>
 
+      <h4 class="admin-subhead">Games</h4>
+      <p class="admin-hint">
+        Who plays, alone or at a table, and how often they come back. Counts are
+        keyed on the device identity — two helpers who share a name are two
+        people. Every number here comes from <em>game_results</em>, which is
+        written once per player per finished game.
+      </p>
+      <div id="admin-games-totals" class="stats-grid"></div>
+      <div id="admin-games-chart" class="report-chart"></div>
+      <div id="admin-games-notes" class="report-notes"></div>
+      <div id="admin-games-table" class="admin-list"></div>
+      <p class="admin-hint">
+        <strong>One thing this cannot tell you:</strong> how many minutes a game
+        takes. There is no rooms table — rooms live in memory and die with the
+        process — so there is no "room opened" instant to subtract from "result
+        written". The session span below is the whole app, from the first thing
+        she did that day to the last, and it is labelled that way everywhere it
+        appears. It is the closest honest measure available, not a game timer.
+      </p>
+
       <h4 class="admin-subhead">Top landing pages</h4>
       <p class="admin-hint">
         Where visitors arrive from search. Page views are counted anonymously —
@@ -212,6 +232,8 @@
         <a class="btn btn-outline btn-sm" href="/api/admin/report.csv?type=daily">Daily activity</a>
         <a class="btn btn-outline btn-sm" href="/api/admin/report.csv?type=visitors">Visitors</a>
         <a class="btn btn-outline btn-sm" href="/api/admin/report.csv?type=practice_only">Practice only</a>
+        <a class="btn btn-outline btn-sm" href="/api/admin/report.csv?type=games">Games by game</a>
+        <a class="btn btn-outline btn-sm" href="/api/admin/report.csv?type=games_players">Games summary</a>
       </div>
     </div>
 

@@ -1359,6 +1359,173 @@ function renderGamesHub() {
   if (!row) return;
   row.innerHTML = GAMES_CATALOG.map(gameTile).join('');
   renderGamesCreditStrip();
+  renderGamesStory();
+}
+
+/* ---- The story card: how to play with a friend ----------------------------
+   Four moves, in the order they happen, drawn on a phone she recognises:
+   create a room, read the code, share the link, friend joins.
+
+   WHY IT EXISTS. The hub's lead sentence — "one person makes a room and sends
+   the code to the rest" — is the whole product, and it is also the whole
+   problem: it does not say what a room IS, where the code appears, or what she
+   is meant to DO with it. So she opens UNO, meets a form and a four-letter
+   field, and leaves. Text has already failed here; this shows the moves.
+
+   HOW IT ADVANCES. The step change is driven by the progress bar's own
+   `animationend` rather than by a second timer. One clock for both the bar and
+   the step means they cannot drift apart, and pausing the animation pauses the
+   story with no extra bookkeeping — see .games-story.is-paused in styles.css.
+   Under `prefers-reduced-motion` the animation is switched off entirely, so
+   the card sits on step one and the dots are the only way through. That is the
+   intended behaviour for that reader, not a degraded fallback.
+
+   The stage is `aria-hidden` decoration: every word a screen reader needs is
+   in the caption below it, which is why the animation can be skipped without
+   losing the story. */
+const GAMES_STORY_MS = 5200;
+const GAMES_STORY_CODE = 'K7QM';
+let _storyStep = 0;
+let _storyPaused = false;
+
+/* One scene per move. Each returns the markup for a miniature phone (or two)
+   whose own animations run while the scene is on screen — the tap on the
+   create button, the code popping in, the share sheet rising, the link flying
+   from one phone to the other. The sample code is a fixed string on purpose:
+   a random one would change on every language switch and every step, and a
+   story that cannot be recognised is not a story. */
+const GAMES_STORY_SCENES = [
+  // 1 — the lobby: type a name, tap Create a room.
+  () => `
+    <div class="gs-phone">
+      <div class="gs-screen">
+        <div class="gs-appbar"><span class="gs-appdot"></span>UNO</div>
+        <div class="gs-field"><span class="gs-typed">${escapeHtml(t('games.story1Name'))}</span><span class="gs-caret"></span></div>
+        <div class="gs-btn"><span>${escapeHtml(t('games.story1Btn'))}</span><span class="gs-ripple"></span><span class="gs-tap"></span></div>
+      </div>
+    </div>`,
+  // 2 — the room answers with a four-letter code.
+  () => `
+    <div class="gs-phone">
+      <div class="gs-screen gs-screen-mid">
+        <div class="gs-seats">
+          <span class="gs-avatar gs-ava-me">M</span>
+          <span class="gs-avatar gs-ava-wait">?</span>
+        </div>
+        <div class="gs-code">
+          <small>${escapeHtml(t('games.story2Label'))}</small>
+          <strong>${GAMES_STORY_CODE}</strong>
+          <span class="gs-chain">🔗</span>
+          <span class="gs-shine"></span>
+        </div>
+        <small class="gs-codehint">${escapeHtml(t('games.story2Hint'))}</small>
+      </div>
+    </div>`,
+  // 3 — tapping the code raises the share sheet.
+  () => `
+    <div class="gs-phone">
+      <div class="gs-screen">
+        <div class="gs-code gs-code-dim"><strong>${GAMES_STORY_CODE}</strong><span class="gs-chain">🔗</span></div>
+        <div class="gs-sheet">
+          <span class="gs-grip"></span>
+          <span class="gs-row gs-row-wa"><span class="gs-ico">💬</span>WhatsApp</span>
+          <span class="gs-row"><span class="gs-ico">🔗</span>${escapeHtml(t('games.story3Copy'))}</span>
+          <span class="gs-row"><span class="gs-ico">⋯</span>${escapeHtml(t('games.story3More'))}</span>
+        </div>
+      </div>
+    </div>`,
+  // 4 — the friend opens the link and takes a seat.
+  () => `
+    <div class="gs-pair">
+      <div class="gs-phone">
+        <div class="gs-screen">
+          <div class="gs-seats">
+            <span class="gs-avatar gs-ava-me">M</span>
+            <span class="gs-avatar gs-ava-friend">A</span>
+          </div>
+          <div class="gs-count">2 / 4</div>
+          <div class="gs-btn gs-btn-go">${escapeHtml(t('games.story4Start'))}</div>
+        </div>
+      </div>
+      <div class="gs-phone">
+        <div class="gs-screen">
+          <div class="gs-field gs-field-code">${GAMES_STORY_CODE}</div>
+          <div class="gs-field"><span class="gs-typed gs-typed-b">Ana</span><span class="gs-caret"></span></div>
+          <div class="gs-btn gs-btn-go">${escapeHtml(t('games.story4Join'))}</div>
+        </div>
+      </div>
+      <span class="gs-fly">🔗</span>
+    </div>`,
+];
+
+/** Draw the current scene, its caption and its dot, and restart the bar. */
+function renderGamesStory() {
+  const stage = document.getElementById('games-story-stage');
+  const cap = document.getElementById('games-story-caption');
+  const dots = document.getElementById('games-story-dots');
+  const fill = document.getElementById('games-story-fill');
+  if (!stage || !cap || !dots) return;
+
+  const total = GAMES_STORY_SCENES.length;
+  stage.innerHTML = GAMES_STORY_SCENES[_storyStep]();
+  cap.textContent = t('games.story' + (_storyStep + 1));
+
+  dots.innerHTML = GAMES_STORY_SCENES.map((_, n) => {
+    const on = n === _storyStep;
+    const label = t('games.storyStepOf').replace('{n}', n + 1).replace('{total}', total);
+    return `<button type="button" class="games-story-dot${on ? ' is-on' : ''}"`
+      + ` aria-label="${escapeHtml(label)}"${on ? ' aria-current="true"' : ''}`
+      + ` onclick="showStoryStep(${n})"></button>`;
+  }).join('');
+
+  // Restart the progress bar. Writing `none` and then clearing it does nothing
+  // unless a layout is forced in between, or the browser batches both writes
+  // into one frame and the animation never sees a change.
+  if (fill) {
+    fill.style.animation = 'none';
+    void fill.offsetWidth;
+    fill.style.animation = '';
+  }
+
+  // Wired once, on the first render, rather than on every language switch.
+  if (fill && !fill.dataset.wired) {
+    fill.dataset.wired = '1';
+    fill.addEventListener('animationend', () => {
+      if (!_storyPaused) showStoryStep(_storyStep + 1);
+    });
+  }
+
+  updateStoryPlayBtn();
+}
+
+/** Jump to a step (wrapping), used by the dots and by the auto-advance. */
+function showStoryStep(n) {
+  const total = GAMES_STORY_SCENES.length;
+  _storyStep = ((n % total) + total) % total;
+  renderGamesStory();
+}
+
+/**
+ * The play/pause control.
+ *
+ * It pauses the CSS animation rather than clearing a timer, so the bar and the
+ * step stay on the same clock and resuming continues from where it stopped —
+ * a story that jumps forward when you unpause it has not been paused.
+ */
+function toggleStoryPlay() {
+  _storyPaused = !_storyPaused;
+  const card = document.getElementById('games-story');
+  if (card) card.classList.toggle('is-paused', _storyPaused);
+  updateStoryPlayBtn();
+}
+
+function updateStoryPlayBtn() {
+  const btn = document.getElementById('games-story-play');
+  if (!btn) return;
+  const key = _storyPaused ? 'games.storyPlay' : 'games.storyPause';
+  btn.textContent = _storyPaused ? '▶' : '❚❚';
+  btn.title = t(key);
+  btn.setAttribute('aria-label', t(key));
 }
 
 /**

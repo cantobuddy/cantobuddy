@@ -1408,6 +1408,430 @@ a.game-tile:active { transform: scale(0.96); background: var(--c-primary-tint); 
   text-align: center;
 }
 
+/* ---- The story card: how to play with a friend ---------------------------
+   A four-step animated walkthrough of the room-code flow, sitting under the
+   games row. Everything inside .gs-* is a miniature of the real screens — the
+   phone, the code chip, the share sheet — drawn in CSS so it costs no images
+   and scales with the theme tokens.
+
+   The text inside the mock is deliberately tiny (8–14px). It is a PICTURE of
+   a phone, not an interface: reading it is not the point, recognising the
+   shape of it is. The words that matter are in the caption below, at normal
+   size, and the stage is aria-hidden so nothing here is announced twice. */
+.games-story {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  padding: 13px 14px 12px;
+  margin: 14px 0 0;
+}
+.games-story-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.games-story-title {
+  font-size: 0.98rem;
+  font-weight: 800;
+  line-height: 1.3;
+}
+.games-story-play {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--c-border);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--c-text-soft);
+  font-size: 0.72rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.games-story-play:hover {
+  color: var(--c-primary);
+  border-color: var(--c-primary);
+}
+
+/* The stage holds the mock. Its height is fixed so the four scenes — one
+   phone, then two — swap without the card resizing under the reader's thumb. */
+.games-story-stage {
+  display: grid;
+  place-items: center;
+  min-height: 164px;
+  margin: 8px 0 2px;
+}
+
+/* The caption carries the story. Three lines are reserved whatever the
+   language: a card that grows and shrinks as the steps turn reads as broken,
+   and the four captions are different lengths in every one of the four
+   languages (Filipino runs longest, Chinese shortest). */
+.games-story-caption {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(0.88rem * 1.55 * 3);
+  font-size: 0.88rem;
+  line-height: 1.55;
+  text-align: center;
+  color: var(--c-text);
+}
+
+.games-story-bar {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--c-border);
+  overflow: hidden;
+  margin-top: 10px;
+}
+.games-story-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--c-primary);
+  transform-origin: left center;
+  animation: gs-fill 5.2s linear forwards;
+}
+@keyframes gs-fill {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+/* The dots are 30px tap targets around an 8px mark — a bare 8px dot is not
+   something a thumb can choose, and this is the only manual control over the
+   story. */
+.games-story-dots {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 8px;
+}
+.games-story-dot {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.games-story-dot::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--c-border);
+  transition: background 0.2s, transform 0.2s;
+}
+.games-story-dot.is-on::before {
+  background: var(--c-primary);
+  transform: scale(1.4);
+}
+
+/* ---- The miniature phone ------------------------------------------------ */
+.gs-phone {
+  width: 96px;
+  padding: 5px;
+  border-radius: 14px;
+  background: var(--c-text);
+  box-shadow: 0 4px 14px var(--c-shadow-lg);
+}
+.gs-screen {
+  position: relative;
+  height: 150px;
+  border-radius: 10px;
+  background: var(--c-bg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 8px;
+  font-size: 8px;
+  line-height: 1.25;
+  text-align: center;
+}
+/* Scene two has no button to pin to the bottom, so its three elements would
+   otherwise sit in a row across the top of an otherwise empty screen. */
+.gs-screen-mid { justify-content: center; }
+.gs-appbar {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-weight: 800;
+  font-size: 9px;
+  color: var(--c-text);
+}
+.gs-appdot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--c-primary);
+}
+.gs-field {
+  width: 100%;
+  min-height: 17px;
+  padding: 3px 5px;
+  border: 1px solid var(--c-border);
+  border-radius: 5px;
+  background: var(--c-surface);
+  color: var(--c-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+.gs-field-code {
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: var(--c-primary);
+}
+.gs-typed {
+  opacity: 0;
+  animation: gs-typed 0.5s ease-out 0.5s forwards;
+}
+.gs-typed-b { animation-delay: 1.1s; }
+@keyframes gs-typed {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.gs-caret {
+  width: 1px;
+  height: 9px;
+  background: var(--c-text);
+  animation: gs-caret 1s steps(1) infinite;
+}
+@keyframes gs-caret {
+  0%, 49%  { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+.gs-btn {
+  position: relative;
+  width: 100%;
+  margin-top: auto;
+  padding: 6px 4px;
+  border-radius: 6px;
+  background: var(--c-primary);
+  color: #fff;
+  font-weight: 700;
+  font-size: 8px;
+  overflow: hidden;
+}
+.gs-btn-go { background: var(--c-secondary); }
+
+/* The tap: a ring that closes on the button and a ripple that spreads from
+   the point of contact, then the whole thing repeats — the scene is a loop of
+   the same two-second action, which is what makes it read as "press this". */
+.gs-tap {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  animation: gs-tap 2.4s ease-out infinite;
+}
+@keyframes gs-tap {
+  0%   { transform: scale(2.6); opacity: 0; }
+  18%  { transform: scale(1);   opacity: 0.95; }
+  34%  { transform: scale(0.9); opacity: 0.95; }
+  50%  { transform: scale(2.2); opacity: 0; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+.gs-ripple {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.75);
+  animation: gs-ripple 2.4s ease-out infinite;
+}
+@keyframes gs-ripple {
+  0%, 30% { transform: scale(0); opacity: 0; }
+  38%     { transform: scale(0); opacity: 0.9; }
+  70%     { transform: scale(7); opacity: 0; }
+  100%    { transform: scale(7); opacity: 0; }
+}
+
+/* The code chip: it pops in, then a shine sweeps across it once per loop. */
+.gs-seats {
+  display: flex;
+  gap: 6px;
+}
+.gs-avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 8px;
+  font-weight: 800;
+  color: #fff;
+  background: var(--c-secondary);
+}
+.gs-ava-me { background: var(--c-primary); }
+.gs-ava-wait {
+  background: var(--c-surface);
+  border: 1px dashed var(--c-border);
+  color: var(--c-text-soft);
+}
+.gs-ava-friend { background: var(--c-accent); color: var(--c-text); }
+.gs-count {
+  font-size: 7px;
+  font-weight: 700;
+  color: var(--c-text-soft);
+}
+.gs-code {
+  position: relative;
+  width: 100%;
+  padding: 6px 4px 5px;
+  border-radius: 8px;
+  border: 1px solid var(--c-border);
+  background: var(--c-surface);
+  overflow: hidden;
+  animation: gs-pop 0.55s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+.gs-code small {
+  display: block;
+  font-size: 6.5px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--c-text-soft);
+}
+.gs-code strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 2.5px;
+  color: var(--c-primary);
+}
+.gs-codehint {
+  font-size: 6.5px;
+  color: var(--c-text-soft);
+}
+.gs-chain {
+  position: absolute;
+  right: 4px;
+  top: 4px;
+  font-size: 8px;
+}
+.gs-shine {
+  position: absolute;
+  left: -40%;
+  top: 0;
+  width: 30%;
+  height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.85), transparent);
+  animation: gs-shine 2.8s ease-in-out 1s infinite;
+}
+@keyframes gs-pop {
+  from { transform: scale(0.6); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+@keyframes gs-shine {
+  0%        { left: -40%; }
+  55%, 100% { left: 120%; }
+}
+
+/* Step three: the share sheet rises from the bottom of the mock. */
+.gs-code-dim {
+  animation: none;
+  opacity: 0.55;
+}
+.gs-code-dim strong { font-size: 11px; }
+.gs-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 5px 7px 7px;
+  border-radius: 9px 9px 10px 10px;
+  background: var(--c-surface);
+  border-top: 1px solid var(--c-border);
+  box-shadow: 0 -3px 10px var(--c-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  animation: gs-rise 0.5s cubic-bezier(0.2, 0.9, 0.3, 1) 0.7s both;
+}
+.gs-grip {
+  width: 22px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--c-border);
+  margin: 0 auto 1px;
+}
+.gs-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 5px;
+  border-radius: 5px;
+  background: var(--c-bg);
+  font-size: 7.5px;
+  font-weight: 600;
+  color: var(--c-text);
+}
+.gs-ico { font-size: 9px; }
+.gs-row-wa { background: #dcf8c6; }
+@keyframes gs-rise {
+  from { transform: translateY(105%); }
+  to   { transform: translateY(0); }
+}
+
+/* Step four: two phones, and the link flying between them. */
+.gs-pair {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.gs-fly {
+  position: absolute;
+  left: 56px;
+  top: 24%;
+  font-size: 12px;
+  animation: gs-fly 2.6s ease-in-out 1s infinite;
+}
+@keyframes gs-fly {
+  0%        { transform: translateX(0) scale(0.7); opacity: 0; }
+  15%       { transform: translateX(10px) scale(1); opacity: 1; }
+  70%       { transform: translateX(78px) scale(1); opacity: 1; }
+  90%, 100% { transform: translateX(88px) scale(0.7); opacity: 0; }
+}
+
+/* ---- Pause, and the readers who asked for less movement ------------------
+   Pausing is one rule: every animation in the card stops where it is, the
+   progress bar included, and resuming continues from that exact point. There
+   is no second timer to get out of step, because there is no second timer. */
+.games-story.is-paused .games-story-fill,
+.games-story.is-paused .gs-phone *,
+.games-story.is-paused .gs-fly {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* No auto-advance: with the progress animation switched off, its
+     animationend never fires, so the story waits on step one for a tap on a
+     dot. The card is still fully readable — the scenes simply hold still. */
+  .games-story-fill { animation: none; transform: scaleX(1); }
+  .games-story .gs-phone *,
+  .games-story .gs-fly { animation: none !important; }
+  .gs-typed { opacity: 1; }
+  .gs-sheet { transform: translateY(0); }
+}
+
+
 /* ===========================================================================
    SHARE PAGE (#view-share)
    ---------------------------------------------------------------------------

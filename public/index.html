@@ -626,6 +626,40 @@
 
     <div class="games-row" id="games-row"><!-- filled by renderGamesHub() --></div>
 
+    <!-- ---- The story card: how to play with a friend --------------------
+         WHY IT EXISTS. The lead above says "one person makes a room and sends
+         the code to the rest" in a single sentence, and that sentence is the
+         whole product for anyone who has never used a room code. It does not
+         say what a room IS, where the code appears, or what she is supposed to
+         DO with it — so she opens UNO, meets a form and a four-letter field,
+         and leaves. This card shows the four moves instead of describing them,
+         in the order they happen, on a phone she recognises as her own.
+
+         It sits BELOW the games row rather than above it: the games are the
+         reason she opened this tab, and an explainer that pushes them off a
+         390px phone has explained nothing to anyone. The stage is decorative
+         (aria-hidden) and the caption carries the meaning, so the story is
+         still legible with the animation switched off — which is also what
+         prefers-reduced-motion gets, via styles.css. -->
+    <div class="games-story" id="games-story">
+      <div class="games-story-head">
+        <h3 class="games-story-title" data-i18n="games.storyTitle">How to play with a friend</h3>
+        <button class="games-story-play" id="games-story-play" type="button"
+                data-i18n="games.storyPause" data-i18n-attr="aria-label"
+                onclick="toggleStoryPlay()">❚❚</button>
+      </div>
+
+      <div class="games-story-stage" id="games-story-stage" aria-hidden="true"></div>
+
+      <p class="games-story-caption" id="games-story-caption"></p>
+
+      <div class="games-story-bar" id="games-story-bar">
+        <span class="games-story-fill" id="games-story-fill"></span>
+      </div>
+
+      <div class="games-story-dots" id="games-story-dots"></div>
+    </div>
+
     <p class="games-note" data-i18n="games.note">Four games are live now — UNO, Big Two, Word match and Sudoku.</p>
   </section>
 

@@ -153,7 +153,6 @@ const I18N = {
     'living.catTransport': 'Transport',
     'living.catChurches': 'Churches',
     'living.catBefore': 'Before You Come',
-    'living.reactTitle': 'Be the first to react',
     // Shown on a Living card that has no reactions and no comments yet. It is
     // deliberately an invitation, not a zero: an empty shelf should read as
     // "nobody has started" rather than "nobody came".
@@ -698,7 +697,6 @@ const I18N = {
     'living.catTransport': 'Transportasyon',
     'living.catChurches': 'Simbahan',
     'living.catBefore': 'Bago Dumating',
-    'living.reactTitle': 'Ikaw ang unang mag-react',
     'living.cardInvite': 'Ikaw ang unang mag-react',
     'living.creditEarned': '+{n} credit — isa kada araw sa pag-react',
     'living.creditRead': '+{n} credit — isa kada araw sa pagbasa',
@@ -1230,7 +1228,6 @@ const I18N = {
     'living.catTransport': '交通',
     'living.catChurches': '教会',
     'living.catBefore': '赴港前',
-    'living.reactTitle': '第一个来回应',
     'living.cardInvite': '第一个来回应',
     'living.creditEarned': '+{n} 积分，每天回应一次就有',
     'living.creditRead': '+{n} 积分，每天阅读一次就有',
@@ -1761,7 +1758,6 @@ const I18N = {
     'living.catTransport': 'Transportasi',
     'living.catChurches': 'Gereja',
     'living.catBefore': 'Sebelum Datang',
-    'living.reactTitle': 'Jadilah yang pertama bereaksi',
     'living.cardInvite': 'Jadilah yang pertama bereaksi',
     'living.creditEarned': '+{n} kredit — satu setiap hari untuk bereaksi',
     'living.creditRead': '+{n} kredit — satu setiap hari untuk membaca',

@@ -4941,7 +4941,20 @@ function renderLivingPage(post) {
   renderLivingComments();
 }
 
-/** The reaction bar: a summary (tap to open the picker) plus the Facebook set. */
+/**
+ * The reaction bar: every emoji, on screen, from the start.
+ *
+ * This used to be a summary pill reading "Be the first to react" that had to be
+ * TAPPED to reveal the seven choices. That put a click between a reader and the
+ * only action on the page, and worse, the pill looked like a status rather than
+ * an invitation — so most readers never tapped it and the passage collected no
+ * reactions at all. A row of emoji says "pick one" without being told to, which
+ * is the whole point of showing them.
+ *
+ * Chips that have a count are tinted so the eye lands on where the activity is;
+ * the ones still at zero stay quiet but visible, because a hidden emoji is a
+ * reaction nobody can give.
+ */
 function renderLivingReactions() {
   const host = document.getElementById('living-reactions');
   if (!host) return;
@@ -4949,32 +4962,20 @@ function renderLivingReactions() {
   const my = STATE.living.myReaction;
   const count = Object.values(reactions).reduce((a, b) => a + b, 0);
 
-  const chips = LIVING_REACTIONS
-    .filter((r) => (reactions[r.key] || 0) > 0 || r.key === my)
-    .map((r) => {
-      const n = reactions[r.key] || 0;
-      const active = r.key === my ? ' is-active' : '';
-      return `<button class="living-react-chip${active}" title="${escapeHtml(t(r.labelKey))}" onclick="reactLiving('${STATE.living.current.slug}', '${r.key}')">
-        <span class="living-react-emoji">${r.emoji}</span>${n ? `<span class="living-react-count">${n}</span>` : ''}
-      </button>`;
-    }).join('');
+  const chips = LIVING_REACTIONS.map((r) => {
+    const n = reactions[r.key] || 0;
+    const active = r.key === my ? ' is-active' : '';
+    const empty = n === 0 && r.key !== my ? ' is-empty' : '';
+    return `<button class="living-react-chip${active}${empty}" title="${escapeHtml(t(r.labelKey))}" onclick="reactLiving('${STATE.living.current.slug}', '${r.key}')">
+      <span class="living-react-emoji">${r.emoji}</span>${n ? `<span class="living-react-count">${n}</span>` : ''}
+    </button>`;
+  }).join('');
 
   host.innerHTML = `
-    <div class="living-react-summary" onclick="toggleLivingPicker()" role="button" tabindex="0">
+    <div class="living-react-summary">
       ${count ? `<span class="living-react-total">${count}</span>` : ''}
-      <span class="living-react-chips">${chips || `<span class="living-react-hint">${escapeHtml(t('living.reactTitle'))}</span>`}</span>
-    </div>
-    <div class="living-react-picker" id="living-react-picker" hidden>
-      ${LIVING_REACTIONS.map((r) => `
-        <button class="living-react-pick" title="${escapeHtml(t(r.labelKey))}" onclick="reactLiving('${STATE.living.current.slug}', '${r.key}')">${r.emoji}</button>
-      `).join('')}
+      <span class="living-react-chips">${chips}</span>
     </div>`;
-}
-
-/** Show/hide the reaction picker. */
-function toggleLivingPicker() {
-  const p = document.getElementById('living-react-picker');
-  if (p) p.hidden = !p.hidden;
 }
 
 /** Send (or toggle) a reaction, then repaint the bar from the server's state. */

@@ -658,7 +658,7 @@ async function renderAdminStats() {
   }
 }
 
-// ---- People: employers, their helpers, and learners with no employer --------
+// ---- People: employers and the helpers connected to them -------------------
 //
 // Read-only. The operator runs the service but is not a party to the consent
 // relationship, so this screen shows who is connected to whom and nothing more
@@ -675,6 +675,28 @@ function fmtDate(iso) {
   const d = new Date(iso);
   if (isNaN(d.getTime())) return '—';
   return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+/**
+ * "in 14 min" / "in 2 days" — how much longer a pairing window has.
+ *
+ * The badge used to be a bare "pairing open", which is exactly the problem: a
+ * window opened fourteen minutes ago and one opened three months ago looked
+ * identical, so the operator had no way to tell a live window from a forgotten
+ * one and learned to ignore all of them. Relative wording also keeps the chip
+ * short, which matters because it sits inline in a metadata line.
+ */
+function fmtUntil(iso) {
+  if (!iso) return '';
+  const ms = Date.parse(iso) - Date.now();
+  if (isNaN(ms)) return '';
+  if (ms <= 0) return 'now';
+  const mins = Math.round(ms / 60000);
+  if (mins < 60) return `in ${mins} min`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `in ${hours} hr`;
+  const days = Math.round(hours / 24);
+  return `in ${days} day${days === 1 ? '' : 's'}`;
 }
 
 /** A transient confirmation. The admin shell has no toast element, so make one. */
@@ -747,8 +769,10 @@ function employerCard(e) {
         </div>`).join('')
     : '<div class="helper-none">No helpers connected yet.</div>';
 
+  // The window is short by construction now, so say when it ends rather than
+  // leaving the operator to guess how long it has been sitting there.
   const deviceChip = e.reauth_open
-    ? ' <span class="status-chip status-accepted">pairing open</span>'
+    ? ` <span class="status-chip status-accepted">pairing open · closes ${fmtUntil(e.reauth_until)}</span>`
     : '';
 
   return `
@@ -791,11 +815,9 @@ async function openDeviceReauth(employerId) {
 async function renderAdminPeople() {
   const summaryEl = document.getElementById('admin-people-summary');
   const empEl = document.getElementById('admin-employers');
-  const unEl = document.getElementById('admin-unconnected');
   if (!empEl) return;
 
   empEl.innerHTML = '<div class="progress-empty">Loading…</div>';
-  unEl.innerHTML = '';
 
   try {
     const data = await apiGet('/api/admin/people');
@@ -812,28 +834,13 @@ async function renderAdminPeople() {
         <h4>Helpers connected</h4>
         <div class="stat-number">${t.helpers}</div>
         <div class="stat-label">linked to an employer</div>
-      </div>
-      <div class="stat-card">
-        <h4>No employer</h4>
-        <div class="stat-number">${t.unconnected}</div>
-        <div class="stat-label">using the app alone</div>
       </div>`;
 
     empEl.innerHTML = data.employers.length
       ? data.employers.map(employerCard).join('')
       : '<div class="progress-empty">No employer accounts yet.</div>';
-
-    unEl.innerHTML = data.unconnected.length
-      ? data.unconnected.map((l) => `
-          <div class="learner-stat">
-            <div class="learner-stat-name">👤 ${escapeHtml(l.display_name || 'Unnamed learner')}</div>
-            <div class="learner-stat-sub">last active ${fmtDate(l.last_seen_at)} · ${learnerLine(l.summary)}</div>
-            ${levelChips(l.summary && l.summary.byLevel)}
-          </div>`).join('')
-      : '<div class="progress-empty">Every learner is connected to an employer.</div>';
   } catch (err) {
     empEl.innerHTML = '<div class="progress-empty">Could not load the people overview.</div>';
-    unEl.innerHTML = '';
   }
 }
 

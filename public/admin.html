@@ -133,9 +133,13 @@
       <div id="admin-people-summary" class="stats-grid"></div>
       <div id="admin-employers" class="admin-list"></div>
 
-      <h3 class="admin-subhead">Learners with no employer</h3>
-      <p class="admin-hint">Helpers using the app on their own — not connected to anyone.</p>
-      <div id="admin-unconnected" class="admin-list"></div>
+      <!-- The "Learners with no employer" list that used to sit here is gone,
+           removed at the operator's request: a wall of "Unnamed learner" cards
+           with no way to act on any of them. Its summary card went with it, for
+           the same reason — a count of rows nobody can open is not a number
+           worth a card. /api/admin/people still returns the data, so this is a
+           presentation change only and the list can come back if it is ever
+           wanted. -->
     </div>
 
     <!-- ---- reports tab ---- -->

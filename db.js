@@ -48,6 +48,23 @@ const newsCategory = require('./news-category');
 const HKT_OFFSET_MS = 8 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+/**
+ * How long an employer pairing window may stay open. Three days.
+ *
+ * A window lets someone who can name an employer sign that employer in on a
+ * brand-new device, so its length is a security decision, and the operator pays
+ * for it in a different currency: every open window is a "pairing open" badge
+ * on the People tab. A badge that outlives its usefulness teaches the operator
+ * to ignore badges, which is the one outcome worse than a closed window. Three
+ * days is long enough for an employer who was told "click Allow new device" to
+ * actually do it, and short enough that a forgotten one clears itself.
+ *
+ * Enforced in two places so it cannot be argued around: openDeviceReauth clamps
+ * whatever it is handed, and the migration ceiling below retires anything that
+ * somehow got further out than this.
+ */
+const PAIRING_WINDOW_MS = 3 * DAY_MS;
+
 /** The Hong Kong calendar date (YYYY-MM-DD) for an instant. */
 const hktDate = (ms) => new Date(ms + HKT_OFFSET_MS).toISOString().slice(0, 10);
 
@@ -841,12 +858,20 @@ function migrateSchema() {
      shown once and never recoverable, so a forgotten code meant permanent
      lock-out. Sign-in is now name + a device token stored in the browser. To
      avoid stranding every existing employer at deploy, any employer who has no
-     trusted device yet is given a 90-day pairing window: their next name-only
-     sign-in on their own browser links that device and closes the window. The
-     window is the only reason a foreign machine typing the name gets in during
-     the gap, and it shuts the moment the real employer signs in once. */
+     trusted device yet is given a pairing window: their next name-only sign-in
+     on their own browser links that device and closes the window. The window is
+     the only reason a foreign machine typing the name gets in during the gap,
+     and it shuts the moment the real employer signs in once.
+
+     The window is THREE DAYS, not ninety. Ninety was the original value and it
+     was wrong for a reason worth writing down: the badge is the only thing an
+     operator sees, so a window nobody used did not read as "stale" — it read as
+     "this employer is permanently pairing", on employers who had never signed in
+     at all. A window that outlives the reason it was opened is not a safety
+     net, it is a lie about the state of the account. The operator can always
+     open a fresh one with "Allow new device". */
   if (!db.prepare("SELECT value FROM meta WHERE key = 'employer_device_migration'").get()) {
-    const openUntil = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
+    const openUntil = new Date(Date.now() + PAIRING_WINDOW_MS).toISOString();
     const migrated = db
       .prepare(
         `UPDATE users
@@ -858,6 +883,33 @@ function migrateSchema() {
       .run(openUntil);
     db.prepare("INSERT OR REPLACE INTO meta (key, value) VALUES ('employer_device_migration', '1')").run();
     if (migrated.changes) changes.push(`opened device pairing for ${migrated.changes} existing employer(s)`);
+  }
+
+  /* Retire the 90-day windows the migration above used to grant.
+     This runs once, after that migration, and it is the whole point of the
+     exercise: the deploy that shipped 90-day windows left every device-less
+     employer wearing a "pairing open" badge for three months, and most of them
+     had never signed in even once. An operator reading that list cannot tell a
+     live window from a forgotten one, so the badge stopped meaning anything.
+
+     The test is "expires more than three days from now", which is exactly the
+     set of windows nobody can still be inside. A window the operator opened by
+     hand runs fifteen minutes, so it expires minutes from now and is untouched
+     by this — only the long-granted ones are cleared. Closing one costs nothing:
+     "Allow new device" opens a fresh window whenever a real employer turns up. */
+  if (!db.prepare("SELECT value FROM meta WHERE key = 'employer_pairing_ceiling'").get()) {
+    const ceiling = new Date(Date.now() + PAIRING_WINDOW_MS).toISOString();
+    const retired = db
+      .prepare(
+        `UPDATE users
+           SET device_reauth_open_until = NULL
+         WHERE role = 'employer'
+           AND device_reauth_open_until IS NOT NULL
+           AND device_reauth_open_until > ?`
+      )
+      .run(ceiling);
+    db.prepare("INSERT OR REPLACE INTO meta (key, value) VALUES ('employer_pairing_ceiling', '1')").run();
+    if (retired.changes) changes.push(`retired ${retired.changes} stale pairing window(s)`);
   }
 
   /* Referral attribution.
@@ -3574,9 +3626,26 @@ function countDevices(employerId) {
   return S.countDevicesByEmployer.get(employerId).n;
 }
 
-/** Open a pairing window for `minutes` so an unrecognised device can link. */
+/**
+ * Open a pairing window for `minutes` so an unrecognised device can link.
+ *
+ * Clamped at both ends rather than trusted. The caller is an authenticated
+ * operator and the default is fifteen minutes, so in practice neither guard
+ * fires — they exist because the cost of a bad window is paid later, by whoever
+ * reads the People tab and sees a badge that will not go away.
+ *
+ *   - Above the ceiling, a request for a year is a bug or a mistake, and the
+ *     answer is three days either way.
+ *   - At or below zero, `Number(x) || 15` used to let -500 straight through and
+ *     write a window that expired BEFORE it was opened — which reads as "never
+ *     paired" forever after, the exact stale badge this whole mechanism exists
+ *     to prevent. Non-positive and non-numeric both fall back to the default.
+ */
 function openDeviceReauth(employerId, minutes) {
-  const until = new Date(Date.now() + (Number(minutes) || 15) * 60000).toISOString();
+  const requested = Number(minutes);
+  const sane = Number.isFinite(requested) && requested > 0 ? requested : 15;
+  const capped = Math.min(sane, PAIRING_WINDOW_MS / 60000);
+  const until = new Date(Date.now() + capped * 60000).toISOString();
   S.updateUserReauth.run(until, employerId);
   return until;
 }
@@ -4792,6 +4861,7 @@ function getPeopleOverview() {
   const employers = S.listEmployers.all().map((u) => {
     const active = S.listLinksByEmployer.all(u.id);
     const all = S.listAllLinksByEmployer.all(u.id);
+    const reauthOpen = isDeviceReauthOpen(u.id);
     return {
       id: u.id,
       username: u.username,
@@ -4805,7 +4875,11 @@ function getPeopleOverview() {
       invitations_sent: S.countInvitationsByEmployer.get(u.id).n,
       invitations_pending: S.countPendingInvitationsByEmployer.get(u.id).n,
       device_count: countDevices(u.id),
-      reauth_open: isDeviceReauthOpen(u.id),
+      reauth_open: reauthOpen,
+      // When the window shuts, so the operator can tell a live badge from a
+      // stale one at a glance. Null when nothing is open — `reauth_open` is the
+      // boolean, this is the reason.
+      reauth_until: reauthOpen ? u.device_reauth_open_until : null,
       helpers: active.map((l) => ({
         link_id: l.id,
         learner_id: l.learner_id,

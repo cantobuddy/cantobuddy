@@ -21,6 +21,7 @@ const {
   SEED_CATEGORIES, SEED_VOCABULARY, SEED_SCENARIOS, SEED_USERS,
   MANDARIN_GLOSSES, CATEGORY_ZH_NAMES,
   INDONESIAN_GLOSSES, CATEGORY_ID_NAMES,
+  USAGE_NOTES,
   SEED_POSTS,
   SEED_LIVING,
   SEED_LIVING_COMMENTS,
@@ -1199,6 +1200,36 @@ function migrateSchema() {
     db.prepare("INSERT OR REPLACE INTO meta (key, value) VALUES ('vocab_indonesian_backfilled', ?)")
       .run(idGlossCount);
     if (filled) changes.push(`vocabulary.indonesian filled for ${filled} entr${filled === 1 ? 'y' : 'ies'}`);
+  }
+
+  /* Usage notes — the prose that makes a word page worth indexing.
+
+     THIS CANNOT RIDE ALONG WITH migrateContent(), and the reason is the whole
+     point of the map. migrateContent() is INSERT OR IGNORE: it can add a word
+     that is not on disk, and it can never touch one that is. Every word these
+     notes belong to is ALREADY on disk, so the insert path is guaranteed to be
+     a no-op and the notes would reach a fresh database only. The same trap that
+     the comment at line ~1146 records for the living passages.
+
+     Guarded on the SIZE of the overlay, not a boolean, for the reason spelled
+     out above the Mandarin block: a boolean would let batch 1 permanently block
+     batch 2, with a manual SQL edit in production as the only fix. Adding notes
+     to data.js is the intended workflow, so the guard has to be a count.
+
+     `usage_note = ''` in the WHERE, so an operator who has edited a note in the
+     admin screen keeps their wording — the same courtesy the gloss backfills
+     extend. */
+  const noteCount = String(Object.keys(USAGE_NOTES).length);
+  const noteState = db.prepare("SELECT value FROM meta WHERE key = 'vocab_usage_notes'").get();
+  if (!noteState || Number(noteState.value) < Number(noteCount)) {
+    const upd = db.prepare("UPDATE vocabulary SET usage_note = ?, updated_at = ? WHERE id = ? AND usage_note = ''");
+    const now = new Date().toISOString();
+    let filled = 0;
+    for (const [id, note] of Object.entries(USAGE_NOTES)) {
+      filled += upd.run(note, now, Number(id)).changes;
+    }
+    db.prepare("INSERT OR REPLACE INTO meta (key, value) VALUES ('vocab_usage_notes', ?)").run(noteCount);
+    if (filled) changes.push(`vocabulary.usage_note filled for ${filled} entr${filled === 1 ? 'y' : 'ies'}`);
   }
 
   // progress.learner_id used to reference users(id), which could never be

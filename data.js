@@ -2725,6 +2725,85 @@ const SEED_LIVING_COMMENTS = [
   },
 ];
 
+/* ===========================================================================
+   USAGE NOTES — the prose that makes a word page worth indexing
+   ===========================================================================
+
+   WHY THIS MAP EXISTS, AND WHY IT IS SEPARATE FROM SEED_VOCABULARY.
+
+   A word page used to carry exactly one sentence of prose, and that sentence
+   was a template: "<word> in Cantonese is <hanzi>, pronounced <jyutping>. It
+   belongs to the <category> group…". Four substituted variables do not make
+   334 pages distinct, and Google said so plainly — 268 /words/ URLs sat in
+   "Discovered - currently not indexed" with "Last crawled: N/A", and later 190
+   more in "Crawled - currently not indexed".
+
+   These notes are the fix. They are the only per-word text that is genuinely
+   written rather than generated, which is exactly what a page needs to stop
+   being thin. They are ALSO what the sitemap's lastmod keys on (see
+   wordLastmod() in seo.js) and what decides whether a word page renders a
+   "How it is used" section at all.
+
+   WHY AN OVERLAY RATHER THAN EDITING SEED_VOCABULARY IN PLACE:
+   migrateContent() is INSERT OR IGNORE, so it can never update a row that
+   already exists. A note added to an existing word in the array would reach a
+   FRESH database and silently never reach production. The overlay is applied by
+   its own UPDATE migration (db.js), guarded on the SIZE of this map — the same
+   mechanism MANDARIN_GLOSSES and INDONESIAN_GLOSSES already use, so adding a
+   batch later keeps working without touching the guard.
+
+   VOICE. One specific thing a learner would otherwise get wrong — a nuance,
+   a social rule, or a short example. Not a definition restated, and never a
+   sentence that would be equally true of any other word. If a note could be
+   pasted onto a different entry without anyone noticing, it is not a note.
+
+   COVERAGE. Batch 1: the 25 Greetings and Common entries, because those are
+   the words people actually search for ("how to say thank you in Cantonese").
+   262 of 334 words still have none; each batch added here makes its pages
+   indexable and dated automatically.
+   =========================================================================== */
+const USAGE_NOTES = {
+  // --- Greetings (11) ---
+  1: 'The textbook greeting, and mostly used that way — for a first meeting or a stranger. In a home where people see each other every morning, 早晨 is what is actually said.',
+  2: 'For a gift, a favour, or someone\'s time. The everyday mix-up is with 唔該: 多謝 is too heavy for a plate of food being set down, and 唔該 is too light for a present.',
+  3: 'The workhorse — please, thanks, and excuse me all at once. When someone puts a bowl in front of you, this is the word, not 多謝.',
+  4: 'Correct, and slightly formal. Leaving for the day, people usually say 我走先 ("I\'ll go first") or simply 拜拜.',
+  5: 'Also the verb "to be" before a noun: 佢係我老闆. Cantonese uses it far less than English uses "is" — most sentences need no verb at all.',
+  6: 'The standard "no". To contradict what someone just said, 唔係呀 with a falling tone is the everyday reply.',
+  7: 'Also "very" when placed before an adjective: 好熱 is very hot, not good-hot. And 好呀 is how you agree to something.',
+  8: 'Before a verb it is the everyday "don\'t": 唔好行 = don\'t go. Said to a child reaching for something, this is the word.',
+  121: 'The normal morning greeting in a household — not 你好. Said to the family, and to neighbours in the lift.',
+  122: 'Said when someone is going to bed, not when you leave in the evening. Literally "rest early".',
+  143: 'The polite full form. In daily life most people just say 唔使 or 唔緊要.',
+  144: 'For a real apology. For squeezing past someone, 唔該 or 唔好意思 is enough — 對唔住 would sound far too heavy.',
+  148: 'Said before interrupting an employer who is busy. For a small interruption, the shorter 唔好意思 carries the same meaning.',
+  149: 'What an employer says when leaving her alone with an elderly parent. Worth recognising even if she never has to say it back.',
+  151: 'The market and MTR version. In a crowd, 借借 on its own is enough.',
+  // --- Common (14) ---
+  14: 'Also "older" in family order — 大佬 is elder brother. 大聲 is loud, literally "big voice".',
+  15: 'The everyday spoken word for small in Hong Kong; 小 is the written form. 細佬 is a younger brother.',
+  152: 'Follows the noun: 人好多 = lots of people. Before a noun it means "many", as in 好多錢.',
+  153: '太 + adjective is the "too much" pattern — 太貴 too expensive, 太熱 too hot. This is its opposite number.',
+  154: 'The direct answer to a request. 冇 is the everyday "not have"; 唔有 does not exist.',
+  155: 'Also "let me": 等我幫你 = let me help you. Only the tone tells you which one is meant.',
+  156: 'Doubling it softens the request. Said to a person, or into a phone.',
+  157: 'The everyday "pardon?". 咩 is the casual "what"; 乜嘢 is the fuller form of the same word.',
+  158: 'The single most useful sentence for a new arrival. 啲 after an adjective makes the comparative — 慢啲 slower, 快啲 faster.',
+  159: 'Softer than a bare 我唔明. The 唔係好 pattern is how Cantonese makes a complaint gentle rather than blunt.',
+};
+
+/* Fresh databases get the notes here; EXISTING ones get them from the UPDATE
+   migration in db.js. Both paths are needed and neither is redundant:
+   migrateContent() INSERTs a new word with whatever usage_note it already
+   carries, while a word that is already on disk is only reachable by UPDATE.
+
+   `!v.usage_note` rather than an unconditional assign, so a note written
+   directly into SEED_VOCABULARY wins over this map — the array stays the
+   source of truth for anything that has already been hand-placed. */
+for (const v of SEED_VOCABULARY) {
+  if (!String(v.usage_note || '').trim() && USAGE_NOTES[v.id]) v.usage_note = USAGE_NOTES[v.id];
+}
+
 module.exports = {
   load,
   save,
@@ -2743,4 +2822,5 @@ module.exports = {
   CATEGORY_ZH_NAMES,
   INDONESIAN_GLOSSES,
   CATEGORY_ID_NAMES,
+  USAGE_NOTES,
 };

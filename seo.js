@@ -1717,6 +1717,23 @@ ${related
 
   const gloss = glossOf(w, lang);
 
+  /* "In Filipino" on the English page must show the FILIPINO gloss.
+   *
+   * It rendered w.english instead, so on a site built for Filipino helpers the
+   * one gloss that audience actually needs was replaced by the English they
+   * already understood. All 334 words carry a tagalog value and 323 of them
+   * differ from the English — so this was wrong on almost every page. It
+   * survived because 11 words happen to have tagalog === english
+   * (Chrysanthemum, Mooncake), and a spot-check landed on one of them.
+   *
+   * The fil/zh/id trees keep w.english, because their label genuinely reads
+   * "In English" (Sa Ingles / 英文 / Dalam bahasa Inggris) — there the English
+   * gloss is the correct answer, not a mistake.
+   *
+   * Falls back to the English when a word has no tagalog, so the row never
+   * renders empty. */
+  const otherGloss = lang === 'en' ? (String(w.tagalog || '').trim() || w.english) : w.english;
+
   /* THE UNIQUE PROSE THIS PAGE ALREADY HAD AND WAS THROWING AWAY.
    *
    * Without this block a word page carried exactly one sentence of prose, and
@@ -1780,7 +1797,7 @@ ${crumbs(lang, [
   <dt>${esc(t.cantonese)}</dt><dd>${esc(w.cantonese)}</dd>
   <dt>${esc(t.pronunciation)}</dt><dd>${esc(w.jyutping)}</dd>
   <dt>${esc(t.meaning)}</dt><dd>${esc(gloss)}</dd>
-  <dt>${esc(t.alsoSaid)}</dt><dd>${esc(w.english)}</dd>
+  <dt>${esc(t.alsoSaid)}</dt><dd>${esc(otherGloss)}</dd>
   ${w.mandarin && lang !== 'zh' ? `<dt>${esc(t.chinese || '中文')}</dt><dd lang="zh-Hans">${esc(w.mandarin)}</dd>` : ''}
   <dt>${esc(t.levelLabel)}</dt><dd><a href="${prefix}/level/${w.level}">${esc(levelName(w.level, lang))}</a></dd>
   <dt>${esc(t.categoryLabel)}</dt><dd><a href="${esc(catUrl)}">${esc(name)}</a></dd>

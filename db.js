@@ -539,6 +539,34 @@ db.exec(`
     ON posts(source_key) WHERE source_key IS NOT NULL;
   CREATE INDEX IF NOT EXISTS idx_posts_feed ON posts(status, channel, published_at DESC);
 
+  /* Tombstones for pruned posts.
+
+     WHY THIS EXISTS. pruneNewsPast() DELETES imported news after three days.
+     The row is gone, so /discover/:slug correctly answers 404 — but a 404 is a
+     weak statement: it says "not here right now", which is also what a typo or
+     a transient failure looks like. Search Console keeps those URLs in
+     "Not found (404)" for months, and the operator reads that bucket as a
+     fault even though the deletion was deliberate.
+
+     A tombstone lets the same URL answer 410 Gone instead: the same decision,
+     stated precisely. Google drops a 410 in weeks rather than months, and —
+     the part that matters more — the bucket stops being a mystery, because
+     every entry in it is a URL we retired on purpose.
+
+     ONLY THE SLUG IS KEPT. Remembering the body would defeat the prune this
+     table exists to record: the point of deleting a three-day-old wire story
+     is that it is not worth storing. The tombstone is a receipt, not an
+     archive.
+
+     Tombstones are themselves pruned by pruneGonePosts() after
+     GONE_POST_TTL_DAYS — long enough for Google to let go, short enough that
+     the table stays a few hundred rows. */
+  CREATE TABLE IF NOT EXISTS gone_posts (
+    slug    TEXT PRIMARY KEY,
+    gone_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_gone_posts_at ON gone_posts(gone_at);
+
   /* A helper's own story, submitted for publication.
 
      THE PRIVACY DECISION, AND WHY IT LIVES IN THE SCHEMA. A story is the first
@@ -2405,6 +2433,17 @@ const S = {
       WHERE channel = 'news' AND origin = 'auto'
         AND COALESCE(published_at, created_at) < ?`
   ),
+  /* Tombstones. Written in the same transaction as the DELETE that creates the
+     need for them — see pruneNewsPast(), where the order matters: mark first,
+     then delete, so a crash between the two leaves a tombstone for a row that
+     still exists (harmless: a live post answers 200 long before the tombstone
+     is consulted) rather than a deleted row with no receipt (a permanent 404). */
+  markPostGone: db.prepare(
+    'INSERT INTO gone_posts (slug, gone_at) VALUES (?, ?) ON CONFLICT(slug) DO NOTHING'
+  ),
+  getPostGone: db.prepare('SELECT slug FROM gone_posts WHERE slug = ?'),
+  deleteGoneBefore: db.prepare('DELETE FROM gone_posts WHERE gone_at < ?'),
+  countGonePosts: db.prepare('SELECT COUNT(*) AS n FROM gone_posts'),
   /* Published news counts per category, for the filter chips. 'all' is every
      published news row a learner can actually read, so the chip row can show
      "All news 41" beside "Work 12" — and a number that does not match the list
@@ -4002,6 +4041,16 @@ const POST_BODY_MAX = 20000;
  */
 const DEFAULT_NEWS_MAX_AGE_DAYS = 3;
 
+/**
+ * How long a tombstone is kept after a post is pruned. 180 days.
+ *
+ * A tombstone's only job is to turn a 404 into a 410 for long enough that
+ * Google stops asking. Google re-crawls a dead URL a handful of times and then
+ * gives up; six months is far past that, and it is short enough that the table
+ * never becomes an archive of every wire story the site has ever carried.
+ */
+const GONE_POST_TTL_DAYS = 180;
+
 const newsMaxAgeDays = () => {
   const raw = process.env.NEWS_MAX_AGE_DAYS;
   if (raw === undefined || raw === null || String(raw).trim() === '') return DEFAULT_NEWS_MAX_AGE_DAYS;
@@ -4319,8 +4368,53 @@ function pruneNewsPast({ days } = {}) {
     published_at: r.published_at || r.created_at,
   }));
   if (!pruned.length) return { removed: 0, pruned, days: windowDays };
-  S.deleteNewsOlderThan.run(cutoff);
+  /* Mark BEFORE deleting, and in the same transaction.
+     The two statements have to land together or the URL becomes a permanent
+     404 with no record of why. Marking first means the worst case is a
+     tombstone for a row that still exists — which is invisible, because a live
+     post is served by the 200 path and the tombstone is only consulted when
+     the row is missing. The other order would be a silent, unrecoverable 404. */
+  const goneAt = new Date().toISOString();
+  db.exec('BEGIN');
+  try {
+    for (const p of pruned) if (p.slug) S.markPostGone.run(p.slug, goneAt);
+    S.deleteNewsOlderThan.run(cutoff);
+    db.exec('COMMIT');
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
   return { removed: pruned.length, pruned, days: windowDays };
+}
+
+/**
+ * Was this slug retired on purpose?
+ *
+ * True only for a post that pruneNewsPast() deleted. The SEO layer uses it to
+ * answer 410 Gone rather than 404, so a URL we removed deliberately says so
+ * instead of looking like a typo. Never true for a post that still exists —
+ * callers check the row first.
+ */
+function isPostGone(slug) {
+  const s = String(slug || '').trim();
+  if (!s) return false;
+  return Boolean(S.getPostGone.get(s));
+}
+
+/**
+ * Drop tombstones older than GONE_POST_TTL_DAYS.
+ *
+ * The receipt has done its job once Google has stopped asking: a 410 only
+ * matters while the crawler is still revisiting the URL. Without this the
+ * table would grow by every wire story the site has ever carried, which is the
+ * exact unbounded growth the prune exists to prevent.
+ *
+ * @returns {{removed:number, days:number}}
+ */
+function pruneGonePosts() {
+  const cutoff = beforeIso(GONE_POST_TTL_DAYS);
+  const res = S.deleteGoneBefore.run(cutoff);
+  return { removed: Number(res.changes) || 0, days: GONE_POST_TTL_DAYS };
 }
 
 /**
@@ -5822,6 +5916,8 @@ module.exports = {
   deletePost,
   deleteNewsPostsFromSourcesNotIn,
   pruneNewsPast,
+  isPostGone,
+  pruneGonePosts,
   importPost,
   POST_CHANNELS,
   POST_STATUSES,

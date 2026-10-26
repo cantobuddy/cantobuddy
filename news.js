@@ -456,7 +456,21 @@ function retireUnshippedSources(sources = SOURCES) {
  * @returns {{removed:number, pruned:object[], days:number}}
  */
 function pruneExpiredNews(opts = {}) {
-  return db.pruneNewsPast(opts);
+  const out = db.pruneNewsPast(opts);
+  /* Sweep the tombstones in the same breath.
+   *
+   * Pruning writes a tombstone per deleted row so the URL can answer 410
+   * instead of 404 (see db.pruneNewsPast). Those receipts are themselves
+   * pruned after 180 days — but only if something calls the sweep, and this is
+   * the one place that runs on a schedule. Left uncalled, the table would grow
+   * by every wire story the site has ever carried, which is precisely the
+   * unbounded growth the news prune exists to prevent.
+   *
+   * Tied to the prune rather than to its own timer on purpose: the two are one
+   * housekeeping job, and a second timer would be a second thing that can be
+   * disabled without anyone noticing the first. */
+  out.gonePruned = db.pruneGonePosts().removed;
+  return out;
 }
 
 /**

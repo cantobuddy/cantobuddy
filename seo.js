@@ -47,6 +47,19 @@ const VOCAB_UPDATED = UPDATED;
 const SITE_ORIGIN = (process.env.SITE_ORIGIN || 'https://cantobuddy.com').replace(/\/+$/, '');
 
 /**
+ * Sentinel returned by a renderer whose page was RETIRED on purpose.
+ *
+ * The route table below turns a null return into 404 and this into 410. It is
+ * a Symbol rather than a string or an object so it can never be confused with
+ * rendered HTML — a page body is always a string, so `body === GONE` cannot be
+ * true by accident.
+ *
+ * Only /discover/:slug returns it today, from the tombstone check in
+ * renderPost(). Every other renderer returns a string or null.
+ */
+const GONE = Symbol('gone');
+
+/**
  * Google Search Console ownership token.
  *
  * The single highest-value SEO action is not on this site at all — it is
@@ -201,6 +214,8 @@ const L = {
     allWords: (n) => `All ${n} words`,
     wordsIn: (c) => `Words in ${c}`,
     relatedIn: (c) => `More ${c} words`,
+    howToUse: 'How it is used',
+    example: 'In a sentence',
     home: 'Home',
     pronunciation: 'Pronunciation',
     meaning: 'Meaning',
@@ -241,6 +256,8 @@ const L = {
     allWords: (n) => `Lahat ng ${n} salita`,
     wordsIn: (c) => `Mga salita sa ${c}`,
     relatedIn: (c) => `Iba pang salitang ${c}`,
+    howToUse: 'Paano ito ginagamit',
+    example: 'Sa isang pangungusap',
     home: 'Simula',
     pronunciation: 'Pagbigkas',
     meaning: 'Kahulugan',
@@ -288,6 +305,8 @@ const L = {
     allWords: (n) => `全部 ${n} 个词`,
     wordsIn: (c) => `${c}类词汇`,
     relatedIn: (c) => `更多${c}类词汇`,
+    howToUse: '用法',
+    example: '例句',
     home: '首页',
     pronunciation: '发音',
     meaning: '意思',
@@ -337,6 +356,8 @@ const L = {
     allWords: (n) => `Semua ${n} kata`,
     wordsIn: (c) => `Kata dalam ${c}`,
     relatedIn: (c) => `Kata ${c} lainnya`,
+    howToUse: 'Cara pemakaiannya',
+    example: 'Dalam kalimat',
     home: 'Beranda',
     pronunciation: 'Pelafalan',
     meaning: 'Arti',
@@ -1021,6 +1042,18 @@ a.chip:hover{border-color:var(--red);color:var(--red)}
 dl.meta{display:grid;grid-template-columns:auto 1fr;gap:8px 18px;margin:0;font-size:15px}
 dl.meta dt{color:var(--muted)}
 dl.meta dd{margin:0;font-weight:600}
+/* The usage note and example sentence on a word page. These are the only
+   blocks on the page that are NOT a template — the note is written per word,
+   so it gets prose rhythm rather than the tight definition-list spacing. */
+p.usage-note{max-width:66ch;font-size:16.5px;line-height:1.7;color:var(--ink);
+  margin:0 0 4px;padding-left:15px;border-left:3px solid var(--red)}
+figure.example{max-width:66ch;margin:0;padding:16px 18px;background:#fff;
+  border:1px solid var(--line);border-radius:10px}
+figure.example p{margin:0 0 6px}
+figure.example p:last-child{margin-bottom:0}
+figure.example .ex-yue{font-size:19px;font-weight:600;line-height:1.5}
+figure.example .ex-jp{font-size:14px;color:var(--muted);letter-spacing:.01em}
+figure.example .ex-en{font-size:15.5px;color:var(--ink)}
 footer.site{border-top:1px solid var(--line);margin-top:44px;padding:24px 0 40px;
   color:var(--muted);font-size:14px}
 footer.site a{color:var(--muted)}
@@ -1639,6 +1672,50 @@ ${related
 
   const gloss = glossOf(w, lang);
 
+  /* THE UNIQUE PROSE THIS PAGE ALREADY HAD AND WAS THROWING AWAY.
+   *
+   * Without this block a word page carried exactly one sentence of prose, and
+   * that sentence was a template: "<word> in Cantonese is <hanzi>, pronounced
+   * <jyutping>. It belongs to the <category> group…". Substituting four
+   * variables does not make 334 pages distinct, and Search Console said so
+   * plainly — 268 word URLs sat in "Discovered - currently not indexed" with
+   * "Last crawled: N/A", i.e. Google read the sitemap, looked at the cluster,
+   * and declined to spend budget on any of it.
+   *
+   * Meanwhile `usage_note` — the one field per word that is genuinely written
+   * by a human and genuinely differs ("The flower of the ninth month, so it
+   * belongs to Chongyang. Also the flower left at a grave — which is why it is
+   * not a flower you give someone for a birthday.") — was rendered NOWHERE.
+   * Not here, not in the app. 67 words carry one and none of it reached a
+   * crawler.
+   *
+   * The notes are English-only; the app's own convention is that a missing
+   * translation falls back to English rather than to nothing, so a Filipino or
+   * Chinese reader sees the English note under a localised heading. That is
+   * honest and it is strictly more than she got before.
+   *
+   * Words with neither a note nor an example still render without this block —
+   * no empty heading, no placeholder text. */
+  const usageNote = String(w.usage_note || '').trim();
+  const exampleYue = String(w.example_yue || '').trim();
+  const exampleJp = String(w.example_jyutping || '').trim();
+  const exampleEn = String(w.example_en || '').trim();
+  const hasExample = Boolean(exampleYue || exampleEn);
+
+  const usageBlock = usageNote
+    ? `<h2>${esc(t.howToUse)}</h2>
+<p class="usage-note">${esc(usageNote)}</p>`
+    : '';
+
+  const exampleBlock = hasExample
+    ? `<h2>${esc(t.example)}</h2>
+<figure class="example">
+  ${exampleYue ? `<p class="ex-yue" lang="yue">${esc(exampleYue)}</p>` : ''}
+  ${exampleJp ? `<p class="ex-jp">${esc(exampleJp)}</p>` : ''}
+  ${exampleEn ? `<p class="ex-en">${esc(exampleEn)}</p>` : ''}
+</figure>`
+    : '';
+
   const body = `
 ${crumbs(lang, [
     { label: t.categories, href: `${prefix}/learn` },
@@ -1663,6 +1740,8 @@ ${crumbs(lang, [
   <dt>${esc(t.levelLabel)}</dt><dd><a href="${prefix}/level/${w.level}">${esc(levelName(w.level, lang))}</a></dd>
   <dt>${esc(t.categoryLabel)}</dt><dd><a href="${esc(catUrl)}">${esc(name)}</a></dd>
 </dl>
+${usageBlock}
+${exampleBlock}
 ${ctaCard(lang)}
 ${relatedBlock}
 `;
@@ -2832,7 +2911,17 @@ function renderPost(lang, slug) {
   const post = store.getPostBySlug(slug);
   // A draft has no public page. Treating it as missing is the honest answer:
   // it is not "not ready", to a reader it does not exist.
-  if (!post || post.status !== 'published') return null;
+  if (!post || post.status !== 'published') {
+    /* A post we DELETED on purpose answers 410, not 404.
+       pruneNewsPast() retires imported news after three days, and a plain 404
+       makes that look like a typo — which is why the operator's Search Console
+       filled with "Not found (404)" entries that were all deliberate. The
+       tombstone says so explicitly and Google drops the URL in weeks instead
+       of months. An unknown slug still 404s: nothing was retired, it just is
+       not a page. */
+    if (store.isPostGone(slug)) return GONE;
+    return null;
+  }
 
   const title = postText(post, 'title', lang);
   const summary = postText(post, 'summary', lang);
@@ -2900,7 +2989,35 @@ ${ctaCard(lang)}
     path: `${prefix}/discover/${slug}`,
     jsonLd,
     body,
-    alternates: hreflangLinks((l) => `${LANG_PREFIX[l]}/discover/${slug}`),
+    /* IMPORTED NEWS IS NOINDEX, AND THAT IS THE POINT.
+     *
+     * The importer runs hourly and pruneNewsPast() deletes its rows after
+     * three days, so every imported article is a URL that is thin (a summary
+     * plus a link to the source — the body columns are never filled from a
+     * feed, for copyright reasons), duplicated from whoever wrote it, and
+     * guaranteed to 404 within 72 hours.
+     *
+     * Asking Google to index that was actively harmful, and the Search Console
+     * data proved it: ~25 of the 34 "Crawled - currently not indexed" pages
+     * were imported news, and another 24 URLs sat in "Not found (404)" after
+     * their rows were pruned. The site was spending its crawl budget on pages
+     * it would delete, and collecting error buckets for doing so.
+     *
+     * These pages are not hidden. They still render, still return 200, and are
+     * still linked from /discover — they exist for in-app freshness, which is
+     * what they are good at. They simply stop competing in the index, which
+     * frees crawl budget for the vocabulary pages that are meant to rank.
+     *
+     * `follow` stays on: the source attribution link is worth passing, and a
+     * noindex,follow page is still a useful hop.
+     *
+     * Operator-written news is NOT included: it never expires, so it is
+     * evergreen and indexable like any culture post. Same `origin === 'auto'`
+     * test the pruner uses, so the two cannot disagree about which rows die. */
+    noindex: post.origin === 'auto',
+    // hreflang is meaningless on a noindex page — Google ignores it, and
+    // emitting alternates that all point at noindex URLs only creates noise.
+    alternates: post.origin === 'auto' ? [] : hreflangLinks((l) => `${LANG_PREFIX[l]}/discover/${slug}`),
   });
 }
 
@@ -3896,6 +4013,10 @@ function mount(app) {
         }
         // An unknown slug is a real 404 — not a soft 200, which would let
         // Google index unlimited junk URLs.
+        // A RETIRED slug is a 410: same "not here", but it tells Google the
+        // removal was deliberate, so the URL leaves the index in weeks rather
+        // than lingering in "Not found (404)" for months. See renderPost().
+        if (body === GONE) return html(res, renderNotFound(lang), 410);
         if (!body) return html(res, renderNotFound(lang), 404);
         html(res, body);
       });

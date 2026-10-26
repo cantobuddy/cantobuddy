@@ -1267,11 +1267,15 @@ function hreflangLinks(pathFor) {
 
 /**
  * Build a full HTML document.
- * @param {object} o  {lang,title,description,path,jsonLd,body,noindex,alternates}
+ * @param {object} o  {lang,title,description,path,jsonLd,body,noindex,alternates,canonicalPath}
  */
 function page(o) {
   const lang = LANGS.includes(o.lang) ? o.lang : 'en';
-  const canonical = `${SITE_ORIGIN}${o.path}`;
+  // canonicalPath is an override for a page that is a genuine duplicate of
+  // another URL rather than a document in its own right — the untranslated post
+  // variants, which are the English article served at a second address. See
+  // isTranslated().
+  const canonical = `${SITE_ORIGIN}${o.canonicalPath || o.path}`;
 
   // hreflang alternates. Emitted only when the caller supplies a real set —
   // a self-referential pair with no real counterpart would be a lie.
@@ -2778,6 +2782,35 @@ function postText(post, field, lang) {
   return String(post[`${field}_en`] || '');
 }
 
+/**
+ * Is this language a real translation of the post, or English wearing a
+ * different language's chrome?
+ *
+ * WHY THIS MATTERS, AND WHY IT IS NOT PEDANTIC. postText() falls back to the
+ * English when a translation is missing, which is right for a reader — a
+ * Filipino helper would rather see English than an empty page. But it means
+ * /fil/discover/<slug> can be BYTE-IDENTICAL to /discover/<slug> while
+ * declaring itself canonical.
+ *
+ * That is the exact shape Google reported as "Duplicate, Google chose
+ * different canonical than user": it found two identical documents, each
+ * insisting it was the original, and overrode us. All 21 seeded posts have no
+ * Filipino and no Indonesian translation, so 42 URLs were in that state.
+ *
+ * A variant with no translated body AND no translated summary is not a
+ * translation. It is the English document at a second address, and it must say
+ * so — see the canonicalPath in renderPost().
+ *
+ * English is always "translated": it is the base the others fall back TO.
+ */
+function isTranslated(post, lang) {
+  if (lang === 'en') return true;
+  return Boolean(
+    String(post[`body_${lang}`] || '').trim() ||
+    String(post[`summary_${lang}`] || '').trim()
+  );
+}
+
 /** A locale-independent date, which is what belongs in server-rendered HTML. */
 function postDateShort(iso) {
   const d = new Date(iso || '');
@@ -2989,6 +3022,9 @@ function renderPost(lang, slug) {
   const summary = postText(post, 'summary', lang);
   const bodyHtml = sanitizeBodyHtml(postText(post, 'body', lang));
   const date = postDateShort(post.published_at || post.created_at);
+  // Does this tree actually translate the post, or is it the English text in
+  // another tree's clothing? Drives the canonical and the hreflang set below.
+  const translated = isTranslated(post, lang);
 
   // Attribution block, only when there is a source to attribute. Culture posts
   // have none, and an empty "Source:" line would be worse than no line.
@@ -3077,9 +3113,23 @@ ${ctaCard(lang)}
      * evergreen and indexable like any culture post. Same `origin === 'auto'`
      * test the pruner uses, so the two cannot disagree about which rows die. */
     noindex: post.origin === 'auto',
-    // hreflang is meaningless on a noindex page — Google ignores it, and
-    // emitting alternates that all point at noindex URLs only creates noise.
-    alternates: post.origin === 'auto' ? [] : hreflangLinks((l) => `${LANG_PREFIX[l]}/discover/${slug}`),
+    /* hreflang is meaningless on a noindex page — Google ignores it, and
+       emitting alternates that all point at noindex URLs only creates noise.
+       On an indexable post, the set is filtered to the languages that ACTUALLY
+       have a translation: listing /fil/discover/<slug> as the Filipino version
+       when it is the English article verbatim is the claim that produced the
+       duplicate-canonical report in the first place. */
+    alternates: post.origin === 'auto' || !translated
+      ? []
+      : hreflangLinks((l) => (isTranslated(post, l) ? `${LANG_PREFIX[l]}/discover/${slug}` : null)),
+    /* AN UNTRANSLATED VARIANT IS NOT A SEPARATE DOCUMENT.
+       /fil/discover/<slug> renders the English title and body, so declaring it
+       self-canonical asks Google to index two identical pages. It now points
+       its canonical at the English URL — which is simply true — and Google
+       files it as "Alternate page with proper canonical tag", an intentional
+       state, instead of "Duplicate, Google chose different canonical", which
+       means it overruled us. */
+    canonicalPath: translated ? `${prefix}/discover/${slug}` : `/discover/${slug}`,
   });
 }
 
@@ -3643,10 +3693,27 @@ ${alts}
 
   for (const prefix of Object.values(LANG_PREFIX)) {
     add(`${prefix}/discover`, '0.7', 'daily', hreflangLinks((l) => `${LANG_PREFIX[l]}/discover`), newestDiscoverItem);
+  }
+  /* ONE ENTRY PER TRANSLATED TREE, not one per tree.
+   *
+   * The loop above this used to list every post under all four prefixes. But a
+   * post with no Filipino translation serves the English article at
+   * /fil/discover/<slug>, and advertising that in the sitemap asks Google to
+   * index a second copy of a page it already has — the duplicate-canonical
+   * problem the canonical now fixes. A sitemap entry for a URL whose canonical
+   * points elsewhere is a contradiction; the honest answer is not to list it.
+   *
+   * The untranslated URL still renders and is still linked from the /fil/
+   * discover hub, so a reader loses nothing. It simply stops being advertised
+   * as a page in its own right. */
+  for (const lang of LANGS) {
+    const prefix = LANG_PREFIX[lang];
     for (const p of evergreenPosts) {
+      if (!isTranslated(p, lang)) continue;
       const d = postDateShort(p.published_at || p.updated_at || p.created_at);
       add(`${prefix}/discover/${p.slug}`, '0.6', 'monthly',
-        hreflangLinks((l) => `${LANG_PREFIX[l]}/discover/${p.slug}`), d || SITE_STRUCTURE_DATE);
+        hreflangLinks((l) => (isTranslated(p, l) ? `${LANG_PREFIX[l]}/discover/${p.slug}` : null)),
+        d || SITE_STRUCTURE_DATE);
     }
   }
 

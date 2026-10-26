@@ -296,6 +296,36 @@ margin:12px 0 0;color:var(--red);font-size:12.5px;min-height:16px;text-align:cen
   }
   .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 
+  /* On-table speech. Same reasoning as the UNO table: the chat panel is
+     opt-in, so a message sent while it was closed reached nobody. These
+     bubbles float the newest lines over the table for a few seconds and are
+     `pointer-events:none` so they can never eat a tap meant for a card. */
+  .tablesay{
+    position:fixed;left:50%;transform:translateX(-50%);top:58px;
+    z-index:35;pointer-events:none;
+    display:flex;flex-direction:column;align-items:center;gap:6px;
+    width:min(92vw,340px);
+  }
+  .ts-item{
+    display:flex;align-items:flex-start;gap:8px;max-width:100%;
+    background:#fff;border:1px solid var(--line);border-radius:15px;
+    padding:7px 11px;box-shadow:0 10px 26px rgba(23,26,35,.15);
+    animation:tsIn .22s ease-out;
+  }
+  @keyframes tsIn{from{opacity:0;transform:translateY(-7px) scale(.95)}to{opacity:1;transform:none}}
+  .ts-item.out{animation:tsOut .3s ease-in forwards}
+  @keyframes tsOut{to{opacity:0;transform:translateY(-7px)}}
+  .ts-av{font-size:18px;line-height:1.25;flex:0 0 auto}
+  .ts-body{min-width:0}
+  .ts-who{font-size:13px;font-weight:700;color:var(--muted);letter-spacing:.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ts-tx{font-size:14px;line-height:1.45;word-break:break-word;overflow-wrap:anywhere}
+  .ts-item.shout{background:linear-gradient(135deg,#fff3d6,#ffe6b8);border-color:#f3d49a;padding:9px 13px}
+  .ts-item.shout .ts-tx{font-size:24px;line-height:1.3;font-weight:800;color:#a56a00}
+  @media(max-width:560px){ .tablesay{top:50px;width:min(94vw,300px)} }
+  @media(prefers-reduced-motion:reduce){
+    .ts-item{animation:none} .ts-item.out{animation:none;opacity:0}
+  }
+
   @media(min-width:900px){
     :root{--cw:76px}
     .hand .card + .card{margin-left:calc(var(--cw) * -0.42)}
@@ -447,6 +477,8 @@ margin:12px 0 0;color:var(--red);font-size:12.5px;min-height:16px;text-align:cen
 </aside>
 
 <div class="toast" id="toast"></div>
+<!-- Transient on-table speech, announced to screen readers as well. -->
+<div class="tablesay" id="tableSay" aria-live="polite" aria-atomic="false"></div>
 <div id="modalRoot"></div>
 
 <script>
@@ -774,6 +806,8 @@ let es = null;
 let picked = new Set();    // card ids the player has tapped
 let sound = localStorage.getItem(SOUND_KEY) !== 'off';
 let lastLogLen = 0;
+let lastChatKey = null;    // "t:author" of the newest chat line already shown
+let chatPrimed = false;    // the first state is history, not news
 
 /* The topbar icons are stroked SVGs, not emoji — same set as the UNO table, so
    the two games read as one app. Emoji were also a portability risk: this bar
@@ -902,6 +936,8 @@ function paintStatic() {
 }
 
 function myName() {
+  return ($('#nameInput').value || '').trim().slice(0, 12);
+}
 
 /**
  * The same device identity the rest of the app uses (DEVICE_KEY in app.js).
@@ -910,6 +946,15 @@ function myName() {
  * why the record survives closing the tab. Created here if the app has never
  * been opened on this device — the format matches, so the two agree whichever
  * gets there first.
+ *
+ * DECLARED AT TOP LEVEL, and that is not a style preference. A previous edit
+ * inserted this function — and `loadMyRecord` below — INSIDE `myName`'s body,
+ * between its opening brace and its `return`. The file still parsed, the page
+ * still painted, and the lobby still looked perfectly normal; every call from
+ * outside `myName` simply threw `ReferenceError: deviceId is not defined`.
+ * Create and Join both call it, so the game could not be started at all, and
+ * the failure was silent because the throw happened inside an `async` handler
+ * that had already returned. If this ever moves again, it moves to top level.
  */
 function deviceId() {
   try {
@@ -936,10 +981,6 @@ async function loadMyRecord() {
     el.textContent = t('recordLine', { wins: rec.wins, played: rec.played });
     el.classList.remove('hidden');
   } catch (e) { /* a record is not worth an error message */ }
-}
-
-
-  return ($('#nameInput').value || '').trim().slice(0, 12);
 }
 
 function saveSession() {
@@ -994,6 +1035,13 @@ function enterRoom(res) {
   $('#lobby').classList.add('hidden');
   $('#room').classList.remove('hidden');
   $('#codeText').textContent = code;
+  /* A new room is a fresh feed. Without this the trackers still held the old
+     room's key, so this room's last message would flash onto the table before
+     the player had even sat down. */
+  chatPrimed = false;
+  lastChatKey = null;
+  const say = $('#tableSay');
+  if (say) say.innerHTML = '';
   saveSession();
   connect();
 }
@@ -1037,6 +1085,42 @@ function applyState(st) {
     if (last && last.k === 'win') beep(880, 0.25, 'sine', 0.06);
   }
   lastLogLen = st.log.length;
+
+  /* Chat and shouts used to reach only the feed panel, which is closed by
+     default — so a message typed at the table arrived nowhere. Sound the cue
+     and float the line over the table instead.
+     Keyed on `t:author` because a chat item's `id` is the AUTHOR, so the same
+     player's second message would otherwise dedupe to silence.
+     `chatPrimed` is deliberately separate: priming on "the key was null" would
+     treat the first message ever sent in an empty room as backlog and skip it —
+     the one message the feature exists for. */
+  const chat = st.chat || [];
+  const newest = chat.length ? chat[chat.length - 1] : null;
+  const key = chatKey(newest);
+  if (!chatPrimed) {
+    chatPrimed = true;
+    lastChatKey = key;
+  } else if (key && key !== lastChatKey) {
+    /* Replay everything after the line we last handled, so two messages inside
+       one broadcast both appear. Capped at 4: when `lastChatKey` has aged out
+       of the 60-item cap, "not found" must not mean "replay the whole log". */
+    const fresh = [];
+    for (let i = chat.length - 1; i >= 0 && fresh.length < 4; i--) {
+      if (chatKey(chat[i]) === lastChatKey) break;
+      fresh.unshift(chat[i]);
+    }
+    for (const it of fresh) {
+      if (it.id !== st.you.id) {
+        /* A shout is the loud emoji reaction, so it gets two bright pings and
+           plain chat gets one soft blip. Your own message stays silent —
+           you already know you sent it. */
+        if (it.kind === 'shout') { beep(1046, 0.06, 'square', 0.045); beep(1568, 0.09, 'square', 0.04); }
+        else beep(880, 0.05, 'sine', 0.05);
+      }
+      showTableSay(it);
+    }
+    lastChatKey = key;
+  }
 }
 
 /* -------------------------------------------------------------- render */
@@ -1216,6 +1300,49 @@ function logText(ev) {
 function clock(ts) {
   const d = new Date(ts);
   return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+}
+
+/** Identity of one chat line, for "have I shown this already?".
+ *  `t` alone is not enough — two players can speak in the same millisecond. */
+function chatKey(it) { return it ? it.t + ':' + it.id : null; }
+
+/* How long an on-table bubble lives, and how many may stack. Three is the
+   ceiling: beyond that the chat is covering the table, and the panel is the
+   better place to read it. */
+const TS_MS = 4600;
+const TS_MAX = 3;
+
+/** Float one chat line or emoji shout over the table, then let it go. */
+function showTableSay(it) {
+  const box = $('#tableSay');
+  if (!box || !it) return;
+  while (box.children.length >= TS_MAX) box.removeChild(box.firstChild);
+
+  const el = document.createElement('div');
+  el.className = 'ts-item' + (it.kind === 'shout' ? ' shout' : '');
+  /* textContent, never innerHTML — a chat message is user input and must not
+     be parsed as markup. */
+  const av = document.createElement('span');
+  av.className = 'ts-av';
+  av.textContent = it.avatar || '🙂';
+  const body = document.createElement('div');
+  body.className = 'ts-body';
+  const who = document.createElement('div');
+  who.className = 'ts-who';
+  who.textContent = it.name || '';
+  const tx = document.createElement('div');
+  tx.className = 'ts-tx';
+  tx.textContent = it.text || '';
+  body.appendChild(who);
+  body.appendChild(tx);
+  el.appendChild(av);
+  el.appendChild(body);
+  box.appendChild(el);
+
+  setTimeout(() => {
+    el.classList.add('out');
+    setTimeout(() => el.remove(), 320);
+  }, TS_MS);
 }
 
 function renderFeed() {

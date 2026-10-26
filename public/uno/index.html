@@ -394,6 +394,39 @@
   }
   .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 
+  /* On-table speech.
+     The chat panel is opt-in, so a message sent while it happened to be closed
+     was invisible to everyone: the sender got no confirmation, and the others
+     only found out by opening a panel they had no reason to open. These
+     bubbles float the newest messages over the table itself for a few seconds,
+     then leave. `pointer-events:none` throughout, because a message must never
+     steal a tap aimed at a card. */
+  .tablesay{
+    position:fixed;left:50%;transform:translateX(-50%);top:62px;
+    z-index:35;pointer-events:none;
+    display:flex;flex-direction:column;align-items:center;gap:6px;
+    width:min(92vw,360px);
+  }
+  .ts-item{
+    display:flex;align-items:flex-start;gap:8px;max-width:100%;
+    background:#fff;border:1px solid var(--line);border-radius:16px;
+    padding:7px 12px;box-shadow:0 10px 26px rgba(23,26,35,.15);
+    animation:tsIn .22s ease-out;
+  }
+  @keyframes tsIn{from{opacity:0;transform:translateY(-7px) scale(.95)}to{opacity:1;transform:none}}
+  .ts-item.out{animation:tsOut .3s ease-in forwards}
+  @keyframes tsOut{to{opacity:0;transform:translateY(-7px)}}
+  .ts-av{font-size:19px;line-height:1.25;flex:0 0 auto}
+  .ts-body{min-width:0}
+  .ts-who{font-size:13px;font-weight:700;color:var(--muted);letter-spacing:.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ts-tx{font-size:15px;line-height:1.45;word-break:break-word;overflow-wrap:anywhere}
+  .ts-item.shout{background:linear-gradient(135deg,#fff3d6,#ffe6b8);border-color:#f3d49a;padding:9px 14px}
+  .ts-item.shout .ts-tx{font-size:25px;line-height:1.3;font-weight:800;color:#a56a00}
+  @media(max-width:560px){ .tablesay{top:54px;width:min(94vw,320px)} }
+  @media(prefers-reduced-motion:reduce){
+    .ts-item{animation:none} .ts-item.out{animation:none;opacity:0}
+  }
+
   @media(min-width:900px){
     .hand .card{--w:86px;margin-left:-16px}
     .hand .card.ok:hover{transform:translateY(-20px)}
@@ -586,6 +619,9 @@
 </aside>
 
 <div class="toast" id="toast"></div>
+<!-- Transient on-table speech. aria-live so a screen-reader user hears the
+     message too, rather than having to go and open the panel. -->
+<div class="tablesay" id="tableSay" aria-live="polite" aria-atomic="false"></div>
 <div id="modalRoot"></div>
 
 <script>
@@ -1198,6 +1234,13 @@ function enterRoom() {
   $('#codeText').textContent = session.code;
   $('#myAv').textContent = session.avatar || '🙂';
   $('#myName').textContent = session.name;
+  /* Joining a room is a fresh feed. Without this, the trackers still held the
+     previous room's key, so the first state here looked like news and flashed
+     that room's last message onto the table before the player had sat down. */
+  chatPrimed = false;
+  lastChatKey = null;
+  const say = $('#tableSay');
+  if (say) say.innerHTML = '';
   history.replaceState(null, '', BASE + session.code);
   connect();
 }
@@ -1241,7 +1284,8 @@ function applyState(st) {
   if (st.state === 'playing' && st.turn === st.you.id && st.turnStart !== lastTurnStart) sfx.turn();
   lastTurnStart = st.turnStart;
 
-  /* A message from someone else gets the funny sound.
+  /* A message from someone else gets the funny sound, and every new message
+     gets an on-table bubble.
      Keyed on `t:author` and not on `id`, because a chat item's `id` is the
      AUTHOR — the same player's second message carries the same id, so it would
      dedupe to silence.
@@ -1252,12 +1296,24 @@ function applyState(st) {
      exists for. Prime once, on the first state, whether or not there is chat. */
   const chat = st.chat || [];
   const newest = chat.length ? chat[chat.length - 1] : null;
-  const key = newest ? newest.t + ':' + newest.id : null;
+  const key = chatKey(newest);
   if (!chatPrimed) {
     chatPrimed = true;
     lastChatKey = key;
   } else if (key && key !== lastChatKey) {
-    if (newest.id !== st.you.id && newest.kind !== 'shout') sfx.msg();
+    /* Walk back to the last message we already handled and replay what is
+       after it, so two messages that arrive inside one broadcast both show.
+       The walk is capped at 4: if `lastChatKey` has aged out of the 60-item
+       cap, "not found" must not mean "replay the whole log onto the table". */
+    const fresh = [];
+    for (let i = chat.length - 1; i >= 0 && fresh.length < 4; i--) {
+      if (chatKey(chat[i]) === lastChatKey) break;
+      fresh.unshift(chat[i]);
+    }
+    for (const it of fresh) {
+      if (it.id !== st.you.id && it.kind !== 'shout') sfx.msg();
+      showTableSay(it);
+    }
     lastChatKey = key;
   }
 
@@ -1527,6 +1583,49 @@ function askColor(cardId) {
   $('#ov').onclick = (e) => { if (e.target.id === 'ov') closeModal(); };
 }
 function closeModal() { $('#modalRoot').innerHTML = ''; pendingWild = null; }
+
+/** The identity of one chat line, for "have I shown this already?".
+ *  `t` alone is not enough — two players can speak in the same millisecond. */
+function chatKey(it) { return it ? it.t + ':' + it.id : null; }
+
+/* How long an on-table bubble stays, and how many may be on screen at once.
+   Three is the ceiling: a fourth means the table is being covered by chat,
+   and at that point the panel is the better place to read it. */
+const TS_MS = 4600;
+const TS_MAX = 3;
+
+/** Float one chat line or emoji shout over the table, then let it go. */
+function showTableSay(it) {
+  const box = $('#tableSay');
+  if (!box || !it) return;
+  while (box.children.length >= TS_MAX) box.removeChild(box.firstChild);
+
+  const el = document.createElement('div');
+  el.className = 'ts-item' + (it.kind === 'shout' ? ' shout' : '');
+  /* textContent everywhere — a chat message is user input and must never be
+     parsed as markup. The name is the only thing that gets a structure. */
+  const av = document.createElement('span');
+  av.className = 'ts-av';
+  av.textContent = it.avatar || '🙂';
+  const body = document.createElement('div');
+  body.className = 'ts-body';
+  const who = document.createElement('div');
+  who.className = 'ts-who';
+  who.textContent = it.name || '';
+  const tx = document.createElement('div');
+  tx.className = 'ts-tx';
+  tx.textContent = it.text || '';
+  body.appendChild(who);
+  body.appendChild(tx);
+  el.appendChild(av);
+  el.appendChild(body);
+  box.appendChild(el);
+
+  setTimeout(() => {
+    el.classList.add('out');
+    setTimeout(() => el.remove(), 320);
+  }, TS_MS);
+}
 
 function renderFeed() {
   const body = $('#feedBody');

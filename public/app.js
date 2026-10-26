@@ -1343,6 +1343,22 @@ const GAMES_CATALOG = [
     </svg>`,
     nameKey: 'games.sudokuName',
   },
+  {
+    href: '/games/chinesechecker',
+    artClass: 'game-art--checkers',
+    art: `<svg viewBox="0 0 48 48" aria-hidden="true">
+      <path d="M24 6 L28.6 15.6 L39 17 L31.5 24.3 L33.3 34.7 L24 30 L14.7 34.7 L16.5 24.3 L9 17 L19.4 15.6 Z"
+            fill="#ffffff" stroke="#cdd5df" stroke-width="1.6" stroke-linejoin="round"/>
+      <circle cx="24" cy="24" r="2.4" fill="#e8503a"/>
+      <circle cx="24" cy="13.4" r="2.2" fill="#2f7fd1"/>
+      <circle cx="24" cy="34.6" r="2.2" fill="#2e9e5b"/>
+      <circle cx="12.2" cy="18.8" r="2.2" fill="#e0a91b"/>
+      <circle cx="35.8" cy="29.2" r="2.2" fill="#8b5cf6"/>
+      <circle cx="12.2" cy="29.2" r="2.2" fill="#d6559b"/>
+      <circle cx="35.8" cy="18.8" r="2.2" fill="#e8503a"/>
+    </svg>`,
+    nameKey: 'games.checkersName',
+  },
 ];
 
 function gameTile(g) {

@@ -67,6 +67,7 @@ app.use('/games/uno', require('./uno').handle);
 app.use('/games/bigtwo', require('./bigtwo').handle);
 app.use('/games/wordmatch', require('./wordmatch').handle);
 app.use('/games/sudoku', require('./sudoku').handle);
+app.use('/games/chinesechecker', require('./chinesechecker').handle);
 
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true }));

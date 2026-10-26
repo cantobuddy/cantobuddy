@@ -3003,7 +3003,12 @@ function claimPush(endpoint, kind, sentOn) {
    Game results — the record a helper can defend
    --------------------------------------------------------------------------- */
 
-const GAME_KEYS = ['uno', 'bigtwo', 'wordmatch', 'sudoku'];
+/* The allow-list, and it is a guard rather than a convenience: `recordGameResults`
+   returns 0 for anything not in here, so a game missing from this array does not
+   error — it silently never records a win. Chinese Checkers was added here in the
+   same commit that added the game, because the alternative is a table that plays
+   perfectly and leaves no trace. */
+const GAME_KEYS = ['uno', 'bigtwo', 'wordmatch', 'sudoku', 'chinesechecker'];
 
 /**
  * Write one row per player who finished a game.

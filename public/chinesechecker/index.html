@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#123a5c">
+<title>Chinese Checkers · CantoBuddy</title>
+<link rel="icon" href="/favicon.ico">
+<style>
+  /* One screen, no scrolling: a board game where the board scrolls away is a
+     board game you cannot see while you think. Everything below is sized in
+     vmin/clamp so it holds together from a 320px phone to a tablet. */
+  *,*::before,*::after{box-sizing:border-box}
+  :root{
+    --ink:#12212f;
+    --muted:#5b6b7a;
+    --line:#d7e0e8;
+    --paper:#f4f7fa;
+    --card:#ffffff;
+    --blue:#1f6fb2;
+    --blue-d:#154e7e;
+    --gold:#e0a91b;
+    --good:#1f8a54;
+    --bad:#c0392b;
+    --seat0:#e8503a; --seat1:#2f7fd1; --seat2:#2e9e5b;
+    --seat3:#e0a91b; --seat4:#8b5cf6; --seat5:#d6559b;
+  }
+  html,body{height:100%;margin:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans",sans-serif;
+    background:linear-gradient(170deg,#eaf2f9 0%,#f7fafc 45%,#eef4f8 100%);
+    color:var(--ink);
+    -webkit-tap-highlight-color:transparent;
+    overflow:hidden;
+  }
+  .wrap{height:100dvh;display:flex;flex-direction:column;max-width:640px;margin:0 auto;padding:8px 10px 10px}
+  .hidden{display:none!important}
+
+  /* ---------- top bar ---------- */
+  .top{display:flex;align-items:center;gap:8px;flex:0 0 auto;padding:2px 0 6px}
+  .top h1{font-size:16px;margin:0;letter-spacing:.2px}
+  .top .spacer{flex:1}
+  .btn{
+    font:inherit;font-size:14px;font-weight:700;border:0;border-radius:11px;
+    padding:9px 14px;background:var(--blue);color:#fff;cursor:pointer;
+    box-shadow:0 2px 0 var(--blue-d);transition:transform .06s ease;
+  }
+  .btn:active{transform:translateY(1px);box-shadow:0 1px 0 var(--blue-d)}
+  .btn.ghost{background:#fff;color:var(--blue-d);border:1.5px solid var(--line);box-shadow:none}
+  .btn.small{font-size:13px;padding:7px 11px;border-radius:9px}
+  .btn:disabled{opacity:.45;cursor:default}
+
+  /* ---------- lobby ---------- */
+  .lobby{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding-bottom:8px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px;box-shadow:0 1px 2px rgba(18,33,47,.05)}
+  .card h2{font-size:14px;margin:0 0 10px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+  label.field{display:block;font-size:13px;font-weight:700;color:var(--muted);margin:0 0 6px}
+  input[type=text]{
+    width:100%;font:inherit;font-size:16px;padding:11px 12px;border:1.5px solid var(--line);
+    border-radius:11px;background:#fbfdff;color:var(--ink);
+  }
+  input[type=text]:focus{outline:2px solid var(--blue);outline-offset:-1px;border-color:var(--blue)}
+  .row{display:flex;gap:8px;align-items:center}
+  .avatars{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+  .avatars button{
+    font-size:20px;line-height:1;width:40px;height:40px;border-radius:11px;border:1.5px solid var(--line);
+    background:#fbfdff;cursor:pointer;padding:0;
+  }
+  .avatars button.on{border-color:var(--blue);background:#e8f2fb;box-shadow:0 0 0 2px #cfe5f7 inset}
+  .choices{display:flex;gap:8px;flex-wrap:wrap}
+  .choices button{
+    font:inherit;font-size:14px;font-weight:700;padding:10px 13px;border-radius:11px;
+    border:1.5px solid var(--line);background:#fbfdff;color:var(--ink);cursor:pointer;
+  }
+  .choices button.on{border-color:var(--blue);background:#e8f2fb;color:var(--blue-d)}
+  .hint{font-size:13px;color:var(--muted);margin:8px 0 0;line-height:1.4}
+  .err{font-size:13.5px;font-weight:600;color:var(--bad);margin-top:8px;min-height:18px}
+
+  /* ---------- table ---------- */
+  .table{flex:1;display:flex;flex-direction:column;min-height:0}
+  .status{
+    flex:0 0 auto;display:flex;align-items:center;gap:8px;
+    background:var(--card);border:1px solid var(--line);border-radius:13px;
+    padding:8px 11px;margin-bottom:7px;font-size:14px;font-weight:700;
+  }
+  .status .dot{width:9px;height:9px;border-radius:50%;background:var(--muted);flex:0 0 auto}
+  .status.mine{background:#e8f6ee;border-color:#bfe4ce;color:#0f5c37}
+  .status.mine .dot{background:var(--good);animation:pulse 1.4s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+  .boardwrap{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;position:relative}
+  svg.board{width:100%;height:100%;display:block;touch-action:manipulation}
+  .hole{fill:#dfe8f0;stroke:#c3d2de;stroke-width:.045}
+  .hole.tgt{fill:#bcd9f2;stroke:#4b93cc;stroke-width:.09}
+  .hole.pickable{cursor:pointer}
+  .peg{stroke:rgba(0,0,0,.22);stroke-width:.07}
+  .peg.sel{stroke:#12212f;stroke-width:.16}
+  .peghit{fill:transparent;cursor:pointer}
+  .homeglow{fill:none;stroke-width:.12;opacity:.55}
+
+  /* ---------- players strip ---------- */
+  .seats{flex:0 0 auto;display:flex;gap:6px;overflow-x:auto;padding:2px 0 6px;-webkit-overflow-scrolling:touch}
+  .seat{
+    flex:0 0 auto;display:flex;align-items:center;gap:6px;background:var(--card);
+    border:1.5px solid var(--line);border-radius:11px;padding:5px 9px;font-size:13px;font-weight:700;
+  }
+  .seat.turn{border-color:var(--gold);box-shadow:0 0 0 2px #f6e6bb inset}
+  .seat .sw{width:11px;height:11px;border-radius:50%;flex:0 0 auto}
+  .seat .cnt{color:var(--muted);font-weight:600;font-size:12px}
+
+  /* ---------- bottom bar ---------- */
+  .bar{flex:0 0 auto;display:flex;gap:7px;align-items:center}
+  .bar .grow{flex:1}
+  .emoji{display:flex;gap:4px}
+  .emoji button{font-size:19px;line-height:1;width:36px;height:36px;border-radius:10px;border:1.5px solid var(--line);background:#fff;cursor:pointer;padding:0}
+
+  /* ---------- chat panel ---------- */
+  .feed{
+    position:absolute;left:0;right:0;bottom:0;max-height:62%;display:flex;flex-direction:column;
+    background:var(--card);border:1px solid var(--line);border-radius:14px 14px 0 0;
+    box-shadow:0 -6px 24px rgba(18,33,47,.14);z-index:20;
+  }
+  .feed-head{display:flex;align-items:center;gap:8px;padding:9px 11px;border-bottom:1px solid var(--line);font-weight:700;font-size:14px}
+  .feed-head .spacer{flex:1}
+  .feed-close{font:inherit;font-size:18px;line-height:1;border:0;background:none;color:var(--muted);cursor:pointer;padding:2px 6px}
+  .feed-body{flex:1;overflow-y:auto;padding:8px 11px;display:flex;flex-direction:column;gap:6px}
+  .msg{font-size:13.5px;line-height:1.35;word-break:break-word}
+  .msg b{color:var(--blue-d)}
+  .msg.shout{font-size:26px;text-align:center}
+  .feed-foot{display:flex;gap:6px;padding:8px;border-top:1px solid var(--line)}
+  .feed-foot input{flex:1;font:inherit;font-size:15px;padding:9px 11px;border:1.5px solid var(--line);border-radius:10px;background:#fbfdff}
+
+  /* ---------- on-table bubbles ----------
+     The whole point: a message must be readable WITHOUT opening the panel. The
+     panel is closed by default on a phone, so anything that only appears inside
+     it is a message the other player never sees. pointer-events:none so the
+     bubble can never steal a tap meant for a peg. */
+  #tableSay{
+    position:absolute;left:0;right:0;top:6px;display:flex;flex-direction:column;
+    align-items:center;gap:5px;pointer-events:none;z-index:15;
+  }
+  .ts-item{
+    max-width:86%;background:rgba(18,33,47,.92);color:#fff;border-radius:13px;
+    padding:7px 12px;font-size:13.5px;line-height:1.3;font-weight:600;
+    box-shadow:0 3px 12px rgba(0,0,0,.22);display:flex;gap:6px;align-items:baseline;
+    animation:tsIn .22s ease-out;
+  }
+  .ts-item .who{font-size:12px;opacity:.8;font-weight:700;white-space:nowrap}
+  .ts-item .what{word-break:break-word}
+  .ts-item.big{font-size:30px;padding:4px 14px}
+  @keyframes tsIn{from{opacity:0;transform:translateY(-7px) scale(.96)}to{opacity:1;transform:none}}
+  .ts-item.out{opacity:0;transform:translateY(-6px);transition:opacity .35s ease,transform .35s ease}
+
+  /* ---------- overlay ---------- */
+  .overlay{
+    position:absolute;inset:0;background:rgba(244,247,250,.94);display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:12px;z-index:30;border-radius:14px;padding:20px;text-align:center;
+  }
+  .overlay h2{margin:0;font-size:23px;line-height:1.25}
+  .overlay p{margin:0;font-size:14.5px;color:var(--muted);max-width:30ch;line-height:1.45}
+  .overlay .big{font-size:44px;line-height:1}
+  .code{font-family:ui-monospace,Menlo,monospace;font-size:22px;font-weight:800;letter-spacing:3px;color:var(--blue-d)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1 data-k="appTitle">Chinese Checkers</h1>
+    <span class="spacer"></span>
+    <button class="btn ghost small hidden" id="leaveBtn" data-k="backLobby">Lobby</button>
+  </div>
+
+  <!-- ===================== LOBBY ===================== -->
+  <div class="lobby" id="lobby">
+    <div class="card">
+      <label class="field" data-k="nameLabel">Your name</label>
+      <input type="text" id="nameInput" maxlength="12" autocomplete="off" data-k-ph="namePlaceholder" placeholder="Your name">
+      <div class="avatars" id="avatars"></div>
+    </div>
+
+    <div class="card">
+      <h2 data-k="soloHead">Play with the computer</h2>
+      <label class="field" data-k="seatsLabel">How many players</label>
+      <div class="choices" id="soloSeats"></div>
+      <label class="field" style="margin-top:12px" data-k="levelLabel">How hard</label>
+      <div class="choices" id="soloLevel"></div>
+      <button class="btn" id="soloBtn" style="width:100%;margin-top:14px" data-k="startSolo">Start a game</button>
+    </div>
+
+    <div class="card">
+      <h2 data-k="onlineHead">Play with family</h2>
+      <label class="field" data-k="seatsLabel2">How many players</label>
+      <div class="choices" id="roomSeats"></div>
+      <button class="btn" id="createBtn" style="width:100%;margin-top:14px" data-k="createRoom">Create a room</button>
+      <div class="hint" data-k="onlineHint">You will get a 4-letter code to share.</div>
+    </div>
+
+    <div class="card">
+      <h2 data-k="joinHead">Join a room</h2>
+      <div class="row">
+        <input type="text" id="codeInput" maxlength="4" autocomplete="off" placeholder="ABCD" style="text-transform:uppercase;letter-spacing:3px;font-weight:700">
+        <button class="btn" id="joinBtn" data-k="joinBtn">Join</button>
+      </div>
+    </div>
+
+    <div class="err" id="lobbyErr"></div>
+  </div>
+
+  <!-- ===================== TABLE ===================== -->
+  <div class="table hidden" id="table">
+    <div class="status" id="status"><span class="dot"></span><span id="statusText"></span></div>
+    <div class="seats" id="seats"></div>
+    <div class="boardwrap" id="boardWrap">
+      <svg class="board" id="board" xmlns="http://www.w3.org/2000/svg"></svg>
+      <div id="tableSay"></div>
+      <aside class="feed hidden" id="feed">
+        <div class="feed-head"><span data-k="chatHead">Messages</span><span class="spacer"></span><button class="feed-close" id="feedClose">✕</button></div>
+        <div class="feed-body" id="feedBody"></div>
+        <div class="feed-foot">
+          <input type="text" id="chatInput" maxlength="140" autocomplete="off" data-k-ph="chatPlaceholder" placeholder="Say something">
+          <button class="btn small" id="chatSend" data-k="sendBtn">Send</button>
+        </div>
+      </aside>
+      <div class="overlay hidden" id="overlay">
+        <div class="big" id="ovIcon">🎉</div>
+        <h2 id="ovTitle"></h2>
+        <p id="ovText"></p>
+        <div class="row">
+          <button class="btn" id="ovAgain" data-k="againBtn">Play again</button>
+          <button class="btn ghost" id="ovLobby" data-k="backLobby">Lobby</button>
+        </div>
+      </div>
+    </div>
+    <div class="bar">
+      <button class="btn ghost small" id="chatBtn" data-k="chatHead">Messages</button>
+      <span class="grow"></span>
+      <div class="emoji" id="emojiBar"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" style="position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(14px);background:#12212f;color:#fff;padding:10px 16px;border-radius:11px;font-size:14px;font-weight:600;opacity:0;transition:.18s ease;pointer-events:none;z-index:60"></div>
+
+<script src="core.js"></script>
+<script>
+/* The engine publishes itself as `CheckerCore` so it cannot collide with
+   anything else on the page. Aliased here once, because `Core.N`, `Core.CELLS`
+   and `Core.legalMoves` read far better than the namespaced form at every one of
+   the forty-odd call sites below. */
+const Core = window.CheckerCore;
+
+/* ===================================================================== i18n
+   Four languages, because the app ships in four. The board itself is language
+   free - a peg is a peg - so everything that needs words is here and nothing
+   else in the file is. */
+const STR = {
+  en: {
+    appTitle: 'Chinese Checkers',
+    nameLabel: 'Your name',
+    namePlaceholder: 'Your name',
+    soloHead: 'Play with the computer',
+    onlineHead: 'Play with family',
+    joinHead: 'Join a room',
+    seatsLabel: 'How many players',
+    seatsLabel2: 'How many players',
+    levelLabel: 'How hard',
+    seats2: '2 players', seats3: '3 players', seats4: '4 players', seats6: '6 players',
+    levelEasy: 'Easy', levelNormal: 'Normal',
+    startSolo: 'Start a game',
+    createRoom: 'Create a room',
+    onlineHint: 'You will get a 4-letter code to share.',
+    joinBtn: 'Join',
+    backLobby: 'Lobby',
+    waiting: 'Waiting for players…',
+    waitingHost: 'Share the code, then start when everyone is in.',
+    startBtn: 'Start game',
+    yourTurn: 'Your turn — tap one of your pegs',
+    turnOf: '{name} is thinking…',
+    turnOfYou: 'Your turn',
+    you: 'You',
+    homeOf: '{n}/10 home',
+    cpu: 'computer',
+    chatHead: 'Messages',
+    chatPlaceholder: 'Say something',
+    sendBtn: 'Send',
+    copyLink: 'Copy link',
+    copied: 'Link copied',
+    codeIs: 'Room code',
+    winner: '{name} wins!',
+    youWin: 'You win!',
+    draw: 'It is a draw',
+    endedText: 'All ten pegs are home.',
+    againBtn: 'Play again',
+    needTwo: 'At least 2 players are needed.',
+    errNameRequired: 'Type your name first.',
+    errNameTaken: 'Someone in that room already has that name.',
+    errRoomNotFound: 'No room with that code. Check it again?',
+    errRoomFull: 'That room is full.',
+    errAlreadyPlaying: 'That game has already started.',
+    errAlreadyEnded: 'That game has already finished.',
+    errNotYourTurn: 'It is not your turn yet.',
+    errIllegalMove: 'A peg cannot go there.',
+    errNotYourPeg: 'That is not your peg.',
+    errOccupied: 'That spot is taken.',
+    errTooManyRooms: 'Too many games right now — try again in a moment.',
+    errExpired: 'That game is over — start a new one.',
+    errNet: 'Connection dropped for a moment — try again.',
+    errGeneric: 'Something went wrong.',
+  },
+  fil: {
+    appTitle: 'Chinese Checkers',
+    nameLabel: 'Pangalan mo',
+    namePlaceholder: 'Pangalan mo',
+    soloHead: 'Maglaro sa computer',
+    onlineHead: 'Maglaro kasama ang pamilya',
+    joinHead: 'Sumali sa kuwarto',
+    seatsLabel: 'Ilang manlalaro',
+    seatsLabel2: 'Ilang manlalaro',
+    levelLabel: 'Gaano kahirap',
+    seats2: '2 manlalaro', seats3: '3 manlalaro', seats4: '4 na manlalaro', seats6: '6 na manlalaro',
+    levelEasy: 'Madali', levelNormal: 'Katamtaman',
+    startSolo: 'Simulan',
+    createRoom: 'Gumawa ng kuwarto',
+    onlineHint: 'Bibigyan ka ng 4-letrang code na ipapamahagi.',
+    joinBtn: 'Sumali',
+    backLobby: 'Lobby',
+    waiting: 'Naghihintay ng manlalaro…',
+    waitingHost: 'Ibahagi ang code, tapos simulan kapag kumpleto na.',
+    startBtn: 'Simulan ang laro',
+    yourTurn: 'Ikaw ang taya — pumili ng iyong piraso',
+    turnOf: 'Nag-iisip si {name}…',
+    turnOfYou: 'Ikaw ang taya',
+    you: 'Ikaw',
+    homeOf: '{n}/10 nasa bahay',
+    cpu: 'computer',
+    chatHead: 'Mga mensahe',
+    chatPlaceholder: 'Magsabi ng kahit ano',
+    sendBtn: 'Ipadala',
+    copyLink: 'Kopyahin ang link',
+    copied: 'Nakopya ang link',
+    codeIs: 'Code ng kuwarto',
+    winner: 'Panalo si {name}!',
+    youWin: 'Ikaw ang panalo!',
+    draw: 'Parehas lang',
+    endedText: 'Nasa bahay na ang lahat ng sampung piraso.',
+    againBtn: 'Maglaro ulit',
+    needTwo: 'Kailangan ng hindi bababa sa 2 manlalaro.',
+    errNameRequired: 'Isulat muna ang pangalan mo.',
+    errNameTaken: 'May gumagamit na ng pangalang iyan sa kuwartong iyon.',
+    errRoomNotFound: 'Walang kuwartong may ganoong code. Tingnan ulit?',
+    errRoomFull: 'Puno na ang kuwartong iyon.',
+    errAlreadyPlaying: 'Nagsimula na ang larong iyon.',
+    errAlreadyEnded: 'Tapos na ang larong iyon.',
+    errNotYourTurn: 'Hindi pa ikaw ang taya.',
+    errIllegalMove: 'Hindi makakarating doon ang piraso.',
+    errNotYourPeg: 'Hindi iyan ang piraso mo.',
+    errOccupied: 'May nakalagay na doon.',
+    errTooManyRooms: 'Sobra ang laro ngayon — subukan ulit mamaya.',
+    errExpired: 'Tapos na ang larong iyon — gumawa ng bago.',
+    errNet: 'Naputol sandali ang koneksyon — subukan ulit.',
+    errGeneric: 'May nangyaring mali.',
+  },
+  zh: {
+    appTitle: '中国跳棋',
+    nameLabel: '你的名字',
+    namePlaceholder: '你的名字',
+    soloHead: '和电脑下棋',
+    onlineHead: '和家人一起玩',
+    joinHead: '加入房间',
+    seatsLabel: '几位玩家',
+    seatsLabel2: '几位玩家',
+    levelLabel: '难度',
+    seats2: '2 人', seats3: '3 人', seats4: '4 人', seats6: '6 人',
+    levelEasy: '简单', levelNormal: '普通',
+    startSolo: '开始下棋',
+    createRoom: '创建房间',
+    onlineHint: '会给你一个 4 位字母的房间号，发给家人。',
+    joinBtn: '加入',
+    backLobby: '大厅',
+    waiting: '等待其他玩家…',
+    waitingHost: '把房间号发出去，人齐了就开始。',
+    startBtn: '开始游戏',
+    yourTurn: '轮到你了 — 点一颗你的棋子',
+    turnOf: '{name} 正在思考…',
+    turnOfYou: '轮到你了',
+    you: '你',
+    homeOf: '已到家 {n}/10',
+    cpu: '电脑',
+    chatHead: '消息',
+    chatPlaceholder: '说点什么',
+    sendBtn: '发送',
+    copyLink: '复制链接',
+    copied: '链接已复制',
+    codeIs: '房间号',
+    winner: '{name} 赢了！',
+    youWin: '你赢了！',
+    draw: '平局',
+    endedText: '十颗棋子全部到家。',
+    againBtn: '再来一局',
+    needTwo: '至少要 2 位玩家。',
+    errNameRequired: '请先填名字。',
+    errNameTaken: '那个房间里已经有人用这个名字了。',
+    errRoomNotFound: '找不到这个房间号，再确认一下？',
+    errRoomFull: '那个房间已经满了。',
+    errAlreadyPlaying: '那一局已经开始了。',
+    errAlreadyEnded: '那一局已经结束了。',
+    errNotYourTurn: '还没轮到你。',
+    errIllegalMove: '棋子走不到那里。',
+    errNotYourPeg: '那不是你的棋子。',
+    errOccupied: '那个位置已经有棋子了。',
+    errTooManyRooms: '现在游戏太多，稍等一下再试。',
+    errExpired: '那一局已经结束了 — 开一局新的吧。',
+    errNet: '连接断了一下，再试一次。',
+    errGeneric: '出了点问题。',
+  },
+  id: {
+    appTitle: 'Dam Cina',
+    nameLabel: 'Namamu',
+    namePlaceholder: 'Namamu',
+    soloHead: 'Bermain dengan komputer',
+    onlineHead: 'Bermain dengan keluarga',
+    joinHead: 'Gabung ke ruangan',
+    seatsLabel: 'Berapa pemain',
+    seatsLabel2: 'Berapa pemain',
+    levelLabel: 'Tingkat kesulitan',
+    seats2: '2 pemain', seats3: '3 pemain', seats4: '4 pemain', seats6: '6 pemain',
+    levelEasy: 'Mudah', levelNormal: 'Sedang',
+    startSolo: 'Mulai bermain',
+    createRoom: 'Buat ruangan',
+    onlineHint: 'Kamu akan dapat kode 4 huruf untuk dibagikan.',
+    joinBtn: 'Gabung',
+    backLobby: 'Lobi',
+    waiting: 'Menunggu pemain…',
+    waitingHost: 'Bagikan kodenya, lalu mulai kalau semua sudah masuk.',
+    startBtn: 'Mulai permainan',
+    yourTurn: 'Giliranmu — ketuk salah satu bidakmu',
+    turnOf: '{name} sedang berpikir…',
+    turnOfYou: 'Giliranmu',
+    you: 'Kamu',
+    homeOf: '{n}/10 sudah di rumah',
+    cpu: 'komputer',
+    chatHead: 'Pesan',
+    chatPlaceholder: 'Katakan sesuatu',
+    sendBtn: 'Kirim',
+    copyLink: 'Salin tautan',
+    copied: 'Tautan disalin',
+    codeIs: 'Kode ruangan',
+    winner: '{name} menang!',
+    youWin: 'Kamu menang!',
+    draw: 'Seri',
+    endedText: 'Kesepuluh bidak sudah sampai rumah.',
+    againBtn: 'Main lagi',
+    needTwo: 'Butuh minimal 2 pemain.',
+    errNameRequired: 'Isi namamu dulu.',
+    errNameTaken: 'Sudah ada yang memakai nama itu di ruangan tersebut.',
+    errRoomNotFound: 'Tidak ada ruangan dengan kode itu. Coba periksa lagi?',
+    errRoomFull: 'Ruangan itu sudah penuh.',
+    errAlreadyPlaying: 'Permainan itu sudah dimulai.',
+    errAlreadyEnded: 'Permainan itu sudah selesai.',
+    errNotYourTurn: 'Belum giliranmu.',
+    errIllegalMove: 'Bidak tidak bisa ke sana.',
+    errNotYourPeg: 'Itu bukan bidakmu.',
+    errOccupied: 'Tempat itu sudah terisi.',
+    errTooManyRooms: 'Terlalu banyak permainan sekarang — coba lagi sebentar.',
+    errExpired: 'Permainan itu sudah berakhir — buat yang baru.',
+    errNet: 'Koneksi terputus sebentar — coba lagi.',
+    errGeneric: 'Ada yang tidak beres.',
+  },
+};
+
+const LANG = (function () {
+  const saved = (localStorage.getItem('cb_lang') || '').toLowerCase();
+  if (STR[saved]) return saved;
+  const nav = (navigator.language || 'en').toLowerCase();
+  if (nav.indexOf('zh') === 0) return 'zh';
+  if (nav.indexOf('id') === 0) return 'id';
+  if (nav.indexOf('tl') === 0 || nav.indexOf('fil') === 0) return 'fil';
+  return 'en';
+})();
+
+function t(key, vars) {
+  let s = (STR[LANG] || STR.en)[key];
+  if (s === undefined) s = STR.en[key];
+  if (s === undefined) return key;
+  if (vars) Object.keys(vars).forEach((k) => { s = s.split('{' + k + '}').join(String(vars[k])); });
+  return s;
+}
+
+/* ================================================================ helpers */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const AVATARS = ['🦊','🐼','🐯','🐸','🐧','🦄','🐙','🐨','🐰','🦁','🐳','🐝'];
+const EMOJI = ['🎉','👏','😮','🔥','💪','😅'];
+const SESSION_KEY = 'cc.session';
+const SOUND_KEY = 'cc.sound';
+
+const SEAT_COLOR = ['var(--seat0)','var(--seat1)','var(--seat2)','var(--seat3)','var(--seat4)','var(--seat5)'];
+const SEAT_HEX = ['#e8503a','#2f7fd1','#2e9e5b','#e0a91b','#8b5cf6','#d6559b'];
+
+let sound = localStorage.getItem(SOUND_KEY) !== 'off';
+let S = null;                  // last state from the server
+let session = null;            // { code, token, name, avatar }
+let es = null;
+let selected = null;           // cell index of the peg picked up
+let targets = [];              // legal destinations for `selected`
+let lastChatKey = null;
+let chatPrimed = false;
+let feedOpen = false;
+
+function toast(msg) {
+  const el = $('#toast');
+  el.textContent = msg;
+  el.style.opacity = '1';
+  el.style.transform = 'translateX(-50%) translateY(0)';
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateX(-50%) translateY(14px)';
+  }, 2200);
+}
+
+/* A short blip, not a soundtrack. Sound is off by default only if the player
+   turned it off somewhere else in the app; here it is on, because a game played
+   with other people needs a cue that it is your turn. */
+let actx = null;
+function beep(freq, dur, type, gain) {
+  if (!sound) return;
+  try {
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    const o = actx.createOscillator();
+    const g = actx.createGain();
+    o.type = type || 'sine';
+    o.frequency.value = freq;
+    g.gain.value = gain == null ? 0.05 : gain;
+    o.connect(g); g.connect(actx.destination);
+    o.start();
+    g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + (dur || 0.08));
+    o.stop(actx.currentTime + (dur || 0.08) + 0.02);
+  } catch (e) { /* audio is a nicety */ }
+}
+
+function myName() { return ($('#nameInput').value || '').trim().slice(0, 12); }
+
+function deviceId() {
+  try {
+    let id = localStorage.getItem('cb_device');
+    if (!id) {
+      const b = new Uint8Array(16);
+      crypto.getRandomValues(b);
+      id = 'dev_' + Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
+      localStorage.setItem('cb_device', id);
+    }
+    return id;
+  } catch (e) { return null; }
+}
+
+function saveSession() {
+  try { localStorage.setItem(SESSION_KEY, JSON.stringify(session)); } catch (e) { /* private mode */ }
+}
+function loadSession() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    return s && s.code && s.token ? s : null;
+  } catch (e) { return null; }
+}
+function clearSession() {
+  try { localStorage.removeItem(SESSION_KEY); } catch (e) { /* ignore */ }
+}
+
+/* ================================================================ lobby UI */
+function buildLobby() {
+  $('#nameInput').value = localStorage.getItem('cc.name') || '';
+
+  const av = $('#avatars');
+  const chosen = localStorage.getItem('cc.avatar') || AVATARS[0];
+  av.innerHTML = '';
+  AVATARS.forEach((a) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = a;
+    if (a === chosen) b.className = 'on';
+    b.onclick = () => {
+      $$('#avatars button').forEach((x) => x.classList.remove('on'));
+      b.classList.add('on');
+      localStorage.setItem('cc.avatar', a);
+    };
+    av.appendChild(b);
+  });
+
+  const pick = (host, values, key, labels, def) => {
+    const saved = Number(localStorage.getItem(key)) || def;
+    host.innerHTML = '';
+    values.forEach((v) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = t(labels(v));
+      b.dataset.v = v;
+      if (v === saved) b.className = 'on';
+      b.onclick = () => {
+        [...host.children].forEach((x) => x.classList.remove('on'));
+        b.classList.add('on');
+        localStorage.setItem(key, v);
+      };
+      host.appendChild(b);
+    });
+  };
+
+  pick($('#soloSeats'), [2, 3, 4, 6], 'cc.soloSeats', (v) => 'seats' + v, 2);
+  pick($('#roomSeats'), [2, 3, 4, 6], 'cc.roomSeats', (v) => 'seats' + v, 2);
+  pick($('#soloLevel'), ['easy', 'normal'], 'cc.level',
+    (v) => 'level' + v.charAt(0).toUpperCase() + v.slice(1), 'normal');
+
+  const em = $('#emojiBar');
+  em.innerHTML = '';
+  EMOJI.forEach((e) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = e;
+    b.onclick = () => act('shout', { emoji: e });
+    em.appendChild(b);
+  });
+
+  $('#soloBtn').onclick = () => startSolo();
+  $('#createBtn').onclick = () => createRoom();
+  $('#joinBtn').onclick = () => joinRoom();
+  $('#codeInput').onkeydown = (e) => { if (e.key === 'Enter') joinRoom(); };
+  $('#leaveBtn').onclick = () => leaveTable();
+  $('#chatBtn').onclick = () => toggleFeed(true);
+  $('#feedClose').onclick = () => toggleFeed(false);
+  $('#chatSend').onclick = () => sendChat();
+  $('#chatInput').onkeydown = (e) => { if (e.key === 'Enter') sendChat(); };
+  $('#ovLobby').onclick = () => leaveTable();
+  $('#ovAgain').onclick = () => act('again');
+
+  translateStatic();
+}
+
+function translateStatic() {
+  document.documentElement.lang = LANG === 'fil' ? 'tl' : LANG;
+  $$('[data-k]').forEach((el) => { el.textContent = t(el.dataset.k); });
+  $$('[data-k-ph]').forEach((el) => { el.placeholder = t(el.dataset.kPh); });
+  document.title = t('appTitle') + ' · CantoBuddy';
+}
+
+function choiceValue(host, def) {
+  const on = host.querySelector('button.on');
+  return on ? on.dataset.v : String(def);
+}
+
+function errText(code) {
+  const map = {
+    nameRequired: 'errNameRequired',
+    nameTaken: 'errNameTaken',
+    roomNotFound: 'errRoomNotFound',
+    roomFull: 'errRoomFull',
+    alreadyPlaying: 'errAlreadyPlaying',
+    alreadyEnded: 'errAlreadyEnded',
+    notYourTurn: 'errNotYourTurn',
+    illegalMove: 'errIllegalMove',
+    notYourPeg: 'errNotYourPeg',
+    occupied: 'errOccupied',
+    tooManyRooms: 'errTooManyRooms',
+    expired: 'errExpired',
+    cannotStart: 'needTwo',
+    noCode: 'errGeneric',
+  };
+  return t(map[code] || 'errGeneric');
+}
+
+async function api(path, body) {
+  const r = await fetch(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body || {}),
+  });
+  let data = null;
+  try { data = await r.json(); } catch (e) { data = {}; }
+  if (!r.ok) throw new Error(data && data.error ? data.error : 'errGeneric');
+  return data;
+}
+
+function rememberIdentity() {
+  localStorage.setItem('cc.name', myName());
+}
+
+async function startSolo() {
+  const name = myName();
+  if (!name) { $('#lobbyErr').textContent = t('errNameRequired'); return; }
+  rememberIdentity();
+  $('#lobbyErr').textContent = '';
+  try {
+    const d = await api('api/solo', {
+      name: name,
+      avatar: localStorage.getItem('cc.avatar') || AVATARS[0],
+      seats: Number(choiceValue($('#soloSeats'), 2)),
+      level: choiceValue($('#soloLevel'), 'normal'),
+      deviceId: deviceId(),
+    });
+    session = { code: d.code, token: d.token, name: d.name, avatar: d.avatar };
+    saveSession();
+    enterTable(d.code);
+  } catch (e) {
+    $('#lobbyErr').textContent = errText(e.message);
+  }
+}
+
+async function createRoom() {
+  const name = myName();
+  if (!name) { $('#lobbyErr').textContent = t('errNameRequired'); return; }
+  rememberIdentity();
+  $('#lobbyErr').textContent = '';
+  try {
+    const d = await api('api/create', {
+      name: name,
+      avatar: localStorage.getItem('cc.avatar') || AVATARS[0],
+      seats: Number(choiceValue($('#roomSeats'), 2)),
+      deviceId: deviceId(),
+    });
+    session = { code: d.code, token: d.token, name: d.name, avatar: d.avatar };
+    saveSession();
+    enterTable(d.code);
+  } catch (e) {
+    $('#lobbyErr').textContent = errText(e.message);
+  }
+}
+
+async function joinRoom() {
+  const name = myName();
+  if (!name) { $('#lobbyErr').textContent = t('errNameRequired'); return; }
+  const code = ($('#codeInput').value || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
+  if (!code) { $('#lobbyErr').textContent = t('errRoomNotFound'); return; }
+  rememberIdentity();
+  $('#lobbyErr').textContent = '';
+  try {
+    const d = await api('api/join', {
+      code: code,
+      name: name,
+      avatar: localStorage.getItem('cc.avatar') || AVATARS[0],
+      deviceId: deviceId(),
+    });
+    session = { code: d.code, token: d.token, name: d.name, avatar: d.avatar };
+    saveSession();
+    enterTable(d.code);
+  } catch (e) {
+    $('#lobbyErr').textContent = errText(e.message);
+  }
+}
+
+/* ============================================================== table life */
+function enterTable(code) {
+  $('#lobby').classList.add('hidden');
+  $('#table').classList.remove('hidden');
+  $('#leaveBtn').classList.remove('hidden');
+  selected = null;
+  targets = [];
+  chatPrimed = false;
+  lastChatKey = null;
+  $('#tableSay').innerHTML = '';
+  history.replaceState(null, '', '/games/chinesechecker/' + code);
+  connect();
+}
+
+function leaveTable() {
+  if (es) { try { es.close(); } catch (e) { /* ignore */ } es = null; }
+  clearSession();
+  session = null;
+  S = null;
+  selected = null;
+  targets = [];
+  $('#table').classList.add('hidden');
+  $('#lobby').classList.remove('hidden');
+  $('#leaveBtn').classList.add('hidden');
+  $('#overlay').classList.add('hidden');
+  toggleFeed(false);
+  $('#tableSay').innerHTML = '';
+  history.replaceState(null, '', '/games/chinesechecker/');
+}
+
+function connect() {
+  if (es) { try { es.close(); } catch (e) { /* ignore */ } }
+  es = new EventSource('api/events?token=' + encodeURIComponent(session.token));
+  es.onmessage = (ev) => {
+    let st;
+    try { st = JSON.parse(ev.data); } catch (e) { return; }
+    if (st.fatal) {
+      toast(errText(st.fatal));
+      leaveTable();
+      return;
+    }
+    applyState(st);
+  };
+  es.onerror = () => { /* EventSource retries on its own */ };
+}
+
+/* ============================================================ state → view */
+function applyState(st) {
+  const prev = S;
+  S = st;
+  renderSeats();
+  renderStatus();
+  renderBoard();
+  renderOverlay();
+  renderFeed();
+
+  /* The bubble. Keyed on time + author, NOT on id, because a chat item's id is
+     the AUTHOR - the same player's second message carries the same id and would
+     dedupe to silence. `chatPrimed` is separate from `lastChatKey` on purpose:
+     priming on "the key was null" looks equivalent and is not, because a room
+     with no chat yet never sets a key, so the very first message anyone sends
+     would be swallowed as backlog - which is exactly the message the feature
+     exists for. */
+  const chat = st.chat || [];
+  const newest = chat.length ? chat[chat.length - 1] : null;
+  const key = newest ? newest.t + ':' + newest.id + ':' + newest.text : null;
+  if (!chatPrimed) {
+    chatPrimed = true;
+    lastChatKey = key;
+  } else if (key && key !== lastChatKey) {
+    lastChatKey = key;
+    if (newest.id !== st.you.id) {
+      showTableSay(newest);
+      if (newest.kind !== 'shout') beep(880, 0.05, 'sine', 0.05);
+    }
+  }
+
+  /* Sound cues. A move made by somebody else is the thing you need to notice
+     when your back is turned; your own move you already know about. */
+  if (prev && prev.ply !== undefined && st.ply > prev.ply) {
+    if (st.lastMove && st.lastMove.seat !== st.you.seat) beep(st.lastMove.jump ? 620 : 520, 0.06, 'triangle', 0.05);
+  }
+  if (prev && prev.state !== 'ended' && st.state === 'ended') {
+    const won = st.winner === st.you.id;
+    beep(won ? 880 : 330, 0.18, 'sine', 0.07);
+    if (won) setTimeout(() => beep(1180, 0.22, 'sine', 0.06), 170);
+  }
+  if (st.state === 'playing' && st.turn === st.you.seat && (!prev || prev.turn !== st.turn || prev.state !== 'playing')) {
+    beep(700, 0.07, 'sine', 0.05);
+  }
+
+  if (prev && prev.ply !== st.ply) { selected = null; targets = []; }
+  if (st.state !== 'playing') { selected = null; targets = []; }
+}
+
+function playerAt(seat) {
+  return (S && S.players || []).find((p) => p.seat === seat) || null;
+}
+
+function renderStatus() {
+  const el = $('#status');
+  const txt = $('#statusText');
+  if (!S) return;
+  if (S.state === 'lobby') {
+    el.classList.remove('mine');
+    txt.textContent = S.you.isHost ? t('waitingHost') : t('waiting');
+    return;
+  }
+  if (S.state === 'ended') {
+    el.classList.remove('mine');
+    txt.textContent = S.winner ? t('winner', { name: S.winner === S.you.id ? t('you') : S.winnerName }) : t('draw');
+    return;
+  }
+  const mine = S.turn === S.you.seat;
+  el.classList.toggle('mine', mine);
+  if (mine) { txt.textContent = t('yourTurn'); return; }
+  const p = playerAt(S.turn);
+  txt.textContent = t('turnOf', { name: p ? p.name : '' });
+}
+
+function renderSeats() {
+  const host = $('#seats');
+  host.innerHTML = '';
+  (S.players || []).forEach((p) => {
+    const d = document.createElement('div');
+    d.className = 'seat' + (S.state === 'playing' && S.turn === p.seat ? ' turn' : '');
+    const sw = document.createElement('span');
+    sw.className = 'sw';
+    sw.style.background = SEAT_HEX[p.seat];
+    const nm = document.createElement('span');
+    nm.textContent = p.id === S.you.id ? t('you') : p.name;
+    d.appendChild(sw);
+    d.appendChild(nm);
+    if (p.bot) {
+      const b = document.createElement('span');
+      b.className = 'cnt';
+      b.textContent = '🤖';
+      d.appendChild(b);
+    }
+    const c = document.createElement('span');
+    c.className = 'cnt';
+    c.textContent = t('homeOf', { n: p.home });
+    d.appendChild(c);
+    host.appendChild(d);
+  });
+}
+
+/* ============================================================== the board */
+let boardBuilt = false;
+
+function buildBoard() {
+  const svg = $('#board');
+  const B = Core.BOUNDS;
+  const pad = 0.85;
+  const w = B.maxX - B.minX + pad * 2;
+  const h = B.maxY - B.minY + pad * 2;
+  svg.setAttribute('viewBox', (B.minX - pad) + ' ' + (B.minY - pad) + ' ' + w + ' ' + h);
+  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+
+  /* Which corner each seat owns, drawn as a faint ring of the seat's colour so
+     a player can see where they are going without being told. */
+  const glow = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  svg.appendChild(glow);
+
+  const holes = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  Core.CELLS.forEach((c) => {
+    const el = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    el.setAttribute('cx', c.x);
+    el.setAttribute('cy', c.y);
+    el.setAttribute('r', 0.40);
+    el.setAttribute('class', 'hole');
+    el.dataset.cell = c.i;
+    holes.appendChild(el);
+  });
+  svg.appendChild(holes);
+
+  const pegs = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  pegs.id = 'pegLayer';
+  svg.appendChild(pegs);
+
+  const hits = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  hits.id = 'hitLayer';
+  svg.appendChild(hits);
+
+  boardBuilt = true;
+}
+
+function renderBoard() {
+  if (!boardBuilt) buildBoard();
+  if (!S) return;
+  const svg = $('#board');
+  const seatCorners = Core.seatCorners(S.seats);
+
+  // corner tint
+  const glow = svg.firstChild;
+  glow.innerHTML = '';
+  seatCorners.forEach((cornerIdx, seat) => {
+    const p = playerAt(seat);
+    if (!p) return;
+    Core.CORNERS[cornerIdx].forEach((cell) => {
+      const c = Core.CELLS[cell];
+      const el = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      el.setAttribute('cx', c.x);
+      el.setAttribute('cy', c.y);
+      el.setAttribute('r', 0.50);
+      el.setAttribute('class', 'homeglow');
+      el.setAttribute('stroke', SEAT_HEX[seat]);
+      glow.appendChild(el);
+    });
+  });
+
+  // holes: mark legal targets
+  const holeEls = svg.querySelectorAll('.hole');
+  const tset = new Set(targets);
+  holeEls.forEach((el) => {
+    const cell = Number(el.dataset.cell);
+    el.classList.toggle('tgt', tset.has(cell));
+  });
+
+  // pegs
+  const layer = $('#pegLayer');
+  layer.innerHTML = '';
+  S.occ.forEach((v, i) => {
+    if (v < 0) return;
+    const c = Core.CELLS[i];
+    const el = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    el.setAttribute('cx', c.x);
+    el.setAttribute('cy', c.y);
+    el.setAttribute('r', 0.42);
+    el.setAttribute('class', 'peg' + (selected === i ? ' sel' : ''));
+    el.setAttribute('fill', SEAT_HEX[v]);
+    layer.appendChild(el);
+    // a small specular dot, so a peg reads as a ball and not a flat disc
+    const hi = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    hi.setAttribute('cx', c.x - 0.11);
+    hi.setAttribute('cy', c.y - 0.12);
+    hi.setAttribute('r', 0.12);
+    hi.setAttribute('fill', 'rgba(255,255,255,.55)');
+    layer.appendChild(hi);
+  });
+
+  // touch targets, rebuilt each time so they always match the state
+  const hits = $('#hitLayer');
+  hits.innerHTML = '';
+  const myTurn = S.state === 'playing' && S.turn === S.you.seat;
+  if (myTurn) {
+    const tset2 = new Set(targets);
+    S.occ.forEach((v, i) => {
+      if (v !== S.you.seat && !tset2.has(i)) return;
+      if (v !== S.you.seat && v >= 0) return;
+      const c = Core.CELLS[i];
+      const el = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      el.setAttribute('cx', c.x);
+      el.setAttribute('cy', c.y);
+      el.setAttribute('r', 0.56);
+      el.setAttribute('class', 'peghit');
+      el.onclick = () => tapCell(i);
+      hits.appendChild(el);
+    });
+  }
+}
+
+function tapCell(cell) {
+  if (!S || S.state !== 'playing') return;
+  if (S.turn !== S.you.seat) { toast(t('errNotYourTurn')); return; }
+
+  if (targets.includes(cell)) {
+    const from = selected;
+    selected = null;
+    targets = [];
+    renderBoard();
+    act('move', { from: from, to: cell });
+    return;
+  }
+
+  if (S.occ[cell] === S.you.seat) {
+    if (selected === cell) { selected = null; targets = []; renderBoard(); return; }
+    selected = cell;
+    targets = Core.legalMoves(S.occ, cell);
+    if (!targets.length) toast(t('errIllegalMove'));
+    beep(520, 0.04, 'sine', 0.03);
+    renderBoard();
+    return;
+  }
+
+  selected = null;
+  targets = [];
+  renderBoard();
+}
+
+/* ============================================================== the chat */
+function toggleFeed(open) {
+  feedOpen = open === undefined ? !feedOpen : open;
+  $('#feed').classList.toggle('hidden', !feedOpen);
+  if (feedOpen) renderFeed();
+}
+
+function renderFeed() {
+  if (!S) return;
+  const body = $('#feedBody');
+  const atBottom = body.scrollHeight - body.scrollTop - body.clientHeight < 40;
+  body.innerHTML = '';
+  (S.chat || []).forEach((m) => {
+    const d = document.createElement('div');
+    d.className = 'msg' + (m.kind === 'shout' ? ' shout' : '');
+    if (m.kind === 'shout') {
+      d.textContent = m.text;
+    } else {
+      const b = document.createElement('b');
+      b.textContent = (m.name || '') + ': ';
+      d.appendChild(b);
+      // textContent, never innerHTML: this is a stranger's typing
+      d.appendChild(document.createTextNode(m.text));
+    }
+    body.appendChild(d);
+  });
+  if (atBottom) body.scrollTop = body.scrollHeight;
+}
+
+/* The on-table bubble: newest message or shout, over the board, ~4.6s, max 3.
+   Without this the message only ever exists inside a panel that is closed by
+   default - which is the bug this exists to fix. */
+function showTableSay(m) {
+  const host = $('#tableSay');
+  const d = document.createElement('div');
+  d.className = 'ts-item' + (m.kind === 'shout' ? ' big' : '');
+  if (m.kind === 'shout') {
+    d.textContent = m.text;
+  } else {
+    const who = document.createElement('span');
+    who.className = 'who';
+    who.textContent = (m.avatar ? m.avatar + ' ' : '') + (m.name || '');
+    const what = document.createElement('span');
+    what.className = 'what';
+    what.textContent = m.text;
+    d.appendChild(who);
+    d.appendChild(what);
+  }
+  host.appendChild(d);
+  while (host.children.length > 3) host.removeChild(host.firstChild);
+  setTimeout(() => {
+    d.classList.add('out');
+    setTimeout(() => { if (d.parentNode) d.parentNode.removeChild(d); }, 380);
+  }, 4600);
+}
+
+function sendChat() {
+  const el = $('#chatInput');
+  const text = (el.value || '').trim();
+  if (!text) return;
+  el.value = '';
+  act('chat', { text: text });
+}
+
+async function act(type, extra) {
+  if (!session) return;
+  try {
+    await api('api/action', Object.assign({ token: session.token, type: type }, extra || {}));
+  } catch (e) {
+    toast(errText(e.message));
+  }
+}
+
+/* ============================================================== overlay */
+function renderOverlay() {
+  const ov = $('#overlay');
+  if (!S || S.state !== 'ended') { ov.classList.add('hidden'); return; }
+  ov.classList.remove('hidden');
+  const won = S.winner === S.you.id;
+  $('#ovIcon').textContent = S.winner ? (won ? '🏆' : '🎉') : '🤝';
+  $('#ovTitle').textContent = S.winner
+    ? (won ? t('youWin') : t('winner', { name: S.winnerName }))
+    : t('draw');
+  $('#ovText').textContent = t('endedText');
+  $('#ovAgain').classList.toggle('hidden', !S.you.isHost);
+}
+
+/* ================================================================ boot */
+function boot() {
+  buildLobby();
+  buildBoard();
+
+  const path = location.pathname.replace(/\/+$/, '');
+  const m = path.match(/\/games\/chinesechecker\/([A-Za-z0-9]{4})$/);
+  if (m) $('#codeInput').value = m[1].toUpperCase();
+
+  const saved = loadSession();
+  if (saved) {
+    session = saved;
+    enterTable(saved.code);
+    // If the seat is gone the SSE stream says so on its first frame and we are
+    // sent back to the lobby; no need to probe over HTTP first.
+  }
+}
+
+window.addEventListener('pagehide', () => { if (es) { try { es.close(); } catch (e) { /* ignore */ } } });
+boot();
+</script>
+</body>
+</html>

@@ -40,6 +40,51 @@ const { GUIDES, GUIDE_BY_SLUG, UPDATED } = require('./content');
 const VOCAB_UPDATED = UPDATED;
 
 /**
+ * The date the WORD PAGE began rendering prose, as distinct from the date the
+ * vocabulary DATA changed.
+ *
+ * WHY THE DISTINCTION EXISTS. VOCAB_UPDATED above was a good enough answer
+ * while a word page was a pure function of its row: the row changed, the page
+ * changed, one date covered both. On 2026-10-26 that stopped being true —
+ * renderWord() started rendering `usage_note` and `example_*`, which had been
+ * sitting in the database unrendered since the beginning. The DATA did not
+ * change; the OUTPUT of 68 words did.
+ *
+ * Leaving those 272 URLs (68 words x 4 languages) stamped with the library date
+ * would tell Google "nothing here has moved" about the exact pages we want it
+ * to revisit — and they are the pages sitting in "Discovered - currently not
+ * indexed". lastmod is the signal Google uses to decide what to spend a recrawl
+ * on, so a stale one is not neutral; it is a reason not to come.
+ *
+ * APPLIED PER WORD, NOT PER FAMILY. Only a word that actually carries a note or
+ * an example gained a block; the other 266 render byte-identically to before.
+ * Stamping all 334 with today's date would be the over-claiming that teaches
+ * Google to distrust the whole sitemap. See wordLastmod().
+ *
+ * This is a fixed historical fact, not a version to bump: it records when the
+ * prose first appeared, and that will still be true next year.
+ */
+const WORD_PROSE_ADDED = '2026-10-26';
+
+/**
+ * The honest `lastmod` for one word page: the later of the library date and the
+ * date its prose first rendered.
+ *
+ * A word with no note and no example did not change on 2026-10-26 and must keep
+ * the library date — that is the whole point of doing this per word.
+ */
+function wordLastmod(w) {
+  const hasProse = Boolean(
+    String(w.usage_note || '').trim() ||
+    String(w.example_yue || '').trim() ||
+    String(w.example_en || '').trim()
+  );
+  if (!hasProse) return VOCAB_UPDATED;
+  // ISO dates compare correctly as strings; no Date objects needed.
+  return WORD_PROSE_ADDED > VOCAB_UPDATED ? WORD_PROSE_ADDED : VOCAB_UPDATED;
+}
+
+/**
  * Canonical origin. Overridable so a preview deployment can canonicalise to
  * itself instead of pointing at production. The default is the real domain
  * because a wrong-but-absolute canonical is far safer than a missing one.
@@ -3597,10 +3642,16 @@ ${alts}
     }
   }
 
-  // Categories, levels, words — in every language tree. All three are drawn
-  // from the vocabulary library, so their true freshness is the library's:
-  // UPDATED from content.js. A category page cannot change without the words
-  // in it changing, and a word cannot change without UPDATED moving.
+  // Categories, levels, words — in every language tree. Category and level
+  // pages are pure functions of the library, so their true freshness is
+  // UPDATED from content.js: a category cannot change without the words in it
+  // changing.
+  //
+  // A WORD page is the exception, and it is not a theoretical one. Its
+  // rendering gained blocks (usage note, example sentence) that do not live in
+  // the vocabulary data, so a word can now change without UPDATED moving. Those
+  // words get their own date from wordLastmod(); the rest keep the library date
+  // because they genuinely did not change.
   const cats = store.listEnabledCategories();
   const { bySlug } = buildWordIndex();
   for (const prefix of Object.values(LANG_PREFIX)) {
@@ -3611,8 +3662,9 @@ ${alts}
     for (const n of Object.keys(LEVELS)) {
       add(`${prefix}/level/${n}`, '0.7', 'monthly', hreflangLinks((l) => `${LANG_PREFIX[l]}/level/${n}`), VOCAB_UPDATED);
     }
-    for (const s of bySlug.keys()) {
-      add(`${prefix}/words/${s}`, '0.6', 'monthly', hreflangLinks((l) => `${LANG_PREFIX[l]}/words/${s}`), VOCAB_UPDATED);
+    for (const [s, w] of bySlug) {
+      add(`${prefix}/words/${s}`, '0.6', 'monthly',
+        hreflangLinks((l) => `${LANG_PREFIX[l]}/words/${s}`), wordLastmod(w));
     }
   }
 

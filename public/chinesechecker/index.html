@@ -99,6 +99,10 @@
   .peg{stroke:none}
   .peg .body{stroke:rgba(0,0,0,.16);stroke-width:.045}
   .peg.sel .body{stroke:#12212f;stroke-width:.15}
+  /* The peg in flight. Pointer-events off so it cannot eat a tap, and lifted
+     slightly so it reads as being above the board while it travels. */
+  .peg.flyer{pointer-events:none;filter:drop-shadow(0 .10px .12px rgba(0,0,0,.30))}
+  .peg.flyer .body{stroke:rgba(0,0,0,.20);stroke-width:.05}
   .peghit{fill:transparent;cursor:pointer}
   .homeglow{fill:none;stroke-width:.12;opacity:.55}
 
@@ -957,6 +961,7 @@ function enterTable(code) {
 
 function leaveTable() {
   if (es) { try { es.close(); } catch (e) { /* ignore */ } es = null; }
+  stopFx();
   clearSession();
   session = null;
   S = null;
@@ -991,12 +996,28 @@ function connect() {
 function applyState(st) {
   const prev = S;
   S = st;
+
+  /* A new move to play? Decided before the board is drawn, because the resting
+     peg on the destination cell has to be skipped in the SAME pass — setting it
+     afterwards would leave the piece drawn twice. */
+  const moved = prev && st.ply > prev.ply;
+  const anim = (moved && st.lastMove && st.lastMove.path && st.lastMove.path.length >= 3)
+    ? st.lastMove : null;
+  /* Whatever is in flight belongs to an older ply, even when the new move needs
+     no animation — otherwise a step arriving mid-chain leaves the previous peg
+     flying against a board that has already moved on. */
+  if (moved) { stopFx(); if (anim) fxCell = anim.to; }
+  if (prev && st.ply < prev.ply) stopFx();     // a new round: no stale ghost
+
   renderSeats();
   renderStatus();
   renderStart();
   renderBoard();
   renderOverlay();
   renderFeed();
+
+  /* After the board exists, so the flyer is drawn over the pegs it passes. */
+  if (anim) animateMove(anim);
 
   /* The bubble. Keyed on time + author, NOT on id, because a chat item's id is
      the AUTHOR - the same player's second message carries the same id and would
@@ -1212,11 +1233,134 @@ function buildBoard() {
   pegs.id = 'pegLayer';
   svg.appendChild(pegs);
 
+  /* Above the pegs, below the touch targets: the moving peg has to be seen over
+     the resting ones, but must never swallow a tap meant for a hole. */
+  const fx = document.createElementNS(SVGNS, 'g');
+  fx.id = 'fxLayer';
+  svg.appendChild(fx);
+
   const hits = document.createElementNS('http://www.w3.org/2000/svg', 'g');
   hits.id = 'hitLayer';
   svg.appendChild(hits);
 
   boardBuilt = true;
+}
+
+/* ============================================================== the marble */
+/* One peg, centred on (x, y). Extracted so that the peg the move animation
+   flies across the board is the SAME material as a resting one — a hand-made
+   clone that is a shade off reads as a different piece, which is worse than no
+   animation at all. */
+function makePeg(seat, x, y, extraClass) {
+  const g = document.createElementNS(SVGNS, 'g');
+  g.setAttribute('class', 'peg' + (extraClass ? ' ' + extraClass : ''));
+
+  /* Body: the gradient carries the sphere. Darker at the rim than at the
+     centre is the whole trick — a flat fill has no curvature. */
+  const body = document.createElementNS(SVGNS, 'circle');
+  body.setAttribute('cx', x);
+  body.setAttribute('cy', y);
+  body.setAttribute('r', 0.42);
+  body.setAttribute('class', 'body');
+  body.setAttribute('fill', 'url(#pegGrad' + seat + ')');
+  g.appendChild(body);
+
+  /* Bounce light on the lower-right rim: the thin crescent of light a glass
+     ball throws back from the surface it sits on. Without it the marble looks
+     lit from one side and floating. */
+  const bounce = document.createElementNS(SVGNS, 'path');
+  const R0 = 0.34;
+  const ax = x + R0 * 0.55, ay = y + R0 * 0.80;
+  bounce.setAttribute('d',
+    `M ${x - R0 * 0.62} ${y + R0 * 0.72}`
+    + ` A ${R0} ${R0} 0 0 0 ${ax.toFixed(3)} ${ay.toFixed(3)}`);
+  bounce.setAttribute('fill', 'none');
+  bounce.setAttribute('stroke', 'rgba(255,255,255,.42)');
+  bounce.setAttribute('stroke-width', '0.10');
+  bounce.setAttribute('stroke-linecap', 'round');
+  g.appendChild(bounce);
+
+  /* Specular: a soft blob plus a small hard catchlight. Two highlights, not
+     one — glass reflects the whole room, and the hard dot inside the soft
+     blob is what the eye reads as "polished". */
+  const spec = document.createElementNS(SVGNS, 'ellipse');
+  spec.setAttribute('cx', x - 0.11);
+  spec.setAttribute('cy', y - 0.13);
+  spec.setAttribute('rx', 0.17);
+  spec.setAttribute('ry', 0.12);
+  spec.setAttribute('fill', 'url(#pegGloss)');
+  spec.setAttribute('transform', `rotate(-28 ${x - 0.11} ${y - 0.13})`);
+  g.appendChild(spec);
+
+  const dot = document.createElementNS(SVGNS, 'circle');
+  dot.setAttribute('cx', x - 0.09);
+  dot.setAttribute('cy', y - 0.11);
+  dot.setAttribute('r', 0.055);
+  dot.setAttribute('fill', 'rgba(255,255,255,.92)');
+  g.appendChild(dot);
+
+  return g;
+}
+
+/* ====================================================== the move animation */
+/* WHY THIS EXISTS. A jump may clear a piece eight holes away and a chain may
+   run six hops, so the median move shifts a peg SIX holes and the longest seen
+   is sixteen. The board used to just redraw with the peg in its new cell, which
+   makes a legal chain look exactly like a peg teleporting — and that is what
+   players reported as "the computer not following the jump rules". The rules
+   were being followed; the route was invisible.
+
+   The flying peg lives in its own layer, `#fxLayer`, which renderBoard() never
+   clears. That matters because a state push (a chat message, say) re-renders
+   mid-animation, and an animation that vanishes halfway is worse than none.
+   While it runs, the destination cell's resting peg is skipped so the piece is
+   never in two places at once. */
+let fxCell = -1;        // destination hidden while the animation is in flight
+let fxTimer = null;
+
+function stopFx() {
+  if (fxTimer) { clearInterval(fxTimer); fxTimer = null; }
+  const layer = $('#fxLayer');
+  if (layer) layer.innerHTML = '';
+  fxCell = -1;
+}
+
+function animateMove(move) {
+  const path = move && move.path;
+  /* A step is two cells and needs no explanation. Everything longer is a jump,
+     and the whole point is to show each hop. */
+  if (!path || path.length < 3) return;
+
+  const layer = $('#fxLayer');
+  if (!layer) return;
+
+  /* fxCell was set by the caller, before the board was drawn. */
+  if (fxTimer) { clearInterval(fxTimer); fxTimer = null; }
+  layer.innerHTML = '';
+
+  const hops = path.length - 1;
+  /* A six-hop chain at a fixed pace outlasts the bot's own move delay, so the
+     pace tightens as the chain grows. Never so fast that it is a blur. */
+  const hopMs = Math.max(60, Math.min(130, 620 / hops));
+
+  const start = Core.CELLS[path[0]];
+  const flyer = makePeg(move.seat, start.x, start.y, 'flyer');
+  flyer.style.transition = `transform ${hopMs}ms ease-in-out`;
+  layer.appendChild(flyer);
+
+  let step = 0;
+  fxTimer = setInterval(() => {
+    step += 1;
+    if (step >= path.length) {
+      stopFx();
+      renderBoard();          // reveal the peg resting on its new cell
+      return;
+    }
+    const c = Core.CELLS[path[step]];
+    flyer.setAttribute('transform',
+      `translate(${(c.x - start.x).toFixed(3)} ${(c.y - start.y).toFixed(3)})`);
+    if (path.length > 4) beep(560 + step * 30, 0.03, 'triangle', 0.02);
+  }, hopMs);
 }
 
 function renderBoard() {
@@ -1256,55 +1400,11 @@ function renderBoard() {
   layer.innerHTML = '';
   S.occ.forEach((v, i) => {
     if (v < 0) return;
+    /* Hidden while a move is still travelling to this cell, so the peg is never
+       drawn in two places at once. */
+    if (fxCell === i) return;
     const c = Core.CELLS[i];
-    const g = document.createElementNS(SVGNS, 'g');
-    g.setAttribute('class', 'peg' + (selected === i ? ' sel' : ''));
-
-    /* Body: the gradient carries the sphere. Darker at the rim than at the
-       centre is the whole trick — a flat fill has no curvature. */
-    const body = document.createElementNS(SVGNS, 'circle');
-    body.setAttribute('cx', c.x);
-    body.setAttribute('cy', c.y);
-    body.setAttribute('r', 0.42);
-    body.setAttribute('class', 'body');
-    body.setAttribute('fill', 'url(#pegGrad' + v + ')');
-    g.appendChild(body);
-
-    /* Bounce light on the lower-right rim: the thin crescent of light a glass
-       ball throws back from the surface it sits on. Without it the marble looks
-       lit from one side and floating. */
-    const bounce = document.createElementNS(SVGNS, 'path');
-    const R0 = 0.34;
-    const ax = c.x + R0 * 0.55, ay = c.y + R0 * 0.80;
-    bounce.setAttribute('d',
-      `M ${c.x - R0 * 0.62} ${c.y + R0 * 0.72}`
-      + ` A ${R0} ${R0} 0 0 0 ${ax.toFixed(3)} ${ay.toFixed(3)}`);
-    bounce.setAttribute('fill', 'none');
-    bounce.setAttribute('stroke', 'rgba(255,255,255,.42)');
-    bounce.setAttribute('stroke-width', '0.10');
-    bounce.setAttribute('stroke-linecap', 'round');
-    g.appendChild(bounce);
-
-    /* Specular: a soft blob plus a small hard catchlight. Two highlights, not
-       one — glass reflects the whole room, and the hard dot inside the soft
-       blob is what the eye reads as "polished". */
-    const spec = document.createElementNS(SVGNS, 'ellipse');
-    spec.setAttribute('cx', c.x - 0.11);
-    spec.setAttribute('cy', c.y - 0.13);
-    spec.setAttribute('rx', 0.17);
-    spec.setAttribute('ry', 0.12);
-    spec.setAttribute('fill', 'url(#pegGloss)');
-    spec.setAttribute('transform', `rotate(-28 ${c.x - 0.11} ${c.y - 0.13})`);
-    g.appendChild(spec);
-
-    const dot = document.createElementNS(SVGNS, 'circle');
-    dot.setAttribute('cx', c.x - 0.09);
-    dot.setAttribute('cy', c.y - 0.11);
-    dot.setAttribute('r', 0.055);
-    dot.setAttribute('fill', 'rgba(255,255,255,.92)');
-    g.appendChild(dot);
-
-    layer.appendChild(g);
+    layer.appendChild(makePeg(v, c.x, c.y, selected === i ? 'sel' : ''));
   });
 
   // touch targets, rebuilt each time so they always match the state

@@ -324,6 +324,52 @@
     return out;
   }
 
+  /* THE ROUTE A MOVE TAKES: [from, ...intermediate landings..., to].
+     A plain step is a two-cell path. null when `to` is not reachable.
+
+     WHY THIS EXISTS. A jump can clear a piece eight holes away and a chain can
+     run six hops, so the median move now moves a peg SIX holes and the longest
+     seen is sixteen. The client used to redraw the board with the peg at its
+     new cell and nothing else, which made a legal chain indistinguishable from
+     a peg teleporting - players reported the computer "not following the jump
+     rules". The rules were being followed; the route was invisible. This is
+     what lets the client draw it.
+
+     Shortest path, by breadth-first search with parents, so the animation is
+     the most direct route the rules allow rather than whichever one the player
+     happened to think of. */
+  function movePath(occ, from, to) {
+    if (from === to) return null;
+    if (from < 0 || from >= N || to < 0 || to >= N) return null;
+    if (ADJ[from].indexOf(to) >= 0) return [from, to];
+
+    var jumpOcc = occ.slice();
+    jumpOcc[from] = -1;
+
+    var prev = new Int16Array(N).fill(-1);
+    var seen = new Uint8Array(N);
+    seen[from] = 1;
+    var queue = [from];
+
+    for (var h = 0; h < queue.length; h++) {
+      var cur = queue[h];
+      for (var d = 0; d < RAYS.length; d++) {
+        var land = jumpLanding(jumpOcc, cur, RAYS[d]);
+        if (land < 0 || seen[land]) continue;
+        seen[land] = 1;
+        prev[land] = cur;
+        if (land === to) {
+          var out = [to];
+          for (var p = prev[to]; p !== from && p >= 0; p = prev[p]) out.unshift(p);
+          out.unshift(from);
+          return out;
+        }
+        queue.push(land);
+      }
+    }
+    return null;
+  }
+
   /* A move is worth showing the player as a JUMP when it is not adjacent -
      i.e. the chain did some work. Used only for wording and for the AI's
      tie-break, never for legality. */
@@ -557,6 +603,7 @@
     emptyBoard: emptyBoard,
     initialBoard: initialBoard,
     legalMoves: legalMoves,
+    movePath: movePath,
     isJump: isJump,
     applyMove: applyMove,
     isWin: isWin,

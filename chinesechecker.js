@@ -222,9 +222,11 @@ function doMove(room, player, from, to) {
   if (!Core.legalMoves(room.occ, from, room.seats, player.seat).includes(to)) return { error: 'illegalMove' };
 
   const jump = Core.isJump(from, to);
+  /* Before the move is applied: movePath needs the peg still on `from`. */
+  const path = Core.movePath(room.occ, from, to);
   Core.applyMove(room.occ, from, to, player.seat);
   room.ply += 1;
-  room.lastMove = { from: from, to: to, seat: player.seat, jump: jump, ply: room.ply };
+  room.lastMove = { from: from, to: to, seat: player.seat, jump: jump, ply: room.ply, path: path };
   pushLog(room, { k: 'move', name: player.name, seat: player.seat, from: from, to: to, jump: jump });
 
   if (Core.isWin(room.occ, room.seats, player.seat)) {
@@ -265,9 +267,10 @@ function scheduleBot(room) {
     if (!mv) { finishOnPoints(room); return; }
 
     const jump = Core.isJump(mv[0], mv[1]);
+    const path = Core.movePath(room.occ, mv[0], mv[1]);
     Core.applyMove(room.occ, mv[0], mv[1], bot.seat);
     room.ply += 1;
-    room.lastMove = { from: mv[0], to: mv[1], seat: bot.seat, jump: jump, ply: room.ply };
+    room.lastMove = { from: mv[0], to: mv[1], seat: bot.seat, jump: jump, ply: room.ply, path: path };
     pushLog(room, { k: 'move', name: bot.name, seat: bot.seat, from: mv[0], to: mv[1], jump: jump });
 
     if (Core.isWin(room.occ, room.seats, bot.seat)) { finishGame(room, bot.id); return; }

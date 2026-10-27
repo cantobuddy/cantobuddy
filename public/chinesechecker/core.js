@@ -35,17 +35,19 @@
   var K = Math.sqrt(3) / 2;           // vertical step of one lattice row
   var DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]];
 
-  /* The lattice basis above puts the star's six points at 0, 60, 120, ... i.e.
-     two points straight left and right and a V-notch at the top. That is a
-     hexagram, but it is the wrong one: the board everybody has seen has a
-     single triangle pointing UP at the top, and it is taller than it is wide,
-     which is also the shape that fits a phone held in one hand.
+  /* NO DRAWING ROTATION IS NEEDED, and that is a consequence of fixing the arm.
+     With the correct equilateral arms the star already has a single point
+     straight up at 90 degrees, its other five at 30/150/210/270/330, and it is
+     taller than it is wide (12 x 13.86) - the shape a real board has, and the
+     one that fits a phone held in one hand.
 
-     Rotating the drawing 30 degrees turns points at 0/60/.../300 into points at
-     30/90/.../330 - top, bottom and four diagonals. Only the pixel mapping
-     moves; the graph, the corners and the move rules are untouched, because a
-     rotation cannot change what is adjacent to what. */
-  var TURN = Math.PI / 6;
+     The previous version carried a 30-degree turn to compensate for the skewed
+     arm. Removing the skew removed the reason for the turn; keeping it would
+     now rotate a correct board into the wrong orientation (points left and
+     right, a V-notch at the top). TURN stays as a named constant so the pixel
+     mapping reads the same way it did, and so a future rotation has one place
+     to happen. */
+  var TURN = 0;
   var COS = Math.cos(TURN);
   var SIN = Math.sin(TURN);
 
@@ -57,13 +59,26 @@
 
   /* --- the six arms ------------------------------------------------------
      The arm grown off the a = R edge: rows a = R+1 .. 2R, and at each row the
-     span b = -(2R - a) .. 0. That is 4,3,2,1 cells = 10, a triangle whose apex
-     is at (2R, 0). The base row (a = R) is already part of the hexagon, so it
-     is deliberately NOT included here - including it would double-count 30
-     cells and quietly make a 151-hole board. */
+     span b = -R .. R-a. That is 4,3,2,1 cells = 10, an EQUILATERAL triangle
+     whose apex sits on the perpendicular bisector of the base.
+
+     THE b RANGE IS THE WHOLE POINT, and it is where this went wrong the first
+     time. The earlier version used b = -(2R-a) .. 0, which anchors every row at
+     b = 0 instead of at b = -R. The row lengths were right (4,3,2,1) and the
+     cell count was right (121), so nothing looked broken in the numbers — but
+     the apex landed at (2R, 0) while the base's centre is at b = -R, so each
+     point was a SKEWED triangle leaning the same way round the board. The star
+     came out as a chiral pinwheel: still 121 cells, still 6-fold rotationally
+     symmetric, and it swirled. A player reported it as "棋盤扭曲" and sent a
+     photo of a real board, which is a symmetric hexagram.
+
+     The invariant that catches it is REFLECTION, not rotation: a real board is
+     symmetric about the vertical axis through its centre, a pinwheel is not.
+     tools/chinesechecker-test.js now asserts that, so the two cannot be
+     confused again. */
   var arm = [];
   for (var a0 = R + 1; a0 <= 2 * R; a0++) {
-    for (var b0 = -(2 * R - a0); b0 <= 0; b0++) arm.push([a0, b0]);
+    for (var b0 = -R; b0 <= R - a0; b0++) arm.push([a0, b0]);
   }
 
   var armCells = [arm];

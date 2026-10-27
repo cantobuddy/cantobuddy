@@ -93,8 +93,12 @@
   .hole{fill:#dfe8f0;stroke:#c3d2de;stroke-width:.045}
   .hole.tgt{fill:#bcd9f2;stroke:#4b93cc;stroke-width:.09}
   .hole.pickable{cursor:pointer}
-  .peg{stroke:rgba(0,0,0,.22);stroke-width:.07}
-  .peg.sel{stroke:#12212f;stroke-width:.16}
+  /* The stroke lives on the BODY, not on the .peg group: stroke inherits, so a
+     stroke on the group would also outline the specular highlight and the
+     bounce-light crescent and turn a marble into a Venn diagram. */
+  .peg{stroke:none}
+  .peg .body{stroke:rgba(0,0,0,.16);stroke-width:.045}
+  .peg.sel .body{stroke:#12212f;stroke-width:.15}
   .peghit{fill:transparent;cursor:pointer}
   .homeglow{fill:none;stroke-width:.12;opacity:.55}
 
@@ -177,6 +181,37 @@
   .overlay p{margin:0;font-size:14.5px;color:var(--muted);max-width:30ch;line-height:1.45}
   .overlay .big{font-size:44px;line-height:1}
   .code{font-family:ui-monospace,Menlo,monospace;font-size:22px;font-weight:800;letter-spacing:3px;color:var(--blue-d)}
+
+  /* ---------- how to play ----------
+     A sheet over the whole page, not a panel inside the lobby: a first-time
+     player opens it before they have chosen anything, and on a small phone the
+     lobby itself already scrolls. `max-height:86%` keeps the close button and
+     the top of the text on screen so it never looks like a page that has lost
+     its way out. */
+  .sheet{
+    position:fixed;inset:0;background:rgba(18,33,47,.55);display:flex;align-items:center;
+    justify-content:center;padding:16px;z-index:80;
+  }
+  .sheet.hidden{display:none}
+  .sheet-card{
+    background:#fff;border-radius:18px;width:100%;max-width:520px;max-height:86%;
+    display:flex;flex-direction:column;box-shadow:0 18px 50px rgba(9,22,34,.35);overflow:hidden;
+  }
+  .sheet-head{
+    display:flex;align-items:center;gap:10px;padding:14px 16px 12px;border-bottom:1px solid var(--line);
+  }
+  .sheet-head h2{margin:0;font-size:17px;line-height:1.25;flex:1}
+  .sheet-x{
+    border:0;background:#eef3f8;color:#12212f;width:32px;height:32px;border-radius:50%;
+    font-size:15px;font-weight:800;cursor:pointer;line-height:1;flex:0 0 auto;
+  }
+  .sheet-body{overflow-y:auto;padding:14px 16px 20px;-webkit-overflow-scrolling:touch}
+  .sheet-body .lede{margin:0 0 14px;color:var(--muted);font-size:14px;line-height:1.5}
+  .sheet-body h3{margin:16px 0 5px;font-size:14.5px;line-height:1.3;color:#12212f}
+  .sheet-body h3:first-of-type{margin-top:0}
+  .sheet-body p{margin:0;font-size:14px;line-height:1.55;color:#33475a}
+  .sheet-body ul{margin:7px 0 0;padding-left:19px}
+  .sheet-body li{font-size:14px;line-height:1.55;color:#33475a;margin-bottom:4px}
 </style>
 </head>
 <body>
@@ -184,6 +219,7 @@
   <div class="top">
     <h1 data-k="appTitle">Chinese Checkers</h1>
     <span class="spacer"></span>
+    <button class="btn ghost small" id="rulesBtn" data-k="howTo">How to play</button>
     <button class="btn ghost small hidden" id="leaveBtn" data-k="backLobby">Lobby</button>
   </div>
 
@@ -267,7 +303,20 @@
 
 <div class="toast" id="toast" style="position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(14px);background:#12212f;color:#fff;padding:10px 16px;border-radius:11px;font-size:14px;font-weight:600;opacity:0;transition:.18s ease;pointer-events:none;z-index:60"></div>
 
+<!-- The rules. Content is rendered from rules.js, which is the same module the
+     guide page at /guide/how-to-play-chinese-checkers is built from. -->
+<div class="sheet hidden" id="rulesSheet" role="dialog" aria-modal="true" aria-labelledby="rulesTitle">
+  <div class="sheet-card">
+    <div class="sheet-head">
+      <h2 id="rulesTitle" data-k="howTo">How to play</h2>
+      <button class="sheet-x" id="rulesClose" type="button" aria-label="Close">✕</button>
+    </div>
+    <div class="sheet-body" id="rulesBody"></div>
+  </div>
+</div>
+
 <script src="/games/chinesechecker/core.js"></script>
+<script src="/games/chinesechecker/rules.js"></script>
 <script>
 /* The engine publishes itself as `CheckerCore` so it cannot collide with
    anything else on the page. Aliased here once, because `Core.N`, `Core.CELLS`
@@ -332,6 +381,8 @@ const STR = {
     errExpired: 'That game is over — start a new one.',
     errNet: 'Connection dropped for a moment — try again.',
     errGeneric: 'Something went wrong.',
+    howTo: 'How to play',
+    close: 'Close',
   },
   fil: {
     appTitle: 'Chinese Checkers',
@@ -385,6 +436,8 @@ const STR = {
     errExpired: 'Tapos na ang larong iyon — gumawa ng bago.',
     errNet: 'Naputol sandali ang koneksyon — subukan ulit.',
     errGeneric: 'May nangyaring mali.',
+    howTo: 'Paano laruin',
+    close: 'Isara',
   },
   zh: {
     appTitle: '中国跳棋',
@@ -438,6 +491,8 @@ const STR = {
     errExpired: '那一局已经结束了 — 开一局新的吧。',
     errNet: '连接断了一下，再试一次。',
     errGeneric: '出了点问题。',
+    howTo: '玩法',
+    close: '关闭',
   },
   id: {
     appTitle: 'Dam Cina',
@@ -491,6 +546,8 @@ const STR = {
     errExpired: 'Permainan itu sudah berakhir — buat yang baru.',
     errNet: 'Koneksi terputus sebentar — coba lagi.',
     errGeneric: 'Ada yang tidak beres.',
+    howTo: 'Cara bermain',
+    close: 'Tutup',
   },
 };
 
@@ -523,6 +580,19 @@ const SOUND_KEY = 'cc.sound';
 
 const SEAT_COLOR = ['var(--seat0)','var(--seat1)','var(--seat2)','var(--seat3)','var(--seat4)','var(--seat5)'];
 const SEAT_HEX = ['#e8503a','#2f7fd1','#2e9e5b','#e0a91b','#8b5cf6','#d6559b'];
+
+/* SVG helpers for the peg material. A marble is not a flat disc: what makes it
+   read as glass is a light source (up and to the left), a dark rim where the
+   sphere turns away, and a sliver of bounce light on the opposite edge. */
+const SVGNS = 'http://www.w3.org/2000/svg';
+
+/** Blend `hex` toward `toward` by `t` (0 = hex, 1 = toward). */
+function mixHex(hex, toward, t) {
+  const p = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const a = p(hex), b = p(toward);
+  const out = a.map((v, i) => Math.round(v + (b[i] - v) * t));
+  return '#' + out.map((v) => v.toString(16).padStart(2, '0')).join('');
+}
 
 let sound = localStorage.getItem(SOUND_KEY) !== 'off';
 let S = null;                  // last state from the server
@@ -663,7 +733,73 @@ function buildLobby() {
   $('#startBtn').onclick = () => startNow();
   $('#codeChip').onclick = () => copyInvite();
 
+  $('#rulesBtn').onclick = () => openRules(true);
+  $('#rulesClose').onclick = () => openRules(false);
+  // Tapping the dimmed area outside the card closes it, which is what everyone
+  // tries before looking for the ✕.
+  $('#rulesSheet').onclick = (e) => { if (e.target === $('#rulesSheet')) openRules(false); };
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !$('#rulesSheet').classList.contains('hidden')) openRules(false);
+  });
+
   translateStatic();
+}
+
+/* ============================================================== the rules
+   Rendered from rules.js, the same module content.js builds the public guide
+   page from. Nothing here is written out twice: if a rule changes, it changes
+   in one file and both the panel and /guide/how-to-play-chinese-checkers follow.
+
+   Built as DOM nodes rather than innerHTML because the text comes from a shared
+   module that a future editor could fill from anywhere; textContent cannot turn
+   a stray < into markup. */
+let rulesBuilt = false;
+
+function renderRules() {
+  if (rulesBuilt) return;
+  const R = window.CheckerRules;
+  if (!R) return;                       // script failed to load: no panel, no crash
+  const r = R.forLang(LANG);
+  $('#rulesTitle').textContent = r.title;
+  const body = $('#rulesBody');
+  body.innerHTML = '';
+
+  const lede = document.createElement('p');
+  lede.className = 'lede';
+  lede.textContent = r.lede;
+  body.appendChild(lede);
+
+  r.sections.forEach((s) => {
+    const h = document.createElement('h3');
+    h.textContent = s.h;
+    body.appendChild(h);
+    const p = document.createElement('p');
+    p.textContent = s.p;
+    body.appendChild(p);
+    if (s.list && s.list.length) {
+      const ul = document.createElement('ul');
+      s.list.forEach((li) => {
+        const el = document.createElement('li');
+        el.textContent = li;
+        ul.appendChild(el);
+      });
+      body.appendChild(ul);
+    }
+  });
+  rulesBuilt = true;
+}
+
+function openRules(on) {
+  const sheet = $('#rulesSheet');
+  if (on) {
+    renderRules();
+    sheet.classList.remove('hidden');
+    // Focus the close button so a keyboard or screen-reader user is not left
+    // behind the dialog, and so Escape has somewhere to land.
+    $('#rulesClose').focus();
+  } else {
+    sheet.classList.add('hidden');
+  }
 }
 
 function translateStatic() {
@@ -1012,9 +1148,52 @@ function buildBoard() {
   svg.setAttribute('viewBox', (B.minX - pad) + ' ' + (B.minY - pad) + ' ' + w + ' ' + h);
   svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
 
+  /* --- the peg material -------------------------------------------------
+     One gradient per seat, generated from SEAT_HEX rather than written out six
+     times: the focus sits up and to the left so every marble in a corner is lit
+     from the same direction, which is what makes a row of them read as a set of
+     solid objects instead of a row of coloured dots. The 0% stop is a washed
+     version of the seat colour, not white — starting at white turns the focus
+     into a milky blob and the peg stops looking like coloured glass. */
+  const defs = document.createElementNS(SVGNS, 'defs');
+  SEAT_HEX.forEach((hex, i) => {
+    const g = document.createElementNS(SVGNS, 'radialGradient');
+    g.setAttribute('id', 'pegGrad' + i);
+    g.setAttribute('cx', '36%');
+    g.setAttribute('cy', '30%');
+    g.setAttribute('r', '80%');
+    [
+      [0, mixHex(hex, '#ffffff', 0.58)],
+      [38, mixHex(hex, '#ffffff', 0.16)],
+      [72, hex],
+      [100, mixHex(hex, '#000000', 0.46)],
+    ].forEach(([off, col]) => {
+      const s = document.createElementNS(SVGNS, 'stop');
+      s.setAttribute('offset', off + '%');
+      s.setAttribute('stop-color', col);
+      g.appendChild(s);
+    });
+    defs.appendChild(g);
+  });
+  const gloss = document.createElementNS(SVGNS, 'radialGradient');
+  gloss.setAttribute('id', 'pegGloss');
+  gloss.setAttribute('cx', '32%');
+  gloss.setAttribute('cy', '24%');
+  gloss.setAttribute('r', '52%');
+  [[0, 'rgba(255,255,255,.95)'], [48, 'rgba(255,255,255,.30)'], [100, 'rgba(255,255,255,0)']]
+    .forEach(([off, col]) => {
+      const s = document.createElementNS(SVGNS, 'stop');
+      s.setAttribute('offset', off + '%');
+      s.setAttribute('stop-color', col);
+      gloss.appendChild(s);
+    });
+  defs.appendChild(gloss);
+  svg.appendChild(defs);
+
   /* Which corner each seat owns, drawn as a faint ring of the seat's colour so
      a player can see where they are going without being told. */
   const glow = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  glow.id = 'glowLayer';
   svg.appendChild(glow);
 
   const holes = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -1047,7 +1226,7 @@ function renderBoard() {
   const seatCorners = Core.seatCorners(S.seats);
 
   // corner tint
-  const glow = svg.firstChild;
+  const glow = $('#glowLayer');
   glow.innerHTML = '';
   seatCorners.forEach((cornerIdx, seat) => {
     const p = playerAt(seat);
@@ -1078,20 +1257,54 @@ function renderBoard() {
   S.occ.forEach((v, i) => {
     if (v < 0) return;
     const c = Core.CELLS[i];
-    const el = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    el.setAttribute('cx', c.x);
-    el.setAttribute('cy', c.y);
-    el.setAttribute('r', 0.42);
-    el.setAttribute('class', 'peg' + (selected === i ? ' sel' : ''));
-    el.setAttribute('fill', SEAT_HEX[v]);
-    layer.appendChild(el);
-    // a small specular dot, so a peg reads as a ball and not a flat disc
-    const hi = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    hi.setAttribute('cx', c.x - 0.11);
-    hi.setAttribute('cy', c.y - 0.12);
-    hi.setAttribute('r', 0.12);
-    hi.setAttribute('fill', 'rgba(255,255,255,.55)');
-    layer.appendChild(hi);
+    const g = document.createElementNS(SVGNS, 'g');
+    g.setAttribute('class', 'peg' + (selected === i ? ' sel' : ''));
+
+    /* Body: the gradient carries the sphere. Darker at the rim than at the
+       centre is the whole trick — a flat fill has no curvature. */
+    const body = document.createElementNS(SVGNS, 'circle');
+    body.setAttribute('cx', c.x);
+    body.setAttribute('cy', c.y);
+    body.setAttribute('r', 0.42);
+    body.setAttribute('class', 'body');
+    body.setAttribute('fill', 'url(#pegGrad' + v + ')');
+    g.appendChild(body);
+
+    /* Bounce light on the lower-right rim: the thin crescent of light a glass
+       ball throws back from the surface it sits on. Without it the marble looks
+       lit from one side and floating. */
+    const bounce = document.createElementNS(SVGNS, 'path');
+    const R0 = 0.34;
+    const ax = c.x + R0 * 0.55, ay = c.y + R0 * 0.80;
+    bounce.setAttribute('d',
+      `M ${c.x - R0 * 0.62} ${c.y + R0 * 0.72}`
+      + ` A ${R0} ${R0} 0 0 0 ${ax.toFixed(3)} ${ay.toFixed(3)}`);
+    bounce.setAttribute('fill', 'none');
+    bounce.setAttribute('stroke', 'rgba(255,255,255,.42)');
+    bounce.setAttribute('stroke-width', '0.10');
+    bounce.setAttribute('stroke-linecap', 'round');
+    g.appendChild(bounce);
+
+    /* Specular: a soft blob plus a small hard catchlight. Two highlights, not
+       one — glass reflects the whole room, and the hard dot inside the soft
+       blob is what the eye reads as "polished". */
+    const spec = document.createElementNS(SVGNS, 'ellipse');
+    spec.setAttribute('cx', c.x - 0.11);
+    spec.setAttribute('cy', c.y - 0.13);
+    spec.setAttribute('rx', 0.17);
+    spec.setAttribute('ry', 0.12);
+    spec.setAttribute('fill', 'url(#pegGloss)');
+    spec.setAttribute('transform', `rotate(-28 ${c.x - 0.11} ${c.y - 0.13})`);
+    g.appendChild(spec);
+
+    const dot = document.createElementNS(SVGNS, 'circle');
+    dot.setAttribute('cx', c.x - 0.09);
+    dot.setAttribute('cy', c.y - 0.11);
+    dot.setAttribute('r', 0.055);
+    dot.setAttribute('fill', 'rgba(255,255,255,.92)');
+    g.appendChild(dot);
+
+    layer.appendChild(g);
   });
 
   // touch targets, rebuilt each time so they always match the state

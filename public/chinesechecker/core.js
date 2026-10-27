@@ -206,9 +206,52 @@
      friendlier one - a beginner who spots a single good jump is never forced to
      find the rest of the chain before being allowed to move.
 
-     A jump must clear exactly one peg into an empty hole; the search is a BFS
-     with a visited set, so a cycle of jumps cannot loop forever and a landing
-     is never offered twice. */
+     WHAT A JUMP IS, and this was got wrong the first time. The rule is not
+     "clear the peg in the next hole". It is: the peg you clear sits somewhere on
+     the same line, and you land at its mirror image, and NOTHING ELSE may sit
+     anywhere between you and that landing.
+
+       "棋子 A 在同一直線的路線上有一顆棋子 B ... 以棋子 B 為中心，通過鏡像反射
+        跳躍至直線另一端的空格 ... 前提是棋子 A 的前進路線中，沒有棋子 B 以外的
+        棋子阻擋"
+
+     The first version only allowed the peg to be ONE hole away. That is the
+     tournament rule, and it is wrong for this game: a player pointed at a hole
+     four steps away with a peg two steps away and nothing between, and the
+     hint refused it. The clause about "nothing else blocking the path" is the
+     giveaway - with an adjacent-only jump there is no path to block, so the
+     rule would be vacuous. The published diagrams also mark each half of the
+     jump "2格", i.e. peg at distance 2, landing at distance 4.
+
+     So a jump is: walk the ray from the peg; the FIRST piece met is the one
+     being cleared; the landing is its mirror image; every hole strictly between
+     must be empty. That is a superset of the adjacent jump (which is just the
+     case where the piece is one hole away), so it adds moves and removes none -
+     nothing that used to be legal stops being legal.
+
+     A chain is a breadth-first search over those landings, with a visited set,
+     so a cycle of jumps cannot loop forever and a landing is never offered
+     twice. */
+  var RAYS = DIRS;
+
+  /* The landing for a jump from `from` along `dir`, or -1 if there is none.
+     `occ` must already have the moving peg removed from its origin - during a
+     chain the origin hole is empty, and a jump whose path crosses it is legal. */
+  function jumpLanding(occ, from, dir) {
+    var A = CELLS[from];
+    var k = -1;                                  // distance to the piece cleared
+    for (var t = 1; ; t++) {
+      var idx = at(A.a + dir[0] * t, A.b + dir[1] * t);
+      if (idx < 0) return -1;                    // the ray left the board
+      if (k < 0) {
+        if (occ[idx] >= 0) k = t;                // this is the piece being jumped
+        continue;
+      }
+      if (t === 2 * k) return occ[idx] < 0 ? idx : -1;  // mirror landing
+      if (occ[idx] >= 0) return -1;              // something else blocks the path
+    }
+  }
+
   function legalMoves(occ, from) {
     var out = [];
     if (from < 0 || from >= N) return out;
@@ -220,14 +263,19 @@
       if (occ[nb] < 0) { out.push(nb); seen[nb] = 1; }
     }
 
+    /* The peg has left its origin, so the origin is empty while it travels.
+       With adjacent-only jumps that could never matter; with a jump that can
+       span the board it does - a chain can double back across the hole the peg
+       started from. */
+    var jumpOcc = occ.slice();
+    jumpOcc[from] = -1;
+
     var queue = [from];
     for (var h = 0; h < queue.length; h++) {
       var cur = queue[h];
-      for (var j = 0; j < ADJ[cur].length; j++) {
-        var over = ADJ[cur][j];
-        if (occ[over] < 0) continue;             // nothing to jump over
-        var land = reflect(cur, over);
-        if (land < 0 || occ[land] >= 0 || seen[land]) continue;
+      for (var d = 0; d < RAYS.length; d++) {
+        var land = jumpLanding(jumpOcc, cur, RAYS[d]);
+        if (land < 0 || seen[land]) continue;
         seen[land] = 1;
         out.push(land);
         queue.push(land);

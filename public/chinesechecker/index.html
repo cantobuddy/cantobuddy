@@ -108,6 +108,23 @@
   .seat .sw{width:11px;height:11px;border-radius:50%;flex:0 0 auto}
   .seat .cnt{color:var(--muted);font-weight:600;font-size:12px}
 
+  /* The host's start control. Without it a room could be created and joined but
+     never begun: the server has always accepted a host 'start' action, and the
+     status line has always told the host to "start when everyone is in" — there
+     was simply no button to press. */
+  .startbar{flex:0 0 auto;display:flex;align-items:center;gap:9px;padding:0 0 8px}
+  .startbar .hint{font-size:13px;font-weight:600;color:var(--muted)}
+  .startbar .grow{flex:1}
+  /* The room code, tap to copy the invite. The status line has always read
+     "Share the code", and the code was never shown anywhere on the page — so
+     the one instruction the host is given could not be followed. */
+  .codechip{
+    display:flex;align-items:center;gap:7px;background:#fff;border:1.5px solid var(--line);
+    border-radius:11px;padding:5px 10px;font:inherit;cursor:pointer;
+  }
+  .codechip small{color:var(--muted);font-size:12px;font-weight:600}
+  .codechip b{letter-spacing:2.5px;font-size:16px;font-family:ui-monospace,Menlo,monospace}
+
   /* ---------- bottom bar ---------- */
   .bar{flex:0 0 auto;display:flex;gap:7px;align-items:center}
   .bar .grow{flex:1}
@@ -210,6 +227,15 @@
   <div class="table hidden" id="table">
     <div class="status" id="status"><span class="dot"></span><span id="statusText"></span></div>
     <div class="seats" id="seats"></div>
+    <div class="startbar hidden" id="startBar">
+      <button class="codechip" id="codeChip" type="button">
+        <small data-k="codeIs">Room code</small>
+        <b id="codeText">----</b>
+      </button>
+      <span class="grow"></span>
+      <button class="btn" id="startBtn" data-k="startBtn">Start game</button>
+      <span class="hint" id="startHint"></span>
+    </div>
     <div class="boardwrap" id="boardWrap">
       <svg class="board" id="board" xmlns="http://www.w3.org/2000/svg"></svg>
       <div id="tableSay"></div>
@@ -241,7 +267,7 @@
 
 <div class="toast" id="toast" style="position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(14px);background:#12212f;color:#fff;padding:10px 16px;border-radius:11px;font-size:14px;font-weight:600;opacity:0;transition:.18s ease;pointer-events:none;z-index:60"></div>
 
-<script src="core.js"></script>
+<script src="/games/chinesechecker/core.js"></script>
 <script>
 /* The engine publishes itself as `CheckerCore` so it cannot collide with
    anything else on the page. Aliased here once, because `Core.N`, `Core.CELLS`
@@ -634,6 +660,8 @@ function buildLobby() {
   $('#chatInput').onkeydown = (e) => { if (e.key === 'Enter') sendChat(); };
   $('#ovLobby').onclick = () => leaveTable();
   $('#ovAgain').onclick = () => act('again');
+  $('#startBtn').onclick = () => startNow();
+  $('#codeChip').onclick = () => copyInvite();
 
   translateStatic();
 }
@@ -670,8 +698,36 @@ function errText(code) {
   return t(map[code] || 'errGeneric');
 }
 
+/**
+ * Where this game's API lives.
+ *
+ * The page is reachable at BOTH /games/chinesechecker and /games/chinesechecker/
+ * — the games hub links the slash-less form and a shared invite is
+ * /games/chinesechecker/ABCD, which is slash-less too. Express serves all three
+ * shapes with the same HTML, so a bare relative fetch('api/solo') resolves
+ * against whatever directory the address bar happens to imply:
+ *
+ *   /games/chinesechecker/      -> /games/chinesechecker/api/solo   correct
+ *   /games/chinesechecker       -> /games/api/solo                 404
+ *   /games/chinesechecker/ABCD  -> /games/chinesechecker/api/solo   correct
+ *
+ * The 404 arrived as "Something went wrong." on the lobby's error line, which
+ * is why the bug looked like a server fault. Deriving the base from the URL
+ * instead of trusting the relative form fixes every shape at once.
+ */
+const BASE = (function () {
+  let p = location.pathname;
+  if (!p.endsWith('/')) {
+    const seg = p.split('/').pop();
+    // Drop the room code but KEEP the slash: '/games/chinesechecker/ABCD' ->
+    // '/games/chinesechecker/', never '/games/chinesechecker'.
+    p = /^[A-Z0-9]{4}$/.test(seg) ? p.slice(0, -seg.length) : p + '/';
+  }
+  return p;
+})();
+
 async function api(path, body) {
-  const r = await fetch(path, {
+  const r = await fetch(BASE + path, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body || {}),
@@ -781,7 +837,7 @@ function leaveTable() {
 
 function connect() {
   if (es) { try { es.close(); } catch (e) { /* ignore */ } }
-  es = new EventSource('api/events?token=' + encodeURIComponent(session.token));
+  es = new EventSource(BASE + 'api/events?token=' + encodeURIComponent(session.token));
   es.onmessage = (ev) => {
     let st;
     try { st = JSON.parse(ev.data); } catch (e) { return; }
@@ -801,6 +857,7 @@ function applyState(st) {
   S = st;
   renderSeats();
   renderStatus();
+  renderStart();
   renderBoard();
   renderOverlay();
   renderFeed();
@@ -842,6 +899,53 @@ function applyState(st) {
 
   if (prev && prev.ply !== st.ply) { selected = null; targets = []; }
   if (st.state !== 'playing') { selected = null; targets = []; }
+}
+
+/**
+ * The host's start control.
+ *
+ * Only exists while the room is in the lobby. The server refuses 'start' from
+ * anyone but the host, so a guest is shown the wait line instead of a button
+ * that would fail. Empty seats are filled by bots when the host starts, which
+ * is what makes a family of three usable on a six-seat board.
+ */
+function renderStart() {
+  const bar = $('#startBar');
+  if (!S || !S.you) { bar.classList.add('hidden'); return; }
+  const inLobby = S.state === 'lobby';
+  bar.classList.toggle('hidden', !inLobby);
+  if (!inLobby) return;
+  const host = !!S.you.isHost;
+  $('#codeText').textContent = S.code || (session && session.code) || '----';
+  $('#startBtn').classList.toggle('hidden', !host);
+  $('#startHint').textContent = host ? '' : t('waiting');
+}
+
+/** Tapping the code copies the invite. A four-letter code is easy to mistype
+ *  and the URL is what actually carries it, so the clipboard gets the link. */
+async function copyInvite() {
+  const code = (session && session.code) || (S && S.code) || '';
+  const url = location.origin + '/games/chinesechecker/' + code;
+  try {
+    await navigator.clipboard.writeText(url);
+    toast(t('copied'));
+  } catch (e) {
+    // Clipboard access needs a secure context and a user gesture; if the
+    // browser refuses, show the link rather than claiming success.
+    toast(url);
+  }
+}
+
+async function startNow() {
+  const btn = $('#startBtn');
+  btn.disabled = true;
+  try {
+    await api('api/action', { type: 'start', token: session.token });
+  } catch (e) {
+    toast(errText(e.message));
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 function playerAt(seat) {

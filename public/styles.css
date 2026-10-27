@@ -927,6 +927,13 @@ body {
   border-radius: 13px;
 }
 #home-games-promo .game-tile-name { font-size: 0.72rem; }
+/* The UNO mark is three cards, and each is ROTATED — so its painted width is
+   wider than its layout width. At the hub's 58px badge there is room; at the
+   promo's 44px the outer card's corner spilled a pixel outside the rounded box
+   (scrollWidth 46 in a 44 box, in all four languages). Smaller cards and a
+   tighter gap for the promo only. */
+#home-games-promo .game-art { gap: 2px; }
+#home-games-promo .game-art i { width: 12px; height: 17px; font-size: 7px; }
 
 .home-categories {
   margin-top: 24px;

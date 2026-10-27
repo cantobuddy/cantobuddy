@@ -60,7 +60,11 @@
         },
         {
           h: 'Chaining jumps',
-          p: 'If the hole you land on has another jump available, you may keep jumping in the same turn. You may also stop wherever you like — you are never forced to take the whole chain.',
+          p: 'If the hole you land on has another jump available, you may keep jumping in the same turn. You may also stop partway — you are never forced to take the whole chain.',
+        },
+        {
+          h: 'Where a move may end',
+          p: 'A move may finish in your own corner, in the corner you are racing toward, or anywhere on the open board between them. It may not finish in one of the other four corners. You can still jump over those corners, and a chain may land in one on the way through — the peg simply cannot stay there. Chains make this easy to miss: the board only lights up the holes where your move may actually end.',
         },
         {
           h: 'When a jump is blocked',
@@ -94,7 +98,7 @@
         },
         {
           q: 'Can I jump into a corner that is not mine?',
-          a: 'You may move anywhere on the board, but only your own ten holes count as home. Landing in someone else\'s corner just wastes a turn.',
+          a: 'You can jump over it, but you cannot stop in it. A move may only finish in your own corner or the one you are racing toward, so the board will not offer the other four. Halfway through a chain you may pass through them as much as you like.',
         },
       ],
     },
@@ -131,7 +135,11 @@
         },
         {
           h: 'Sunod-sunod na lundag',
-          p: 'Kung may panibagong lundag mula sa binabaan mo, puwede kang magpatuloy sa parehong tira. Puwede ka ring huminto kahit saan — hindi ka pinipilit tapusin ang buong chain.',
+          p: 'Kung may panibagong lundag mula sa binabaan mo, puwede kang magpatuloy sa parehong tira. Puwede ka ring huminto sa gitna — hindi ka pinipilit tapusin ang buong chain.',
+        },
+        {
+          h: 'Saan puwedeng magtapos ang tira',
+          p: 'Ang tira ay puwedeng magtapos sa sarili mong sulok, sa sulok na pupuntahan mo, o kahit saan sa gitnang bahagi ng board. Hindi ito puwedeng magtapos sa isa sa apat na ibang sulok. Puwede ka pa ring lumundag sa ibabaw ng mga sulok na iyon, at puwedeng doon bumaba ang isang chain sa daan — hindi lang puwedeng manatili doon ang piraso. Madaling hindi mapansin ito kapag may chain: ang mga butas na umiilaw ay ang mga totoong puwedeng tapusin ng tira mo.',
         },
         {
           h: 'Kapag harang ang lundag',
@@ -165,7 +173,7 @@
         },
         {
           q: 'Puwede bang lumundag papunta sa sulok na hindi sa akin?',
-          a: 'Puwede kang pumunta kahit saan sa board, pero ang sampung butas mo lang ang bahay. Ang bumaba sa sulok ng iba ay sayang na tira.',
+          a: 'Puwede mong lundagin iyon, pero hindi puwedeng huminto doon. Ang tira ay puwedeng magtapos lang sa sarili mong sulok o sa sulok na pupuntahan mo, kaya hindi ito io-offer ng board. Sa gitna ng chain, puwede kang dumaan doon nang kahit gaano kadalas.',
         },
       ],
     },
@@ -202,7 +210,11 @@
         },
         {
           h: '连续跳',
-          p: '落点如果还能再跳，可以在同一手里继续跳。也可以随时停下——没人逼你把整条路线跳完。',
+          p: '落点如果还能再跳，可以在同一手里继续跳。也可以中途停下——没人逼你把整条路线跳完。',
+        },
+        {
+          h: '棋子可以停在哪里',
+          p: '一手棋可以停在自己那个角、你要去的那个角，或者中间棋盘上的任何位置；但不能停在其余四个角里。你可以跳过那些角，连跳途中也可以落在里面——只是棋子不能留在那里。有连跳的时候最容易搞混：棋盘只会亮出这一手真正可以停下的位置。',
         },
         {
           h: '什么时候跳不了',
@@ -236,7 +248,7 @@
         },
         {
           q: '可以跳进别人的角吗？',
-          a: '棋盘上任何位置都可以走，但只有自己那十个洞算到家。落在别人的角里只是浪费一手。',
+          a: '可以跳过，但不能停在里面。一手棋只能停在自己那个角或你要去的那个角，所以棋盘不会亮出另外四个角。连跳途中可以随便穿过。',
         },
       ],
     },
@@ -273,7 +285,11 @@
         },
         {
           h: 'Lompat berantai',
-          p: 'Kalau dari tempat mendarat masih ada lompatan lain, kamu boleh terus melompat di giliran yang sama. Kamu juga boleh berhenti di mana saja — tidak wajib menghabiskan seluruh rantainya.',
+          p: 'Kalau dari tempat mendarat masih ada lompatan lain, kamu boleh terus melompat di giliran yang sama. Kamu juga boleh berhenti di tengah — tidak wajib menghabiskan seluruh rantainya.',
+        },
+        {
+          h: 'Di mana langkah boleh berakhir',
+          p: 'Satu langkah boleh berakhir di sudutmu sendiri, di sudut yang kamu tuju, atau di mana saja di bagian tengah papan. Langkah tidak boleh berakhir di salah satu dari empat sudut lainnya. Kamu tetap boleh melompati sudut-sudut itu, dan rantai boleh mendarat di sana saat lewat — bidaknya hanya tidak boleh tinggal di situ. Rantai membuat ini mudah terlewat: papan hanya menyorot lubang tempat langkahmu benar-benar boleh berakhir.',
         },
         {
           h: 'Kapan lompatan tidak bisa',
@@ -307,7 +323,7 @@
         },
         {
           q: 'Boleh melompat ke sudut orang lain?',
-          a: 'Kamu boleh bergerak ke mana saja di papan, tapi hanya sepuluh lubangmu yang dihitung sebagai rumah. Mendarat di sudut orang lain hanya membuang giliran.',
+          a: 'Boleh melompatinya, tapi tidak boleh berhenti di sana. Satu langkah hanya boleh berakhir di sudutmu sendiri atau sudut yang kamu tuju, jadi papan tidak akan menawarkannya. Di tengah rantai kamu boleh melintasinya sesering apa pun.',
         },
       ],
     },
@@ -321,10 +337,10 @@
   /* The one-sentence meta description for the guide page, taken from the lede
      so the search snippet and the first line of the page agree. */
   var DESC = {
-    en: 'The full rules of Chinese Checkers in plain language: how to set up for 2, 3, 4 or 6 players, how stepping and jumping work, when a jump is blocked, and how to win.',
-    fil: 'Ang buong rules ng Chinese Checkers sa simpleng salita: paano mag-umpisa sa 2, 3, 4 o 6 na manlalaro, paano ang hakbang at lundag, kailan harang ang lundag, at paano manalo.',
-    zh: '跳棋完整规则，说人话：2、3、4、6 人怎么摆位，平移和跳跃怎么走，什么时候跳不了，以及怎么赢。',
-    id: 'Aturan lengkap Chinese Checkers dengan bahasa sederhana: cara menyusun untuk 2, 3, 4, atau 6 pemain, cara melangkah dan melompat, kapan lompatan terhalang, dan cara menang.',
+    en: 'The full rules of Chinese Checkers in plain language: how to set up for 2, 3, 4 or 6 players, how stepping and jumping work, when a jump is blocked, where a move may end, and how to win.',
+    fil: 'Ang buong rules ng Chinese Checkers sa simpleng salita: paano mag-umpisa sa 2, 3, 4 o 6 na manlalaro, paano ang hakbang at lundag, kailan harang ang lundag, saan puwedeng magtapos ang tira, at paano manalo.',
+    zh: '跳棋完整规则，说人话：2、3、4、6 人怎么摆位，平移和跳跃怎么走，什么时候跳不了，棋子能停在哪里，以及怎么赢。',
+    id: 'Aturan lengkap Chinese Checkers dengan bahasa sederhana: cara menyusun untuk 2, 3, 4, atau 6 pemain, cara melangkah dan melompat, kapan lompatan terhalang, di mana langkah boleh berakhir, dan cara menang.',
   };
 
   function esc(s) {

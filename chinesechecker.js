@@ -219,7 +219,7 @@ function doMove(room, player, from, to) {
   if (from < 0 || from >= Core.N || to < 0 || to >= Core.N) return { error: 'badMove' };
   if (room.occ[from] !== player.seat) return { error: 'notYourPeg' };
   if (room.occ[to] >= 0) return { error: 'occupied' };
-  if (!Core.legalMoves(room.occ, from).includes(to)) return { error: 'illegalMove' };
+  if (!Core.legalMoves(room.occ, from, room.seats, player.seat).includes(to)) return { error: 'illegalMove' };
 
   const jump = Core.isJump(from, to);
   Core.applyMove(room.occ, from, to, player.seat);

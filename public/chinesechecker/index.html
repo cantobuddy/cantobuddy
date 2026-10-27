@@ -1344,7 +1344,7 @@ function tapCell(cell) {
   if (S.occ[cell] === S.you.seat) {
     if (selected === cell) { selected = null; targets = []; renderBoard(); return; }
     selected = cell;
-    targets = Core.legalMoves(S.occ, cell);
+    targets = Core.legalMoves(S.occ, cell, S.seats, S.you.seat);
     if (!targets.length) toast(t('errIllegalMove'));
     beep(520, 0.04, 'sine', 0.03);
     renderBoard();

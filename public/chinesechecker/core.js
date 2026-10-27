@@ -129,6 +129,13 @@
     return v === undefined ? -1 : v;
   };
 
+  /* Which corner triangle each cell belongs to, or -1 for the open board.
+     Built from CORNERS so it cannot disagree with the corners themselves. */
+  var CORNER_OF = new Int8Array(N).fill(-1);
+  CORNERS.forEach(function (cells, k) {
+    for (var i = 0; i < cells.length; i++) CORNER_OF[cells[i]] = k;
+  });
+
   var ADJ = CELLS.map(function (c) {
     var out = [];
     for (var d = 0; d < DIRS.length; d++) {
@@ -252,15 +259,45 @@
     }
   }
 
-  function legalMoves(occ, from) {
+  /* WHERE A PEG MAY STOP. A peg may travel through any corner triangle - over
+     pieces sitting in it, or landing in it halfway through a chain - but it may
+     only FINISH its move in its own corner or the one it is heading for. Every
+     other triangle is pass-through only.
+
+     That is why `legalMoves` needs the table: "which corners are mine" is not
+     visible from the board, only from the seating. Called without `seats` it
+     applies no corner restriction at all, which is what the geometry tests want
+     - the rules tests below always pass the seating, and the server, the client
+     and the bot all do. */
+  function legalMoves(occ, from, seats, seat) {
     var out = [];
     if (from < 0 || from >= N) return out;
+
+    var allow = null;
+    var corners = seats ? SEAT_CORNERS[seats] : null;
+    if (corners) {
+      var s = (typeof seat === 'number' && seat >= 0) ? seat : occ[from];
+      if (s >= 0 && s < corners.length) {
+        allow = new Uint8Array(6);
+        allow[corners[s]] = 1;                 // the corner it came from
+        allow[(corners[s] + 3) % 6] = 1;       // the corner it is heading for
+      }
+    }
+    function mayStop(cell) {
+      if (!allow) return true;
+      var k = CORNER_OF[cell];
+      return k < 0 || allow[k] === 1;
+    }
+
     var seen = new Uint8Array(N);
     seen[from] = 1;
 
     for (var i = 0; i < ADJ[from].length; i++) {
       var nb = ADJ[from][i];
-      if (occ[nb] < 0) { out.push(nb); seen[nb] = 1; }
+      if (occ[nb] < 0) {
+        seen[nb] = 1;
+        if (mayStop(nb)) out.push(nb);
+      }
     }
 
     /* The peg has left its origin, so the origin is empty while it travels.
@@ -270,6 +307,9 @@
     var jumpOcc = occ.slice();
     jumpOcc[from] = -1;
 
+    /* Breadth-first over the landings. A landing that is not a legal PLACE TO
+       STOP is still a legal place to pass through, so it is queued either way -
+       only the offering is filtered. */
     var queue = [from];
     for (var h = 0; h < queue.length; h++) {
       var cur = queue[h];
@@ -277,8 +317,8 @@
         var land = jumpLanding(jumpOcc, cur, RAYS[d]);
         if (land < 0 || seen[land]) continue;
         seen[land] = 1;
-        out.push(land);
         queue.push(land);
+        if (mayStop(land)) out.push(land);
       }
     }
     return out;
@@ -403,7 +443,7 @@
     var best = Infinity;
     for (var m = 0; m < mine.length; m++) {
       var f = mine[m];
-      var dests = legalMoves(occ, f);
+      var dests = legalMoves(occ, f, seats, seat);
       for (var k = 0; k < dests.length; k++) {
         var to = dests[k];
         occ[f] = -1;
@@ -424,7 +464,7 @@
     var options = [];
     for (var m = 0; m < mine.length; m++) {
       var from = mine[m];
-      var dests = legalMoves(occ, from);
+      var dests = legalMoves(occ, from, seats, seat);
       for (var d = 0; d < dests.length; d++) options.push([from, dests[d]]);
     }
     if (!options.length) return null;

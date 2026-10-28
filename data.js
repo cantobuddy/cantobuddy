@@ -2274,6 +2274,64 @@ const SEED_POSTS = [
 <h2>Useful to know</h2>
 <p>中醫 (<strong>zung1 ji1</strong>) — Chinese medicine; 中醫師 (<strong>zung1 ji1 si1</strong>) — a Chinese medicine practitioner. 中藥 (<strong>zung1 joek6</strong>) — a prescription of Chinese herbs. 煎 (<strong>zin1</strong>) — to boil a decoction. 涼茶 (<strong>loeng4 caa4</strong>) — herbal tea. 老火湯 (<strong>lou5 fo2 tong1</strong>) — slow-simmered clear soup. 熱氣 (<strong>jit6 hei3</strong>) — "heaty", the state herbal tea is taken for. 把脈 (<strong>baa2 mak6</strong>) — taking the pulse, the diagnosis you will watch at every consultation.</p>`,
   },
+
+  {
+    slug: 'hk-holidays-mainland-trips',
+    channel: 'culture',
+    icon: '🚄',
+    status: 'published',
+    published_at: '2026-10-28T09:00:00.000Z',
+    title_en: 'Why Hong Kong Goes Quiet Every Holiday — and Where Everyone Goes',
+    title_zh: '为什么每逢假期香港就像空城，而大家都去了内地',
+    summary_en:
+      'On a public holiday Hong Kong empties out — because a large share of the city has crossed the border. Here is what that means for a helper, and a few phrases that explain it.',
+    summary_zh: '一放公众假期，香港的街道就空了——因为城里一大半人都过了关。这篇讲这对雇工意味着什么，以及几句能解释现状的粤语。',
+    body_en: `<p>On a public holiday — especially the long ones like National Day Golden Week (國慶) in early October, Labour Day, or Chinese New Year — central Hong Kong changes character. The malls are quiet, the usual crowds at the crossings are gone, and the MTR feels almost empty before midday. That is not because people are staying in. It is because a very large share of them have gone <strong>to the mainland</strong> (返大陸, faan1 daai6 luk6).</p>
+<h2>Why the border runs both ways</h2>
+<p>A short trip across the border — to Shenzhen (深圳) or Guangzhou (廣州) — is cheap, fast, and, for many families, routine. High-speed rail (高鐵, gou1 tit3) and the many land crossings make a day of shopping, a dental appointment, or a meal with relatives a short journey away. On big holidays the <em>outbound</em> side is jammed and the city side is calm; the pattern simply reverses on the way home.</p>
+<h2>What this means for you</h2>
+<ul>
+  <li><strong>If your employer travels,</strong> you may be asked to hold the fort — look after the children or the pets, keep the flat in order — while they are away. Or you may be given the days off. Both are normal; which one happens is a family decision, so <strong>ask the family</strong> what they expect rather than assuming.</li>
+  <li><strong>If you get the time off,</strong> it is a good chance to see the city on your own — but expect the border and the transport near it to be crowded, and book any return early.</li>
+  <li><strong>The employer's relatives may visit instead.</strong> Holidays are when extended family gathers, and a full flat is not a problem to be solved, it is the point.</li>
+</ul>
+<h2>Phrases you will hear</h2>
+<p><strong>返大陸</strong> (faan1 daai6 luk6) — to go to the mainland. <strong>搭高鐵</strong> (daap3 gou1 tit3) — to take the high-speed rail. <strong>放假</strong> (fong3 gaa1) — to have a holiday or a day off. <strong>邊境好多人</strong> (bin1 ging2 hou2 do1 jan4) — the border is very crowded. <strong>幾時返嚟？</strong> (gei2 si4 faan1 lai4) — when are you coming back?</p>
+<p>If you are the one left in the flat, the phrases in <a href="/guide/cantonese-for-elderly-care">Cantonese for Elderly Care</a> are the ones you are most likely to need while the family is away.</p>`,
+  },
+
+  {
+    slug: 'hk-country-parks-hiking',
+    channel: 'culture',
+    icon: '⛰️',
+    status: 'published',
+    published_at: '2026-10-28T10:00:00.000Z',
+    title_en: 'Where Hong Kong Breathes: Country Parks a Train Ride from the City',
+    title_zh: '香港人去哪里透气：离市区只有一班地铁的郊野公园',
+    summary_en:
+      'Nearly half of Hong Kong is country park, and much of it is reachable by MTR plus a short minibus. Hiking is the city’s favourite cheap day out — and a very popular one for helpers on a day off.',
+    summary_zh: '香港差不多一半土地是郊野公园，很多地方搭地铁再转一趟小巴就到。行山是这里最便宜也最受欢迎的消遣——也是很多雇工放假一天最爱的去处。',
+    body_en: `<p>It surprises first-time visitors: for all the skyscrapers, <strong>about 40% of Hong Kong’s land is protected country park</strong> (郊野公園, gaau1 je5 gung1 jyun4). Wooded hills, reservoirs, coastline and small beaches sit right against the city, and a great deal of it is reachable by MTR and one short minibus ride. You do not need a car, and you do not need to leave the territory.</p>
+<h2>Why hiking fits a day off</h2>
+<p><strong>行山</strong> (haang4 saan1) — "walking the hills" — is the city’s favourite low-cost outing. Trails are free, the views are real, and on a Sunday the popular ones are full of people, including many helpers hiking together in groups. It is sociable, cheap, and a genuine break from a small flat.</p>
+<h2>A few to know</h2>
+<ul>
+  <li><strong>Dragon’s Back</strong> (龍脊) — the famous easy one, near Shek O, with a sea view the whole way. A good first hike.</li>
+  <li><strong>Lion Rock</strong> (獅子山) — the ridge that looks over Kowloon; steep in places but on the doorstep of the city.</li>
+  <li><strong>Tai Mo Shan</strong> (大帽山) — the highest peak, cooler and misty; a longer day.</li>
+  <li><strong>Sai Kung</strong> (西貢) — coastal paths and clear water, easy to reach by minibus.</li>
+</ul>
+<h2>Before you go</h2>
+<ul>
+  <li><strong>Carry water and sun protection.</strong> The shade runs out, and the heat is no joke in summer.</li>
+  <li><strong>Start early.</strong> Trails are exposed and busy by late morning on weekends.</li>
+  <li><strong>Some paths are steep or lonely.</strong> Going with others is the norm here for a reason — tell someone your route, and stay on marked trails.</li>
+  <li><strong>Mobile signal is not guaranteed</strong> once you are in a valley. Do not rely on it for navigation.</li>
+</ul>
+<h2>Phrases you will hear</h2>
+<p><strong>行山</strong> (haang4 saan1) — to go hiking. <strong>郊野公園</strong> (gaau1 je5 gung1 jyun4) — country park. <strong>周末</strong> (zau1 mut6) — weekend. <strong>幾點出發？</strong> (gei2 dim2 ceot1 faat3) — what time do we set off? <strong>好攰呀</strong> (hou2 gui6 aa3) — I am so tired (you will say this).</p>
+<p>For more on daily life in the city, the <a href="/discover">culture feed</a> has the rest of these notes.</p>`,
+  },
 ];
 
 // ---------------------------------------------------------------------------

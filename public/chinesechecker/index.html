@@ -299,6 +299,7 @@
     </div>
     <div class="bar">
       <button class="btn ghost small" id="chatBtn" data-k="chatHead">Messages</button>
+      <button class="btn ghost small" id="soundBtn" type="button">🔊 Sound</button>
       <span class="grow"></span>
       <div class="emoji" id="emojiBar"></div>
     </div>
@@ -637,10 +638,17 @@ function beep(freq, dur, type, gain) {
     o.start();
     g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + (dur || 0.08));
     o.stop(actx.currentTime + (dur || 0.08) + 0.02);
-  } catch (e) { /* audio is a nicety */ }
-}
+    } catch (e) { /* audio is a nicety */ }
+  }
 
-function myName() { return ($('#nameInput').value || '').trim().slice(0, 12); }
+  // Reflects the current sound preference on the toolbar button. beep() itself
+  // reads `sound`, so once this is in sync the toggle needs nothing else.
+  function renderSoundIcon() {
+    const b = $('#soundBtn');
+    if (b) b.textContent = sound ? '🔊 Sound' : '🔇 Muted';
+  }
+
+  function myName() { return ($('#nameInput').value || '').trim().slice(0, 12); }
 
 function deviceId() {
   try {
@@ -739,6 +747,12 @@ function buildLobby() {
 
   $('#rulesBtn').onclick = () => openRules(true);
   $('#rulesClose').onclick = () => openRules(false);
+  $('#soundBtn').onclick = () => {
+    sound = !sound;
+    localStorage.setItem(SOUND_KEY, sound ? 'on' : 'off');
+    renderSoundIcon();
+  };
+  renderSoundIcon();
   // Tapping the dimmed area outside the card closes it, which is what everyone
   // tries before looking for the ✕.
   $('#rulesSheet').onclick = (e) => { if (e.target === $('#rulesSheet')) openRules(false); };
@@ -1366,7 +1380,10 @@ function animateMove(move) {
     const c = Core.CELLS[path[step]];
     flyer.setAttribute('transform',
       `translate(${(c.x - start.x).toFixed(3)} ${(c.y - start.y).toFixed(3)})`);
-    if (path.length > 4) beep(560 + step * 30, 0.03, 'triangle', 0.02);
+    // One click per hop, rising as the peg climbs the chain, so a jump reads as
+    // a sequence of steps rather than a single teleport. Fires for both the
+    // player's own peg and the computer's — every animated move here is a jump.
+    beep(520 + step * 26, 0.03, 'triangle', 0.028);
   }, hopMs);
 }
 

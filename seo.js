@@ -1141,6 +1141,10 @@ p.updated{color:var(--muted);font-size:13.5px;margin-top:30px}
 .contact-form button{font:inherit;font-weight:600;font-size:16px;padding:12px 26px;
   border:0;border-radius:999px;background:var(--red);color:#fff;cursor:pointer}
 .contact-form button:hover{background:#c1121f}
+/* Honeypot: parked far off-screen so a person can never see or reach it, but a
+   bot that blindly fills every field will. The server drops any submission that
+   arrives with it filled — no IP, no storage, the bot just thinks it sent. */
+.contact-form .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
 .contact-form .form-note{font-size:13.5px;color:var(--muted);margin:14px 0 0;line-height:1.55}
 .sent-note{background:#f1f8f4;border:1px solid #cfe8d8;border-radius:12px;
   padding:18px 20px;margin:0 0 26px;line-height:1.65}
@@ -3953,6 +3957,11 @@ We read every message. If it needs a reply, you will get one at the address you 
   <label for="cf-contact">Your email or phone <span class="opt">(optional — only if you want a reply)</span></label>
   <input id="cf-contact" name="contact" type="text" maxlength="120" autocomplete="email"
          placeholder="you@example.com" />
+
+  <div class="hp" aria-hidden="true">
+    <label for="cf-website">Website</label>
+    <input id="cf-website" name="website" type="text" tabindex="-1" autocomplete="off" />
+  </div>
 
   <button type="submit">Send message</button>
   <p class="form-note">We use your message only to answer it. It is stored with the rest of the feedback described in the <a href="/privacy">privacy policy</a>, and never published.</p>

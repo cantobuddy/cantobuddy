@@ -1255,6 +1255,10 @@ app.post('/api/feedback', feedbackRateLimit, (req, res) => {
  */
 app.post('/contact', feedbackRateLimit, (req, res) => {
   const b = req.body || {};
+  // Honeypot: only a bot fills the off-screen `website` field. A person never
+  // sees it. Drop the submission silently so the bot believes it succeeded; the
+  // real message path below is untouched.
+  if (String(b.website || '').trim()) return res.redirect(303, '/contact?sent=1');
   store.createFeedback({
     message: b.message,
     contact: b.contact,

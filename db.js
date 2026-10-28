@@ -3993,9 +3993,41 @@ const FEEDBACK_STATUSES = ['new', 'reviewing', 'resolved'];
  * message is empty after trimming — an empty submission is a mis-tap, not
  * feedback, and storing it would only add noise to the inbox.
  */
+/**
+ * Privacy-safe spam guard. No IP is read or stored — the check looks only at
+ * the message text and the optional contact field the sender chose to type.
+ * Matches are dropped exactly like an empty message: nothing is stored and the
+ * public routes answer identically, so a bot gets no signal that it was
+ * filtered (it simply never lands in the operator's inbox).
+ *
+ * The patterns are deliberately narrow — the specific domains seen in real
+ * solicitation traffic plus a few SEO-bait phrases that a genuine learner
+ * would almost never type. Generic words like "register" or "submit" are kept
+ * OUT on purpose so a real correction ("the registration guide is wrong") is
+ * never suppressed. When the operator sees a new solicitation, its domain is
+ * added here.
+ */
+const SPAM_PATTERNS = [
+  /siteindex\.live/i,
+  /searchregister\.site/i,
+  /search-cantobuddy\.com/i,
+  /get your site indexed/i,
+  /submit your (site|website) to (search engines|google)/i,
+  /search engine registration/i,
+  /buy (cheap )?(backlinks|views|seo)/i,
+];
+function isSpamMessage(text, contact) {
+  const hay = `${text || ''} ${contact || ''}`;
+  return SPAM_PATTERNS.some((re) => re.test(hay));
+}
+
 function createFeedback({ role = 'learner', message, contact = '', user_id = null, lang = 'en', page = '' } = {}) {
   const text = String(message ?? '').trim().slice(0, FEEDBACK_MAX);
   if (!text) return null;
+  // Drop solicitation/spam before it ever reaches the inbox. Treated like an
+  // empty submission: null means "nothing stored", and the caller answers the
+  // same as it would for a mis-tap.
+  if (isSpamMessage(text, contact)) return null;
   const r = role === 'employer' ? 'employer' : 'learner';
   // Only keep an employer id that resolves. A session can outlive the user it
   // points at (the account was deleted mid-visit), and a foreign-key failure

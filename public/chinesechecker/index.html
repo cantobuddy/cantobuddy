@@ -1339,9 +1339,16 @@ function animateMove(move) {
   layer.innerHTML = '';
 
   const hops = path.length - 1;
-  /* A six-hop chain at a fixed pace outlasts the bot's own move delay, so the
-     pace tightens as the chain grows. Never so fast that it is a blur. */
-  const hopMs = Math.max(60, Math.min(130, 620 / hops));
+  /* Pace. The player is watching their OWN peg, so their jumps are slowed right
+     down and held long enough to read each hop (the previous 60-130 ms blur was
+     the complaint). The computer's hops stay visibly stepped too, but a touch
+     quicker so the bot's turn does not drag. Both tighten as a chain grows so a
+     long jump never outlasts the player's patience. */
+  const mySeat = (S && S.you && typeof S.you.seat === 'number') ? S.you.seat : -1;
+  const myOwn = move.seat === mySeat;
+  const hopMs = myOwn
+    ? Math.max(300, Math.min(520, 2400 / hops))   // your move: ~2.4s for a 6-hop
+    : Math.max(190, Math.min(360, 1500 / hops));  // computer: ~1.5s for a 6-hop
 
   const start = Core.CELLS[path[0]];
   const flyer = makePeg(move.seat, start.x, start.y, 'flyer');

@@ -336,6 +336,25 @@ function hasRealGenderedVoice(gender) {
 }
 
 /**
+ * Record that she has actually used the app, once.
+ *
+ * The push invite waits for this (see whenEngaged() in push-client.js). Asking
+ * for notification permission before she has heard a single word is the
+ * reliable way to earn a permanent block — and on Android Chrome a block cannot
+ * be re-asked from the page, so the cost of asking too early is permanent.
+ *
+ * The event is what lets push-client react in the same page load rather than
+ * polling; the localStorage flag is what lets it fire on her next visit.
+ */
+function markEngaged() {
+  try {
+    if (localStorage.getItem('cb_engaged') === '1') return;
+    localStorage.setItem('cb_engaged', '1');
+    window.dispatchEvent(new Event('cb:engaged'));
+  } catch (e) { /* private mode — the invite simply waits */ }
+}
+
+/**
  * Speak Cantonese text using the learner's selected practice voice.
  * Falls back to any available Chinese voice if Cantonese is unavailable.
  */
@@ -344,6 +363,7 @@ function speak(text, btn) {
     alert('Audio is not supported on this browser. Please use Chrome or Safari.');
     return;
   }
+  markEngaged();
   window.speechSynthesis.cancel();
 
   const profile = getSelectedProfile();
@@ -374,7 +394,12 @@ function updateVoiceButton() {
   const btn = document.getElementById('voice-btn');
   if (!btn) return;
   const profile = getSelectedProfile();
-  btn.textContent = profile.emoji;
+  // Two spans now live in this button: the voice emoji, and the word shown
+  // beside it in the header's overflow sheet. Writing textContent here would
+  // wipe both, so target the emoji span when it exists.
+  const curEl = btn.querySelector('.voice-cur');
+  if (curEl) curEl.textContent = profile.emoji;
+  else btn.textContent = profile.emoji;
   const gender =
     profile.gender === 'female'
       ? t('voice.woman')
@@ -2031,6 +2056,41 @@ function closeModal(e) {
 }
 
 // ---- Learner name ----------------------------------------------------------
+
+/* ---- Header overflow sheet (phones) ---------------------------------------
+   Below 600px the five secondary header controls live behind one button. This
+   is the whole of the behaviour: toggle, close on an outside click, close on
+   Escape. Desktop never opens it — the panel is display:none above 600px, so a
+   stray toggle is harmless rather than a visible bug. */
+function toggleHeaderExtra(ev) {
+  if (ev) ev.stopPropagation();
+  const panel = document.getElementById('header-extra');
+  const btn = document.getElementById('header-more');
+  if (!panel || !btn) return;
+  const open = panel.classList.toggle('open');
+  btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+
+function closeHeaderExtra() {
+  const panel = document.getElementById('header-extra');
+  const btn = document.getElementById('header-more');
+  if (!panel) return;
+  panel.classList.remove('open');
+  if (btn) btn.setAttribute('aria-expanded', 'false');
+}
+
+document.addEventListener('click', (e) => {
+  const panel = document.getElementById('header-extra');
+  if (!panel || !panel.classList.contains('open')) return;
+  // A click inside the sheet is an action: let it run, then close the sheet.
+  if (panel.contains(e.target)) { closeHeaderExtra(); return; }
+  if (e.target.closest && e.target.closest('#header-more')) return;
+  closeHeaderExtra();
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeHeaderExtra();
+});
 
 function updateLearnerBadge() {
   const badge = document.getElementById('learner-badge');

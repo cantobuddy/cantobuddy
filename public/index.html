@@ -128,39 +128,52 @@
       <span class="logo-text">CantoBuddy</span>
     </div>
     <div class="header-right">
-      <!-- Share. Sits first in this group and is styled like the buttons beside
-           it, rather than living in the bottom nav. Opens the Share page. -->
-      <button class="site-btn" onclick="navigate('share')" title="Share CantoBuddy" aria-label="Share CantoBuddy"
-              data-i18n="header.shareSite" data-i18n-attr="title" data-i18n-aria="1"><span data-share-icon></span></button>
-      <!-- Public cross-link: the employer portal is open to anyone, so it gets
-           an icon here. The admin area deliberately does NOT — see the note
-           at the bottom of this header block.
-           Drawn as an inline SVG rather than an emoji, for the same reason as
-           the share glyph: it renders identically on every device. The shape is
-           a head-and-shoulders bust wearing suit lapels, which is what reads as
-           "the employer" — a plain person would look like your own account next
-           to the name badge, and glasses blur into a smudge at 19px. -->
-      <a href="/portal" class="site-btn" title="For employers" aria-label="For employers"
-         data-i18n="header.employerSite" data-i18n-attr="title" data-i18n-aria="1"><svg class="site-glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7.6" r="3.6"/><path d="M5.1 20.4c0-3.6 3.1-5.9 6.9-5.9s6.9 2.3 6.9 5.9"/><path d="M9.5 14.9 12 18.3l2.5-3.4"/></svg></a>
-      <!-- Shows the language you would switch TO: "FIL" while reading English,
-           "EN" while reading Filipino. i18n.js keeps this in sync. -->
-      <button id="lang-btn" class="lang-btn" onclick="openLangModal()" title="Change language" aria-label="Change language" aria-haspopup="dialog">EN</button>
-      <button id="voice-btn" class="voice-btn" onclick="openVoiceModal()" title="Choose practice voice" aria-label="Choose practice voice">👩</button>
-      <!-- "Add to home screen".
-           The install offer used to appear ONLY at the end of a quiz, which
-           meant a helper who never finished a quiz was never asked — and the
-           app is worth much more to her installed (one tap from her home
-           screen, no searching for the URL). This is the standing, voluntary
-           entry point; the end-of-quiz offer stays as the well-timed nudge.
+      <!-- Everything below 600px wide lives behind #header-more. The wrapper
+           carries no styling of its own on desktop — the same five controls
+           spread out inline exactly as before — and becomes an absolutely
+           positioned sheet on phones. See .header-extra in styles.css.
 
-           Hidden by default (`hidden` attribute) and revealed by
-           syncInstallEntry() in app.js ONLY when all of these hold: the install
-           is actually possible on this device, she has not already installed
-           it, and she has not already answered. That is why it is not styled
-           like a call to action — for most visitors it does not exist. -->
-      <button id="install-btn" class="site-btn" hidden onclick="openInstallModal()"
-              title="Add to home screen" aria-label="Add to home screen"
-              data-i18n="header.install" data-i18n-attr="title" data-i18n-aria="1">⬇︎</button>
+           The .he-label spans are hidden on desktop and shown only inside the
+           sheet, where a bare 38px circle is not enough of a signpost. They
+           reuse the SAME i18n keys as each control's title, so there is no new
+           copy to translate. -->
+      <div class="header-extra" id="header-extra">
+        <!-- Share. Sits first in this group and is styled like the buttons beside
+             it, rather than living in the bottom nav. Opens the Share page. -->
+        <button class="site-btn" onclick="navigate('share')" title="Share CantoBuddy" aria-label="Share CantoBuddy"
+                data-i18n="header.shareSite" data-i18n-attr="title" data-i18n-aria="1"><span data-share-icon></span><span class="he-label" data-i18n="header.shareSite">Share</span></button>
+        <!-- Public cross-link: the employer portal is open to anyone, so it gets
+             an icon here. The admin area deliberately does NOT — see the note
+             at the bottom of this header block.
+             Drawn as an inline SVG rather than an emoji, for the same reason as
+             the share glyph: it renders identically on every device. The shape is
+             a head-and-shoulders bust wearing suit lapels, which is what reads as
+             "the employer" — a plain person would look like your own account next
+             to the name badge, and glasses blur into a smudge at 19px. -->
+        <a href="/portal" class="site-btn" title="For employers" aria-label="For employers"
+           data-i18n="header.employerSite" data-i18n-attr="title" data-i18n-aria="1"><svg class="site-glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7.6" r="3.6"/><path d="M5.1 20.4c0-3.6 3.1-5.9 6.9-5.9s6.9 2.3 6.9 5.9"/><path d="M9.5 14.9 12 18.3l2.5-3.4"/></svg><span class="he-label" data-i18n="header.employerSite">For employers</span></a>
+        <!-- Shows the language you are READING. i18n.js writes the label into
+             .lang-cur when it exists, and falls back to the button itself
+             otherwise — the fallback is why the span has to be optional. -->
+        <button id="lang-btn" class="lang-btn" onclick="openLangModal()" title="Change language" aria-label="Change language" aria-haspopup="dialog"><span class="lang-cur">EN</span><span class="he-label" data-i18n="header.langTitle">Change language</span></button>
+        <button id="voice-btn" class="voice-btn" onclick="openVoiceModal()" title="Choose practice voice" aria-label="Choose practice voice"
+                data-i18n="header.voiceTitle" data-i18n-attr="title" data-i18n-aria="1"><span class="voice-cur">👩</span><span class="he-label" data-i18n="header.voiceTitle">Choose voice</span></button>
+        <!-- "Add to home screen".
+             The install offer used to appear ONLY at the end of a quiz, which
+             meant a helper who never finished a quiz was never asked — and the
+             app is worth much more to her installed (one tap from her home
+             screen, no searching for the URL). This is the standing, voluntary
+             entry point; the end-of-quiz offer stays as the well-timed nudge.
+
+             Hidden by default (`hidden` attribute) and revealed by
+             syncInstallEntry() in app.js ONLY when all of these hold: the install
+             is actually possible on this device, she has not already installed
+             it, and she has not already answered. That is why it is not styled
+             like a call to action — for most visitors it does not exist. -->
+        <button id="install-btn" class="site-btn" hidden onclick="openInstallModal()"
+                title="Add to home screen" aria-label="Add to home screen"
+                data-i18n="header.install" data-i18n-attr="title" data-i18n-aria="1">⬇︎<span class="he-label" data-i18n="header.install">Install</span></button>
+      </div>
       <!-- Deliberately NOT data-i18n: this label is dynamic (the helper's name,
            or "Set your name" when she has none), and updateLearnerBadge() in
            app.js owns it. applyTranslations() overwrites every [data-i18n]
@@ -168,6 +181,12 @@
            to the placeholder on every launch. The placeholder below is just the
            pre-boot default; app.js replaces it, translating it if needed. -->
       <span id="learner-badge" class="learner-badge" onclick="editLearnerName()">Set your name</span>
+      <!-- The only control that stays in the bar on a phone. 44px, not 38: it
+           is the single most-tapped thing in the header. aria-expanded is kept
+           in sync by toggleHeaderExtra() in app.js. -->
+      <button class="site-btn header-more" id="header-more" onclick="toggleHeaderExtra(event)"
+              title="More" aria-label="More options" aria-expanded="false" aria-controls="header-extra"
+              data-i18n="header.more" data-i18n-attr="title" data-i18n-aria="1">⋯</button>
       <!-- The admin link was deliberately removed from the learner header.
            Helpers (and future employer accounts) must never see a route into
            the operator area. The admin dashboard is reached by typing

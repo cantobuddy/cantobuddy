@@ -4,18 +4,29 @@
 
 /* ---- Design tokens ---- */
 :root {
-  --c-primary:       #e63946;
-  --c-primary-dark:  #c1121f;
-  --c-primary-light: #f8d7da;
+  /* #e63946 measured 4.17:1 against white, and white-on-#e63946 measured the
+     same — both below the 4.5:1 AA floor for normal text. It was painting
+     every nav label, back link, text link and primary button, so the failure
+     was systemic rather than local. The token now carries the darker value
+     (6.24:1 in both directions). The bright original survives as
+     --c-primary-bright for decoration only: the hero gradient is hard-coded
+     and carries large display type, where 3:1 is the applicable bar. */
+  --c-primary:        #c1121f;
+  --c-primary-bright: #e63946;
+  /* Hover shade. Kept distinct from --c-primary so buttons still respond to
+     the pointer now that the base value has moved down to this hue. */
+  --c-primary-dark:   #9d0f1a;
+  --c-primary-light:  #f8d7da;
   --c-secondary:     #2a9d8f;
   --c-accent:        #f4a261;
   --c-bg:            #f7f8fa;
   --c-surface:       #ffffff;
   --c-text:          #1a1a2e;
-  --c-text-soft:     #6c757d;
+  /* #6c757d was 4.41:1 on --c-bg — just under the floor, on 153 rules. */
+  --c-text-soft:     #5b6470;
   --c-border:        #e0e0e6;
   --c-correct:       #52b788;
-  --c-wrong:         #e63946;
+  --c-wrong:         #c1121f;
   --c-shadow:        rgba(0,0,0,0.06);
   --c-shadow-lg:     rgba(0,0,0,0.12);
   --radius:          14px;
@@ -113,7 +124,8 @@ body {
 .logo-sub {
   font-size: 0.85rem;
   font-weight: 500;
-  color: var(--c-text-soft);
+  /* #6c757d measured 2.64:1 on the portal's navy header. */
+  color: #a8b3c4;
 }
 
 .header-right {
@@ -122,16 +134,99 @@ body {
   gap: 10px;
 }
 
+/* ---- Header overflow menu ------------------------------------------------
+   At 320px the logo, five 38px controls and the name badge need roughly 546px
+   of width. The bar used to wrap into three ragged rows (138px tall, 19% of a
+   720px screen) and pushed the hero down before any content was read.
+
+   Below 600px every control except the name badge moves behind one 44px
+   button. Nothing is removed — the same buttons, with the same handlers and
+   the same translations, simply render as labelled rows in a sheet instead of
+   as bare circles in the bar. From 600px up they spread out inline again and
+   the sheet button disappears, so desktop is unchanged.
+
+   The labels matter: an unlabelled 38px circle was half the original problem,
+   so inside the sheet each row carries its own word. */
+/* Compound selector on purpose: .site-btn sets display/width later in the file
+   and would otherwise override a bare .header-more class. */
+.site-btn.header-more { display: none; width: 44px; height: 44px; font-size: 1.25rem; line-height: 1; }
+.header-extra { display: flex; align-items: center; gap: 10px; }
+.he-label { display: none; }
+
+@media (max-width: 599px) {
+  .site-btn.header-more { display: flex; }
+
+  .header-extra {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 12px;
+    z-index: 120;
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+    min-width: 224px;
+    padding: 8px;
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--radius);
+    box-shadow: 0 12px 32px var(--c-shadow-lg);
+  }
+  .header-extra.open { display: flex; }
+
+  /* Rows, not circles: 44px tall, icon then word, full width of the sheet. */
+  .header-extra .site-btn,
+  .header-extra .voice-btn,
+  .header-extra .lang-btn {
+    width: 100%;
+    height: 44px;
+    min-width: 0;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    justify-content: flex-start;
+    gap: 12px;
+    font-size: 0.95rem;
+  }
+  .header-extra .site-btn:hover,
+  .header-extra .voice-btn:hover,
+  .header-extra .lang-btn:hover {
+    background: var(--c-primary-tint);
+    border-color: transparent;
+  }
+  .he-label {
+    display: inline;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--c-text);
+    white-space: nowrap;
+  }
+
+  /* The rows are already 44px and sit 2px apart — an expanded hit area here
+     would overlap its neighbour and steal the tap. */
+  .header-extra .site-btn::before,
+  .header-extra .voice-btn::before,
+  .header-extra .lang-btn::before { inset: 0; }
+}
+
 .learner-badge {
   background: var(--c-primary-light);
-  color: var(--c-primary-dark);
-  padding: 6px 12px;
+  color: var(--c-primary);
+  /* Fixed height rather than padding: the pill measured 31px tall, a small
+     target for the one control every learner taps first. 40px keeps the header
+     at 64px while the ::after below grows the hit area to 48px. */
+  display: inline-block;
+  height: 40px;
+  line-height: 40px;
+  padding: 0 14px;
   border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.95rem;
+  font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
   transition: opacity 0.15s;
+  position: relative;
   /* The badge also shows the learner's own name (up to 30 characters). Cap it
      relative to the viewport so a long name can never push the header out of
      shape; short names and the "Set your name" prompt are unaffected. */
@@ -140,7 +235,28 @@ body {
   text-overflow: ellipsis;
 }
 
+/* Hit area only — the pill keeps its 40px visual height. */
+.learner-badge::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+}
+
 .learner-badge:hover { opacity: 0.85; }
+/* At 320px the wordmark plus badge plus one button still overflow by ~16px, so
+   the wordmark steps down rather than forcing a second row. This block must
+   follow the base .learner-badge rule above — a media query adds no
+   specificity, so an earlier copy of it lost to `max-width: 46vw`.
+   Scoped to .app-header so the portal and admin lockups keep their sizing. */
+@media (max-width: 380px) {
+  .app-header .header-inner { padding: 10px 12px; }
+  .app-header .logo-emoji { width: 28px; height: 28px; border-radius: 9px; }
+  .app-header .logo-text { font-size: 0.98rem; }
+  .header-right { gap: 8px; }
+  .learner-badge { max-width: 34vw; padding: 0 10px; font-size: 0.85rem; }
+}
+
 
 /* ---- Voice picker button (header) ---- */
 .voice-btn {
@@ -291,6 +407,19 @@ body {
 .site-btn:active { transform: scale(0.92); }
 .site-btn:focus-visible { outline: 2px solid var(--c-primary); outline-offset: 2px; }
 
+/* ---- Hit areas -----------------------------------------------------------
+   The circles stay 38px so the header keeps its rhythm, but the tappable
+   region grows to the 48px --tap token the file already declares. 26 of 73
+   controls on the home screen measured under 44px, and a 38px target is the
+   most common cause of "fiddly" feedback on low-end phones. */
+.site-btn, .voice-btn, .lang-btn { position: relative; }
+.site-btn::before, .voice-btn::before, .lang-btn::before {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border-radius: inherit;
+}
+
 /* ---- The share glyph (inline SVG, see SHARE_ICON_SVG in app.js) ----
    A box with an arrow leaving it — the shape people already read as "share".
    Sized in em so it scales with whatever text it sits beside, and drawn in
@@ -399,7 +528,7 @@ body {
   position: relative;
   z-index: 1;
   display: inline-block;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -622,7 +751,7 @@ body {
 .home-phrase-emoji { font-size: 1.9rem; line-height: 1; flex: 0 0 auto; }
 .home-phrase-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .home-phrase-label {
-  font-size: 0.7rem; letter-spacing: .04em; text-transform: uppercase;
+  font-size: 0.75rem; letter-spacing: .04em; text-transform: uppercase;
   color: var(--c-text-soft); font-weight: 600;
 }
 .home-phrase-canto { font-size: 1.45rem; font-weight: 700; line-height: 1.2; }
@@ -880,7 +1009,7 @@ body {
   color: var(--c-text);
 }
 .discover-promo-desc {
-  font-size: 0.7rem;
+  font-size: 0.8125rem;
   color: var(--c-text-soft);
   line-height: 1.35;
 }
@@ -907,7 +1036,7 @@ body {
   border-radius: 999px;
   background: var(--c-primary);
   color: #fff;
-  font-size: 0.55rem;
+  font-size: 0.625rem;
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -930,7 +1059,7 @@ body {
   height: 44px;
   border-radius: 13px;
 }
-#home-games-promo .game-tile-name { font-size: 0.72rem; }
+#home-games-promo .game-tile-name { font-size: 0.75rem; }
 /* The UNO mark is three cards, and each is ROTATED — so its painted width is
    wider than its layout width. At the hub's 58px badge there is room; at the
    promo's 44px the outer card's corner spilled a pixel outside the rounded box
@@ -983,8 +1112,11 @@ body {
    clipped grid; a soft outline keeps it visible without competing with the
    category pills above. */
 .cat-strip-toggle {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin: 10px auto 0;
+  min-height: 44px;
   padding: 6px 14px;
   font-size: 0.85rem;
   font-weight: 600;
@@ -1349,7 +1481,14 @@ a.game-tile:active { transform: scale(0.96); background: var(--c-primary-tint); 
   font-weight: 700;
   line-height: 1.2;
   text-align: center;
-  overflow-wrap: anywhere;
+  /* `anywhere` broke "Checkers" into "Checker" + "s" at 390px. Wrap at the
+     space instead, and clamp to two lines so tiles stay the same height. */
+  overflow-wrap: normal;
+  word-break: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .game-art-soon {
@@ -2846,7 +2985,7 @@ a.game-tile:active { transform: scale(0.96); background: var(--c-primary-tint); 
   align-items: center;
   gap: 2px;
   color: var(--c-text-soft);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 600;
   transition: color 0.15s;
   min-height: 64px;
@@ -2872,7 +3011,8 @@ a.game-tile:active { transform: scale(0.96); background: var(--c-primary-tint); 
   border-radius: 999px;
   background: var(--c-primary);
   color: #fff;
-  font-size: 0.5rem;
+  /* 0.5rem was 8px — unreadable at arm's length. */
+  font-size: 0.625rem;
   font-weight: 800;
   line-height: 1.35;
   letter-spacing: 0.02em;
@@ -3006,7 +3146,7 @@ a.game-tile:active { transform: scale(0.96); background: var(--c-primary-tint); 
 .post-card-main { display: flex; flex-direction: column; gap: 3px; flex: 1 1 auto; min-width: 0; }
 
 .post-card-meta {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -3398,7 +3538,10 @@ a.game-tile:active { transform: scale(0.96); background: var(--c-primary-tint); 
    and the type steps down a notch on the narrowest phones. */
 .nav-btn > span:not(.nav-icon) { white-space: nowrap; }
 @media (max-width: 400px) {
-  .nav-btn { font-size: 0.64rem; padding: 8px 2px 6px; }
+  /* 0.64rem was 10.24px — the smallest text in the app. 0.7rem is the floor
+     that still lets the longest Filipino labels (Pagsusulit, Tuklasin) fit
+     five tabs across 320px without wrapping. */
+  .nav-btn { font-size: 0.7rem; padding: 8px 2px 6px; }
 }
 
 /* ===========================================================================
@@ -4812,13 +4955,16 @@ a.game-tile:active { transform: scale(0.96); background: var(--c-primary-tint); 
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 0 0 22px;
+  margin: 18px 0 0;
   padding: 12px 14px;
-  background: var(--c-surface-alt, #f1f5f9);
-  border: 1px solid var(--c-primary, #1d3557);
-  border-left: 4px solid var(--c-primary, #1d3557);
+  /* Neutral info tint, not a red rule. Red is the form's error colour
+     (.form-error) and the primary button's fill — using it for a help link
+     made an untouched form look already broken. */
+  background: #eef4fb;
+  border: 1px solid #cfe0f3;
+  border-left: 4px solid #3b6ea5;
   border-radius: var(--radius-sm, 8px);
-  color: var(--c-text, #1d3557);
+  color: #1f4e79;
   text-decoration: none;
   font-size: 0.9rem;
   line-height: 1.45;
@@ -5106,6 +5252,11 @@ a.game-tile:active { transform: scale(0.96); background: var(--c-primary-tint); 
   text-decoration: none;
   border: 1px solid var(--c-border);
   border-radius: 999px;
+  /* 34px tall pills measured under the 44px floor — these are the densest
+     cluster of small targets on the page. */
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   padding: 6px 13px;
   transition: color 0.15s, border-color 0.15s;
 }
@@ -5767,3 +5918,86 @@ a.game-tile:active { transform: scale(0.96); background: var(--c-primary-tint); 
   .place-card-title { font-size: 0.92rem; }
   .place-card-sum { -webkit-line-clamp: 2; font-size: 0.76rem; }
 }
+
+/* ============================================================================
+   Desktop shell  (>= 1024px)
+   ----------------------------------------------------------------------------
+   Below this width the app is a phone layout: a centred 640-720px column plus
+   a fixed bottom tab bar. On a wide viewport that leaves the column floating in
+   the middle of the page with a mobile tab bar hovering mid-screen. Here the
+   bottom nav becomes a left sidebar and the content uses the freed width,
+   capped at a readable measure. Pure CSS: the same .nav-btn elements keep their
+   data-view handlers and .active toggling, so navigation is unchanged.
+   ========================================================================== */
+@media (min-width: 1024px) {
+  :root {
+    --sidebar-w: 248px;
+    --header-h: 65px;
+  }
+
+  /* Header spans the full width: brand far left, controls far right. The
+     sidebar sits below it, so there is no empty top-left corner. */
+  .header-inner {
+    max-width: none;
+    margin: 0;
+    padding: 12px 40px;
+  }
+
+  /* Bottom tab bar -> left sidebar. */
+  .bottom-nav {
+    top: var(--header-h);
+    bottom: 0;
+    left: 0;
+    right: auto;
+    width: var(--sidebar-w);
+    max-width: none;
+    margin: 0;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
+    gap: 6px;
+    padding: 20px 14px;
+    border-top: none;
+    border-right: 1px solid var(--c-border);
+    box-shadow: 2px 0 12px var(--c-shadow);
+    background: var(--c-surface);
+    z-index: 95;
+  }
+  .nav-btn {
+    /* Was flex:1 (mobile) — in a column that would stretch each row to ~1/5 of
+       the viewport height. Size to content instead. */
+    flex: 0 0 auto;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 46px;
+    padding: 11px 14px;
+    border-radius: 12px;
+    font-size: 0.95rem;
+  }
+  .nav-btn .nav-icon { font-size: 1.3rem; line-height: 1; background: none; }
+  /* On mobile the active state tints just the icon tile; in a row that reads as
+     a stray swatch, so highlight the whole row. */
+  .nav-btn.active { background: var(--c-primary-light); color: var(--c-primary); }
+  .nav-btn.active .nav-icon { background: transparent; }
+  .nav-btn:hover { background: var(--c-bg); }
+  .nav-btn.active:hover { background: var(--c-primary-light); }
+
+  /* Content shifts right of the sidebar and is capped for readability. */
+  .app-main {
+    max-width: none;
+    margin-left: var(--sidebar-w);
+    margin-right: 0;
+    padding: 28px 40px 56px;
+  }
+  .app-main > .view { max-width: 1080px; margin: 0 auto; }
+
+  .site-footer { margin-left: var(--sidebar-w); }
+  .site-footer-inner { max-width: 1080px; }
+
+  /* The 72px bottom clearance was for the fixed bottom nav; no longer needed. */
+  body { padding-bottom: 24px; }
+}
+

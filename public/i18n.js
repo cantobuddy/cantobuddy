@@ -294,6 +294,7 @@ const I18N = {
     'header.learnerSite': 'Learner app',
     'header.shareSite': 'Share CantoBuddy',
     'header.install': 'Add to home screen',
+    'header.more': 'More options',
 
     // home
     'home.title': 'Learn Cantonese',
@@ -893,6 +894,7 @@ const I18N = {
     'header.learnerSite': 'App ng mag-aaral',
     'header.shareSite': 'Ibahagi ang CantoBuddy',
     'header.install': 'Idagdag sa home screen',
+    'header.more': 'Higit pang opsyon',
 
     // home
     'home.title': 'Mag-aral ng Cantonese',
@@ -1485,6 +1487,7 @@ const I18N = {
     'header.learnerSite': '学习版',
     'header.shareSite': '分享 CantoBuddy',
     'header.install': '添加到主屏幕',
+    'header.more': '更多选项',
 
     // home
     'home.title': '学粤语',
@@ -2074,6 +2077,7 @@ const I18N = {
     'header.learnerSite': 'Aplikasi belajar',
     'header.shareSite': 'Bagikan CantoBuddy',
     'header.install': 'Tambahkan ke layar utama',
+    'header.more': 'Opsi lainnya',
 
     // home
     'home.title': 'Belajar bahasa Kanton',
@@ -2497,7 +2501,13 @@ function updateLangButton() {
   const btn = document.getElementById('lang-btn');
   if (!btn) return;
   const cur = LANGS.find((l) => l.code === _lang) || LANGS[0];
-  btn.textContent = cur.label;
+  // The button carries two spans now: the current language, and the word shown
+  // beside it in the header's overflow sheet. `textContent` here would wipe
+  // both, so write into the language span when it exists and fall back to the
+  // button itself otherwise.
+  const curEl = btn.querySelector('.lang-cur');
+  if (curEl) curEl.textContent = cur.label;
+  else btn.textContent = cur.label;
   btn.title = `${t('header.langTitle')} — ${cur.name}`;
   btn.setAttribute('aria-label', btn.title);
   // One button, three languages: a MENU is the honest control, and the app

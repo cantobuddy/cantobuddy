@@ -37,9 +37,39 @@
   .hidden{display:none!important}
 
   /* ---------- top bar ---------- */
-  .top{display:flex;align-items:center;gap:8px;flex:0 0 auto;padding:2px 0 6px}
-  .top h1{font-size:16px;margin:0;letter-spacing:.2px}
+  .top{display:flex;align-items:center;gap:4px;flex:0 0 auto;padding:2px 0 6px}
+  .top h1{font-size:15px;margin:0;letter-spacing:0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .top .spacer{flex:1}
+  /* The table controls, the same cluster the other three games carry: a live
+     indicator and three icon buttons. Icon-only on purpose — four words in four
+     languages do not fit beside a title, and the icon is the one thing that
+     needs no translation. Each keeps an aria-label and a title from STR.
+     40px, not 48px: four 48s plus the title overflow a 390px phone, and a row
+     that scrolls sideways on a board game is worse than a smaller target. */
+  .iconbtn{
+    flex:0 0 auto;width:40px;height:40px;border-radius:12px;background:#fff;
+    border:1.5px solid var(--line);display:grid;place-items:center;padding:0;
+    color:var(--ink);cursor:pointer;transition:transform .06s ease;
+  }
+  .iconbtn:active{transform:translateY(1px)}
+  .iconbtn svg{width:18px;height:18px;display:block}
+  .iconbtn.off{color:var(--muted);background:#f2f5f8}
+  .livechip{display:flex;align-items:center;gap:5px;flex:0 0 auto;font-size:12px;font-weight:700;color:var(--muted)}
+  .livechip .dot{width:8px;height:8px;border-radius:50%;background:var(--good);flex:0 0 auto}
+  .livechip.off .dot{background:var(--gold)}
+  /* Narrow phones: the live chip keeps only its dot, and on the narrowest one
+     the rules icon steps aside while a game is on — the lobby still has it, and
+     the title is worth more than a fourth icon. */
+  @media (max-width:380px){
+    .livechip .live-text{display:none}
+  }
+  @media (max-width:380px){
+    .iconbtn{width:38px;height:38px;border-radius:11px}
+    .iconbtn svg{width:17px;height:17px}
+  }
+  @media (max-width:340px){
+    body.in-table #rulesBtn{display:none}
+  }
   .btn{
     font:inherit;font-size:14px;font-weight:700;border:0;border-radius:11px;
     padding:9px 14px;background:var(--blue);color:#fff;cursor:pointer;
@@ -91,7 +121,11 @@
   .boardwrap{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;position:relative}
   svg.board{width:100%;height:100%;display:block;touch-action:manipulation}
   .hole{fill:#dfe8f0;stroke:#c3d2de;stroke-width:.045}
-  .hole.tgt{fill:#bcd9f2;stroke:#4b93cc;stroke-width:.09}
+  /* The reachable-step marker. It takes the colour of the player whose step it
+     is — a red peg marked with a blue dot reads as somebody else's move, which
+     is exactly how it was reported: "only blue colour have, red doesn't". The
+     fallback keeps it legible if the variable is ever unset. */
+  .hole.tgt{fill:var(--tgt,#4b93cc);fill-opacity:.30;stroke:var(--tgt,#4b93cc);stroke-width:.10}
   .hole.pickable{cursor:pointer}
   /* The stroke lives on the BODY, not on the .peg group: stroke inherits, so a
      stroke on the group would also outline the specular highlight and the
@@ -223,8 +257,21 @@
   <div class="top">
     <h1 data-k="appTitle">Chinese Checkers</h1>
     <span class="spacer"></span>
-    <button class="btn ghost small" id="rulesBtn" data-k="howTo">How to play</button>
-    <button class="btn ghost small hidden" id="leaveBtn" data-k="backLobby">Lobby</button>
+    <!-- The table controls, matching the other games. Everything here is
+         icon-only and carries no `data-k`, because applyTranslations() writes
+         `textContent` into every `[data-k]` element and would wipe the SVG. The
+         labels are set from STR in syncLabels(). -->
+    <div class="livechip hidden" id="liveChip"><span class="dot"></span><span class="live-text" id="liveText">Live</span></div>
+    <button class="iconbtn hidden" id="soundBtn" type="button"><span id="soundGlyph"></span></button>
+    <button class="iconbtn hidden" id="chatBtn" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 11.8a7.6 7.6 0 0 1-7.6 7.6H9.4L4.5 22v-4.6a7.6 7.6 0 1 1 16-5.6z"/></svg>
+    </button>
+    <button class="iconbtn" id="rulesBtn" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.4"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.3c-.7.3-1 .9-1 1.6v.4"/><path d="M12 17.1h.01"/></svg>
+    </button>
+    <button class="iconbtn hidden" id="leaveBtn" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4.5h3.5A1.5 1.5 0 0 1 19 6v12a1.5 1.5 0 0 1-1.5 1.5H14"/><path d="M9.5 8 5.5 12l4 4"/><path d="M5.5 12H15"/></svg>
+    </button>
   </div>
 
   <!-- ===================== LOBBY ===================== -->
@@ -298,9 +345,6 @@
       </div>
     </div>
     <div class="bar">
-      <button class="btn ghost small" id="chatBtn" data-k="chatHead">Messages</button>
-      <button class="btn ghost small" id="soundBtn" type="button">🔊 Sound</button>
-      <span class="grow"></span>
       <div class="emoji" id="emojiBar"></div>
     </div>
   </div>
@@ -366,6 +410,10 @@ const STR = {
     homeOf: '{n}/10 home',
     cpu: 'computer',
     chatHead: 'Messages',
+    liveOnline: 'Live',
+    liveReconnecting: 'Reconnecting',
+    soundOn: 'Sound on',
+    soundOff: 'Sound off',
     chatPlaceholder: 'Say something',
     sendBtn: 'Send',
     copyLink: 'Copy link',
@@ -421,6 +469,10 @@ const STR = {
     homeOf: '{n}/10 nasa bahay',
     cpu: 'computer',
     chatHead: 'Mga mensahe',
+    liveOnline: 'Live',
+    liveReconnecting: 'Kumokonekta ulit',
+    soundOn: 'Tunog naka-on',
+    soundOff: 'Tunog patay',
     chatPlaceholder: 'Magsabi ng kahit ano',
     sendBtn: 'Ipadala',
     copyLink: 'Kopyahin ang link',
@@ -476,6 +528,10 @@ const STR = {
     homeOf: '已到家 {n}/10',
     cpu: '电脑',
     chatHead: '消息',
+    liveOnline: '在线',
+    liveReconnecting: '重连中',
+    soundOn: '声音开',
+    soundOff: '声音关',
     chatPlaceholder: '说点什么',
     sendBtn: '发送',
     copyLink: '复制链接',
@@ -531,6 +587,10 @@ const STR = {
     homeOf: '{n}/10 sudah di rumah',
     cpu: 'komputer',
     chatHead: 'Pesan',
+    liveOnline: 'Tersambung',
+    liveReconnecting: 'Menyambung ulang',
+    soundOn: 'Suara aktif',
+    soundOff: 'Suara mati',
     chatPlaceholder: 'Katakan sesuatu',
     sendBtn: 'Kirim',
     copyLink: 'Salin tautan',
@@ -648,9 +708,30 @@ function beep(freq, dur, type, gain) {
 
   // Reflects the current sound preference on the toolbar button. beep() itself
   // reads `sound`, so once this is in sync the toggle needs nothing else.
+  // An icon rather than the words "🔊 Sound", because four languages' worth of
+  // label does not fit beside the title — the state is carried by the glyph and
+  // the accessible name, not by text on screen.
+  const ICON_SOUND_ON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 9.5h3l4-3.2v11.4l-4-3.2h-3z"/><path d="M15.4 9.2a4 4 0 0 1 0 5.6"/><path d="M17.9 6.7a7.5 7.5 0 0 1 0 10.6"/></svg>';
+  const ICON_SOUND_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 9.5h3l4-3.2v11.4l-4-3.2h-3z"/><path d="m16 9.6 4.2 4.8"/><path d="m20.2 9.6-4.2 4.8"/></svg>';
   function renderSoundIcon() {
+    const g = $('#soundGlyph');
+    if (g) g.innerHTML = sound ? ICON_SOUND_ON : ICON_SOUND_OFF;
     const b = $('#soundBtn');
-    if (b) b.textContent = sound ? '🔊 Sound' : '🔇 Muted';
+    if (b) b.classList.toggle('off', !sound);
+    if (typeof syncLabels === 'function') syncLabels();
+  }
+
+  /* The connection light. Green "Live" while the SSE stream is open, amber
+     "Reconnecting" while EventSource is retrying — the same language the other
+     three games use, and the reason a stalled table no longer looks like a
+     frozen board. */
+  function setLive(ok) {
+    const chip = $('#liveChip');
+    const txt = $('#liveText');
+    if (!chip) return;
+    chip.classList.toggle('off', !ok);
+    if (txt) txt.textContent = ok ? t('liveOnline') : t('liveReconnecting');
+    chip.setAttribute('aria-label', ok ? t('liveOnline') : t('liveReconnecting'));
   }
 
   function myName() { return ($('#nameInput').value || '').trim().slice(0, 12); }
@@ -830,6 +911,24 @@ function translateStatic() {
   $$('[data-k]').forEach((el) => { el.textContent = t(el.dataset.k); });
   $$('[data-k-ph]').forEach((el) => { el.placeholder = t(el.dataset.kPh); });
   document.title = t('appTitle') + ' · CantoBuddy';
+  syncLabels();
+}
+
+/* The icon buttons have no text, so their name has to be carried by aria-label
+   and title — and re-carried whenever the language changes. Kept in one place
+   because there are now four of them and a missing label is invisible until
+   somebody with a screen reader opens the game. */
+function syncLabels() {
+  const put = (id, key) => {
+    const b = document.getElementById(id);
+    if (!b) return;
+    b.setAttribute('aria-label', t(key));
+    b.setAttribute('title', t(key));
+  };
+  put('soundBtn', sound ? 'soundOn' : 'soundOff');
+  put('chatBtn', 'chatHead');
+  put('rulesBtn', 'howTo');
+  put('leaveBtn', 'backLobby');
 }
 
 function choiceValue(host, def) {
@@ -968,7 +1067,14 @@ async function joinRoom() {
 function enterTable(code) {
   $('#lobby').classList.add('hidden');
   $('#table').classList.remove('hidden');
-  $('#leaveBtn').classList.remove('hidden');
+  document.body.classList.add('in-table');
+  // The table controls belong to a table: there is nothing to be live to, or to
+  // leave, while sitting in the lobby.
+  ['#liveChip', '#soundBtn', '#chatBtn', '#leaveBtn'].forEach((sel) => {
+    const el = $(sel);
+    if (el) el.classList.remove('hidden');
+  });
+  setLive(false);          // until the stream actually opens
   selected = null;
   targets = [];
   chatPrimed = false;
@@ -988,7 +1094,11 @@ function leaveTable() {
   targets = [];
   $('#table').classList.add('hidden');
   $('#lobby').classList.remove('hidden');
-  $('#leaveBtn').classList.add('hidden');
+  document.body.classList.remove('in-table');
+  ['#liveChip', '#soundBtn', '#chatBtn', '#leaveBtn'].forEach((sel) => {
+    const el = $(sel);
+    if (el) el.classList.add('hidden');
+  });
   $('#overlay').classList.add('hidden');
   toggleFeed(false);
   $('#tableSay').innerHTML = '';
@@ -1008,7 +1118,8 @@ function connect() {
     }
     applyState(st);
   };
-  es.onerror = () => { /* EventSource retries on its own */ };
+  es.onopen = () => setLive(true);
+  es.onerror = () => { /* EventSource retries on its own */ setLive(false); };
 }
 
 /* ============================================================ state → view */
@@ -1416,7 +1527,11 @@ function renderBoard() {
     });
   });
 
-  // holes: mark legal targets
+  // holes: mark legal targets, in the colour of the player they belong to
+  const svgEl = svg;
+  const tgtSeat = (S.you && typeof S.you.seat === 'number') ? S.you.seat
+    : (typeof S.turn === 'number' ? S.turn : 0);
+  svgEl.style.setProperty('--tgt', SEAT_HEX[tgtSeat] || '#4b93cc');
   const holeEls = svg.querySelectorAll('.hole');
   const tset = new Set(targets);
   holeEls.forEach((el) => {

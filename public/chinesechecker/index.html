@@ -1133,10 +1133,11 @@ function applyState(st) {
   const moved = prev && st.ply > prev.ply;
   const anim = (moved && st.lastMove && st.lastMove.path && st.lastMove.path.length >= 3)
     ? st.lastMove : null;
-  /* Whatever is in flight belongs to an older ply, even when the new move needs
-     no animation — otherwise a step arriving mid-chain leaves the previous peg
-     flying against a board that has already moved on. */
-  if (moved) { stopFx(); if (anim) fxCell = anim.to; }
+  /* Whatever is in flight belongs to an older ply, and it is allowed to FINISH.
+     The old code stopped it here, which is what truncated the player's own slow
+     route whenever the computer answered quickly. Only the destination of the
+     new move is hidden; the other flyer keeps its own timer. */
+  if (moved && anim) fxHidden.add(anim.to);
   if (prev && st.ply < prev.ply) stopFx();     // a new round: no stale ghost
 
   renderSeats();
@@ -1445,14 +1446,26 @@ function makePeg(seat, x, y, extraClass) {
    mid-animation, and an animation that vanishes halfway is worse than none.
    While it runs, the destination cell's resting peg is skipped so the piece is
    never in two places at once. */
-let fxCell = -1;        // destination hidden while the animation is in flight
-let fxTimer = null;
+/* Cells whose resting peg is hidden because a flyer is on its way there, and the
+   timer driving each flyer.
+
+   A Set and a Map, not one index and one timer. The opponent answers ~0.6s after
+   your move, and the single-slot version called stopFx() the moment that reply
+   arrived — which cleared the layer mid-flight. YOUR route is the slow one
+   (520ms a hop), so it was cut off after about one hop and the peg simply
+   appeared at its destination, while the computer's route played in full. That
+   is exactly what was reported as "the red colour does not display slow motion
+   to step route like the blue colour". Two moves may now be in the air at once,
+   each with its own timer, and neither cancels the other. */
+const fxHidden = new Set();
+const fxTimers = new Map();     // destination cell -> interval id
 
 function stopFx() {
-  if (fxTimer) { clearInterval(fxTimer); fxTimer = null; }
+  fxTimers.forEach((t) => clearInterval(t));
+  fxTimers.clear();
+  fxHidden.clear();
   const layer = $('#fxLayer');
   if (layer) layer.innerHTML = '';
-  fxCell = -1;
 }
 
 function animateMove(move) {
@@ -1463,10 +1476,6 @@ function animateMove(move) {
 
   const layer = $('#fxLayer');
   if (!layer) return;
-
-  /* fxCell was set by the caller, before the board was drawn. */
-  if (fxTimer) { clearInterval(fxTimer); fxTimer = null; }
-  layer.innerHTML = '';
 
   const hops = path.length - 1;
   /* Pace. The player is watching their OWN peg, so their jumps are slowed right
@@ -1486,10 +1495,13 @@ function animateMove(move) {
   layer.appendChild(flyer);
 
   let step = 0;
-  fxTimer = setInterval(() => {
+  const timer = setInterval(() => {
     step += 1;
     if (step >= path.length) {
-      stopFx();
+      clearInterval(timer);
+      fxTimers.delete(move.to);
+      fxHidden.delete(move.to);
+      if (flyer.parentNode) flyer.parentNode.removeChild(flyer);
       renderBoard();          // reveal the peg resting on its new cell
       return;
     }
@@ -1501,6 +1513,7 @@ function animateMove(move) {
     // player's own peg and the computer's — every animated move here is a jump.
     beep(520 + step * 26, 0.03, 'triangle', 0.028);
   }, hopMs);
+  fxTimers.set(move.to, timer);
 }
 
 function renderBoard() {
@@ -1546,7 +1559,7 @@ function renderBoard() {
     if (v < 0) return;
     /* Hidden while a move is still travelling to this cell, so the peg is never
        drawn in two places at once. */
-    if (fxCell === i) return;
+    if (fxHidden.has(i)) return;
     const c = Core.CELLS[i];
     layer.appendChild(makePeg(v, c.x, c.y, selected === i ? 'sel' : ''));
   });

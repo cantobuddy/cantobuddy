@@ -246,16 +246,51 @@ function doMove(room, player, from, to) {
 }
 
 /**
+ * How long the client will spend drawing the move that was just played.
+ *
+ * The client walks a jump hop by hop, and the two seats are paced differently:
+ * the player is watching their OWN peg, so it is deliberately slow, while the
+ * computer's is quicker so the bot's turn does not drag. Those numbers live in
+ * public/chinesechecker/index.html and are mirrored here. If you retune one,
+ * retune the other — otherwise the computer starts answering in the middle of
+ * the player's route and the route is silently cut short, which is precisely
+ * the bug this function exists to prevent.
+ *
+ * A single step (path of two cells) is not animated at all, so it costs nothing.
+ */
+function hopMsOwn(hops) { return Math.max(300, Math.min(520, 2400 / hops)); }
+function hopMsOther(hops) { return Math.max(190, Math.min(360, 1500 / hops)); }
+
+function routeMs(room) {
+  const mv = room.lastMove;
+  if (!mv || !mv.path || mv.path.length < 3) return 0;
+  const hops = mv.path.length - 1;
+  const mover = playerBySeat(room, mv.seat);
+  const own = !!mover && !mover.bot;
+  return hops * (own ? hopMsOwn(hops) : hopMsOther(hops));
+}
+
+/**
  * Run the bots. Each bot move is scheduled on a timer rather than run in a loop
  * so the humans see the peg land, one move at a time - a 6-seat table where four
  * bots answer instantly is unreadable, and the whole point of the animation is
  * that a beginner can follow whose turn it is.
+ *
+ * The wait is the move's animation PLUS a beat, not a flat 620ms. A flat delay
+ * landed the computer's reply ~0.6s after the player's jump began, and the reply
+ * redraws the board - so the player's own route, the slow one, was wiped out
+ * after about a single hop while the computer's route always played in full.
+ * That read as "the red colour does not display slow motion to step route like
+ * the blue colour". Waiting out the animation fixes it at the source, and on a
+ * six-hop jump the pause simply reads as the computer thinking.
  */
 function scheduleBot(room) {
   if (room.botTimer) { clearTimeout(room.botTimer); room.botTimer = null; }
   if (room.state !== 'playing') return;
   const p = currentPlayer(room);
   if (!p || !p.bot) return;
+
+  const delay = Math.max(620, routeMs(room) + 260);
 
   room.botTimer = setTimeout(() => {
     room.botTimer = null;
@@ -279,7 +314,7 @@ function scheduleBot(room) {
     room.turn = (room.turn + 1) % room.seats;
     broadcast(room, { type: 'move', seat: bot.seat, from: mv[0], to: mv[1] });
     scheduleBot(room);
-  }, 620);
+  }, delay);
   if (room.botTimer.unref) room.botTimer.unref();
 }
 
@@ -652,4 +687,5 @@ setInterval(() => {
 module.exports = {
   handle, rooms, Core,
   createRoom, startGame, doMove, stateFor, scheduleBot, finishOnPoints,
+  routeMs, hopMsOwn, hopMsOther,
 };

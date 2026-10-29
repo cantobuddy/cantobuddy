@@ -119,6 +119,11 @@ const STATE = {
     counts: null,
     shown: NEWS_PAGE_SIZE,
     current: null,
+    // Which kind of outing the Outings channel is narrowed to, or null for all.
+    // Separate from `category` because the two channels' filters are different
+    // vocabularies and must not be read by each other's renderer.
+    placeKind: null,
+    place: null,
   },
   // Stories — a helper's own life story, read from the Stories channel inside
   // Discover. `list` caches the shelf so a tab switch is instant; `current` is
@@ -818,6 +823,9 @@ function rerenderForLanguage() {
   // An open Living passage: one body of text, rebuilt from the cached row so the
   // language switch does not leave it stranded in the old language.
   if (active && active.id === 'view-living' && STATE.living.current) renderLivingPage(STATE.living.current);
+  // An open outing: the transport sentences and the fee labels are translated,
+  // so the page has to be rebuilt rather than left in the old language.
+  if (active && active.id === 'view-place' && STATE.discover.place) renderPlace(STATE.discover.place);
   // The write form is static markup and re-translates in place, so only her
   // own submissions below it are rebuilt. Her half-typed draft is untouched.
   if (active && active.id === 'view-story-new') renderStoryMine();
@@ -1270,6 +1278,10 @@ function renderHomeDiscoverPromo() {
     { key: 'culture', emoji: '🏛️', label: t('discover.tabCulture'), desc: t('discover.cultureLead') },
     { key: 'news',    emoji: '📰', label: t('discover.tabNews'),    desc: t('discover.newsLead') },
     { key: 'living', emoji: '🏠', label: t('discover.tabLiving'), desc: t('discover.livingLead') },
+    // Outings earns a card here rather than living only behind the tab: a day
+    // off is a plan she makes in advance, and the one screen she opens on a
+    // Sunday morning is Home.
+    { key: 'places', emoji: '🗺️', label: t('discover.tabPlaces'), desc: t('discover.placesLead') },
   ];
   wrap.innerHTML =
     `<h4 class="home-section-title">${escapeHtml(t('discover.title'))}</h4>` +
@@ -4494,7 +4506,7 @@ function sanitizePostHtml(html) {
  * a fresh visit does.
  */
 function showChannel(channel) {
-  STATE.discover.channel = ['news', 'stories', 'living'].includes(channel) ? channel : 'culture';
+  STATE.discover.channel = ['news', 'stories', 'living', 'places'].includes(channel) ? channel : 'culture';
   STATE.discover.category = null;
   STATE.discover.region = null;
   STATE.discover.shown = NEWS_PAGE_SIZE;
@@ -4774,8 +4786,9 @@ async function renderDiscover() {
     note.textContent = t(
       channel === 'news' ? 'discover.newsLead'
         : channel === 'living' ? 'discover.livingLead'
-          : channel === 'stories' ? 'discover.storiesLead'
-            : 'discover.cultureLead'
+          : channel === 'places' ? 'discover.placesLead'
+            : channel === 'stories' ? 'discover.storiesLead'
+              : 'discover.cultureLead'
     );
   }
   // The "share your story" button belongs to one channel only. It is a
@@ -4791,6 +4804,8 @@ async function renderDiscover() {
 
   if (channel === 'living') return renderLivingList(feed);
   if (channel === 'stories') return renderStoryList(feed);
+  // Outings is local data, not a feed: no fetch, no pager, no cache key.
+  if (channel === 'places') return renderPlaces(feed);
 
   // Serve the cache when we have it, so a tab switch is instant and a language
   // switch does not hit the network again. The key carries the topic filter,
@@ -4824,6 +4839,228 @@ async function renderDiscover() {
     : `<p class="discover-empty">${escapeHtml(t('discover.empty'))}</p>`;
 
   if (pager) renderPostPager(pager, posts);
+}
+
+/* ------------------------------------------------------------------- outings
+   The Outings channel. Data lives in public/places.js; this section only draws
+   it. Three rules worth knowing before editing anything here:
+
+   1. Nothing is fetched. A place is a fixed record shipped with the app, so the
+      channel renders instantly and works with no connection at all — which is
+      the state a helper is in when she is standing on a hill.
+   2. Every sentence about transport is built from a template plus a proper
+      noun ("MTR to {station}"), because the noun is a station name that is the
+      same in four languages and the sentence around it is not. See the
+      `place.step*` keys in i18n.js.
+   3. The photograph's author is shown on the page. It is somebody's work under
+      a licence that requires their name; the credit is not decoration.
+   ------------------------------------------------------------------------- */
+
+/** `{name}` substitution — t() returns its string raw, it does not interpolate. */
+function placeText(key, vars) {
+  return String(t(key)).replace(/\{(\w+)\}/g, (m, k) => (vars && vars[k] != null ? String(vars[k]) : m));
+}
+
+/** The shipped place list, or an empty list if places.js failed to load. */
+function placeList() {
+  return typeof PLACES !== 'undefined' && Array.isArray(PLACES) ? PLACES : [];
+}
+
+const PLACE_STEP_ICONS = { mtr: '🚇', walk: '🚶', bus: '🚌', minibus: '🚐', ferry: '⛴️', tram: '🚊' };
+const PLACE_KIND_EMOJI = { views: '🌃', hike: '🥾', island: '🏝️', market: '🛍️', park: '🌳', coast: '🌊' };
+const PLACE_TIME_KEYS = { fewHours: 'place.timeFew', halfDay: 'place.timeHalf', fullDay: 'place.timeFull' };
+
+/* places.js is a separate script; if it fails to load the channel must render
+   an empty list rather than throw on a missing global. */
+const PLACE_KIND_LIST = (typeof PLACE_KINDS !== 'undefined' && Array.isArray(PLACE_KINDS))
+  ? PLACE_KINDS
+  : ['views', 'hike', 'island', 'market', 'park', 'coast'];
+
+const placeCap = (s) => String(s).charAt(0).toUpperCase() + String(s).slice(1);
+
+/** "HK$5" for a round fare, "HK$16.7" for one that is not. */
+function placeMoney(n) {
+  const v = Math.round(Number(n) * 10) / 10;
+  return Number.isInteger(v) ? `HK$${v}` : `HK$${v.toFixed(1)}`;
+}
+
+/** The summary in the reader's language, falling back to English. */
+function placeSummary(p) {
+  const l = currentLang();
+  return (p.summary && (p.summary[l] || p.summary.en)) || '';
+}
+
+/** The one price that goes on the card: free, or the first (cheapest) fare. */
+function placePriceChip(p) {
+  if (!p.fee) return '';
+  if (p.fee.free) return t('place.free');
+  const first = p.fee.items && p.fee.items[0];
+  if (!first) return t('place.free');
+  // A ferry fare is not the price of the outing. Printing "HK$16.7" for a day on
+  // an island reads as the whole cost when the trip back is another $16.7, so a
+  // one-way fare says so on the chip as well as under the table.
+  const each = p.fee.oneWay ? ` ${t('place.eachWay')}` : '';
+  return `${first.approx ? '≈' : ''}${placeMoney(first.hkd)}${each}`;
+}
+
+/** One route step, in the reader's language. */
+function placeStepText(s) {
+  if (s.t === 'mtr') {
+    const base = placeText('place.stepMtr', { station: s.station });
+    return s.exit ? `${base} · ${placeText('place.stepExit', { exit: s.exit })}` : base;
+  }
+  if (s.t === 'walk') {
+    return s.to
+      ? placeText('place.stepWalkTo', { min: s.min, to: s.to })
+      : placeText('place.stepWalk', { min: s.min });
+  }
+  if (s.t === 'bus') {
+    if (s.from && s.to) return `${placeText('place.stepBusFrom', { route: s.route, from: s.from })} → ${s.to}`;
+    if (s.to) return placeText('place.stepBusTo', { route: s.route, to: s.to });
+    return placeText('place.stepBus', { route: s.route });
+  }
+  if (s.t === 'minibus') return placeText('place.stepMinibusTo', { route: s.route, to: s.to });
+  if (s.t === 'ferry') {
+    return s.min
+      ? placeText('place.stepFerryMin', { to: s.to, min: s.min })
+      : placeText('place.stepFerryTo', { to: s.to });
+  }
+  if (s.t === 'tram') return placeText('place.stepTram');
+  return '';
+}
+
+/** The kind chips. Rendered into the shared filter host the News channel uses. */
+function renderPlaceFilters() {
+  const host = document.getElementById('discover-filters');
+  if (!host) return;
+  const active = STATE.discover.placeKind;
+  const chip = (key, label, emoji) => `
+    <button type="button" class="chip news-filter-chip${(active || 'all') === key ? ' active' : ''}"
+            aria-pressed="${(active || 'all') === key ? 'true' : 'false'}"
+            onclick="showPlaceKind('${key}')">${emoji} ${escapeHtml(label)}</button>`;
+  host.innerHTML =
+    `<span class="discover-filters-label">${escapeHtml(t('discover.filterLabel'))}</span>` +
+    `<div class="discover-filters-row">${chip('all', t('place.all'), '🗺️')}` +
+    PLACE_KIND_LIST.map((k) => chip(k, t(`place.kind${placeCap(k)}`), PLACE_KIND_EMOJI[k])).join('') +
+    `</div>`;
+  host.hidden = false;
+}
+
+/** Narrows the Outings channel to one kind. 'all' clears it. */
+function showPlaceKind(kind) {
+  const next = kind && kind !== 'all' && PLACE_KIND_LIST.includes(kind) ? kind : null;
+  if (STATE.discover.placeKind === next) return;
+  STATE.discover.placeKind = next;
+  renderPlaces();
+}
+
+/** One card. A <button>, so the whole card is the tap target on a phone. */
+function placeCardHtml(p) {
+  const free = !!(p.fee && p.fee.free);
+  return `
+    <button type="button" class="place-card" onclick="openPlace('${p.slug}')">
+      <span class="place-card-photo">
+        <img src="${escapeHtml(p.card)}" alt="" loading="lazy" decoding="async">
+        <span class="place-card-emoji" aria-hidden="true">${escapeHtml(p.emoji)}</span>
+      </span>
+      <span class="place-card-text">
+        <span class="place-card-title">${escapeHtml(p.name)}</span>
+        <span class="place-card-zh">${escapeHtml(p.nameZh)}</span>
+        <span class="place-card-sum">${escapeHtml(placeSummary(p))}</span>
+        <span class="place-card-meta">
+          <span class="place-chip">📍 ${escapeHtml(p.area)}</span>
+          <span class="place-chip">⏱ ${escapeHtml(t(PLACE_TIME_KEYS[p.time] || 'place.timeFew'))}</span>
+          <span class="place-chip${free ? ' place-chip--free' : ''}">💵 ${escapeHtml(placePriceChip(p))}</span>
+        </span>
+      </span>
+    </button>`;
+}
+
+/** The Outings shelf. Called by renderDiscover() and by showPlaceKind(). */
+function renderPlaces(feed) {
+  const host = feed || document.getElementById('discover-feed');
+  if (!host) return;
+  const all = placeList();
+  if (!all.length) {
+    host.innerHTML = `<p class="discover-empty">${escapeHtml(t('discover.loadFailed'))}</p>`;
+    return;
+  }
+  renderPlaceFilters();
+  const kind = STATE.discover.placeKind;
+  const shown = kind ? all.filter((p) => p.kind === kind) : all;
+  host.innerHTML = shown.map(placeCardHtml).join('');
+}
+
+/** Opens one outing. */
+function openPlace(slug) {
+  const p = placeList().find((x) => x.slug === slug);
+  if (!p) return;
+  STATE.discover.place = p;
+  navigate('place');
+  renderPlace(p);
+}
+
+/** Draws the open outing. Also re-run on a language switch. */
+function renderPlace(p) {
+  const host = document.getElementById('place-body');
+  if (!host || !p) return;
+
+  const free = !!(p.fee && p.fee.free);
+  const feeRows = free
+    ? ''
+    : (p.fee.items || []).map((it) => {
+      const when = it.when ? ` <span class="place-fee-when">${escapeHtml(t(`place.fee${placeCap(it.when)}`))}</span>` : '';
+      return `<li><span>${escapeHtml(t(`place.fee${placeCap(it.label)}`))}${when}</span>
+                <span class="place-fee-amt">${it.approx ? '≈' : ''}${placeMoney(it.hkd)}</span></li>`;
+    }).join('');
+
+  const steps = (p.steps || []).map((s) => `
+    <li><span class="place-step-icon" aria-hidden="true">${PLACE_STEP_ICONS[s.t] || '•'}</span>
+        <span>${escapeHtml(placeStepText(s))}</span></li>`).join('');
+
+  const tips = (p.goodToKnow || []).map((tip) => `<li>${escapeHtml(tip)}</li>`).join('');
+
+  const credit = (typeof PLACE_CREDITS !== 'undefined' && PLACE_CREDITS[p.slug]) || null;
+  const creditHtml = credit
+    ? `<p class="place-credit">${escapeHtml(placeText('place.credit', {
+      author: credit.author.replace(/\s*\(Wikimedia Commons\)$/i, '') || 'Wikimedia Commons',
+      licence: credit.licence,
+    }))} · <a href="${escapeHtml(credit.page)}" target="_blank" rel="noopener noreferrer">Wikimedia Commons</a></p>`
+    : '';
+
+  host.innerHTML = `
+    <img class="place-hero" src="${escapeHtml(p.photo)}" alt="" decoding="async">
+    <div class="place-head">
+      <h1 class="place-title"><span aria-hidden="true">${escapeHtml(p.emoji)}</span> ${escapeHtml(p.name)}</h1>
+      <p class="place-title-zh">${escapeHtml(p.nameZh)}</p>
+      <div class="place-meta-row">
+        <span class="place-chip">📍 ${escapeHtml(p.area)}</span>
+        <span class="place-chip">⏱ ${escapeHtml(t(PLACE_TIME_KEYS[p.time] || 'place.timeFew'))}</span>
+        <span class="place-chip${free ? ' place-chip--free' : ''}">💵 ${escapeHtml(placePriceChip(p))}</span>
+      </div>
+    </div>
+
+    <p class="place-summary">${escapeHtml(placeSummary(p))}</p>
+
+    <h2 class="place-h2">🚇 ${escapeHtml(t('place.howToGet'))}</h2>
+    <ol class="place-steps">${steps}</ol>
+
+    <h2 class="place-h2">💵 ${escapeHtml(t('place.cost'))}</h2>
+    ${free
+      ? `<p class="place-free-note">🎉 ${escapeHtml(t('place.free'))}</p>`
+      : `<ul class="place-fees">${feeRows}</ul>`}
+    ${!free && p.fee.oneWay
+      ? `<p class="place-oneway-note">↔️ ${escapeHtml(t('place.oneWayNote'))}</p>`
+      : ''}
+    <p class="place-prices-note">${escapeHtml(t('place.pricesNote'))}</p>
+
+    <h2 class="place-h2">🕒 ${escapeHtml(t('place.open'))}</h2>
+    <p class="place-hours">${escapeHtml(p.hours)}</p>
+
+    <h2 class="place-h2">💡 ${escapeHtml(t('place.goodToKnow'))}</h2>
+    <ul class="place-tips">${tips}</ul>
+
+    ${creditHtml}`;
 }
 
 /** The Stories channel: the shelf of published stories, newest first. */

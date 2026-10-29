@@ -503,10 +503,15 @@ margin:12px 0 0;color:var(--red);font-size:12.5px;min-height:16px;text-align:cen
    into this player's language (see wordmatch.js), because the two players in a
    room may not share one. Only the chrome is translated here.
    ============================================================ */
+/* The page title and its one-line description carry an emoji, the same way
+   every culture heading does: it is the first thing on the screen and the
+   only part of a game page a player who has never opened it will read. The
+   emoji is language-neutral, so it is prefixed once per language block
+   rather than stored separately. */
 const STR = {
   en: {
-    backToApp: 'CantoBuddy', title: 'Word match',
-    sub: 'A Cantonese word appears and four meanings — tap the right one before your partner does. Eight rounds, most correct wins.',
+    backToApp: 'CantoBuddy', title: '🔤 Word match',
+    sub: '🧠 A Cantonese word appears and four meanings — tap the right one before your partner does. Eight rounds, most correct wins.',
     nameLabel: 'Your name', avatarLabel: 'Pick an avatar', createBtn: 'Create a room',
     divider: 'I already have a code', joinBtn: 'Join', codePlaceholder: 'Enter code',
     tip1: '2 players · 8 rounds · 4 choices each round',
@@ -565,8 +570,8 @@ const STR = {
     errUnknown: 'Something went wrong — try again.',
   },
   fil: {
-    backToApp: 'CantoBuddy', title: 'Tugma ng Salita',
-    sub: 'May lalabas na salitang Cantonese at apat na kahulugan — pindutin ang tama bago pa gawin ng kalaro mo. Walong round, pinakamaraming tama ang panalo.',
+    backToApp: 'CantoBuddy', title: '🔤 Tugma ng Salita',
+    sub: '🧠 May lalabas na salitang Cantonese at apat na kahulugan — pindutin ang tama bago pa gawin ng kalaro mo. Walong round, pinakamaraming tama ang panalo.',
     nameLabel: 'Pangalan mo', avatarLabel: 'Pumili ng avatar', createBtn: 'Gumawa ng kuwarto',
     divider: 'May code na ako', joinBtn: 'Sumali', codePlaceholder: 'Ilagay ang code',
     tip1: '2 manlalaro · 8 round · 4 na pagpipilian bawat round',
@@ -625,8 +630,8 @@ const STR = {
     errUnknown: 'May naging mali — subukan ulit.',
   },
   zh: {
-    backToApp: 'CantoBuddy', title: '配对游戏',
-    sub: '出现一个粤语词和四个意思——比对手更快按下正确的那个。八局，答对最多的人赢。',
+    backToApp: 'CantoBuddy', title: '🔤 配对游戏',
+    sub: '🧠 出现一个粤语词和四个意思——比对手更快按下正确的那个。八局，答对最多的人赢。',
     nameLabel: '你的名字', avatarLabel: '选一个头像', createBtn: '开一个房间',
     divider: '我已经有房间码', joinBtn: '加入', codePlaceholder: '输入房间码',
     tip1: '2 人 · 8 局 · 每局 4 个选项',
@@ -685,8 +690,8 @@ const STR = {
     errUnknown: '出了点问题——再试一次。',
   },
   id: {
-    backToApp: 'CantoBuddy', title: 'Cocokkan kata',
-    sub: 'Muncul satu kata Kanton dan empat arti — ketuk yang benar sebelum lawanmu. Delapan babak, yang paling banyak benar menang.',
+    backToApp: 'CantoBuddy', title: '🔤 Cocokkan kata',
+    sub: '🧠 Muncul satu kata Kanton dan empat arti — ketuk yang benar sebelum lawanmu. Delapan babak, yang paling banyak benar menang.',
     nameLabel: 'Namamu', avatarLabel: 'Pilih avatar', createBtn: 'Buat ruangan',
     divider: 'Saya sudah punya kode', joinBtn: 'Gabung', codePlaceholder: 'Masukkan kode',
     tip1: '2 pemain · 8 babak · 4 pilihan tiap babak',

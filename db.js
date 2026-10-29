@@ -1653,6 +1653,79 @@ function seedPostsIfNeeded() {
 
 const postsSeeded = seedPostsIfNeeded();
 
+/* ---------------------------------------------------------------------------
+   Refreshing the SEEDED culture articles.
+
+   `seedPostsIfNeeded` only ever INSERTs, and only while the seeded count is
+   below the array length — so once a post is in the database, editing its text
+   in data.js changes nothing on any existing database. That is right for a
+   news item and wrong for an article the operator wrote and then improved: the
+   expansion of 2026-10-29 (every culture article roughly doubled, emoji in
+   every heading) would otherwise have reached new installs only, and the
+   production database would have served the old bodies forever.
+
+   Two guards, both deliberate:
+
+   1. `culture_content_version`. A content drop runs ONCE per version, on every
+      boot, including production. Bump it when the seed text changes.
+   2. `updated_at = created_at`. A row an operator has edited in the admin has
+      a later updated_at, so it is LEFT ALONE. Her edit wins over the seed —
+      which is the same promise `seedPostsIfNeeded` makes, kept in the one place
+      where a seed update could otherwise silently overwrite her work.
+
+   Only `channel = 'culture'` and only slugs that came from the seed, so a
+   hand-written post and every imported news item are untouched.
+   --------------------------------------------------------------------------- */
+const CULTURE_CONTENT_VERSION = 1; // v1 = the 2026-10-29 expansion: +~6,000 words and emoji in every heading
+
+function refreshCultureContentIfNeeded() {
+  const row = db.prepare("SELECT value FROM meta WHERE key = 'culture_content_version'").get();
+  const current = row ? Number(row.value) || 0 : 0;
+  if (current >= CULTURE_CONTENT_VERSION) return 0;
+
+  const upd = db.prepare(`
+    UPDATE posts SET
+      icon      = ?,
+      title_en  = ?,
+      summary_en = ?,
+      body_en   = ?
+    WHERE slug = ?
+      AND channel = 'culture'
+      AND updated_at = created_at
+  `);
+
+  let refreshed = 0;
+  db.exec('BEGIN');
+  try {
+    for (const p of SEED_POSTS) {
+      if ((p.channel || 'culture') !== 'culture') continue;
+      // `updated_at` is deliberately NOT written here. It is the only marker
+      // that distinguishes "the seed changed" from "an operator edited this",
+      // and a refresh that stamped it would make every FUTURE version bump skip
+      // the row it had just refreshed. Leaving it equal to created_at keeps the
+      // row refreshable; an admin edit moves it and protects the row for good.
+      refreshed += upd.run(
+        p.icon || '🏮',
+        p.title_en || '',
+        p.summary_en || '',
+        p.body_en || '',
+        p.slug
+      ).changes;
+    }
+    db.prepare('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)').run(
+      'culture_content_version',
+      String(CULTURE_CONTENT_VERSION)
+    );
+    db.exec('COMMIT');
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
+  return refreshed;
+}
+
+const cultureRefreshed = refreshCultureContentIfNeeded();
+
 /**
  * Seed the Living passages. Guarded on the SEED size (like seedPostsIfNeeded)
  * so re-running on an existing database never re-inserts and never clobbers an

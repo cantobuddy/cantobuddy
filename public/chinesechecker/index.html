@@ -333,12 +333,17 @@ const Core = window.CheckerCore;
    Four languages, because the app ships in four. The board itself is language
    free - a peg is a peg - so everything that needs words is here and nothing
    else in the file is. */
+/* The page title and its one-line description carry an emoji, the same way
+   every culture heading does: it is the first thing on the screen and the
+   only part of a game page a player who has never opened it will read. The
+   emoji is language-neutral, so it is prefixed once per language block
+   rather than stored separately. */
 const STR = {
   en: {
-    appTitle: 'Chinese Checkers',
+    appTitle: '⭐ Chinese Checkers',
     nameLabel: 'Your name',
     namePlaceholder: 'Your name',
-    soloHead: 'Play with the computer',
+    soloHead: '🤖 Play with the computer',
     onlineHead: 'Play with family',
     joinHead: 'Join a room',
     seatsLabel: 'How many players',
@@ -390,10 +395,10 @@ const STR = {
     close: 'Close',
   },
   fil: {
-    appTitle: 'Chinese Checkers',
+    appTitle: '⭐ Chinese Checkers',
     nameLabel: 'Pangalan mo',
     namePlaceholder: 'Pangalan mo',
-    soloHead: 'Maglaro sa computer',
+    soloHead: '🤖 Maglaro sa computer',
     onlineHead: 'Maglaro kasama ang pamilya',
     joinHead: 'Sumali sa kuwarto',
     seatsLabel: 'Ilang manlalaro',
@@ -445,10 +450,10 @@ const STR = {
     close: 'Isara',
   },
   zh: {
-    appTitle: '中国跳棋',
+    appTitle: '⭐ 中国跳棋',
     nameLabel: '你的名字',
     namePlaceholder: '你的名字',
-    soloHead: '和电脑下棋',
+    soloHead: '🤖 和电脑下棋',
     onlineHead: '和家人一起玩',
     joinHead: '加入房间',
     seatsLabel: '几位玩家',
@@ -500,10 +505,10 @@ const STR = {
     close: '关闭',
   },
   id: {
-    appTitle: 'Dam Cina',
+    appTitle: '⭐ Dam Cina',
     nameLabel: 'Namamu',
     namePlaceholder: 'Namamu',
-    soloHead: 'Bermain dengan komputer',
+    soloHead: '🤖 Bermain dengan komputer',
     onlineHead: 'Bermain dengan keluarga',
     joinHead: 'Gabung ke ruangan',
     seatsLabel: 'Berapa pemain',

@@ -634,10 +634,15 @@
    the same four the app ships (en / fil / zh / id); an unknown or missing
    key falls back to English rather than rendering "undefined".
    ============================================================ */
+/* The page title and its one-line description carry an emoji, the same way
+   every culture heading does: it is the first thing on the screen and the
+   only part of a game page a player who has never opened it will read. The
+   emoji is language-neutral, so it is prefixed once per language block
+   rather than stored separately. */
 const STR = {
   en: {
-    backToApp: 'CantoBuddy', title: 'Family UNO',
-    sub: 'Make a room and send the 4-letter code to your family. Phone, tablet or laptop — chat while you play.',
+    backToApp: 'CantoBuddy', title: '🌈 Family UNO',
+    sub: '🎴 Make a room and send the 4-letter code to your family. Phone, tablet or laptop — chat while you play.',
     nameLabel: 'Your name', namePlaceholder: 'e.g. Maria / Mum / Lola',
     avatarLabel: 'Pick an avatar', createBtn: 'Create a room',
     divider: 'I already have a code', joinBtn: 'Join', codePlaceholder: 'Enter code',
@@ -708,8 +713,8 @@ const STR = {
     errNet: 'The connection slipped — please try again',
   },
   fil: {
-    backToApp: 'CantoBuddy', title: 'UNO ng Pamilya',
-    sub: 'Gumawa ng kuwarto at ipadala ang 4-letrang code sa pamilya mo. Telepono, tablet o laptop — mag-chat habang naglalaro.',
+    backToApp: 'CantoBuddy', title: '🌈 UNO ng Pamilya',
+    sub: '🎴 Gumawa ng kuwarto at ipadala ang 4-letrang code sa pamilya mo. Telepono, tablet o laptop — mag-chat habang naglalaro.',
     nameLabel: 'Pangalan mo', namePlaceholder: 'hal. Maria / Nanay / Lola',
     avatarLabel: 'Pumili ng avatar', createBtn: 'Gumawa ng kuwarto',
     divider: 'May code na ako', joinBtn: 'Sumali', codePlaceholder: 'Ilagay ang code',
@@ -778,8 +783,8 @@ const STR = {
     errNet: 'Naputol ang koneksyon — subukan ulit',
   },
   zh: {
-    backToApp: 'CantoBuddy', title: '家庭 UNO',
-    sub: '开个房间，把 4 位配对码发给家人。手机、平板、电脑都能进，边聊边打。',
+    backToApp: 'CantoBuddy', title: '🌈 家庭 UNO',
+    sub: '🎴 开个房间，把 4 位配对码发给家人。手机、平板、电脑都能进，边聊边打。',
     nameLabel: '你的昵称', namePlaceholder: '比如：爸爸 / 小雨 / 外婆',
     avatarLabel: '挑个头像', createBtn: '创建房间',
     divider: '已经有配对码', joinBtn: '加入', codePlaceholder: '输入配对码',
@@ -848,8 +853,8 @@ const STR = {
     errNet: '网络开小差了，再试一次',
   },
   id: {
-    backToApp: 'CantoBuddy', title: 'UNO Keluarga',
-    sub: 'Buat ruang dan kirim kode 4 huruf ke keluarga. Ponsel, tablet, atau laptop — ngobrol sambil main.',
+    backToApp: 'CantoBuddy', title: '🌈 UNO Keluarga',
+    sub: '🎴 Buat ruang dan kirim kode 4 huruf ke keluarga. Ponsel, tablet, atau laptop — ngobrol sambil main.',
     nameLabel: 'Nama kamu', namePlaceholder: 'mis. Maria / Ibu / Nenek',
     avatarLabel: 'Pilih avatar', createBtn: 'Buat ruang',
     divider: 'Saya sudah punya kode', joinBtn: 'Gabung', codePlaceholder: 'Masukkan kode',

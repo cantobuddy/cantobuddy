@@ -448,6 +448,13 @@
               onclick="showChannel('news')" data-i18n="discover.tabNews">News</button>
       <button class="discover-tab" data-channel="living" role="tab"
               onclick="showChannel('living')" data-i18n="discover.tabLiving">Living</button>
+      <!-- The fourth channel. It is a channel rather than its own bottom-nav tab
+           because the bar is full at five (see the note on #view-games), and it
+           is a channel rather than a card in the feed because an outing is not a
+           post: it has a photograph, a route and a price, and it is read by
+           someone standing at a bus stop. -->
+      <button class="discover-tab" data-channel="places" role="tab"
+              onclick="showChannel('places')" data-i18n="discover.tabPlaces">Outings</button>
     </div>
 
     <!-- One line saying what this channel is, filled by renderDiscover(). Not a
@@ -510,6 +517,20 @@
       <button class="btn-back" onclick="navigate('discover'); showChannel('living')" data-i18n="living.back">← Living</button>
     </div>
     <article id="living-body" class="post-article"></article>
+  </section>
+
+  <!-- ---- PLACE VIEW ---- -->
+  <!-- One outing, opened from the Outings channel. A real view rather than a
+       modal: the route is a list she reads while walking, and a modal on a
+       phone is the screen she accidentally closes.
+       The body is built by renderPlace() from public/places.js — a fixed,
+       local record, so nothing here is user input and nothing needs sanitising
+       beyond the escapeHtml() every field goes through. -->
+  <section id="view-place" class="view">
+    <div class="browse-header">
+      <button class="btn-back" onclick="navigate('discover'); showChannel('places')" data-i18n="place.back">← Outings</button>
+    </div>
+    <article id="place-body" class="place-article"></article>
   </section>
 
   <!-- ---- WRITE A STORY VIEW ---- -->
@@ -974,6 +995,14 @@
 <!-- Absolute paths: this same HTML is served from /join/<code>, where a
      relative "app.js" would resolve to /join/app.js and 404. -->
 <script src="/i18n.js"></script>
+<!-- The Outings data: 17 places, each with a photograph, a route and a price.
+     A separate file because it is data, not code, and because the app shell is
+     precached — see APP_SHELL in sw.js. -->
+<script src="/places.js"></script>
+<!-- Author + licence for every Outings photograph. A script rather than a JSON
+     fetch so the credit survives offline, which is when the picture is already
+     on the screen and the photographer is still owed the name. -->
+<script src="/places/credits.js"></script>
 <script src="/app.js"></script>
 <!-- Opt-in push notifications (also loaded by the SEO landing pages). Self-
      contained, so it works whether or not app.js is present. -->

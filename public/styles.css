@@ -847,7 +847,11 @@ body {
 #home-discover-promo .home-section-title::before { content: '🌏'; }
 .discover-promo-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* auto-fit rather than a fixed three columns: the row grew a fourth card
+     (Outings) and a fixed 3 would leave it alone on a second line at phone
+     width. 150px is the width below which the description stops being readable,
+     so a 360px screen gets two rows of two and a desktop gets one row of four. */
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 8px;
 }
 .discover-promo-card {
@@ -2909,7 +2913,13 @@ a.game-tile:active { transform: scale(0.96); background: var(--c-primary-tint); 
 }
 
 /* A segmented control rather than two loose buttons: culture and news are one
-   choice, so they read as a single track with the selected half filled. */
+   choice, so they read as a single track with the selected half filled.
+
+   Four tabs since Outings arrived (2026-10-29). At 320px the four labels plus
+   their padding come to more than the track, so the tabs are `flex: 1 0 auto` —
+   they share the width when there is room and stop shrinking at their own text
+   when there is not — and the track scrolls sideways instead of clipping a label
+   or wrapping one onto a second line inside a pill. */
 .discover-tabs {
   display: flex;
   gap: 4px;
@@ -2917,19 +2927,23 @@ a.game-tile:active { transform: scale(0.96); background: var(--c-primary-tint); 
   margin-bottom: 14px;
   background: #eef1f5;
   border-radius: 999px;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
+.discover-tabs::-webkit-scrollbar { display: none; }
 
 .discover-tab {
-  flex: 1;
-  padding: 8px 12px;
+  flex: 1 0 auto;
+  padding: 8px 10px;
   border: none;
   border-radius: 999px;
   background: transparent;
   color: var(--c-text-soft);
   font-family: inherit;
-  font-size: 0.92rem;
+  font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
   min-height: var(--tap);
   transition: background 0.15s, color 0.15s;
 }
@@ -5467,3 +5481,289 @@ a.game-tile:active { transform: scale(0.96); background: var(--c-primary-tint); 
   box-shadow: 0 0 0 3px var(--c-primary-tint);
 }
 .living-comment-submit { align-self: flex-end; }
+
+/* =============================================================================
+   OUTINGS — the shelf of places and one place's page.
+
+   The card is a row, not a tile: at 320px a photograph above a title above two
+   chips is a screen and a half of scrolling for one place, and there are
+   seventeen. A 116px thumbnail beside the text shows eight places per screen,
+   which is the number that makes the shelf browsable rather than a list to
+   scroll through one card at a time.
+   ============================================================================= */
+.place-card {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  width: 100%;
+  padding: 0;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+}
+.place-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px var(--c-shadow-lg);
+  border-color: var(--c-primary);
+}
+.place-card:active { transform: scale(0.99); }
+
+.place-card-photo {
+  position: relative;
+  flex: 0 0 116px;
+  width: 116px;
+  min-height: 116px;
+  background: #eef1f5;
+}
+.place-card-photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+/* The kind emoji, so the card still says what sort of outing it is when the
+   photograph is still loading on a slow connection. */
+.place-card-emoji {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  font-size: 0.95rem;
+  line-height: 1;
+  box-shadow: 0 1px 4px var(--c-shadow-lg);
+}
+
+.place-card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0; /* a flex child will not shrink below its text without this */
+  padding: 10px 12px;
+}
+.place-card-title {
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--c-text);
+  line-height: 1.25;
+}
+.place-card-zh {
+  font-family: var(--font-cn);
+  font-size: 0.76rem;
+  color: var(--c-text-soft);
+}
+.place-card-sum {
+  font-size: 0.8rem;
+  color: var(--c-text-soft);
+  line-height: 1.4;
+  margin-top: 2px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.place-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.place-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #f1f3f6;
+  color: var(--c-text-soft);
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+/* Free is the single most useful fact on the shelf, so it gets the one colour
+   in the row that is not grey. */
+.place-chip--free {
+  background: #e3f5ec;
+  color: #1f7a52;
+}
+
+/* ---- One place ---- */
+.place-article { padding-bottom: 24px; }
+
+.place-hero {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  border-radius: var(--radius);
+  background: #eef1f5;
+}
+.place-head { padding: 14px 0 2px; }
+.place-title {
+  font-size: 1.3rem;
+  line-height: 1.25;
+  margin: 0;
+  color: var(--c-text);
+}
+.place-title-zh {
+  font-family: var(--font-cn);
+  font-size: 0.9rem;
+  color: var(--c-text-soft);
+  margin: 2px 0 0;
+}
+.place-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.place-meta-row .place-chip { font-size: 0.74rem; padding: 3px 9px; }
+
+.place-summary {
+  font-size: 0.98rem;
+  line-height: 1.6;
+  color: var(--c-text);
+  margin: 14px 0 0;
+}
+
+.place-h2 {
+  font-size: 1.05rem;
+  margin: 24px 0 10px;
+  color: var(--c-primary-dark);
+}
+
+/* The route. Numbered, because the order is the instruction — "walk 10 minutes
+   to the pier" before "ferry" is a different journey from the reverse. */
+.place-steps {
+  list-style: none;
+  counter-reset: step;
+  margin: 0;
+  padding: 0;
+}
+.place-steps li {
+  counter-increment: step;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 12px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.92rem;
+  line-height: 1.4;
+  margin-bottom: 6px;
+}
+.place-steps li::before {
+  content: counter(step);
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--c-primary-tint);
+  color: var(--c-primary-dark);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.place-step-icon { flex: 0 0 auto; font-size: 1rem; line-height: 1.2; }
+
+/* The price list. A dotted leader keeps the fare and the amount on one line at
+   320px even when the label is three words long in Filipino. */
+.place-fees {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.place-fees li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px dashed var(--c-border);
+  font-size: 0.92rem;
+}
+.place-fees li:last-child { border-bottom: none; }
+.place-fee-when {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--c-text-soft);
+  font-weight: 500;
+}
+.place-fee-amt {
+  font-weight: 700;
+  color: var(--c-text);
+  white-space: nowrap;
+}
+.place-free-note {
+  display: inline-block;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  background: #e3f5ec;
+  color: #1f7a52;
+  font-weight: 700;
+  font-size: 0.95rem;
+  margin: 0;
+}
+.place-prices-note {
+  font-size: 0.72rem;
+  color: var(--c-text-soft);
+  line-height: 1.4;
+  margin: 10px 0 0;
+}
+/* A one-way fare needs saying, and it needs to be readable rather than a
+   footnote — it changes the number she plans with. */
+.place-oneway-note {
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--c-text);
+  background: var(--c-bg);
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin: 10px 0 0;
+}
+.place-hours {
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--c-text);
+  margin: 0;
+}
+.place-tips {
+  margin: 0 0 0 18px;
+  padding: 0;
+}
+.place-tips li {
+  font-size: 0.92rem;
+  line-height: 1.55;
+  margin-bottom: 9px;
+}
+.place-credit {
+  font-size: 0.68rem;
+  color: var(--c-text-soft);
+  line-height: 1.4;
+  margin: 22px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--c-border);
+}
+.place-credit a { color: inherit; }
+
+@media (max-width: 360px) {
+  .place-card-photo { flex-basis: 96px; width: 96px; min-height: 96px; }
+  .place-card-title { font-size: 0.92rem; }
+  .place-card-sum { -webkit-line-clamp: 2; font-size: 0.76rem; }
+}

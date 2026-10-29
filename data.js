@@ -1613,12 +1613,12 @@ const SEED_POSTS = [
       'Cantonese has two ways to say thank you, and using the wrong one is a small mistake that nobody corrects you for. Here is the difference, and how to tell which one a situation wants.',
     summary_zh: '粤语里有两个「谢谢」，用错了一般没人会纠正你。这篇讲清它们的区别，以及什么场合该用哪一个。',
     body_en: `<p>Most learners meet 唔該 and 多謝 on the same day, are told both mean "thank you", and then spend months using them at random. They are not interchangeable, and the difference is easy to remember once you see it.</p>
-<h2>The rule</h2>
+<h2>📏 The rule</h2>
 <p><strong>唔該</strong> (m4 goi1) is for a <em>service</em> — something a person <strong>does</strong> for you. Someone holds the lift door, passes you a bowl, answers your question, brings the bill.</p>
 <p><strong>多謝</strong> (do1 ze6) is for a <em>gift</em> — something a person <strong>gives</strong> you. A present, a red packet, money, food that is being handed over as a gift rather than served.</p>
-<h2>Why it matters</h2>
+<h2>💡 Why it matters</h2>
 <p>Say 多謝 for a small favour and it sounds slightly formal, as if you had been given a present for opening a door. Say 唔該 when you are handed a gift and it sounds like you are thanking someone for a service — a little cold. Neither is a disaster. Both are the kind of thing a family notices and never mentions.</p>
-<h2>The everyday test</h2>
+<h2>✅ The everyday test</h2>
 <p>Ask yourself: <strong>did they do something, or did they give me something?</strong> Done → 唔該. Given → 多謝.</p>
 <ul>
   <li>The helper at the shop hands you your change → <strong>唔該</strong></li>
@@ -1626,8 +1626,20 @@ const SEED_POSTS = [
   <li>Someone moves aside for you in a corridor → <strong>唔該</strong></li>
   <li>A relative presses a box of cakes into your hands to take home → <strong>多謝</strong></li>
 </ul>
-<h2>The one you will use most</h2>
-<p>唔該 is also the word for "please" and for "excuse me" — the same two syllables cover all three. That is why it is the single most useful phrase in the app: it is 唔該 when you ask, 唔該 when you receive, and 唔該 when you need to get past someone. If you learn one word this week, learn this one.</p>`,
+<h2>⭐ The one you will use most</h2>
+<p>唔該 is also the word for "please" and for "excuse me" — the same two syllables cover all three. That is why it is the single most useful phrase in the app: it is 唔該 when you ask, 唔該 when you receive, and 唔該 when you need to get past someone. If you learn one word this week, learn this one.</p>
+<h2>🗣️ The two words that make it sound natural</h2>
+<p><strong>唔該晒</strong> (m4 goi1 saai3) is 唔該 with 晒 on the end, and 晒 means "all" — so it is "thanks for all of that". Use it when somebody has done several things for you, or one big thing: carrying the shopping up, helping you move a mattress, waiting while you found your keys.</p>
+<p><strong>麻煩你</strong> (maa4 faan4 nei5) is what you say <em>before</em> asking, not after. It means "sorry to trouble you", and it turns a request into a polite one. 麻煩你幫我開門 — "could I trouble you to open the door". A request with 麻煩你 in front of it is never rude, however blunt the rest of the sentence is.</p>
+<h2>🛒 In a shop, start to finish</h2>
+<ul>
+  <li>The shopkeeper holds out your change → <strong>唔該</strong></li>
+  <li>You want to pay by Octopus → <strong>唔該，八達通</strong></li>
+  <li>She hands you the bag → <strong>唔該晒</strong></li>
+  <li>She gives you a free calendar at New Year → <strong>多謝</strong></li>
+</ul>
+<p>Notice that three of those four are 唔該. That is the honest ratio: 唔該 is the workhorse and 多謝 is for the moments something is <em>given</em>. If you are ever unsure in a shop, 唔該 is the safe one — it is the word for service, and a shop is service.</p>
+`,
   },
 
   {
@@ -1643,17 +1655,30 @@ const SEED_POSTS = [
     summary_zh: '红色的小架子，上面有神像、照片、香炉，有时还有水果。它看起来像没收拾好的杂物，却是家里最不该动的东西。这篇说明它是什么，以及该怎么做。',
     body_en: `<p>Many Hong Kong flats contain something that looks, at a glance, like an untidy shelf: a small red cabinet or wall-mounted shelf, often near the door or in the living room, holding two or three small figures, a photograph, a holder with incense, and sometimes a plate of fruit. It may look dusty or cluttered, and your instinct will be to tidy it.</p>
 <p><strong>Please do not.</strong> That is 神枱 (san4 toi2) — the family altar. It is not decoration and it is not storage. Every object on it is placed there deliberately, and the arrangement carries meaning to the family.</p>
-<h2>What to do instead</h2>
+<h2>✅ What to do instead</h2>
 <ul>
   <li><strong>Do not move anything on it.</strong> Not the figures, not the photograph, not the fruit.</li>
   <li><strong>Do not dust or wipe it</strong> without asking first. If it clearly needs cleaning, ask how the family would like it done — many families clean it themselves.</li>
   <li><strong>Never throw anything from it away.</strong> Ash in the incense holder is not dirt to be emptied, and used offerings are not rubbish.</li>
   <li><strong>If you are unsure whether an object belongs to the altar</strong>, treat it as if it does, and ask.</li>
 </ul>
-<h2>The wider point</h2>
+<h2>💡 The wider point</h2>
 <p>This is the single most useful thing to understand about a Hong Kong household: <strong>a few things that look like clutter have a purpose you cannot see.</strong> A bag of printed paper in gold and silver, a stack of folded paper, a plate of fruit left out — all of these can be part of household practice. When something looks like rubbish but you did not put it there, the safe answer is always the same: leave it, and ask.</p>
-<h2>The sentence that solves it</h2>
-<p><strong>唔好意思，我唔知道</strong> (m4 hou2 ji3 si1, ngo5 m4 zi1 dou6) — "Sorry, I didn't know." Say it plainly and early if you have already moved something. In most households that is the end of it. What turns a small thing into a problem is not the mistake — it is discovering it later and saying nothing.</p>`,
+<h2>🗣️ The sentence that solves it</h2>
+<p><strong>唔好意思，我唔知道</strong> (m4 hou2 ji3 si1, ngo5 m4 zi1 dou6) — "Sorry, I didn't know." Say it plainly and early if you have already moved something. In most households that is the end of it. What turns a small thing into a problem is not the mistake — it is discovering it later and saying nothing.</p>
+<h2>🏠 What is on it, and what each thing is</h2>
+<p>You do not need to know the theology to clean around it safely, but knowing what the objects are stops them looking like clutter:</p>
+<ul>
+  <li><strong>The figures</strong> — 神像 (san4 zoeng6). A god or a bodhisattva, often Guanyin (觀音) or Guan Yu (關帝). Do not lift them.</li>
+  <li><strong>The photograph</strong> — an ancestor. It is a person the family knew, which is why moving it matters more than moving a statue.</li>
+  <li><strong>The incense holder</strong> — 香爐 (hoeng1 lou4), usually a bowl of ash. The ash is not dirt. Never empty it.</li>
+  <li><strong>Small cups</strong> — tea or water, changed by the family. If you see them full, they were filled this morning on purpose.</li>
+  <li><strong>Fruit</strong> — an offering, replaced while it is still good. It is not forgotten shopping.</li>
+  <li><strong>The small shelf low down by the door</strong> — 土地 (tou2 dei6), the earth god of the flat. It is at ankle height and is very easy to kick or to put a bag down on. Do not.</li>
+</ul>
+<h2>🚪 The one job you may be asked to do</h2>
+<p>Some families ask the helper to light incense in the morning. If you are asked, it is a real responsibility and a sign of trust, not a chore to fit around the vacuuming. Ask the family to show you once: how many sticks, which holder, whether the window should be open. If you are <em>not</em> asked, do not do it to be helpful — an offering made by the wrong person at the wrong time is not a small mistake in a household that cares about it.</p>
+`,
   },
 
   {
@@ -1669,16 +1694,28 @@ const SEED_POSTS = [
     summary_zh: '长辈会经常问你「食咗飯未」，把它当成真问题来回答，是每个新来的家佣都会犯的错。它其实是一句问候。这篇讲它是什么意思、该怎么回。',
     body_en: `<p><strong>食咗飯未</strong> (sik6 zo2 faan6 mei6) translates literally as "Have you eaten yet?" — and it is one of the first things an elderly person in the household will say to you. It is not a question about your lunch.</p>
 <p>It is a <strong>greeting</strong>. It means roughly "hello, are you well", and it comes from a time when asking after someone's next meal was how you asked after them. An elderly relative may say it several times a day, including straight after you have eaten.</p>
-<h2>How to answer</h2>
+<h2>💬 How to answer</h2>
 <p>You do not owe a real answer. A short, cheerful one is what the greeting is asking for:</p>
 <ul>
   <li><strong>食咗喇</strong> (sik6 zo2 laa3) — "I've eaten." The usual reply.</li>
   <li><strong>未呀</strong> (mei6 aa3) — "Not yet." Perfectly fine, and often the start of a conversation about what to cook.</li>
 </ul>
 <p>What not to do is give a full account of what you ate and when. That is the equivalent of answering "how are you" with a medical history — technically responsive, socially strange.</p>
-<h2>Why this is worth a whole post</h2>
+<h2>💡 Why this is worth a whole post</h2>
 <p>Because it is the clearest example of the thing that trips up new helpers: <strong>a phrase whose words you know perfectly, and whose meaning is not the words.</strong> Cantonese is full of these. 得閒飲茶 (dak1 haan4 jam2 caa4), "let's have tea sometime", is not an invitation either — it is a warm way of saying goodbye.</p>
-<p>When a phrase seems oddly literal or oddly repetitive, that is usually the signal. It is doing social work, not information work. Learn what it is <em>for</em>, and the words stop mattering so much.</p>`,
+<p>When a phrase seems oddly literal or oddly repetitive, that is usually the signal. It is doing social work, not information work. Learn what it is <em>for</em>, and the words stop mattering so much.</p>
+<h2>🍲 食飯喇 is the one that IS an invitation</h2>
+<p>There is a near-twin of this phrase that means the opposite, and confusing the two is the only way this greeting can actually cost you a meal:</p>
+<ul>
+  <li><strong>食咗飯未？</strong> (sik6 zo2 faan6 mei6) — a greeting. Answer it and carry on with your day.</li>
+  <li><strong>食飯喇！</strong> (sik6 faan6 laa3) — "food's ready, come and eat." This one is real. 喇 is the sound of an instruction, not a question.</li>
+</ul>
+<p>The difference is the 咗 (zo2, "already") and the tone of the ending. If somebody is standing at the kitchen door holding a bowl, it is the second one.</p>
+<h2>🌏 Why it feels familiar</h2>
+<p>If you are from the Philippines or Indonesia, you already have this phrase: <em>kumain ka na?</em> and <em>sudah makan?</em> are asked the same way, mean the same thing, and are answered the same way — briefly, and without a full account of your lunch. That is worth saying out loud, because it turns a "strange Chinese custom" into a thing you have done all your life in another language. The word changes; the move does not.</p>
+<h2>🎯 One more of the same kind</h2>
+<p><strong>得閒飲茶</strong> (dak1 haan4 jam2 caa4) — "let's have tea when you're free". It is how a conversation ends warmly. Nobody is going to book a table. If you would genuinely like to have tea with that person, the sentence that actually makes it happen is <strong>幾時得閒呀？</strong> — "when are you free?"</p>
+`,
   },
 
   {
@@ -1693,10 +1730,10 @@ const SEED_POSTS = [
       'The biggest week of the Hong Kong year. The cleaning happens before, not during — and on the first day there is one ordinary household task you should not do.',
     summary_zh: '香港一年里最忙的一周。大扫除是在年前做的，不是过年时做的——而年初一，有一件最平常的家务你最好别做。',
     body_en: `<p>Lunar New Year falls in late January or February, depending on the lunar calendar, so the date moves each year. The family will always know the exact days — asking at the start of the month is a good habit, because this is the busiest week in a Hong Kong household.</p>
-<h2>The rule to remember</h2>
+<h2>📏 The rule to remember</h2>
 <p><strong>Do not sweep or clean on the first day of the new year.</strong> The reason usually given is that sweeping on the first day sweeps the year's good fortune out of the house, so all the cleaning is done in the days <em>before</em> the new year instead.</p>
 <p>This is worth knowing precisely because it is easy to break by accident. You will be trying to be helpful, the flat will be full of people and crumbs, and reaching for a broom is the obvious thing to do. Wait until the family has started tidying, or ask.</p>
-<h2>What else changes</h2>
+<h2>🔄 What else changes</h2>
 <ul>
   <li><strong>The deep clean comes first.</strong> Expect a thorough clean of the whole flat in the days before.</li>
   <li><strong>利是</strong> (lai6 si6) — red packets, small red envelopes with money, given to children, to unmarried people, and often to helpers. If one is given to you, take it with <strong>both hands</strong> and say <strong>多謝</strong> — it is a gift, not a service.</li>
@@ -1704,13 +1741,25 @@ const SEED_POSTS = [
   <li><strong>Gift boxes.</strong> Fruit, cakes and sweets arrive in boxes, and many are re-gifted rather than eaten. Ask before opening a box that is still wrapped.</li>
   <li><strong>Plants and flowers.</strong> A small kumquat tree or other lucky plant is often bought for the festival. Do not move it or throw it out while the festival is on.</li>
 </ul>
-<h2>Words for the week</h2>
+<h2>🗣️ Words for the week</h2>
 <ul>
   <li><strong>恭喜發財</strong> (gung1 hei2 faat3 coi4) — the standard new-year greeting, "wishing you prosperity".</li>
   <li><strong>新年快樂</strong> (san1 nin2 faai3 lok6) — Happy New Year.</li>
   <li><strong>利是</strong> (lai6 si6) — red packet.</li>
 </ul>
-<p>As always, households differ. The family's own practice is the one that counts, and asking is never the wrong move.</p>`,
+<p>As always, households differ. The family's own practice is the one that counts, and asking is never the wrong move.</p>
+<h2>🧹 The days around it, in order</h2>
+<ul>
+  <li><strong>About a week before</strong> — 年廿八洗邋遢: the big clean. This is the busiest week of the year for anyone who works in a Hong Kong flat, and it is the week you will be asked to do the windows, the tops of the cupboards and the inside of the fridge.</li>
+  <li><strong>The day before</strong> — 團年飯, the reunion dinner. The whole family, the biggest meal of the year, usually at home or in a restaurant.</li>
+  <li><strong>Day one</strong> — visiting, red packets, no sweeping.</li>
+  <li><strong>Day three</strong> — 赤口, a day people traditionally avoid visiting, so the flat may be quiet.</li>
+  <li><strong>Day fifteen</strong> — 元宵, the lantern festival, and the end of the season.</li>
+</ul>
+<h2>🎊 What you will be asked to do</h2>
+<p>Almost none of it is ceremonial. The work is: extra cleaning before, extra cooking and serving during, extra washing up after, and a lot of carrying things between rooms when visitors arrive. What is ceremonial — the offerings, the incense, the red packets — is the family's to do.</p>
+<p>One thing worth knowing: many employers give their helper a red packet at New Year, and some give a bonus. It is normal, it is not charity, and it is polite to accept it with both hands and say <strong>恭喜發財</strong> (gung1 hei2 faat3 coi4) rather than to refuse it twice. Refusing a red packet is the one move that makes everybody uncomfortable.</p>
+`,
   },
 
   {
@@ -1725,22 +1774,33 @@ const SEED_POSTS = [
       'In September or early October, decorated tins of mooncakes arrive in the flat — and they are not all for eating. What the boxes are for, and why you should not open one early.',
     summary_zh: '九月或十月初，家里会陆续收到一盒盒包装精美的月饼——它们不全是拿来吃的。这篇讲这些盒子是做什么用的，以及为什么不要提前拆。',
     body_en: `<p>Mid-Autumn Festival falls in September or early October, on the fifteenth day of the eighth lunar month. If you work in a Hong Kong household you will notice it before you understand it, because that is when the mooncakes arrive.</p>
-<h2>What arrives</h2>
+<h2>🎁 What arrives</h2>
 <p><strong>月餅</strong> (jyut6 beng2) — mooncakes. Dense, rich, expensive, and given as gifts in decorated tins and boxes. Families receive far more than they can eat, because everyone gives them to everyone.</p>
-<h2>Two things not to do</h2>
+<h2>🚫 Two things not to do</h2>
 <ul>
   <li><strong>Do not open a tin early.</strong> Many of the tins in the flat are waiting to be given to somebody else. A box that has been cut into may no longer be suitable to pass on.</li>
   <li><strong>Do not throw away a tin or its box.</strong> The tins are good quality and often kept and reused, and some are collectible. If you are not sure whether a box is rubbish, ask before it goes out.</li>
 </ul>
-<h2>What the household does</h2>
+<h2>🏠 What the household does</h2>
 <ul>
   <li><strong>Lanterns.</strong> Children carry them in the evening, often as a family outing.</li>
   <li><strong>Going out at night</strong> to see the moon, which is the point of the festival. Expect to be asked to help with preparation, and possibly to work later than usual.</li>
   <li><strong>Fruit</strong> is part of it too — pomelo and star fruit in particular.</li>
 </ul>
-<h2>The general lesson</h2>
+<h2>💡 The general lesson</h2>
 <p>Mid-Autumn is a good example of a pattern that runs through the whole year here: <strong>during a festival, ordinary objects have an extra purpose.</strong> A box is not just a box; it is a gift in transit. A tin is not just a tin; it is something to keep. When a festival is coming, slow down before you tidy, and ask.</p>
-<p><strong>嚟緊有咩節日要準備？</strong> (lai4 gan6 jau5 me1 zit3 jat6 jiu3 zeon2 bei6) — "Is there a festival coming that we need to prepare for?" It is a good question to ask at the start of every month.</p>`,
+<p><strong>嚟緊有咩節日要準備？</strong> (lai4 gan6 jau5 me1 zit3 jat6 jiu3 zeon2 bei6) — "Is there a festival coming that we need to prepare for?" It is a good question to ask at the start of every month.</p>
+<h2>🌕 What is actually in one</h2>
+<p>A traditional mooncake is a dense cake of <strong>lotus seed paste</strong> (蓮蓉, lin4 jung4) around a <strong>salted duck egg yolk</strong> — the yolk is the moon. It is about 800 calories, which is why it is cut into quarters and eaten with tea rather than eaten like a cake.</p>
+<ul>
+  <li><strong>Snow skin</strong> (冰皮) mooncakes are the cold, unfried kind, kept in the fridge. If a box in the fridge says 冰皮, it is not a mistake and it does not need reheating.</li>
+  <li><strong>Five-kernel</strong> (五仁) is the divisive one: nuts and seeds, loved by grandparents, avoided by everyone else.</li>
+  <li><strong>One yolk</strong> is standard; <strong>four yolks</strong> is a gift for a boss.</li>
+</ul>
+<h2>🏮 What happens outside the flat</h2>
+<p>Lanterns go up in the parks — Victoria Park on Hong Kong Island has the biggest display — and they are free to walk through. Children carry lanterns, and the supermarkets sell the battery ones for a few dollars. If the family has children, this is the one festival where taking them out in the evening is the whole activity, and it costs nothing.</p>
+<p>The other half of the festival is food: <strong>柚子</strong> (pomelo), <strong>楊桃</strong> (star fruit) and mooncakes are what people bring when they visit. If you are given a box of mooncakes by a relative, it is a gift, not a delivery — say 多謝, and do not put it straight in the cupboard where the family cannot see it.</p>
+`,
   },
 
   {
@@ -1755,26 +1815,34 @@ const SEED_POSTS = [
       'You will use chopsticks every day, and there are exactly two rules most Hong Kong households actually care about. Here is what matters, what is only a story, and the one thing that will genuinely upset an older relative.',
     summary_zh: '你每天都会用到筷子，而香港家庭真正在意的其实只有两条规矩。这篇讲哪些重要、哪些只是传说，以及哪一件事是真的会让长辈不高兴。',
     body_en: `<p>Chopstick etiquette is a subject where most of what is written down is not what families actually do. This is the short, true version — the things that come up in a Hong Kong household.</p>
-<h2>The one that genuinely upsets people</h2>
+<h2>⚠️ The one that genuinely upsets people</h2>
 <p><strong>Never stand chopsticks upright in a bowl of rice.</strong> Not while you eat, not while you carry it, not for a second while you reach for something else. Upright sticks in rice is the shape of the offerings at a funeral, and it is the one chopstick mistake that will make an older relative put down their bowl.</p>
 <p>If you need to set chopsticks down, lay them flat beside the bowl, or across it.</p>
-<h2>The four that are good manners, not taboos</h2>
+<h2>✅ The four that are good manners, not taboos</h2>
 <ul>
   <li><strong>Use the serving spoons or the far end of the serving chopsticks</strong> when you take food from a shared plate to someone else's bowl. Passing food chopstick-to-chopstick is another funeral shape; flipping the chopsticks around and using the thick end is the everyday fix.</li>
   <li><strong>Do not spear food</strong> because it will not come up cleanly. It is not forbidden, it just looks hurried.</li>
   <li><strong>Do not point at people with them</strong>, and do not wave them while talking.</li>
   <li><strong>Do not dig through a shared dish</strong> looking for the piece you want. Take from the near side.</li>
 </ul>
-<h2>What nobody will actually mind</h2>
+<h2>😌 What nobody will actually mind</h2>
 <ul>
   <li><strong>Holding them low or high.</strong> There is an old claim that holding them far from the tip means you will marry far from home. It is said as a joke to children. Nobody is judging your grip.</li>
   <li><strong>Crossing them on the table.</strong> Fine.</li>
   <li><strong>Tapping the bowl.</strong> Poor manners in general, but the specific story about beggars is folklore.</li>
 </ul>
-<h2>The sentence that helps</h2>
+<h2>🗣️ The sentence that helps</h2>
 <p><strong>唔好意思，我第一次用</strong> (m4 hou2 ji3 si1, ngo5 dai3 jat1 ci3 jung6) — "Sorry, it's my first time." Said cheerfully, it turns a mistake into a moment people enjoy. Almost everything on this page is softer than you expect.</p>
-<h2>Useful to know</h2>
-<p>筷子 (<strong>faai3 zi2</strong>) — chopsticks. 碗 (<strong>wun2</strong>) — bowl. 飯 (<strong>faan6</strong>) — rice. Most kitchen vocabulary in this app is in the Kitchen and Restaurant categories if you want the words around the table.</p>`,
+<h2>📌 Useful to know</h2>
+<p>筷子 (<strong>faai3 zi2</strong>) — chopsticks. 碗 (<strong>wun2</strong>) — bowl. 飯 (<strong>faan6</strong>) — rice. Most kitchen vocabulary in this app is in the Kitchen and Restaurant categories if you want the words around the table.</p>
+<h2>🥢 Holding them, if nobody ever showed you</h2>
+<p>The bottom chopstick stays still, held between the base of your thumb and your ring finger. The top one is held like a pencil and pivots against your index finger. You move one stick, not two. It feels wrong for about a week and then it stops being a thing you think about.</p>
+<p>If you cannot manage it yet, ask for a fork. Nobody in a Hong Kong household will be offended, and a fork is infinitely better than a chopstick held in a fist — which is the one grip people do notice.</p>
+<h2>🍜 The serving chopsticks</h2>
+<p>This is the rule that matters most in a family flat and is the one most often missed: when a dish is shared, use the <strong>公筷</strong> (gung1 faai3) — the extra pair resting on the dish, or the ones with a different colour. They are there for a reason. Using your own chopsticks in the shared plate is the thing that quietly upsets people, more than any of the taboos above.</p>
+<h2>🍚 Rice, and the bowl</h2>
+<p>Lift the bowl towards your face rather than bending your head down to the table. Leaving a few grains of rice is fine; leaving half a bowl looks like you did not like it. And if someone refills your bowl, you do not have to finish it — but you do have to say 夠喇 (gau3 laa3, "that's enough") before they fill it a third time, or they will keep going.</p>
+`,
   },
 
   {
@@ -1789,7 +1857,7 @@ const SEED_POSTS = [
       'In Cantonese a number can sound exactly like a word for something good or something dreadful. Four is avoided on whole floors of buildings, eight is paid extra for. This is why, in plain terms.',
     summary_zh: '在粤语里，一个数字的发音可能刚好和某个好词或某个可怕的词一样。数字「四」会被整层楼避开，「八」却要加价买。这篇用最简单的话说明原因。',
     body_en: `<p>This is one of the first things a new helper notices and cannot explain: the lifts in some buildings skip a number, a phone number with lots of eights costs money, and nobody will say the number of a hotel room out loud without a small laugh.</p>
-<h2>The reason is sound, not superstition about numbers</h2>
+<h2>🔊 The reason is sound, not superstition about numbers</h2>
 <p>It is not that numbers are magical. It is that Cantonese has many homophones — different words with the same sound — so a number sounds like whatever else it sounds like. A few of these:</p>
 <ul>
   <li><strong>四</strong> (sei3, four) sounds like <strong>死</strong> (sei2, death). Very close. This is the origin of "tetraphobia", and it is why buildings often have no 4th, 14th, 24th or 40th floor.</li>
@@ -1798,7 +1866,7 @@ const SEED_POSTS = [
   <li><strong>六</strong> (luk6, six) sounds like <strong>祿</strong> (luk6, a salary or blessing). Good for work and money.</li>
   <li><strong>三</strong> (saam1, three) sounds like <strong>生</strong> (saang1, to be born / to live). Life, growth.</li>
 </ul>
-<h2>What you will actually see</h2>
+<h2>👀 What you will actually see</h2>
 <ul>
   <li><strong>Buildings without a 4th floor.</strong> The lift goes 3, 5, 6. Nothing is missing; the number is being avoided.</li>
   <li><strong>Phone numbers and licence plates</strong> with 8s sell for more.</li>
@@ -1806,17 +1874,28 @@ const SEED_POSTS = [
   <li><strong>Weddings avoid 4</strong> in dates and in gift amounts.</li>
   <li><strong>13 is not avoided</strong> the way it is in the West. A Western superstition that exists here is imported and mild.</li>
 </ul>
-<h2>How to handle it</h2>
+<h2>✅ How to handle it</h2>
 <p>You do not need to believe any of it. You do need to <strong>avoid the number out loud when someone else is uncomfortable</strong>. If a lift skips a floor and someone makes a face, the polite move is to not draw attention to it.</p>
 <p>And if you slip and say something that sounds unlucky, the ordinary fix is to say something lucky immediately after — most people do it as a joke. Nobody is angry about it. This is a set of habits, not a set of rules anyone enforces on you.</p>
-<h2>The useful vocabulary</h2>
+<h2>📖 The useful vocabulary</h2>
 <ul>
   <li><strong>數字</strong> (sou3 zi6) — number</li>
   <li><strong>四</strong> (sei3) — four</li>
   <li><strong>八</strong> (baat3) — eight</li>
   <li><strong>幾多</strong> (gei2 do1) — how many</li>
   <li><strong>唔好意思，講錯咗</strong> (m4 hou2 ji3 si1, gong2 co3 zo2) — "Sorry, I said the wrong thing."</li>
-</ul>`,
+</ul>
+<h2>🔢 Where you will meet it without noticing</h2>
+<ul>
+  <li><strong>Lifts.</strong> Many buildings have no 4th, 13th, 14th or 24th floor. The buttons skip from 3 to 5. This is not a broken lift.</li>
+  <li><strong>Prices.</strong> HK$88, HK$168 and HK$1,388 are everywhere, in shops that would otherwise price at 89 or 169.</li>
+  <li><strong>Number plates and phone numbers.</strong> A number with several 8s costs more than one with a 4 in it. That is the whole market.</li>
+  <li><strong>Red packet amounts.</strong> Even numbers, never an amount with a 4 in it. HK$50, HK$100, HK$500 — never HK$40 or HK$400.</li>
+</ul>
+<h2>🧧 The one that catches people out</h2>
+<p>If you are giving a red packet — to a child in the family, or to a friend's child at New Year — the amount should be <strong>even</strong> and should not contain a 4. HK$20 is fine and normal between friends. What you must not do is give an odd amount like HK$30 or HK$50 in a <em>white</em> envelope: white is for funerals, and an odd amount in a white envelope is the funeral gift, not the New Year one.</p>
+<p>And if you are given one, do not open it in front of the person who gave it. That is the etiquette in every version of this custom, and it is the only part anybody will actually notice.</p>
+`,
   },
 
   {
@@ -1831,21 +1910,32 @@ const SEED_POSTS = [
       'Red means celebration and money at a wedding, and it means death at a funeral. The same colour flips meaning with the occasion. This is the short guide to the colours a helper actually has to get right.',
     summary_zh: '红色在婚礼上代表喜庆和吉利，在丧礼上却代表死亡。同一件颜色换个场合，意思完全相反。这篇讲家佣真正需要分清楚的那几种颜色。',
     body_en: `<p>Colour in Chinese culture is tied to the occasion, not to the colour itself. A colour is right or wrong depending on what is happening. This is the version you need for work.</p>
-<h2>紅 — red</h2>
+<h2>🔴 紅 — red</h2>
 <p>The colour of <strong>joy, luck and money</strong>. Worn at weddings, at New Year, at a birthday, at a birth. Given in red packets. Wearing red to a happy event is correct and welcome.</p>
 <p><strong>But never to a funeral.</strong> Red at a funeral is the single worst colour choice. At a funeral you wear white or black, quiet and plain.</p>
-<h2>白 — white</h2>
+<h2>⚪ 白 — white</h2>
 <p>In the West white is for weddings. Here, <strong>white is for mourning</strong>. Wearing white to a funeral is correct. Wearing a white dress to a wedding is unusual and will be noticed.</p>
 <p>That said, white as an everyday clothing colour is completely fine — a white shirt is a white shirt. The rule is about <em>occasions</em>, not about owning white clothes.</p>
-<h2>黑 — black</h2>
+<h2>⚫ 黑 — black</h2>
 <p>Mourning, and also just dark neutral clothing. A black outfit is safe at a funeral. Black at a wedding is fine — nobody will object to black at a wedding here the way some Western etiquette books do.</p>
-<h2>金 — gold</h2>
+<h2>🟡 金 — gold</h2>
 <p>Wealth and celebration. Gold with red at New Year and weddings is the classic pairing. Gold jewellery is a normal gift for a child at New Year.</p>
-<h2>The rule that covers everything</h2>
+<h2>📏 The rule that covers everything</h2>
 <p><strong>Red for a happy occasion, white or black for a sad one.</strong></p>
 <p>If you are not sure which kind of occasion you are dressing for, ask: <strong>喜事定喪事？</strong> (hei2 si6 ding6 song1 si6) — "Is this a happy event or a funeral?" It sounds blunt written down; asked plainly and early it is exactly the right question, and it is much better than guessing.</p>
-<h2>One thing not to worry about</h2>
-<p>Your own clothes on an ordinary working day can be any colour you like. Nothing here governs a Tuesday.</p>`,
+<h2>😌 One thing not to worry about</h2>
+<p>Your own clothes on an ordinary working day can be any colour you like. Nothing here governs a Tuesday.</p>
+<h2>👗 What to wear to what</h2>
+<ul>
+  <li><strong>A wedding banquet</strong> — something bright. Red if you have it, but any strong colour is fine. Not white, not black, not both.</li>
+  <li><strong>A funeral</strong> — white, black or grey, plain, no jewellery, no bright nails.</li>
+  <li><strong>Lunar New Year</strong> — red or another bright colour. Wearing head-to-toe black to a New Year visit reads as bad luck and is the one thing an older relative will comment on.</li>
+  <li><strong>A baby's first month</strong> — red and gold are given, not worn. Wear something ordinary and clean.</li>
+  <li><strong>Any ordinary day</strong> — anything. Nobody is grading you at the market.</li>
+</ul>
+<h2>🎨 The colours that are always safe</h2>
+<p>If you have one outfit that has to work for an occasion you were not warned about: navy, grey, beige, or a dark floral. None of them is a funeral colour, none of them is a wedding colour, and none of them will be read as a statement. That is the whole trick — the rules only really bite at the two ends of the scale, the wedding and the funeral, and everything in between is ordinary.</p>
+`,
   },
 
   {
@@ -1860,19 +1950,35 @@ const SEED_POSTS = [
       'Every family has a version of these, told at the dinner table while you are serving. Here is what they are, so you are not hearing a story about a monster for the first time while holding a plate.',
     summary_zh: '每个家庭都有自己的版本，通常在你上菜的时候在饭桌上讲给你听。这篇先把这些故事讲一遍，免得你第一次听说「年兽」的时候手里还端着菜。',
     body_en: `<p>Hong Kong families tell stories about the festivals. You will hear these four, in some version, in your first year. None of them are long, and knowing them turns a story you cannot follow into a story you can enjoy.</p>
-<h2>1. 年獸 — the monster afraid of red and loud noises (Lunar New Year)</h2>
+<h2>🧨 1. 年獸 — the monster afraid of red and loud noises (Lunar New Year)</h2>
 <p>A beast called Nian came down from the mountains on the last night of the year to eat livestock and people. One year the villagers discovered it was terrified of three things: <strong>the colour red, fire, and loud banging</strong>. So they pasted red paper on the doors, lit fires, and set off firecrackers. The beast fled. The next morning everyone greeted each other with 恭喜 — "you have survived".</p>
 <p>That is why New Year is red, why there are fireworks, and why the greeting is a congratulation rather than a "happy new year".</p>
-<h2>2. 嫦娥 — the woman who flew to the moon (Mid-Autumn)</h2>
+<h2>🌕 2. 嫦娥 — the woman who flew to the moon (Mid-Autumn)</h2>
 <p>Chang'e drank an elixir of immortality meant for her husband, and it lifted her off the ground. She rose until she landed on the moon, and she lives there now, with a jade rabbit that pounds medicine. Her husband could only watch. On the night of the full moon in the eighth lunar month, families eat mooncakes, go outside, and look up.</p>
 <p>The mooncakes are round because the moon is round, and round means the family is together.</p>
-<h2>3. 屈原 — the poet the dragon boats race for (Dragon Boat Festival)</h2>
+<h2>🚣 3. 屈原 — the poet the dragon boats race for (Dragon Boat Festival)</h2>
 <p>Qu Yuan was a loyal official who drowned himself in a river in protest. The people raced out in boats to try to save him, or at least to find his body, beating drums and throwing rice into the water so the fish would not eat him.</p>
 <p>That is the whole origin of both the dragon-boat race and the rice dumplings (粽), which are still made by wrapping glutinous rice in bamboo leaves.</p>
-<h2>4. 盂蘭 — the hungry ghosts of the seventh month</h2>
+<h2>👻 4. 盂蘭 — the hungry ghosts of the seventh month</h2>
 <p>In the seventh lunar month the gates of the underworld open and the dead walk. Not as a horror story — more like relatives coming to visit who need feeding. Families burn paper money and paper goods for them, put out food, and go out of their way not to sit on, step on, or throw away anything left in the street. The month is considered a bad time for big new ventures and a good time for caution.</p>
-<h2>The one question that always works</h2>
-<p>When someone starts telling you a story, <strong>然後呢？</strong> (jin4 hau6 ne1) — "And then?" It keeps the story going and tells the teller you are listening. It will get you a better version of all four than any textbook.</p>`,
+<h2>❓ The one question that always works</h2>
+<p>When someone starts telling you a story, <strong>然後呢？</strong> (jin4 hau6 ne1) — "And then?" It keeps the story going and tells the teller you are listening. It will get you a better version of all four than any textbook.</p>
+<h2>❓ How to ask for the story</h2>
+<p>These stories are told, not written down, and the fastest way to be told one is to ask about something you have seen:</p>
+<ul>
+  <li><strong>點解呀？</strong> (dim2 gaai2 aa3) — "why?" The single most useful question in the language, and the one that starts every one of these stories.</li>
+  <li><strong>講多啲啦</strong> (gong2 do1 di1 laa1) — "tell me more." Warm, casual, and it works on grandparents.</li>
+  <li><strong>呢個係咩嚟㗎？</strong> (ni1 go3 hai6 me1 lai4 gaa3) — "what is this?" Point at the thing on the altar, the lantern, the drum.</li>
+</ul>
+<h2>🎭 What you will see, not just hear</h2>
+<p>Each story has a public half that happens on a street near you, and it is free:</p>
+<ul>
+  <li><strong>Lunar New Year</strong> — lion dance troupes go through the markets and into shops, drums and all, for the first few days.</li>
+  <li><strong>Mid-Autumn</strong> — lantern displays in the parks, and the Tai Hang fire dragon dance in Causeway Bay.</li>
+  <li><strong>Dragon Boat</strong> — races at Stanley, Sai Kung and Discovery Bay in June, free to watch from the beach.</li>
+  <li><strong>盂蘭 (the seventh month)</strong> — temporary bamboo theatres go up in old districts and put on Cantonese opera for anyone who sits down. It is not a haunted-house event; it is a month of offerings and free opera, and sitting through twenty minutes of it is one of the best free things in the city.</li>
+</ul>
+`,
   },
 
   {
@@ -1887,7 +1993,7 @@ const SEED_POSTS = [
       'The most work-heavy week of your year, and two days of rules that nobody explains. Here is the sequence — what to clean, what to buy, what you must not sweep away, and what to wear on the first morning.',
     summary_zh: '一年里最忙的一周，外加两天没人会解释的规矩。这篇按顺序讲清楚：该打扫什么、该买什么、什么绝对不能扫掉，以及初一早上该穿什么。',
     body_en: `<p>Lunar New Year (<strong>農曆新年</strong>, nung4 lik6 san1 nin2) is the biggest event in the Hong Kong year and it is the one that changes your working life most. It falls in late January or February, and the important part starts about a week before the first day.</p>
-<h2>The week before: cleaning</h2>
+<h2>🧹 The week before: cleaning</h2>
 <p>There is a saying that you sweep out the old year to make room for the new. The whole flat gets cleaned, top to bottom, and it is normally the helper who does it. Practical points:</p>
 <ul>
   <li><strong>Clean before New Year's Eve, not after.</strong> The cleaning is finished by the last day — the new year brings its own rules about sweeping.</li>
@@ -1895,7 +2001,7 @@ const SEED_POSTS = [
   <li><strong>Windows and doors get cleaned first</strong> in many households. Ask which rooms the family wants done in which order.</li>
   <li><strong>You will be asked to do more than usual</strong>, and possibly to work later. It is understood, but if the load is impossible, say so early — the week goes badly for everyone when it is discovered on the last day.</li>
 </ul>
-<h2>What gets bought</h2>
+<h2>🛒 What gets bought</h2>
 <ul>
   <li><strong>Red packets</strong> (利是, lai6 si6) — new ones every year, in quantity.</li>
   <li><strong>Nian gao</strong> (年糕, nin2 gou1) — the New Year cake. Sweet and sticky.</li>
@@ -1903,9 +2009,9 @@ const SEED_POSTS = [
   <li><strong>New clothes</strong>, and new red decorations for the door.</li>
   <li><strong>Food for the reunion dinner</strong> — which you may be cooking.</li>
 </ul>
-<h2>New Year's Eve: the reunion dinner</h2>
+<h2>🍲 New Year's Eve: the reunion dinner</h2>
 <p>年夜飯 (nin4 je6 faan6) — the reunion dinner — is the most important meal of the year. Everyone who can be there is there. It is usually the biggest, most formal thing you will cook, and the family may invite relatives. Fish is on the table because the word for fish sounds like the word for surplus. Expect to work late.</p>
-<h2>The first three days: the rules</h2>
+<h2>📏 The first three days: the rules</h2>
 <p>These are the ones that surprise new helpers, because nobody announces them and breaking one is genuinely noticed.</p>
 <ul>
   <li><strong>Do not sweep or take the rubbish out on the first day.</strong> Sweeping on New Year's Day sweeps the good fortune out of the door with it. If something must be cleaned, sweep it inward or wait.</li>
@@ -1914,20 +2020,32 @@ const SEED_POSTS = [
   <li><strong>Do not break anything.</strong> If something does break, say something lucky straight away — most families do this as a joke and the moment passes.</li>
   <li><strong>Wear red on the first morning</strong> if you have anything red. New clothes are traditional — wearing last year's is considered bad luck by some families.</li>
 </ul>
-<h2>What you actually say</h2>
+<h2>🗣️ What you actually say</h2>
 <ul>
   <li><strong>恭喜發財</strong> (gung1 hei2 faat3 coi4) — "Wishing you prosperity." Said to everyone.</li>
   <li><strong>新年快樂</strong> (san1 nin2 faai3 lok6) — "Happy New Year."</li>
   <li><strong>身體健康</strong> (san1 tai2 gin6 hong1) — "Good health."</li>
   <li>The reply to 恭喜發財 is 恭喜發財 — you say it back. It is not a one-way greeting.</li>
 </ul>
-<h2>Red packets, and the money question</h2>
+<h2>🧧 Red packets, and the money question</h2>
 <p>Married people give red packets to unmarried people, to children, and to staff. As a helper you will receive one from the family, and you may receive several from married friends and relatives. It is polite to accept with both hands, and to say 多謝 — the thank-you for a gift, not the one for a service (see 唔該 and 多謝 in the Culture channel).</p>
 <p>How much is in it is not your business and is not to be commented on. Say thank you and put it away.</p>
-<h2>The three days after</h2>
+<h2>📅 The three days after</h2>
 <p>The visit-and-greeting continues, and there is a good chance of being asked to cook for visitors or to help with an outing. If you are given time off, ask when the family wants you back — being late back from New Year is one of the things that is remembered for a long time.</p>
-<h2>If it all goes wrong</h2>
-<p><strong>唔好意思，我唔知道</strong> — "Sorry, I didn't know." It works for a swept floor, a broken cup, and a wrong greeting. Say it early and plainly. What turns a small mistake into a real one is discovering it later and saying nothing.</p>`,
+<h2>🛟 If it all goes wrong</h2>
+<p><strong>唔好意思，我唔知道</strong> — "Sorry, I didn't know." It works for a swept floor, a broken cup, and a wrong greeting. Say it early and plainly. What turns a small mistake into a real one is discovering it later and saying nothing.</p>
+<h2>🛍️ What to buy, and where</h2>
+<p>If the family asks you to buy for New Year, this is the list and it is the same list in most flats:</p>
+<ul>
+  <li><strong>年花</strong> — a flowering plant for the living room. Peach blossom, orchid or 水仙 (narcissus). The Flower Market in Mong Kok is where the city buys them, and the prices on the last two days before New Year are the cheapest and the queue is the longest.</li>
+  <li><strong>全盒</strong> — the round tray of sweets for visitors: melon seeds, candied lotus seeds, candied lotus root, pistachios. Supermarkets sell it ready-filled.</li>
+  <li><strong>紅紙 and 揮春</strong> — red paper couplets for the door. Cheap, and the family usually chooses them themselves.</li>
+  <li><strong>New notes</strong> — crisp HK$20 and HK$50 notes for red packets. Banks issue them in the two weeks before, and the queue is real.</li>
+</ul>
+<h2>🧧 If they give you a red packet</h2>
+<p>Take it with both hands, say 恭喜發財, and put it away. Do not open it in front of them, and do not refuse it — a red packet refused twice is a small scene. If you want to give one to a child in the family, HK$20 in a red envelope is exactly right and nobody expects more from someone who works for the household.</p>
+<p>One practical note: the days between New Year and the fifteenth are when the flat is fullest and the work is heaviest. If you are going to be away visiting family, that is a conversation to have in December, not on the first day.</p>
+`,
   },
 
   {
@@ -1942,19 +2060,26 @@ const SEED_POSTS = [
       'Pointing your index finger at someone, and beckoning with an upward palm, are the two small gestures most likely to be read as rude in Hong Kong. Neither requires a word — which is why both are worth learning before you use them.',
     summary_zh: '用手指指着别人、以及手掌向上地招手，是香港最容易被看作无礼的两个小动作。它们不用说话就能传达意思，所以更值得先学会。',
     body_en: `<p>Two hand gestures do more damage in a Hong Kong household than anything you can say by accident. Both are small, both are things you do without thinking, and both are read instantly by people who will never mention them to you.</p>
-<h2>Do not point at people with your index finger</h2>
+<h2>☝️ Do not point at people with your index finger</h2>
 <p><strong>食指</strong> (sik6 zi2) — the index finger — is for food. Using it on a person, particularly an older person, reads as rude, and in some households it is also the finger used to scold. The local way to point is with the whole open hand and a tilt of the head: "that one, there". If you must single someone out, point with your open hand, never with one finger.</p>
-<h2>Beckon with the palm down</h2>
+<h2>👋 Beckon with the palm down</h2>
 <p><strong>招手</strong> (ziu1 sau1) — the "come here" gesture — is done with the <strong>palm facing down</strong> and the fingers curled slightly inward, the hand moving toward you in small waves. The palm-up version, fingers curling in one by one, is what you use on an animal, and using it on a person is worse than careless — it reads as dismissive.</p>
-<h2>What to say instead</h2>
+<h2>🗣️ What to say instead</h2>
 <p>Words cost nothing and need no gesture at all. To call someone over:</p>
 <ul>
   <li><strong>過嚟</strong> (gwo3 lei4) — "come here." The everyday form, fine with anyone you know well.</li>
   <li><strong>唔好意思</strong> (m4 hou2 ji3 si1) — said first, before anything you need. It is the most useful phrase in the app, and it carries you through a hand you are not sure about.</li>
 </ul>
-<h2>Why this one is worth the effort</h2>
+<h2>💡 Why this one is worth the effort</h2>
 <p>Gestures are read before words arrive. A helper who points a finger at the grandmother is remembered for that, not for anything she said. The fix is a habit — open hand, palm down — and after a month you will not have to think about it.</p>
-<p>Families differ in how strict they are about both gestures, and almost nobody will tell you. When you are unsure, the default is the same one that works for everything else in this app: keep the hand open, and ask.</p>`,
+<p>Families differ in how strict they are about both gestures, and almost nobody will tell you. When you are unsure, the default is the same one that works for everything else in this app: keep the hand open, and ask.</p>
+<h2>✋ The open hand is always fine</h2>
+<p>When you need to indicate something, use the whole hand, palm up, fingers together — the gesture a waiter uses to show you to a table. It is understood instantly, it is polite, and it works for a person, a dish, a door and a direction.</p>
+<p>If you are pointing at a person, do not point at all: say the thing instead. <strong>嗰位小姐</strong> (go2 wai2 siu2 ze2) — "that lady" — with a small nod, does the whole job.</p>
+<h2>🌏 Where this comes from</h2>
+<p>In Cantonese, as in much of East Asia, the index finger is the pointing tool for objects and the palm is the tool for people. The reason given is usually that a single finger is what you use to poke at something you are accusing. Whether or not you find that convincing, the effect is real: an index finger at a person reads as aggressive here, and an open hand reads as nothing at all — which is what you want a gesture to read as.</p>
+<p>The beckoning rule is the same idea. Palm down, fingers curling towards you, is how you call a child or a friend. Palm up, index finger curling, is how you call a dog, and it is the one gesture in this article that people will actually flinch at.</p>
+`,
   },
 
   {
@@ -1969,7 +2094,7 @@ const SEED_POSTS = [
       '查家宅 — sizing up someone’s household — is what Hong Kong calls asking where you live, whether you bought or rent, and what you earn. Here are those questions, why they land badly, and what to ask instead.',
     summary_zh: '「查家宅」在香港指打听住哪里、买房还是租房、赚多少这一类问题。这篇列出这些问题，说明它们为什么会让人不舒服，以及该聊什么。',
     body_en: `<p><strong>查家宅</strong> (caa4 gaa1 zaak6) means, literally, checking someone’s household — asking the questions that work out what someone is worth. In Hong Kong it is not a compliment, and it is one of the clearest social rules a newcomer can learn: at a first meeting, these questions do not get asked.</p>
-<h2>The list</h2>
+<h2>📋 The list</h2>
 <ul>
   <li><strong>你住喺邊度？</strong> (nei5 zyu6 hai2 bin1 dou6?) — "Where do you live?"</li>
   <li><strong>租嘅定係買嘅？</strong> — "Do you rent, or did you buy it?"</li>
@@ -1978,9 +2103,9 @@ const SEED_POSTS = [
   <li><strong>你間屋有幾大？</strong> — "How big is your flat?"</li>
 </ul>
 <p>One of these is a question. All five together are an interview — and that is how it feels to be asked them. The problem is not the topic. It is that a first meeting is not the place for it, and the questions carry an obvious ranking behind them.</p>
-<h2>What the questions are really saying</h2>
+<h2>💭 What the questions are really saying</h2>
 <p>People read them as: <em>you are being measured.</em> In a city where a flat is the biggest thing in most people’s lives, asking about it first is asking about the most sensitive number there is. Salary is the same question in a different coat.</p>
-<h2>What to say instead</h2>
+<h2>🗣️ What to say instead</h2>
 <p>Safe ground is everything around the household rather than inside it:</p>
 <ul>
   <li>Where they are <strong>from</strong>, and how long they have been in Hong Kong.</li>
@@ -1988,7 +2113,20 @@ const SEED_POSTS = [
   <li>Anything about work that is not a number: what the day looks like, what the job is called.</li>
 </ul>
 <p>If you must know something — and sometimes you genuinely do, for instance which stop to get off at — ask once, plainly, and let it go. <strong>唔好意思，我唔知道</strong> (m4 hou2 ji3 si1, ngo5 m4 zi1 dou6) covers the reverse mistake too: if you have already asked, the answer is to say so and move on, not to explain.</p>
-<p>Families and offices differ in how exact the rule is, and the safest reading is the strict one: nobody has ever been thought rude for not asking.</p>`,
+<p>Families and offices differ in how exact the rule is, and the safest reading is the strict one: nobody has ever been thought rude for not asking.</p>
+<h2>🏠 What you can ask instead</h2>
+<p>Almost everything else is safe. The subjects that open a conversation rather than closing it:</p>
+<ul>
+  <li><strong>Food</strong> — 你鍾意食咩呀？ "what do you like to eat?" Endless, warm, and everybody has an answer.</li>
+  <li><strong>The children</strong> — how old, what school, what they are like. A grandparent will talk for an hour.</li>
+  <li><strong>The weather</strong> — genuinely useful here, because it is either 33°C and humid or a typhoon.</li>
+  <li><strong>The price of things</strong> — 而家幾錢一斤呀？ "how much is a catty now?" A completely normal opener at a market.</li>
+  <li><strong>The television</strong> — the drama everybody is watching is a shared topic in a way it is not in most cities.</li>
+</ul>
+<h2>💬 When they ask you</h2>
+<p>The questions run the other way too, and you do not owe a full answer. 你屋企有咩人？ ("who is at home?") can be answered with "my mother and two brothers" and no more. If a question feels too personal — salary, savings, why you are not married — the polite deflection is a smile and <strong>講嚟話長</strong> (gong2 lai4 waa6 coeng4), "it's a long story", which everybody accepts and nobody pushes.</p>
+<p>The one thing not to do is answer a personal question with a wall. In a household where you live with the family, a flat "I don't want to say" is remembered; a warm deflection is not.</p>
+`,
   },
 
   {
@@ -2003,23 +2141,37 @@ const SEED_POSTS = [
       '搶埋單 — fighting to pay the whole bill — reads as warmth in some places and as pressure in Hong Kong. Here is the actual local custom: AA or taking turns, and why the loud fight is the version that loses.',
     summary_zh: '「抢埋单」在有些地方是热情，在香港却是一种压力。这里讲本地真正的做法：AA制或轮流请客，以及为什么大声争付反而失礼。',
     body_en: `<p>The bill arrives, and someone reaches for it. Someone else grabs it first. Both are now standing, holding the folder, and neither is having a good time. In Hong Kong this is a well-known failure with a name: <strong>搶埋單</strong> (coeng2 maai4 daan1), fighting to pay the bill.</p>
-<h2>The mistake</h2>
+<h2>⚠️ The mistake</h2>
 <p>In many places, fighting for the bill is how you show generosity. Here it is more often read the other way: <strong>the person who was not allowed to pay has been made small.</strong> Done repeatedly, it stops being a gesture and becomes a problem — the other person either feels pressured to reciprocate, or starts quietly avoiding meals with you.</p>
-<h2>What is actually customary</h2>
+<h2>🧾 What is actually customary</h2>
 <ul>
   <li><strong>AA</strong> — splitting the bill is completely normal here, colleagues and friends included, and nobody thinks twice about it.</li>
   <li><strong>輪流請</strong> — taking turns. Someone pays this time; someone pays next time. The obligation is tracked quietly, and it is the most common pattern in any regular group.</li>
   <li><strong>One person pays, properly.</strong> If you invited someone out, you pay. That is the clean case, and there is no fight to have.</li>
 </ul>
-<h2>The words that solve it</h2>
+<h2>🗣️ The words that solve it</h2>
 <ul>
   <li><strong>唔使，唔使</strong> (m4 sai2, m4 sai2) — "no, no, there is no need." The polite refusal, said with a smile, ends the fight without anyone losing.</li>
   <li><strong>今次我請，下次你請</strong> — "this round is mine, next round is yours." Say it once, calmly. It turns the fight into a plan.</li>
 </ul>
 <p>If someone insists on paying and you can see they mean it, let them — and then <em>be the one who suggests the next one.</em> Repaying quietly, over several meals, is the local version of the same generosity.</p>
-<h2>The one hard rule</h2>
+<h2>📏 The one hard rule</h2>
 <p>Watch the person on the other side of the table. If the bill would visibly strain someone — a junior colleague, a friend between jobs — do not let them split it evenly. Cover it, and say nothing. What is remembered is not the amount; it is that nobody had to do arithmetic at dinner.</p>
-<p>Groups differ, and some families fight over the bill every time and enjoy it. When you are unsure, the safe default is the AA default: it is never rude to offer to pay your way.</p>`,
+<p>Groups differ, and some families fight over the bill every time and enjoy it. When you are unsure, the safe default is the AA default: it is never rude to offer to pay your way.</p>
+<h2>💳 The three-way dance, step by step</h2>
+<p>When the bill arrives and two people both want to pay, this is what actually happens, and it is theatre that both sides know is theatre:</p>
+<ol>
+  <li>Both reach for the bill. Neither is fast enough.</li>
+  <li>One says <strong>我請</strong> (ngo5 ceng2) — "my treat".</li>
+  <li>The other says <strong>唔好唔好</strong> — "no, no" — while still holding their wallet.</li>
+  <li>The first one wins, because the first one to say 我請 firmly usually does.</li>
+  <li>The loser says <strong>下次你請</strong> (haa6 ci3 nei5 ceng2) — "next time it's you" — which is both a graceful exit and an invitation.</li>
+</ol>
+<h2>🧾 When you are the one paying</h2>
+<p>If you want to pay, say 我請 clearly and early — before the bill arrives is better than after — and do not back down when they protest. Protesting is part of the ritual; accepting the protest is what makes it awkward.</p>
+<p>If you genuinely cannot afford it, do not get into the dance at all. Say so before the meal: <strong>今次你請，下次我請</strong> — "you this time, me next time". That is honest, it is a normal thing to say, and it is far better than a performance you then lose.</p>
+<p>And the one hard rule from the earlier section still holds: never split a bill in front of the person who invited you. If a group wants to split it, that is settled quietly among the people who are splitting it, not announced at the table.</p>
+`,
   },
 
   {
@@ -2034,17 +2186,29 @@ const SEED_POSTS = [
       '搭膊頭 — an arm around the shoulders — is friendly in some countries and far too familiar in a Hong Kong workplace. Here is where the line sits, and the saying behind it.',
     summary_zh: '「搭膊头」（搭着别人的肩膀）在有些地方表示友好，在香港的职场上却太过随便。这篇讲这条界线在哪里，以及背后的说法。',
     body_en: `<p><strong>搭膊頭</strong> (daap3 bok3 tau4) — throwing an arm around someone’s shoulders, or a heavy pat on the shoulder as you walk past — is a gesture of warmth in a lot of the world. In a Hong Kong workplace, formal setting, or a household you work in, it more often reads as <strong>too familiar</strong>, as though the other person had been claimed.</p>
-<h2>Where the line sits</h2>
+<h2>📐 Where the line sits</h2>
 <ul>
   <li><strong>Not in the workplace.</strong> With colleagues, managers, employers — especially people you have just met — it reads as over-familiar, and some find it faintly patronising.</li>
   <li><strong>Not with anyone significantly older.</strong> Touching an elder’s shoulder or back, even kindly, is something to avoid. Older people in particular may be unreceptive to physical contact from a helper they have known for a week.</li>
   <li><strong>Not as an apology.</strong> Reaching for someone’s arm or shoulder while saying sorry makes the apology bigger, not smaller, in a culture where the apology is supposed to be words.</li>
 </ul>
-<h2>The saying behind it</h2>
+<h2>🗣️ The saying behind it</h2>
 <p>There is also an older belief many families still hold: a hand on someone’s shoulder can press down their luck — some say it can cost a gambler the table. You do not have to believe it to let it steer your hands. What matters is that <strong>the people around you may believe it</strong>, and the gesture costs you nothing to leave out.</p>
-<h2>What replaces it</h2>
+<h2>🤝 What replaces it</h2>
 <p>Nothing at all. Hong Kong manages warmth at arm’s length: a nod, a smile, a 唔好意思 (m4 hou2 ji3 si1) when you need to get past someone, and food — which is where affection actually goes. When you want to show care, do it with the work: the meal ready on time, the thing you fixed without being asked, the chair you pulled out.</p>
-<p>Families differ, of course — some are hands-on, and close colleagues do slap each other’s shoulders. When you are unsure, the default is the distance-keeping one. Nobody has ever been thought cold for giving someone room.</p>`,
+<p>Families differ, of course — some are hands-on, and close colleagues do slap each other’s shoulders. When you are unsure, the default is the distance-keeping one. Nobody has ever been thought cold for giving someone room.</p>
+<h2>🤝 What physical contact is normal here</h2>
+<p>Hong Kong is a crowded city with a small personal-space budget — you will stand closer to strangers on the MTR than you ever would at home — and a very small budget for <em>friendly</em> touch. The two are not contradictory. Strangers are close because there is no room. Friends do not touch because it is not how affection is shown.</p>
+<ul>
+  <li><strong>A nod</strong> is a greeting. A small one, with eye contact, is warm.</li>
+  <li><strong>A handshake</strong> is for a first meeting in a formal setting — an interview, a new employer. Not for a friend's mother.</li>
+  <li><strong>An arm around a shoulder</strong> is for people who have known each other for years, and often not even then.</li>
+  <li><strong>Holding a child's hand</strong> is completely normal, and expected, if you are caring for one.</li>
+</ul>
+<h2>👶 With the children, and with the elderly</h2>
+<p>Children are the exception to all of it. Picking up a small child, holding a hand, a hand on the back to guide them across a road — that is your job and nobody thinks twice.</p>
+<p>With an elderly person, touch is fine <em>when it is help</em>: a hand under the elbow on a step, an arm when they are unsteady. What makes it help rather than intimacy is that it starts when they need it and stops when they do not. Ask first if there is time: <strong>我扶你呀？</strong> (ngo5 fu4 nei5 aa3) — "shall I help you?"</p>
+`,
   },
 
   {
@@ -2059,20 +2223,32 @@ const SEED_POSTS = [
       'Queueing, letting people off before you board, keeping the carriage quiet, not claiming extra seats with your bags, and calling a woman 靚女 — the public rules nobody announces, in one place.',
     summary_zh: '排队、先下后上、车厢里保持安静、不用袋子占座，以及称呼女性为「靓女」——那些没人宣布的公共规则，一次讲清。',
     body_en: `<p>Most of the public rules in Hong Kong are unspoken, which is exactly why they are worth reading once. None of them is complicated; all of them are the kind of thing that gets noticed.</p>
-<h2>Queue, and let people off first</h2>
+<h2>🚶 Queue, and let people off first</h2>
 <p><strong>排隊</strong> (paai4 deoi2) — queueing — is close to a religion here. At the MTR, the bank, the market stall and the doctor’s, you join the back of the line and wait. Cutting is remembered.</p>
 <p>At the train doors the rule is <strong>先落後上</strong> (sin1 lok6 hau6 soeng5) — those getting off go first, then those getting on. Pushing in while people are still stepping out is one of the few behaviours that gets spoken about out loud.</p>
-<h2>The carriage</h2>
+<h2>🚇 The carriage</h2>
 <ul>
   <li><strong>No phone calls.</strong> Take the call if you must, but keep it short and quiet — a loud conversation in a crowded carriage is the classic complaint.</li>
   <li><strong>No video without earphones.</strong> Anything you play, you wear. This one is enforced socially and instantly.</li>
   <li><strong>One seat per person.</strong> Your bag, your shopping and your luggage go on your lap or the floor — not the seat beside you. At eight in the morning there is somebody standing who could use it.</li>
 </ul>
-<h2>What to call people</h2>
+<h2>🏷️ What to call people</h2>
 <p>Addressing a woman — a shop assistant, a waitress, someone in a uniform — you will hear <strong>靚女</strong> (leng3 neoi2), and it is the ordinary polite form here, the equivalent of "miss". For men it is 先生; in a casual shop or market you may also hear 阿哥 and 阿姐.</p>
 <p>If you need anything, lead with it: <strong>唔好意思</strong> (m4 hou2 ji3 si1) — "excuse me" — works on everyone, in every situation, and is the only phrase you strictly need.</p>
-<h2>When you get it wrong</h2>
-<p>Nobody will correct you. Sit in the seat you should have kept clear, or call out across a carriage, and what you get is a look. The rule that covers all of it is simple: <strong>do what is easiest for the most people</strong> — and <strong>唔好意思，我唔知道</strong> (m4 hou2 ji3 si1, ngo5 m4 zi1 dou6) when you realise you got it wrong.</p>`,
+<h2>🛟 When you get it wrong</h2>
+<p>Nobody will correct you. Sit in the seat you should have kept clear, or call out across a carriage, and what you get is a look. The rule that covers all of it is simple: <strong>do what is easiest for the most people</strong> — and <strong>唔好意思，我唔知道</strong> (m4 hou2 ji3 si1, ngo5 m4 zi1 dou6) when you realise you got it wrong.</p>
+<h2>🚇 The MTR rules that carry a fine</h2>
+<p>These are not manners, they are offences, and they are enforced:</p>
+<ul>
+  <li><strong>No eating or drinking</strong> on the MTR, including water. The penalty is HK$2,000 and staff do issue it.</li>
+  <li><strong>No smoking</strong> anywhere indoors, including stations and bus stops. The fixed penalty is HK$1,500.</li>
+  <li><strong>No littering</strong> — HK$1,500 fixed penalty. This includes a bus ticket dropped on the floor.</li>
+  <li><strong>Priority seats</strong> are for the elderly, pregnant women, people with disabilities and people carrying a small child. They are policed by looks rather than by staff, and the looks are effective.</li>
+</ul>
+<h2>🍜 Eating on the street</h2>
+<p>Eating while walking is normal — fish balls on a stick, a bun from a bakery, a drink from a cha chaan teng in a plastic cup. What is not normal is eating on public transport, in a shop, or in a mall's walkway. If you have food and you are about to get on the MTR, finish it at the entrance.</p>
+<p>The other street rule worth knowing: stand on the <strong>right</strong> of an escalator and walk on the left. It is the one piece of etiquette in this city that people will actually say something about, because a person standing on the left is in the way of everyone behind them.</p>
+`,
   },
 
   {
@@ -2087,16 +2263,29 @@ const SEED_POSTS = [
       '鐘 sounds like 送終 and 梨 sounds like 離 — two gifts whose names say something nobody means. Plus the colours to keep off the wrapping paper.',
     summary_zh: '「钟」谐音「送终」，「梨」谐音「离」——名字会替你说出你没说的意思。还有包装纸上要避开的颜色。',
     body_en: `<p>Gift-giving in Hong Kong runs on homophones. A gift’s name can say something the giver never intended, and two of them are famous enough that families check for them by reflex.</p>
-<h2>Do not give a clock</h2>
+<h2>🕰️ Do not give a clock</h2>
 <p><strong>鐘</strong> (zung1), a clock, sounds exactly like <strong>終</strong> — as in <strong>送終</strong> (sung3 zung1), to see someone out at the end of their life. A clock on the wall says it, in someone’s home, quietly, every day. Do not give one, at any age and for any occasion.</p>
-<h2>Do not give pears</h2>
+<h2>🍐 Do not give pears</h2>
 <p><strong>梨</strong> (lei4), a pear, sounds exactly like <strong>離</strong> (lei4) — to part, to separate. A gift of pears, especially between a couple, says the relationship is ending. Do not give them, and do not cut them up in front of people either.</p>
-<h2>Keep the wrapping quiet</h2>
+<h2>🎀 Keep the wrapping quiet</h2>
 <p>White and black are the colours of mourning and do not belong on a gift; many families would add blue to that list. Red is the safe, warm choice, and gold and pink are welcome. If you are wrapping something for the family you work for, red or gold is never a mistake.</p>
-<h2>If a clock is unavoidable</h2>
+<h2>😅 If a clock is unavoidable</h2>
 <p>The old workaround, for the rare case where a clock must change hands: the receiver <strong>pays you one dollar for it</strong>, so the clock is bought rather than given, and the saying loses its grip. Families who care about the custom do this without discussion. Families who do not will simply wonder why you are holding out your hand.</p>
-<h2>The wider point</h2>
-<p>These are not superstitions you have to believe. They are words, and words land whether or not the speaker meant them. When you are choosing something for someone else’s home — especially someone older, or a couple — the safe habit is to ask what they would like, rather than to surprise them.</p>`,
+<h2>💡 The wider point</h2>
+<p>These are not superstitions you have to believe. They are words, and words land whether or not the speaker meant them. When you are choosing something for someone else’s home — especially someone older, or a couple — the safe habit is to ask what they would like, rather than to surprise them.</p>
+<h2>🎁 What to give instead</h2>
+<p>The safe list is short and it works for almost every occasion:</p>
+<ul>
+  <li><strong>Fruit</strong> — a box or a bag, not pears. Oranges and apples are the safe pair, and 橙 (caang2, orange) sounds like 成功, success.</li>
+  <li><strong>Tea</strong> — a tin of good tea is a proper gift for an older person, and it is what people give when they do not know what to give.</li>
+  <li><strong>Biscuits or cakes</strong> — a box from a bakery, not a supermarket own-brand.</li>
+  <li><strong>A red packet</strong> — cash in a red envelope is never wrong for a child, a wedding or New Year, and it is the one gift nobody has to pretend to like.</li>
+  <li><strong>Something from home</strong> — dried mangoes, coffee, a jar of something your mother makes. This is the gift people actually remember, and it costs almost nothing.</li>
+</ul>
+<h2>🧧 The rule under all the rules</h2>
+<p>Notice what the forbidden gifts have in common: a clock, a pear, an umbrella, a pair of shoes, a sharp knife. Each one, in Cantonese, sounds like a word for an ending — 送鐘 sounds like 送終 (attending a death), 梨 sounds like 離 (parting), 遮 sounds like 別 (separation), 鞋 sounds like 唉 (a sigh).</p>
+<p>So the rule is not "these objects are cursed". It is: <strong>do not give a gift whose name sounds like goodbye.</strong> Once you know that, you can judge a gift you were not warned about — and you can also see why a red packet, which sounds like nothing at all, is always safe.</p>
+`,
   },
 
   {
@@ -2111,14 +2300,27 @@ const SEED_POSTS = [
       'Two rules that run for the whole first lunar month, not just the first day: the third day is 赤口, a day for quarrels, and shoes stay in the shop until the month is over.',
     summary_zh: '有两条规矩管着整个农历正月，不只是初一：年初三是「赤口」，容易口角；而鞋店，正月里最好别买鞋。',
     body_en: `<p>Most New Year rules people know about the first day. These two run for the whole of the first lunar month (<strong>正月</strong>, zing1 jyut6), and both are the kind of thing a household will quietly observe.</p>
-<h2>年初三：赤口</h2>
+<h2>🗓️ 年初三：赤口</h2>
 <p>The third day of the new year is called <strong>赤口</strong> (cek3 hau2) — "red mouth", a day on which quarrels start easily. Traditionally you do not go visiting, and you keep out of arguments; the day is for staying in and keeping the peace.</p>
 <p>What this means for you in practice: families differ, but a good many simply do not go out on the third day. If your family does, fine. If they do not, do not plan anything for that day, and if someone in the house is short-tempered, let it pass.</p>
-<h2>正月裡不買鞋</h2>
+<h2>👟 正月裡不買鞋</h2>
 <p>Shoes stay unbought until the new year’s first month is over, because <strong>鞋</strong> (haai4) sounds like <strong>邪</strong> (haai4) — bad luck, evil — and buying shoes in the first month is said to buy a year of it. Some families give a second reason: it also sounds like <strong>唉</strong> (aai4), sighing, and nobody wants a year of that either.</p>
 <p>You will meet this one mainly when you are asked to run an errand. If a family member asks for shoes in January, mention it once — some households will still buy them and simply not care, and the answer then is to do as they ask. Nothing here is enforced; all of it is preference.</p>
-<h2>The one habit that covers both</h2>
-<p>Ask early, and casually, how the family keeps the new year — which day they stay in, what they will not do. <strong>唔好意思，我唔知道</strong> (m4 hou2 ji3 si1, ngo5 m4 zi1 dou6) is the honest opening, and it works far better than guessing correctly by accident.</p>`,
+<h2>💡 The one habit that covers both</h2>
+<p>Ask early, and casually, how the family keeps the new year — which day they stay in, what they will not do. <strong>唔好意思，我唔知道</strong> (m4 hou2 ji3 si1, ngo5 m4 zi1 dou6) is the honest opening, and it works far better than guessing correctly by accident.</p>
+<h2>🗓️ The fifteen days, briefly</h2>
+<p>The New Year period runs from day one to day fifteen, and the rules are not the same every day:</p>
+<ul>
+  <li><strong>Day 1</strong> — no sweeping, no breaking things, no washing hair (in some households), visiting and red packets.</li>
+  <li><strong>Day 2</strong> — the first day married daughters traditionally visit their parents.</li>
+  <li><strong>Day 3</strong> — 赤口, "red mouth", a day associated with arguments, so people stay home. This is why the flat may be quiet and why nobody will mind if you take it easy.</li>
+  <li><strong>Day 7</strong> — 人日, everybody's birthday.</li>
+  <li><strong>Day 15</strong> — 元宵, lantern festival, the end of it.</li>
+</ul>
+<h2>🧧 What is NOT a taboo</h2>
+<p>Because the list of don'ts is long, it is worth saying what is completely fine: you can work, cook, clean the bathroom, take out the rubbish, use the lift, and go to the shop. The taboos are about the <em>symbolic</em> acts — sweeping fortune out of the door, breaking a bowl, cutting your hair on day one — not about ordinary life. Nobody expects the flat to stop functioning for a fortnight.</p>
+<p>And if you do break a glass on day one, do not panic. Say <strong>落地開花，富貴榮華</strong> (lok6 dei6 hoi1 faa1, fu3 gwai3 wing4 waa4) — "it flowers on the floor, wealth and glory" — which is the traditional phrase that turns the accident into a blessing. It is a nice thing to be able to say, and it will get a laugh.</p>
+`,
   },
 
   {
@@ -2133,23 +2335,36 @@ const SEED_POSTS = [
       'Dress plain, give an odd amount, say 有心 instead of 多謝 and 慢行 instead of 再見 — and spend the coin from the 吉儀 packet before you get home.',
     summary_zh: '穿素色、帛金给单数、说「有心」不说「多谢」、道别说「慢行」不说「再见」——还有，「吉仪」里那枚硬币，回家前就要花掉。',
     body_en: `<p>If the family you work for has a funeral, you may be asked to attend, or to help with the preparations. The customs here are specific, they are not announced, and getting them wrong is the kind of thing that is remembered kindly but never forgotten. This is what is expected.</p>
-<h2>What to wear</h2>
+<h2>👔 What to wear</h2>
 <p>Plain or black. No bright colours, no patterns, nothing red — red is for weddings. If you have nothing black, the darkest plain clothes you own will do; nobody will inspect you.</p>
-<h2>帛金: the money</h2>
+<h2>💵 帛金: the money</h2>
 <p>You bring a white envelope with money in it — <strong>帛金</strong> (baak6 gam1). The amount must be an <strong>odd number</strong>: one hundred and one dollars is the usual way to give a hundred, with one dollar added to make it single. Never round it up to an even number.</p>
 <p>Hand it over quietly when you arrive, to whoever is receiving. Do not count it out in the open, and do not comment on the amount in either direction.</p>
-<h2>What to say — and what not to</h2>
+<h2>🗣️ What to say — and what not to</h2>
 <ul>
   <li>Receiving the family’s return gift, say <strong>有心</strong> (jau5 sam1) — "thank you for the thought." <strong>Not</strong> 多謝, which is for gifts.</li>
   <li>Taking your leave, say <strong>慢行</strong> (maan6 haang4) — "walk slowly", take care — or let the family say <strong>唔送</strong> (m4 sung3), "I will not see you out." <strong>再見</strong> (zoi3 gin3) is not used here.</li>
 </ul>
-<h2>吉儀: the packet you are given</h2>
+<h2>✉️ 吉儀: the packet you are given</h2>
 <p>Before you leave you will be handed a small packet — <strong>吉儀</strong> (gat1 ji4) — containing a tissue, some sweets, and a one-dollar coin.</p>
 <p><strong>Spend the coin the same day.</strong> Buy something small with it, or give it away. It must not come home, and it must not go into your wallet and stay there — the saying is that money kept from a funeral carries the bad luck back into the house. The tissue and the sweets are yours to keep; it is the coin that has to move on.</p>
-<h2>The hundred days after</h2>
+<h2>📅 The hundred days after</h2>
 <p>A household that has had a funeral (<strong>白事</strong>, baak6 si6) observes <strong>百日</strong> (baak3 zat6) — a hundred days. During that time the family avoids visiting other people’s homes and stays away from weddings and other happy occasions. If you work for a household in that period, help them keep it: no bringing home party news, no planning visits.</p>
-<h2>If you are unsure</h2>
-<p>Customs differ between families — some give a different 吉儀, and some observe the hundred days strictly while others observe them loosely. The safe default when nobody has told you: dress plain, stay quiet, follow whatever the person beside you does, and say <strong>唔好意思，我唔知道</strong> (m4 hou2 ji3 si1, ngo5 m4 zi1 dou6) if you are asked something you cannot answer. At a funeral, as everywhere else in this app, the worst mistake is the one you hide.</p>`,
+<h2>❓ If you are unsure</h2>
+<p>Customs differ between families — some give a different 吉儀, and some observe the hundred days strictly while others observe them loosely. The safe default when nobody has told you: dress plain, stay quiet, follow whatever the person beside you does, and say <strong>唔好意思，我唔知道</strong> (m4 hou2 ji3 si1, ngo5 m4 zi1 dou6) if you are asked something you cannot answer. At a funeral, as everywhere else in this app, the worst mistake is the one you hide.</p>
+<h2>🕯️ What actually happens at the hall</h2>
+<p>Most Hong Kong funerals are held in a funeral parlour or a hall, over two or three days, and the part you attend is the simplest part:</p>
+<ul>
+  <li><strong>Sign the book</strong> at the entrance and take the white envelope or the black ribbon they hand you.</li>
+  <li><strong>Bow three times</strong> towards the photograph, or 鞠躬 (guk1 gung1), if the family is bowing.</li>
+  <li><strong>Offer incense</strong> if there is a burner and others are doing it. One stick, then place it.</li>
+  <li><strong>Speak to the family briefly</strong> — 節哀順變 (zit3 oi1 seon6 bin3), "may you restrain your grief and accept what has changed", is the standard sentence and it is enough.</li>
+  <li><strong>Do not say 再見</strong> or "goodbye" when you leave. Many families hold that a goodbye at a funeral is a bad thing to say; a nod and leaving quietly is correct.</li>
+</ul>
+<h2>📅 Afterwards</h2>
+<p>The white envelope you were given — 吉儀 — contains a sweet and a coin, and the custom is to <strong>spend the coin and eat the sweet before you go home</strong>. Do not keep it as a souvenir. If you are given 帛金 back, or a red packet from the family after the funeral, that is normal and it is not a payment for attending.</p>
+<p>Some families observe a period of mourning of a hundred days, during which they do not attend weddings or celebrations. If you work in that household, that is why there is no New Year visiting that year — it is not about you.</p>
+`,
   },
 
   {
@@ -2164,21 +2379,34 @@ const SEED_POSTS = [
       '通書 becomes 通勝, an empty shop is 吉舖, and you never say 食完 — Hong Kong swaps words whose SOUNDS carry loss, emptiness or death, and it has a name: 意頭. Here are the swaps you will actually hear.',
     summary_zh: '通書要叫「通胜」，空舖要叫「吉舖」，飯不能說「食完」——香港人避開讀音像「輸、空、完」的字，改說吉利話，這叫「意頭」。這篇講最常見的幾個。',
     body_en: `<p><strong>意頭</strong> (ji3 tau4) means, roughly, the lucky meaning behind a thing — whether a word, a name, a time of day or a gift is good to say and good to do. It is the reason a Cantonese speaker will look at you, choose a different word, and say that one instead. Nobody announces this; you pick it up or you do not. These are the ones you will hear.</p>
-<h2>Words that mean money</h2>
+<h2>💰 Words that mean money</h2>
 <p><strong>書</strong> (syu1), a book, sounds exactly like <strong>輸</strong> (syu1), to lose. So the Chinese almanac is not called 通書 — it is <strong>通勝</strong> (tung1 sing3), win. If a family is checking the almanac for a good date — a wedding, moving house, opening a shop — the word you use is 通勝, never 通書.</p>
 <p>The same trade applies to <strong>絲瓜</strong> (si1 gwaa1), the loofah. Because 絲 is said to sound like 輸, the vegetable is sold and cooked as <strong>勝瓜</strong> (sing3 gwaa1). Order it as 絲瓜 and you may be corrected.</p>
-<h2>Words that mean empty</h2>
+<h2>🕳️ Words that mean empty</h2>
 <p><strong>空</strong> (hung1), empty, sounds exactly like <strong>凶</strong> (hung1), misfortune. So a shop that is empty is never called 空舖 — it is <strong>吉舖</strong> (gat1 pou3), the lucky shop. That is why the "to let" signs in the street read 吉舖. An empty shop is exactly what a landlord wants to fill, so the word must not say empty.</p>
 <p>The same thinking reaches the dinner table. <strong>食完飯</strong> (sik6 jyun4 faan6) — "have finished eating" — puts 完, finished, right next to rice, because 完 means there is nothing left, and a household with no rice is a household short of money. Say <strong>食咗飯</strong> (sik6 zo2 faan6) — "have eaten" — or simply 食飽 (sik6 baau2), "eaten full". Both are safe; 食完 is the one to drop.</p>
-<h2>Words about children</h2>
+<h2>👶 Words about children</h2>
 <p>There is a strong habit of <strong>not praising a child out loud.</strong> "This child is so healthy, has never been ill a day in his life" is exactly the sentence not to say — the fear is that saying it aloud tells illness where to find the child, and it arrives to prove you wrong.</p>
 <p>The same caution covers calling a baby fat. Do not do it, and do not joke about it — the worry is not the word but what a spirit might make of the complaint, and what it might then take away.</p>
 <p>What you say instead is the reverse: a small kindness in words, nothing more. If you must comment, comment on the present moment — 「好得意」(hou2 dak1 ji3), cute — and leave the future alone. When you are unsure, say nothing; a helper who is quiet about a child is never faulted for it.</p>
-<h2>The green hat</h2>
+<h2>🎩 The green hat</h2>
 <p>In Chinese folk association, <strong>綠帽</strong> (luk6 mou3) — a green hat — means a man whose wife has been unfaithful. The colour is a punishment, not a fashion: under laws from the Ming and Qing dynasties a husband in that position was made to wear a green headscarf, and the colour has carried the meaning ever since.</p>
 <p>So: <strong>if you are buying clothes or a cap for a male member of the household, do not pick green.</strong> A green bag or a green shirt is fine; a green cap, especially, is not. Nobody will explain why the green cap was a mistake — you will only notice it is never worn.</p>
-<h2>The one habit that covers all of it</h2>
-<p>意頭 is preference, not law, and families differ in how much they observe. The habit worth keeping is simply to <strong>notice which words the family uses, and copy them.</strong> When you are not sure, follow the person next to you, and if you have already said the wrong one — <strong>唔好意思，我唔知道</strong> (m4 hou2 ji3 si1, ngo5 m4 zi1 dou6), said early, is always the right answer.</p>`,
+<h2>💡 The one habit that covers all of it</h2>
+<p>意頭 is preference, not law, and families differ in how much they observe. The habit worth keeping is simply to <strong>notice which words the family uses, and copy them.</strong> When you are not sure, follow the person next to you, and if you have already said the wrong one — <strong>唔好意思，我唔知道</strong> (m4 hou2 ji3 si1, ngo5 m4 zi1 dou6), said early, is always the right answer.</p>
+<h2>🗣️ The words themselves, in one place</h2>
+<p>This is the list to memorise, because each pair is a word you will hear daily and a word you must not say in front of the family:</p>
+<ul>
+  <li><strong>豬肝 → 豬膶</strong> (zyu1 gon1 → zyu1 jeon2). Liver. 肝 sounds like 乾, "dry" — bad for business and bad for luck, so the wet-market word is 膶, "rich".</li>
+  <li><strong>舌 → 脷</strong> (sit6 → lei6). Tongue. 舌 sounds like 蝕, "to lose money". 脷 is what it is called on every menu in the city.</li>
+  <li><strong>空 → 吉</strong> (hung1 → gat1). Empty. 空 sounds like 凶, "ominous", so an empty room is 吉屋 — a lucky house — and an empty seat is 吉位.</li>
+  <li><strong>書 → 輸</strong> (syu1). Book sounds like "lose". This is why nobody gives a book as a gift to someone about to sit an exam, and why a bookshop is 書局 but a gambler will not say the word.</li>
+  <li><strong>伯母 → 伯娘</strong> (baak3 mou5 → baak3 noeng4). Aunt. 伯母 sounds close to 百無, "a hundred nothings", so the polite form is 伯娘.</li>
+</ul>
+<h2>📖 How to ask without sounding strange</h2>
+<p>You will hear a word you do not recognise, and the honest move is to ask: <strong>呢個叫咩呀？</strong> (ni1 go3 giu3 me1 aa3) — "what is this called?" Nobody minds. What does get a reaction is using the blunt word in front of an older relative — not because they are offended, but because they will hear it as a mistake a stranger makes.</p>
+<p>The good news is that these are <em>vocabulary</em>, not grammar. Learn five pairs and you have the whole system: the language has a polite word and a plain word for a handful of things, and the polite one is the one on the menu.</p>
+`,
   },
   {
     // Added 2026-10-21 at the operator's request, digested from a general
@@ -2196,11 +2424,11 @@ const SEED_POSTS = [
     summary_en: "Almost nothing at a Hong Kong table is a taboo. The customs that actually matter are about tea, sharing, and one plate you should not finish — and they matter whether you are cooking for the family or eating with them.",
     summary_zh: '在香港的餐桌上，幾乎沒有什麼是禁忌。真正重要的規矩只有幾條：茶怎麼倒、共菜怎麼夾，還有哪一口飯不該吃光——這些對要做飯給一家人吃的你，同樣適用。',
     body_en: `<p>Food in Hong Kong is a social event, and the customs around it are gentler than most guidebooks make them sound. Very few of them are taboos. These are the ones that actually happen at a Hong Kong table — the one you may be cooking for, and the one you may one day be invited to.</p>
-<h2>Tea: filling the cup is the whole job</h2>
+<h2>🍵 Tea: filling the cup is the whole job</h2>
 <p>The one rule that matters: <strong>when a cup is empty, fill it</strong> — and while you are up, fill everyone else's too. Topping up only your own is the thing people notice.</p>
 <p>It works in both directions. When someone pours for <em>you</em>, <strong>tap two fingers on the table</strong> to say thank you without stopping the conversation. That small tap is Hong Kong's answer to calling 唔該 across a noisy table, and an older person will do it to you.</p>
 <p>You rarely see tea in a takeaway cup here. It is a sit-down drink, and a meal is not finished until the tea has been poured.</p>
-<h2>Everything comes to the middle</h2>
+<h2>🥢 Everything comes to the middle</h2>
 <p>Dishes are placed in the middle of the table and shared. You do not get your own plate of food the way you would at home in the Philippines or Indonesia — you take a little from the shared dish onto your rice, several times over the meal.</p>
 <ul>
 <li><strong>Take from the side nearest you.</strong> Reaching across is what the serving spoons are for.</li>
@@ -2208,19 +2436,28 @@ const SEED_POSTS = [
 <li><strong>Do not dig</strong> through a dish looking for the piece you want.</li>
 </ul>
 <p>The rest of the chopstick rules — including the one that genuinely upsets an older relative — are in <a href="/discover/chopsticks-five-rules">Chopsticks: Five Things That Are Done, and One That Is Not</a>.</p>
-<h2>If you are the one serving</h2>
+<h2>🫖 If you are the one serving</h2>
 <p>In many households the helper serves the food and eats afterwards, alone or with the children. If that is your arrangement, the same customs are what make you look like someone who understands the family: <strong>fill the elders' cups first</strong>, put the serving spoons out with the dishes, and set the rice bowls down without asking who wants what.</p>
 <p>You are not expected to eat at the table, and you are not expected to refuse if you are asked. Both happen in different houses, and neither is a comment on you.</p>
-<h2>As a guest: two small things</h2>
+<h2>🙋 As a guest: two small things</h2>
 <ul>
 <li><strong>Let the host start.</strong> Wait until the eldest person present picks up their chopsticks, or until someone says <strong>開飯</strong> (hoi1 faan6) — "the meal is starting" — then begin.</li>
 <li><strong>Leave a little on your plate.</strong> Finishing everything says the host did not give you enough. An empty bowl is a small failure of hospitality, not a compliment to the cook.</li>
 </ul>
 <p>Eating everything is the right instinct almost everywhere else in the world. This is the one table where it is better to leave a spoonful of rice.</p>
-<h2>If chopsticks defeat you</h2>
+<h2>🥢 If chopsticks defeat you</h2>
 <p>Ask for a fork — <strong>唔該，有叉嗎？</strong> (m4 goi1, jau5 caa1 maa3) — and almost every restaurant will bring one without comment. Using them well is a kindness that will be noticed, but a helper who can eat neatly with a fork has committed no rudeness. Nobody at the table is keeping score.</p>
-<h2>Useful to know</h2>
-<p>茶 (<strong>caa4</strong>) — tea. 添茶 (<strong>tim1 caa4</strong>) — to top up the tea. 開飯 (<strong>hoi1 faan6</strong>) — the meal is starting, said before the first bite. 慢慢食 (<strong>maan6 maan6 sik6</strong>) — take your time eating, said to a guest. The rest of the table and kitchen words are in the Kitchen and Restaurant categories.</p>`,
+<h2>📌 Useful to know</h2>
+<p>茶 (<strong>caa4</strong>) — tea. 添茶 (<strong>tim1 caa4</strong>) — to top up the tea. 開飯 (<strong>hoi1 faan6</strong>) — the meal is starting, said before the first bite. 慢慢食 (<strong>maan6 maan6 sik6</strong>) — take your time eating, said to a guest. The rest of the table and kitchen words are in the Kitchen and Restaurant categories.</p>
+<h2>🥢 The serving chopsticks, again, because it matters</h2>
+<p>Every shared dish comes with a pair of <strong>公筷</strong> resting on it, or the family uses the ones with a different colour tip. They exist so that nobody's saliva reaches the shared plate. Using your own chopsticks in the middle dish is the single most common thing a new helper does wrong at a family table, and it is the one that gets talked about afterwards.</p>
+<p>If there is no serving pair, turn your chopsticks around and use the thick ends. That is the accepted improvisation.</p>
+<h2>🍵 叩指謝茶 — the two-finger thank you</h2>
+<p>When somebody pours tea into your cup, tap the table twice with two fingers, or with your index finger if you are holding a cup. It means "thank you" without interrupting the conversation. It comes from a story about an emperor travelling in disguise, and it is used everywhere — in restaurants, in offices, in flats.</p>
+<p>You are not expected to know it on your first day. You <em>are</em> expected to notice it, and to start doing it, because it is the cheapest way to look like you have been here longer than you have.</p>
+<h2>🍚 The end of the meal</h2>
+<p>When you are full, say <strong>我飽喇</strong> (ngo5 baau2 laa3) — "I'm full". Leaving food on the plate is fine; refusing a fourth helping is fine; what is not fine is sitting with an empty bowl and saying nothing, because in this house an empty bowl is a request for more.</p>
+`,
   },
   {
     // Added 2026-10-21 at the operator's request, digested from a general
@@ -2242,10 +2479,10 @@ const SEED_POSTS = [
     summary_en: "In Hong Kong, Chinese medicine is not the 'alternative' to seeing a doctor — it is one of the ordinary options, regulated by law and often the reason your kitchen smells of herbs. Here is how it works, and the three rules to get right.",
     summary_zh: '在香港，中醫不是「西醫以外」的另類選擇——它是正規醫療的一部分，受法律規管，而且常常就是你廚房裡那股草藥味的來源。這裡說明它如何運作，以及三條必須守住的規矩。',
     body_en: `<p>In Hong Kong, Chinese medicine is not the alternative to seeing a doctor. It is one of the ordinary things people do, and often they do it <em>as well as</em> hospital medicine rather than instead of it. If the family says they are going to <strong>睇中醫</strong> — to see a Chinese medicine practitioner — that is a normal medical appointment, not a superstition and not a last resort.</p>
-<h2>It is regulated by law</h2>
+<h2>⚖️ It is regulated by law</h2>
 <p>A practitioner must be registered, and registration is not easy. The regulator is the Chinese Medicine Council of Hong Kong, a statutory body set up under the Chinese Medicine Ordinance (Cap. 549). A registered practitioner has completed an approved university degree in Chinese medicine and passed a licensing examination, and the Council has the power to strike a practitioner off its register for misconduct.</p>
 <p>In 2025 the city's first Chinese Medicine Hospital opened in phases — a large government project where Chinese and Western medicine work side by side under one roof. That tells you how seriously this medicine is taken here.</p>
-<h2>Where you will meet it first: the kitchen</h2>
+<h2>🍲 Where you will meet it first: the kitchen</h2>
 <p>Long before anyone books a consultation, Chinese medicine arrives in your kitchen — usually as a job for you.</p>
 <ul>
 <li><strong>老火湯</strong> (<strong>lou5 fo2 tong1</strong>) — a clear soup simmered gently for two or three hours. Many families believe a particular soup suits a particular season or a particular body, and you may be asked to keep one going on the stove all afternoon.</li>
@@ -2253,7 +2490,7 @@ const SEED_POSTS = [
 <li><strong>中藥</strong> (<strong>zung1 joek6</strong>) — a prescription of dried roots, leaves and bark, dispensed as a paper bundle and boiled at home into a dark liquid. This is the part you may be asked to do yourself.</li>
 </ul>
 <p>Households here commonly use both systems at once: a GP for one complaint, a Chinese medicine practitioner for another, sometimes for the same person in the same week. Nobody sees that as a contradiction.</p>
-<h2>Boiling herbs: what the job actually is</h2>
+<h2>🔥 Boiling herbs: what the job actually is</h2>
 <p>The herbs come from the practitioner's shop in a paper bundle with a sheet of instructions — how many times to boil, how much to drink, and when. <strong>Follow that sheet, not your instincts.</strong> The usual method is:</p>
 <ul>
 <li><strong>Rinse</strong> the herbs briefly, cover them with water and <strong>soak for about 30 minutes</strong>.</li>
@@ -2261,18 +2498,25 @@ const SEED_POSTS = [
 <li><strong>Boil the same herbs a second time</strong> the next day. Most prescriptions are boiled twice, and the second boil is a dose in its own right — not a weaker left-over to be thrown away.</li>
 </ul>
 <p>Use a <strong>clay pot or a ceramic pot</strong>, never a metal one, and never the pot dinner is cooked in. The dose is drunk <strong>warm</strong>, at the times written on the sheet.</p>
-<h2>Three rules that are not negotiable</h2>
+<h2>🚫 Three rules that are not negotiable</h2>
 <ul>
 <li><strong>A prescription belongs to one person.</strong> The herbs are chosen for one body, on one day. Never move herbs from one bundle to another — not even within the same family, not even if two people have "the same cold".</li>
 <li><strong>Never give a decoction to a pregnant woman or a small child</strong> unless the practitioner wrote it for her, or for them. If you are asked to, say plainly that the family should check with the practitioner first.</li>
 <li><strong>Herbs are medicine, and they interact.</strong> They can change the way blood-pressure tablets, blood thinners and diabetes medicine work. If someone in the household takes hospital medicine <em>and</em> herbs, the doctor and the practitioner should each know about the other — and if you are the person who sees both in the same kitchen, say so to the family.</li>
 </ul>
-<h2>Emergencies do not wait for herbs</h2>
+<h2>🚑 Emergencies do not wait for herbs</h2>
 <p>Chest pain, difficulty breathing, heavy bleeding, a bad fall, anything sudden: go to the hospital's accident and emergency department, or call <strong>999</strong>. Herbal medicine is for the slow complaints it is good at. No family will thank you for patiently simmering a prescription while someone is turning blue.</p>
-<h2>Useful phrases</h2>
+<h2>🗣️ Useful phrases</h2>
 <p><strong>我想睇中醫</strong> (ngo5 soeng2 tai2 zung1 ji1) — I would like to see a Chinese medicine practitioner. <strong>呢啲中藥點煎？</strong> (ni1 di1 zung1 joek6 dim2 zin1) — how do I boil these herbs? <strong>係咪要先浸吓？</strong> (hai6 mai6 jiu3 sin1 zam3 haa5) — do they need soaking first? <strong>一日煎幾多次？</strong> (jat1 jat6 zin1 gei2 do1 ci3) — how many boils a day? For the words you would need when someone in the house is simply unwell, the phrases in <a href="/guide/cantonese-for-elderly-care">Cantonese for Elderly Care</a> are the ones that get used.</p>
-<h2>Useful to know</h2>
-<p>中醫 (<strong>zung1 ji1</strong>) — Chinese medicine; 中醫師 (<strong>zung1 ji1 si1</strong>) — a Chinese medicine practitioner. 中藥 (<strong>zung1 joek6</strong>) — a prescription of Chinese herbs. 煎 (<strong>zin1</strong>) — to boil a decoction. 涼茶 (<strong>loeng4 caa4</strong>) — herbal tea. 老火湯 (<strong>lou5 fo2 tong1</strong>) — slow-simmered clear soup. 熱氣 (<strong>jit6 hei3</strong>) — "heaty", the state herbal tea is taken for. 把脈 (<strong>baa2 mak6</strong>) — taking the pulse, the diagnosis you will watch at every consultation.</p>`,
+<h2>📌 Useful to know</h2>
+<p>中醫 (<strong>zung1 ji1</strong>) — Chinese medicine; 中醫師 (<strong>zung1 ji1 si1</strong>) — a Chinese medicine practitioner. 中藥 (<strong>zung1 joek6</strong>) — a prescription of Chinese herbs. 煎 (<strong>zin1</strong>) — to boil a decoction. 涼茶 (<strong>loeng4 caa4</strong>) — herbal tea. 老火湯 (<strong>lou5 fo2 tong1</strong>) — slow-simmered clear soup. 熱氣 (<strong>jit6 hei3</strong>) — "heaty", the state herbal tea is taken for. 把脈 (<strong>baa2 mak6</strong>) — taking the pulse, the diagnosis you will watch at every consultation.</p>
+<h2>🚑 When it is not a herbs problem</h2>
+<p>Chinese medicine is ordinary and regulated, and none of that changes the rule for an emergency. Call <strong>999</strong> — ambulance, police and fire, free, and the operator speaks English — for chest pain, difficulty breathing, a stroke (face drooping, arm weakness, slurred speech), a serious fall, a burn, or a child who is not responding.</p>
+<p>For anything urgent but not an emergency, the <strong>急症室 (A&amp;E)</strong> at a public hospital runs 24 hours and charges a small fee for a resident with a Hong Kong identity card — far less than a private clinic. The wait can be hours for something that is not life-threatening, because the queue is sorted by severity, not by arrival.</p>
+<h2>💊 What is in the cupboard, and what is not</h2>
+<p>Most Hong Kong flats hold a small pharmacy of things that are not medicine in the Western sense and are used constantly: <strong>白花油</strong> (white flower oil) for headaches and insect bites, <strong>保濟丸</strong> for stomach upset, <strong>京都念慈菴</strong> cough syrup, and a bag of dried 陳皮 (aged peel) in the cupboard for cooking and for a cough.</p>
+<p>Two rules. First, never give any of these to a child without asking the family — some contain menthol or camphor that are not for small children. Second, if you are asked to boil herbs, follow the instruction exactly on water, time and heat, and do not "improve" it. The recipe is the medicine.</p>
+`,
   },
 
   {
@@ -2287,17 +2531,24 @@ const SEED_POSTS = [
       'On a public holiday Hong Kong empties out — because a large share of the city has crossed the border. Here is what that means for a helper, and a few phrases that explain it.',
     summary_zh: '一放公众假期，香港的街道就空了——因为城里一大半人都过了关。这篇讲这对雇工意味着什么，以及几句能解释现状的粤语。',
     body_en: `<p>On a public holiday — especially the long ones like National Day Golden Week (國慶) in early October, Labour Day, or Chinese New Year — central Hong Kong changes character. The malls are quiet, the usual crowds at the crossings are gone, and the MTR feels almost empty before midday. That is not because people are staying in. It is because a very large share of them have gone <strong>to the mainland</strong> (返大陸, faan1 daai6 luk6).</p>
-<h2>Why the border runs both ways</h2>
+<h2>🚄 Why the border runs both ways</h2>
 <p>A short trip across the border — to Shenzhen (深圳) or Guangzhou (廣州) — is cheap, fast, and, for many families, routine. High-speed rail (高鐵, gou1 tit3) and the many land crossings make a day of shopping, a dental appointment, or a meal with relatives a short journey away. On big holidays the <em>outbound</em> side is jammed and the city side is calm; the pattern simply reverses on the way home.</p>
-<h2>What this means for you</h2>
+<h2>👤 What this means for you</h2>
 <ul>
   <li><strong>If your employer travels,</strong> you may be asked to hold the fort — look after the children or the pets, keep the flat in order — while they are away. Or you may be given the days off. Both are normal; which one happens is a family decision, so <strong>ask the family</strong> what they expect rather than assuming.</li>
   <li><strong>If you get the time off,</strong> it is a good chance to see the city on your own — but expect the border and the transport near it to be crowded, and book any return early.</li>
   <li><strong>The employer's relatives may visit instead.</strong> Holidays are when extended family gathers, and a full flat is not a problem to be solved, it is the point.</li>
 </ul>
-<h2>Phrases you will hear</h2>
+<h2>🗣️ Phrases you will hear</h2>
 <p><strong>返大陸</strong> (faan1 daai6 luk6) — to go to the mainland. <strong>搭高鐵</strong> (daap3 gou1 tit3) — to take the high-speed rail. <strong>放假</strong> (fong3 gaa1) — to have a holiday or a day off. <strong>邊境好多人</strong> (bin1 ging2 hou2 do1 jan4) — the border is very crowded. <strong>幾時返嚟？</strong> (gei2 si4 faan1 lai4) — when are you coming back?</p>
-<p>If you are the one left in the flat, the phrases in <a href="/guide/cantonese-for-elderly-care">Cantonese for Elderly Care</a> are the ones you are most likely to need while the family is away.</p>`,
+<p>If you are the one left in the flat, the phrases in <a href="/guide/cantonese-for-elderly-care">Cantonese for Elderly Care</a> are the ones you are most likely to need while the family is away.</p>
+<h2>🧳 Before you go: the document that catches people out</h2>
+<p>Hong Kong identity card holders do not automatically have the right to enter mainland China. As a foreign domestic helper you need a <strong>valid passport, your Hong Kong visa, and a mainland entry permit or visa</strong> — and the permit is the one people forget. Apply well before the holiday, through the agency your employer uses or the China Travel Service, and check the processing time; a week is not enough at New Year.</p>
+<p>Also check your contract and your employer's expectations before booking anything. The statutory holiday is yours, but a trip that means you cannot be back for the next working day is a conversation to have in advance.</p>
+<h2>🚄 The high-speed rail, and what it costs</h2>
+<p>The West Kowloon station is the easy way out of the city: high-speed trains to Shenzhen in about 20 minutes, to Guangzhou in under an hour. Buy on the 12306 app or at the station, and bring your passport — it is your ticket.</p>
+<p>What to sort out before you go: <strong>mobile data</strong> (a mainland SIM or a roaming plan, because the apps you use in Hong Kong may not work there), <strong>payment</strong> (Alipay or WeChat Pay linked to a card works almost everywhere; cash is accepted but awkward), and a <strong>screenshot of your hotel address in Chinese</strong>, because you will be asked for it at a hotel desk and a taxi driver cannot read the English one.</p>
+`,
   },
 
   {
@@ -2312,25 +2563,39 @@ const SEED_POSTS = [
       'Nearly half of Hong Kong is country park, and much of it is reachable by MTR plus a short minibus. Hiking is the city’s favourite cheap day out — and a very popular one for helpers on a day off.',
     summary_zh: '香港差不多一半土地是郊野公园，很多地方搭地铁再转一趟小巴就到。行山是这里最便宜也最受欢迎的消遣——也是很多雇工放假一天最爱的去处。',
     body_en: `<p>It surprises first-time visitors: for all the skyscrapers, <strong>about 40% of Hong Kong’s land is protected country park</strong> (郊野公園, gaau1 je5 gung1 jyun4). Wooded hills, reservoirs, coastline and small beaches sit right against the city, and a great deal of it is reachable by MTR and one short minibus ride. You do not need a car, and you do not need to leave the territory.</p>
-<h2>Why hiking fits a day off</h2>
+<h2>⛰️ Why hiking fits a day off</h2>
 <p><strong>行山</strong> (haang4 saan1) — "walking the hills" — is the city’s favourite low-cost outing. Trails are free, the views are real, and on a Sunday the popular ones are full of people, including many helpers hiking together in groups. It is sociable, cheap, and a genuine break from a small flat.</p>
-<h2>A few to know</h2>
+<h2>📍 A few to know</h2>
 <ul>
   <li><strong>Dragon’s Back</strong> (龍脊) — the famous easy one, near Shek O, with a sea view the whole way. A good first hike.</li>
   <li><strong>Lion Rock</strong> (獅子山) — the ridge that looks over Kowloon; steep in places but on the doorstep of the city.</li>
   <li><strong>Tai Mo Shan</strong> (大帽山) — the highest peak, cooler and misty; a longer day.</li>
   <li><strong>Sai Kung</strong> (西貢) — coastal paths and clear water, easy to reach by minibus.</li>
 </ul>
-<h2>Before you go</h2>
+<h2>🎒 Before you go</h2>
 <ul>
   <li><strong>Carry water and sun protection.</strong> The shade runs out, and the heat is no joke in summer.</li>
   <li><strong>Start early.</strong> Trails are exposed and busy by late morning on weekends.</li>
   <li><strong>Some paths are steep or lonely.</strong> Going with others is the norm here for a reason — tell someone your route, and stay on marked trails.</li>
   <li><strong>Mobile signal is not guaranteed</strong> once you are in a valley. Do not rely on it for navigation.</li>
 </ul>
-<h2>Phrases you will hear</h2>
+<h2>🗣️ Phrases you will hear</h2>
 <p><strong>行山</strong> (haang4 saan1) — to go hiking. <strong>郊野公園</strong> (gaau1 je5 gung1 jyun4) — country park. <strong>周末</strong> (zau1 mut6) — weekend. <strong>幾點出發？</strong> (gei2 dim2 ceot1 faat3) — what time do we set off? <strong>好攰呀</strong> (hou2 gui6 aa3) — I am so tired (you will say this).</p>
-<p>For more on daily life in the city, the <a href="/discover">culture feed</a> has the rest of these notes.</p>`,
+<p>For more on daily life in the city, the <a href="/discover">culture feed</a> has the rest of these notes.</p>
+<h2>🥾 What to bring, and what not to</h2>
+<p>Hong Kong hikes are short and close to the city, which makes people underprepare for them. The list is small:</p>
+<ul>
+  <li><strong>Water — a litre per person for a half-day.</strong> There is often nowhere to refill on the ridge.</li>
+  <li><strong>Trainers with grip.</strong> The stone steps are worn smooth and are slippery when wet. Sandals are how people end up at A&amp;E.</li>
+  <li><strong>A hat and sunblock.</strong> There is no shade on the exposed sections, and the sun here in summer is not the sun you grew up with.</li>
+  <li><strong>A charged phone, with the route downloaded.</strong> Signal is good on most trails but not all, and the Country Park app works offline.</li>
+  <li><strong>Not</strong> a heavy bag, and not new shoes.</li>
+</ul>
+<h2>🚌 Getting to a trailhead</h2>
+<p>Almost every trail starts at a bus stop, and the buses are cheap and frequent on Sundays. The pattern is: MTR to the end of a line, then a bus or a green minibus to the trailhead. The stop you want is usually the one everybody else in shorts gets off at.</p>
+<p>Two things to check before you set out: the <strong>weather warning</strong> (a thunderstorm warning or a typhoon signal means stay off the ridges) and the <strong>time of sunset</strong> — it gets dark here fast, and being on a ridge at dusk without a torch is the mistake that ends up in the news.</p>
+<p>There is now a whole section of the app for this: <strong>Discover → Outings</strong> has the routes, the fares and the way to get to each trailhead, including three of the walks mentioned above.</p>
+`,
   },
 ];
 

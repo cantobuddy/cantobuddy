@@ -495,10 +495,15 @@ margin:12px 0 0;color:var(--red);font-size:12.5px;min-height:16px;text-align:cen
    not translated. Only the COMBINATIONS get words, because "full house"
    genuinely differs between the four.
    ============================================================ */
+/* The page title and its one-line description carry an emoji, the same way
+   every culture heading does: it is the first thing on the screen and the
+   only part of a game page a player who has never opened it will read. The
+   emoji is language-neutral, so it is prefixed once per language block
+   rather than stored separately. */
 const STR = {
   en: {
-    backToApp: 'CantoBuddy', title: 'Big Two',
-    sub: 'The Hong Kong card game — 2 is the highest card and spades are the strongest suit. Make a room and send the code to your family.',
+    backToApp: 'CantoBuddy', title: '🃏 Big Two',
+    sub: '🇭🇰 The Hong Kong card game — 2 is the highest card and spades are the strongest suit. Make a room and send the code to your family.',
     nameLabel: 'Your name', avatarLabel: 'Pick an avatar', createBtn: 'Create a room',
     divider: 'I already have a code', joinBtn: 'Join', codePlaceholder: 'Enter code',
     tip1: '2–4 players · 13 cards each · the 2 is the biggest card',
@@ -562,8 +567,8 @@ const STR = {
     errUnknown: 'Something went wrong — try again.',
   },
   fil: {
-    backToApp: 'CantoBuddy', title: 'Big Two',
-    sub: 'Ang larong baraha ng Hong Kong — ang 2 ang pinakamalakas na baraha at spades ang pinakamalakas na suit. Gumawa ng kuwarto at ipadala ang code sa pamilya.',
+    backToApp: 'CantoBuddy', title: '🃏 Big Two',
+    sub: '🇭🇰 Ang larong baraha ng Hong Kong — ang 2 ang pinakamalakas na baraha at spades ang pinakamalakas na suit. Gumawa ng kuwarto at ipadala ang code sa pamilya.',
     nameLabel: 'Pangalan mo', avatarLabel: 'Pumili ng avatar', createBtn: 'Gumawa ng kuwarto',
     divider: 'May code na ako', joinBtn: 'Sumali', codePlaceholder: 'Ilagay ang code',
     tip1: '2–4 na manlalaro · 13 baraha bawat isa · ang 2 ang pinakamalaki',
@@ -627,8 +632,8 @@ const STR = {
     errUnknown: 'May naging mali — subukan ulit.',
   },
   zh: {
-    backToApp: 'CantoBuddy', title: '鋤大D',
-    sub: '香港经典纸牌游戏——2 最大，黑桃最大。开一个房间，把房间码发给家人。',
+    backToApp: 'CantoBuddy', title: '🃏 鋤大D',
+    sub: '🇭🇰 香港经典纸牌游戏——2 最大，黑桃最大。开一个房间，把房间码发给家人。',
     nameLabel: '你的名字', avatarLabel: '选一个头像', createBtn: '开一个房间',
     divider: '我已经有房间码', joinBtn: '加入', codePlaceholder: '输入房间码',
     tip1: '2–4 人 · 每人 13 张 · 2 是最大的牌',
@@ -692,8 +697,8 @@ const STR = {
     errUnknown: '出了点问题——请再试一次。',
   },
   id: {
-    backToApp: 'CantoBuddy', title: 'Big Two',
-    sub: 'Permainan kartu Hong Kong — kartu 2 paling besar dan sekop suit terkuat. Buat ruangan dan kirim kodenya ke keluarga.',
+    backToApp: 'CantoBuddy', title: '🃏 Big Two',
+    sub: '🇭🇰 Permainan kartu Hong Kong — kartu 2 paling besar dan sekop suit terkuat. Buat ruangan dan kirim kodenya ke keluarga.',
     nameLabel: 'Nama kamu', avatarLabel: 'Pilih avatar', createBtn: 'Buat ruangan',
     divider: 'Saya sudah punya kode', joinBtn: 'Gabung', codePlaceholder: 'Masukkan kode',
     tip1: '2–4 pemain · 13 kartu masing-masing · kartu 2 paling besar',

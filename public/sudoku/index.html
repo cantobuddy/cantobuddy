@@ -269,9 +269,14 @@
 (function () {
   'use strict';
 
-  var DICT = {
+  /* The page title and its one-line description carry an emoji, the same way
+   every culture heading does: it is the first thing on the screen and the
+   only part of a game page a player who has never opened it will read. The
+   emoji is language-neutral, so it is prefixed once per language block
+   rather than stored separately. */
+var DICT = {
     en: {
-      title: 'Sudoku', lead: 'Numbers, not words. Play alone or race a room.',
+      title: '🔢 Sudoku', lead: '🧩 Numbers, not words. Play alone or race a room.',
       chooseLevel: 'Level', easy: 'Easy', easySub: '4×4', medium: 'Medium', mediumSub: '6×6', hard: 'Hard', hardSub: '9×9', expert: 'Expert', expertSub: '9×9',
       aloneBtn: 'Play alone', divider: 'or play together',
       nameLbl: 'Your name', namePh: 'e.g. Mama', createBtn: 'Create room', avatarLbl: 'Pick an avatar',
@@ -289,7 +294,7 @@
       codeChipLabel: 'Room code · tap to share', soundTitle: 'Sound', chatTitle: 'Chat', leaveTitle: 'Leave the room', liveOnline: 'Live', confirmLeave: 'Leave this room?',
     },
     fil: {
-      title: 'Sudoku', lead: 'Mga numero, hindi salita. Mag-isa o sabay sa kuwarto.',
+      title: '🔢 Sudoku', lead: '🧩 Mga numero, hindi salita. Mag-isa o sabay sa kuwarto.',
       chooseLevel: 'Level', easy: 'Madali', easySub: '4×4', medium: 'Katamtaman', mediumSub: '6×6', hard: 'Mahirap', hardSub: '9×9', expert: 'Expert', expertSub: '9×9',
       aloneBtn: 'Mag-isa', divider: 'o sabay-sama',
       nameLbl: 'Pangalan mo', namePh: 'hal. Mama', createBtn: 'Gumawa ng kuwarto', avatarLbl: 'Pumili ng avatar',
@@ -307,7 +312,7 @@
       codeChipLabel: 'Code ng kuwarto · i-tap para i-share', soundTitle: 'Tunog', chatTitle: 'Chat', leaveTitle: 'Umalis sa kuwarto', liveOnline: 'Live', confirmLeave: 'Umalis sa kuwartong ito?',
     },
     zh: {
-      title: '数独', lead: '填数字，不用词语。单人玩或和朋友比赛。',
+      title: '🔢 数独', lead: '🧩 填数字，不用词语。单人玩或和朋友比赛。',
       chooseLevel: '难度', easy: '简单', easySub: '4×4', medium: '中等', mediumSub: '6×6', hard: '困难', hardSub: '9×9', expert: '专家', expertSub: '9×9',
       aloneBtn: '单人玩', divider: '或一起玩',
       nameLbl: '你的名字', namePh: '例如 妈妈', createBtn: '创建房间', avatarLbl: '挑个头像',
@@ -325,7 +330,7 @@
       codeChipLabel: '房间码 · 点按分享', soundTitle: '音效', chatTitle: '聊天', leaveTitle: '离开房间', liveOnline: '连线中', confirmLeave: '离开这个房间？',
     },
     id: {
-      title: 'Sudoku', lead: 'Angka, bukan kata. Main sendiri atau bareng di ruang.',
+      title: '🔢 Sudoku', lead: '🧩 Angka, bukan kata. Main sendiri atau bareng di ruang.',
       chooseLevel: 'Level', easy: 'Mudah', easySub: '4×4', medium: 'Sedang', mediumSub: '6×6', hard: 'Sulit', hardSub: '9×9', expert: 'Ahli', expertSub: '9×9',
       aloneBtn: 'Main sendiri', divider: 'atau bareng',
       nameLbl: 'Nama kamu', namePh: 'mis. Mama', createBtn: 'Buat ruang', avatarLbl: 'Pilih avatar',

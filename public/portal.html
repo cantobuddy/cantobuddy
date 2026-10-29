@@ -57,11 +57,6 @@
       <h2 id="auth-title">Employer Sign In</h2>
       <p class="login-hint" id="auth-hint">See how your helper's Cantonese is coming along.</p>
 
-      <a href="#employers" class="portal-promo">
-        <span class="pp-emoji">🤝</span>
-        <span><strong>New here?</strong> How to get your helper started ↓</span>
-      </a>
-
       <!-- No email, no password, and no access code to forget. The employer types
            their name; the browser quietly holds a device token, so re-signing in
            on the same phone or laptop just works. Sending a helper the invite
@@ -85,6 +80,17 @@
         <div id="auth-error" class="form-error"></div>
         <button type="submit" id="auth-submit" class="btn btn-primary btn-lg btn-block">Continue</button>
       </form>
+
+      <!-- Below the button, not above the field.
+           It used to sit between the heading and the first input, wearing a red
+           border — the position and colour of an error message, so the form
+           looked broken before it had been touched, and it outshouted the
+           "Continue" button that is the actual primary action. Here it reads as
+           what it is: an optional route for someone who has not signed up. -->
+      <a href="#employers" class="portal-promo">
+        <span class="pp-emoji">🤝</span>
+        <span><strong>New here?</strong> How to get your helper started ↓</span>
+      </a>
 
       <p class="portal-fineprint">
         No password needed. You connect to your helper by sending her the invite

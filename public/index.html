@@ -128,39 +128,52 @@
       <span class="logo-text">CantoBuddy</span>
     </div>
     <div class="header-right">
-      <!-- Share. Sits first in this group and is styled like the buttons beside
-           it, rather than living in the bottom nav. Opens the Share page. -->
-      <button class="site-btn" onclick="navigate('share')" title="Share CantoBuddy" aria-label="Share CantoBuddy"
-              data-i18n="header.shareSite" data-i18n-attr="title" data-i18n-aria="1"><span data-share-icon></span></button>
-      <!-- Public cross-link: the employer portal is open to anyone, so it gets
-           an icon here. The admin area deliberately does NOT — see the note
-           at the bottom of this header block.
-           Drawn as an inline SVG rather than an emoji, for the same reason as
-           the share glyph: it renders identically on every device. The shape is
-           a head-and-shoulders bust wearing suit lapels, which is what reads as
-           "the employer" — a plain person would look like your own account next
-           to the name badge, and glasses blur into a smudge at 19px. -->
-      <a href="/portal" class="site-btn" title="For employers" aria-label="For employers"
-         data-i18n="header.employerSite" data-i18n-attr="title" data-i18n-aria="1"><svg class="site-glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7.6" r="3.6"/><path d="M5.1 20.4c0-3.6 3.1-5.9 6.9-5.9s6.9 2.3 6.9 5.9"/><path d="M9.5 14.9 12 18.3l2.5-3.4"/></svg></a>
-      <!-- Shows the language you would switch TO: "FIL" while reading English,
-           "EN" while reading Filipino. i18n.js keeps this in sync. -->
-      <button id="lang-btn" class="lang-btn" onclick="openLangModal()" title="Change language" aria-label="Change language" aria-haspopup="dialog">EN</button>
-      <button id="voice-btn" class="voice-btn" onclick="openVoiceModal()" title="Choose practice voice" aria-label="Choose practice voice">👩</button>
-      <!-- "Add to home screen".
-           The install offer used to appear ONLY at the end of a quiz, which
-           meant a helper who never finished a quiz was never asked — and the
-           app is worth much more to her installed (one tap from her home
-           screen, no searching for the URL). This is the standing, voluntary
-           entry point; the end-of-quiz offer stays as the well-timed nudge.
+      <!-- Everything below 600px wide lives behind #header-more. The wrapper
+           carries no styling of its own on desktop — the same five controls
+           spread out inline exactly as before — and becomes an absolutely
+           positioned sheet on phones. See .header-extra in styles.css.
 
-           Hidden by default (`hidden` attribute) and revealed by
-           syncInstallEntry() in app.js ONLY when all of these hold: the install
-           is actually possible on this device, she has not already installed
-           it, and she has not already answered. That is why it is not styled
-           like a call to action — for most visitors it does not exist. -->
-      <button id="install-btn" class="site-btn" hidden onclick="openInstallModal()"
-              title="Add to home screen" aria-label="Add to home screen"
-              data-i18n="header.install" data-i18n-attr="title" data-i18n-aria="1">⬇︎</button>
+           The .he-label spans are hidden on desktop and shown only inside the
+           sheet, where a bare 38px circle is not enough of a signpost. They
+           reuse the SAME i18n keys as each control's title, so there is no new
+           copy to translate. -->
+      <div class="header-extra" id="header-extra">
+        <!-- Share. Sits first in this group and is styled like the buttons beside
+             it, rather than living in the bottom nav. Opens the Share page. -->
+        <button class="site-btn" onclick="navigate('share')" title="Share CantoBuddy" aria-label="Share CantoBuddy"
+                data-i18n="header.shareSite" data-i18n-attr="title" data-i18n-aria="1"><span data-share-icon></span><span class="he-label" data-i18n="header.shareSite">Share</span></button>
+        <!-- Public cross-link: the employer portal is open to anyone, so it gets
+             an icon here. The admin area deliberately does NOT — see the note
+             at the bottom of this header block.
+             Drawn as an inline SVG rather than an emoji, for the same reason as
+             the share glyph: it renders identically on every device. The shape is
+             a head-and-shoulders bust wearing suit lapels, which is what reads as
+             "the employer" — a plain person would look like your own account next
+             to the name badge, and glasses blur into a smudge at 19px. -->
+        <a href="/portal" class="site-btn" title="For employers" aria-label="For employers"
+           data-i18n="header.employerSite" data-i18n-attr="title" data-i18n-aria="1"><svg class="site-glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7.6" r="3.6"/><path d="M5.1 20.4c0-3.6 3.1-5.9 6.9-5.9s6.9 2.3 6.9 5.9"/><path d="M9.5 14.9 12 18.3l2.5-3.4"/></svg><span class="he-label" data-i18n="header.employerSite">For employers</span></a>
+        <!-- Shows the language you are READING. i18n.js writes the label into
+             .lang-cur when it exists, and falls back to the button itself
+             otherwise — the fallback is why the span has to be optional. -->
+        <button id="lang-btn" class="lang-btn" onclick="openLangModal()" title="Change language" aria-label="Change language" aria-haspopup="dialog"><span class="lang-cur">EN</span><span class="he-label" data-i18n="header.langTitle">Change language</span></button>
+        <button id="voice-btn" class="voice-btn" onclick="openVoiceModal()" title="Choose practice voice" aria-label="Choose practice voice"
+                data-i18n="header.voiceTitle" data-i18n-attr="title" data-i18n-aria="1"><span class="voice-cur">👩</span><span class="he-label" data-i18n="header.voiceTitle">Choose voice</span></button>
+        <!-- "Add to home screen".
+             The install offer used to appear ONLY at the end of a quiz, which
+             meant a helper who never finished a quiz was never asked — and the
+             app is worth much more to her installed (one tap from her home
+             screen, no searching for the URL). This is the standing, voluntary
+             entry point; the end-of-quiz offer stays as the well-timed nudge.
+
+             Hidden by default (`hidden` attribute) and revealed by
+             syncInstallEntry() in app.js ONLY when all of these hold: the install
+             is actually possible on this device, she has not already installed
+             it, and she has not already answered. That is why it is not styled
+             like a call to action — for most visitors it does not exist. -->
+        <button id="install-btn" class="site-btn" hidden onclick="openInstallModal()"
+                title="Add to home screen" aria-label="Add to home screen"
+                data-i18n="header.install" data-i18n-attr="title" data-i18n-aria="1">⬇︎<span class="he-label" data-i18n="header.install">Install</span></button>
+      </div>
       <!-- Deliberately NOT data-i18n: this label is dynamic (the helper's name,
            or "Set your name" when she has none), and updateLearnerBadge() in
            app.js owns it. applyTranslations() overwrites every [data-i18n]
@@ -168,6 +181,12 @@
            to the placeholder on every launch. The placeholder below is just the
            pre-boot default; app.js replaces it, translating it if needed. -->
       <span id="learner-badge" class="learner-badge" onclick="editLearnerName()">Set your name</span>
+      <!-- The only control that stays in the bar on a phone. 44px, not 38: it
+           is the single most-tapped thing in the header. aria-expanded is kept
+           in sync by toggleHeaderExtra() in app.js. -->
+      <button class="site-btn header-more" id="header-more" onclick="toggleHeaderExtra(event)"
+              title="More" aria-label="More options" aria-expanded="false" aria-controls="header-extra"
+              data-i18n="header.more" data-i18n-attr="title" data-i18n-aria="1">⋯</button>
       <!-- The admin link was deliberately removed from the learner header.
            Helpers (and future employer accounts) must never see a route into
            the operator area. The admin dashboard is reached by typing
@@ -218,6 +237,22 @@
          Deliberately not [data-i18n] — these carry her own data, and
          applyTranslations() would overwrite them with a static label. -->
     <div id="home-resume"></div>
+
+    <!-- ---- Today's phrase for your kitchen --------------------------------
+         Directly under the streak on purpose. The streak asks her to work; on
+         a tired evening she will not. One phrase, one tap, ten seconds, keeps
+         the daily-open habit alive on exactly the days the practice habit
+         fails — which is when a streak dies. Unlike the streak card above,
+         this one is shown to everyone: a first-time visitor is precisely who
+         needs a reason to come back tomorrow. -->
+    <div id="home-phrase"></div>
+
+    <!-- ---- The Sunday Table ----------------------------------------------
+         The one weekly appointment. Only rendered in the 48 hours before a
+         Table and while one is open — a weekly card that is always there is
+         furniture, and furniture is not read (same rule as the festival card
+         below). Filled by JS; empty the rest of the week. -->
+    <div id="home-sunday-table"></div>
 
     <!-- ---- Coming up: the next festival ------------------------------------
          Above Today's Culture on purpose. The culture card is "something to
@@ -432,6 +467,13 @@
               onclick="showChannel('news')" data-i18n="discover.tabNews">News</button>
       <button class="discover-tab" data-channel="living" role="tab"
               onclick="showChannel('living')" data-i18n="discover.tabLiving">Living</button>
+      <!-- The fourth channel. It is a channel rather than its own bottom-nav tab
+           because the bar is full at five (see the note on #view-games), and it
+           is a channel rather than a card in the feed because an outing is not a
+           post: it has a photograph, a route and a price, and it is read by
+           someone standing at a bus stop. -->
+      <button class="discover-tab" data-channel="places" role="tab"
+              onclick="showChannel('places')" data-i18n="discover.tabPlaces">Outings</button>
     </div>
 
     <!-- One line saying what this channel is, filled by renderDiscover(). Not a
@@ -494,6 +536,20 @@
       <button class="btn-back" onclick="navigate('discover'); showChannel('living')" data-i18n="living.back">← Living</button>
     </div>
     <article id="living-body" class="post-article"></article>
+  </section>
+
+  <!-- ---- PLACE VIEW ---- -->
+  <!-- One outing, opened from the Outings channel. A real view rather than a
+       modal: the route is a list she reads while walking, and a modal on a
+       phone is the screen she accidentally closes.
+       The body is built by renderPlace() from public/places.js — a fixed,
+       local record, so nothing here is user input and nothing needs sanitising
+       beyond the escapeHtml() every field goes through. -->
+  <section id="view-place" class="view">
+    <div class="browse-header">
+      <button class="btn-back" onclick="navigate('discover'); showChannel('places')" data-i18n="place.back">← Outings</button>
+    </div>
+    <article id="place-body" class="place-article"></article>
   </section>
 
   <!-- ---- WRITE A STORY VIEW ---- -->
@@ -599,48 +655,52 @@
 
     <p class="games-lead" data-i18n="games.lead">Play together, online. One person makes a room and sends the code to the rest — no account, no install.</p>
 
-    <div class="games-grid">
-      <a class="game-card game-card-live" href="/games/uno">
-        <span class="game-art" aria-hidden="true"><i>U</i><i>N</i><i>O</i></span>
-        <span class="game-body">
-          <span class="game-name">UNO</span>
-          <span class="game-desc" data-i18n="games.unoDesc">2–8 players · one room code · full rules, chat and card counts</span>
-          <span class="game-tags">
-            <span class="game-tag game-tag-on" data-i18n="games.online">Online, live</span>
-            <span class="game-tag" data-i18n="games.family">With family</span>
-          </span>
-        </span>
-        <span class="game-go" aria-hidden="true">›</span>
-      </a>
+    <!-- The credit strip. WHY IT IS HERE AND NOT ONLY IN THE ALBUM: the album
+         lives inside My Progress, which is no longer in the bottom bar, so a
+         player who has just spent her evening at a card table has no reason to
+         ever find it. Worse, all four games were completely silent about
+         credits — a game credit landed server-side and nothing on screen said
+         so. This strip is the one place the reward is stated next to the
+         behaviour that earns it. -->
+    <div id="games-credit-strip" class="games-credit" hidden></div>
 
-      <a class="game-card game-card-live" href="/games/bigtwo">
-        <span class="game-art" aria-hidden="true"><i>2</i><i class="suit">♠</i><i class="suit">♥</i></span>
-        <span class="game-body">
-          <span class="game-name" data-i18n="games.bigtwoName">Big Two</span>
-          <span class="game-desc" data-i18n="games.bigtwoDesc">The Hong Kong table game — 鋤大D. 2 is the biggest card, spades the strongest suit.</span>
-          <span class="game-tags">
-            <span class="game-tag game-tag-on" data-i18n="games.online">Online, live</span>
-            <span class="game-tag" data-i18n="games.twoToFour">2–4 players</span>
-          </span>
-        </span>
-        <span class="game-go" aria-hidden="true">›</span>
-      </a>
+    <div class="games-row" id="games-row"><!-- filled by renderGamesHub() --></div>
 
-      <a class="game-card game-card-live" href="/games/wordmatch">
-        <span class="game-art" aria-hidden="true"><i class="cjk">配</i><i class="cjk">對</i><i>?</i></span>
-        <span class="game-body">
-          <span class="game-name" data-i18n="games.matchName">Word match</span>
-          <span class="game-desc" data-i18n="games.matchDesc">Race a partner to match the Cantonese word with its meaning.</span>
-          <span class="game-tags">
-            <span class="game-tag game-tag-on" data-i18n="games.online">Online, live</span>
-            <span class="game-tag" data-i18n="games.twoPlayers">2 players</span>
-          </span>
-        </span>
-        <span class="game-go" aria-hidden="true">›</span>
-      </a>
+    <!-- ---- The story card: how to play with a friend --------------------
+         WHY IT EXISTS. The lead above says "one person makes a room and sends
+         the code to the rest" in a single sentence, and that sentence is the
+         whole product for anyone who has never used a room code. It does not
+         say what a room IS, where the code appears, or what she is supposed to
+         DO with it — so she opens UNO, meets a form and a four-letter field,
+         and leaves. This card shows the four moves instead of describing them,
+         in the order they happen, on a phone she recognises as her own.
+
+         It sits BELOW the games row rather than above it: the games are the
+         reason she opened this tab, and an explainer that pushes them off a
+         390px phone has explained nothing to anyone. The stage is decorative
+         (aria-hidden) and the caption carries the meaning, so the story is
+         still legible with the animation switched off — which is also what
+         prefers-reduced-motion gets, via styles.css. -->
+    <div class="games-story" id="games-story">
+      <div class="games-story-head">
+        <h3 class="games-story-title" data-i18n="games.storyTitle">How to play with a friend</h3>
+        <button class="games-story-play" id="games-story-play" type="button"
+                data-i18n="games.storyPause" data-i18n-attr="aria-label"
+                onclick="toggleStoryPlay()">❚❚</button>
+      </div>
+
+      <div class="games-story-stage" id="games-story-stage" aria-hidden="true"></div>
+
+      <p class="games-story-caption" id="games-story-caption"></p>
+
+      <div class="games-story-bar" id="games-story-bar">
+        <span class="games-story-fill" id="games-story-fill"></span>
+      </div>
+
+      <div class="games-story-dots" id="games-story-dots"></div>
     </div>
 
-    <p class="games-note" data-i18n="games.note">More games are on the way. UNO is the first — try it and tell us what to build next.</p>
+    <p class="games-note" data-i18n="games.note">Four games are live now — UNO, Big Two, Word match and Sudoku.</p>
   </section>
 
   <!-- ---- SHARE VIEW ---- -->
@@ -954,6 +1014,14 @@
 <!-- Absolute paths: this same HTML is served from /join/<code>, where a
      relative "app.js" would resolve to /join/app.js and 404. -->
 <script src="/i18n.js"></script>
+<!-- The Outings data: 17 places, each with a photograph, a route and a price.
+     A separate file because it is data, not code, and because the app shell is
+     precached — see APP_SHELL in sw.js. -->
+<script src="/places.js"></script>
+<!-- Author + licence for every Outings photograph. A script rather than a JSON
+     fetch so the credit survives offline, which is when the picture is already
+     on the screen and the photographer is still owed the name. -->
+<script src="/places/credits.js"></script>
 <script src="/app.js"></script>
 <!-- Opt-in push notifications (also loaded by the SEO landing pages). Self-
      contained, so it works whether or not app.js is present. -->

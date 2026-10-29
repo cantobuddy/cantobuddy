@@ -99,6 +99,46 @@
     try { localStorage.setItem(DISMISS_KEY, String(Date.now())); } catch (e) {}
   }
 
+  // ---- engagement gate ------------------------------------------------------
+  // The invite used to fire 2.5s after load on a first visit, before she had
+  // heard a single word. Two asks followed in sequence (this sheet, then the
+  // browser's own permission dialog) with no value shown in between — and on
+  // Android Chrome a block cannot be re-asked from the page, so asking too
+  // early costs the channel permanently.
+  //
+  // It now waits for either a played word (app.js sets cb_engaged in
+  // markEngaged() and dispatches cb:engaged) or a second visit, whichever
+  // comes first. A learner who only browses still gets asked eventually.
+  var ENGAGED_KEY = 'cb_engaged';
+  var VISIT_KEY = 'cb_visits';
+
+  function engaged() {
+    try { return localStorage.getItem(ENGAGED_KEY) === '1'; } catch (e) { return false; }
+  }
+  function bumpVisits() {
+    try {
+      var n = (parseInt(localStorage.getItem(VISIT_KEY), 10) || 0) + 1;
+      localStorage.setItem(VISIT_KEY, String(n));
+      return n;
+    } catch (e) { return 1; }
+  }
+
+  function whenEngaged(fn) {
+    if (engaged() || bumpVisits() >= 2) { fn(); return; }
+    var done = false;
+    function fire() {
+      if (done) return;
+      done = true;
+      fn();
+    }
+    // Same page load: app.js fires this the moment she plays a word.
+    window.addEventListener('cb:engaged', fire, { once: true });
+    // Another tab finishing the job while this one waits.
+    window.addEventListener('storage', function (e) {
+      if (e.key === ENGAGED_KEY) fire();
+    }, { once: true });
+  }
+
   function getRegistration() {
     if (!('serviceWorker' in navigator)) return Promise.resolve(null);
     return navigator.serviceWorker.getRegistration('/')
@@ -137,6 +177,21 @@
   // subscription source and to lift the banner above the SPA's bottom nav.
   function isSpa() { return !!document.querySelector('.bottom-nav'); }
   function source() { return isSpa() ? 'spa' : 'seo'; }
+
+  // The device identity the rest of the app already uses (DEVICE_KEY in
+  // app.js). Sending it here is what lets the server tie a push endpoint to a
+  // learner, so a reminder can carry her streak instead of a generic sentence.
+  // SEO pages never create one — a null id is fine; the link is repaired by the
+  // ping on her first load of the SPA.
+  function deviceId() {
+    try { return localStorage.getItem('cb_device') || null; } catch (e) { return null; }
+  }
+
+  // Everything the server needs to address a reminder to this device rather
+  // than to "a user": who she is, and the language she is reading.
+  function pushIdentity() {
+    return { publicId: deviceId(), lang: lang() };
+  }
 
   // ---- banner UI -----------------------------------------------------------
   function bannerEl() { return document.getElementById('cb-push-banner'); }
@@ -256,7 +311,10 @@
           applicationServerKey: urlBase64ToUint8Array(cfg.publicKey)
         }).then(function (sub) {
           // PushSubscription.toJSON() returns endpoint + base64url keys directly.
-          return postJSON('/api/push/subscribe', { subscription: sub.toJSON(), source: source() })
+          return postJSON('/api/push/subscribe', Object.assign({
+            subscription: sub.toJSON(),
+            source: source()
+          }, pushIdentity()))
             .then(function () { return sub; });
         }).then(function (sub) {
           // Remember which VAPID key this subscription belongs to, so a later
@@ -326,9 +384,12 @@
   }
 
   // ---- ping (keep last_active_at fresh) -------------------------------------
+  // Also carries the device id and language, so a subscription that predates
+  // the reminder ladder gets linked to its learner on the next page load.
   function ping(endpoint) {
     if (!endpoint) return;
-    postJSON('/api/push/ping', { endpoint: endpoint }).catch(function () {});
+    postJSON('/api/push/ping', Object.assign({ endpoint: endpoint }, pushIdentity()))
+      .catch(function () {});
   }
 
   // ---- boot -----------------------------------------------------------------
@@ -358,10 +419,13 @@
               showPill();
               return;
             }
-            // Not subscribed: maybe show the invite.
+            // Not subscribed: maybe show the invite — but only once she has
+            // actually used the app. See the engagement gate above.
             if (Notification.permission === 'default') {
-              // Show after a short beat so it does not flash before content.
-              setTimeout(showInvite, 2500);
+              whenEngaged(function () {
+                // Short beat so it does not land mid-transition.
+                setTimeout(showInvite, 1200);
+              });
             }
           });
         });

@@ -4,18 +4,29 @@
 
 /* ---- Design tokens ---- */
 :root {
-  --c-primary:       #e63946;
-  --c-primary-dark:  #c1121f;
-  --c-primary-light: #f8d7da;
+  /* #e63946 measured 4.17:1 against white, and white-on-#e63946 measured the
+     same — both below the 4.5:1 AA floor for normal text. It was painting
+     every nav label, back link, text link and primary button, so the failure
+     was systemic rather than local. The token now carries the darker value
+     (6.24:1 in both directions). The bright original survives as
+     --c-primary-bright for decoration only: the hero gradient is hard-coded
+     and carries large display type, where 3:1 is the applicable bar. */
+  --c-primary:        #c1121f;
+  --c-primary-bright: #e63946;
+  /* Hover shade. Kept distinct from --c-primary so buttons still respond to
+     the pointer now that the base value has moved down to this hue. */
+  --c-primary-dark:   #9d0f1a;
+  --c-primary-light:  #f8d7da;
   --c-secondary:     #2a9d8f;
   --c-accent:        #f4a261;
   --c-bg:            #f7f8fa;
   --c-surface:       #ffffff;
   --c-text:          #1a1a2e;
-  --c-text-soft:     #6c757d;
+  /* #6c757d was 4.41:1 on --c-bg — just under the floor, on 153 rules. */
+  --c-text-soft:     #5b6470;
   --c-border:        #e0e0e6;
   --c-correct:       #52b788;
-  --c-wrong:         #e63946;
+  --c-wrong:         #c1121f;
   --c-shadow:        rgba(0,0,0,0.06);
   --c-shadow-lg:     rgba(0,0,0,0.12);
   --radius:          14px;
@@ -113,7 +124,8 @@ body {
 .logo-sub {
   font-size: 0.85rem;
   font-weight: 500;
-  color: var(--c-text-soft);
+  /* #6c757d measured 2.64:1 on the portal's navy header. */
+  color: #a8b3c4;
 }
 
 .header-right {
@@ -122,16 +134,99 @@ body {
   gap: 10px;
 }
 
+/* ---- Header overflow menu ------------------------------------------------
+   At 320px the logo, five 38px controls and the name badge need roughly 546px
+   of width. The bar used to wrap into three ragged rows (138px tall, 19% of a
+   720px screen) and pushed the hero down before any content was read.
+
+   Below 600px every control except the name badge moves behind one 44px
+   button. Nothing is removed — the same buttons, with the same handlers and
+   the same translations, simply render as labelled rows in a sheet instead of
+   as bare circles in the bar. From 600px up they spread out inline again and
+   the sheet button disappears, so desktop is unchanged.
+
+   The labels matter: an unlabelled 38px circle was half the original problem,
+   so inside the sheet each row carries its own word. */
+/* Compound selector on purpose: .site-btn sets display/width later in the file
+   and would otherwise override a bare .header-more class. */
+.site-btn.header-more { display: none; width: 44px; height: 44px; font-size: 1.25rem; line-height: 1; }
+.header-extra { display: flex; align-items: center; gap: 10px; }
+.he-label { display: none; }
+
+@media (max-width: 599px) {
+  .site-btn.header-more { display: flex; }
+
+  .header-extra {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 12px;
+    z-index: 120;
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+    min-width: 224px;
+    padding: 8px;
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--radius);
+    box-shadow: 0 12px 32px var(--c-shadow-lg);
+  }
+  .header-extra.open { display: flex; }
+
+  /* Rows, not circles: 44px tall, icon then word, full width of the sheet. */
+  .header-extra .site-btn,
+  .header-extra .voice-btn,
+  .header-extra .lang-btn {
+    width: 100%;
+    height: 44px;
+    min-width: 0;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    justify-content: flex-start;
+    gap: 12px;
+    font-size: 0.95rem;
+  }
+  .header-extra .site-btn:hover,
+  .header-extra .voice-btn:hover,
+  .header-extra .lang-btn:hover {
+    background: var(--c-primary-tint);
+    border-color: transparent;
+  }
+  .he-label {
+    display: inline;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--c-text);
+    white-space: nowrap;
+  }
+
+  /* The rows are already 44px and sit 2px apart — an expanded hit area here
+     would overlap its neighbour and steal the tap. */
+  .header-extra .site-btn::before,
+  .header-extra .voice-btn::before,
+  .header-extra .lang-btn::before { inset: 0; }
+}
+
 .learner-badge {
   background: var(--c-primary-light);
-  color: var(--c-primary-dark);
-  padding: 6px 12px;
+  color: var(--c-primary);
+  /* Fixed height rather than padding: the pill measured 31px tall, a small
+     target for the one control every learner taps first. 40px keeps the header
+     at 64px while the ::after below grows the hit area to 48px. */
+  display: inline-block;
+  height: 40px;
+  line-height: 40px;
+  padding: 0 14px;
   border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.95rem;
+  font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
   transition: opacity 0.15s;
+  position: relative;
   /* The badge also shows the learner's own name (up to 30 characters). Cap it
      relative to the viewport so a long name can never push the header out of
      shape; short names and the "Set your name" prompt are unaffected. */
@@ -140,7 +235,28 @@ body {
   text-overflow: ellipsis;
 }
 
+/* Hit area only — the pill keeps its 40px visual height. */
+.learner-badge::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+}
+
 .learner-badge:hover { opacity: 0.85; }
+/* At 320px the wordmark plus badge plus one button still overflow by ~16px, so
+   the wordmark steps down rather than forcing a second row. This block must
+   follow the base .learner-badge rule above — a media query adds no
+   specificity, so an earlier copy of it lost to `max-width: 46vw`.
+   Scoped to .app-header so the portal and admin lockups keep their sizing. */
+@media (max-width: 380px) {
+  .app-header .header-inner { padding: 10px 12px; }
+  .app-header .logo-emoji { width: 28px; height: 28px; border-radius: 9px; }
+  .app-header .logo-text { font-size: 0.98rem; }
+  .header-right { gap: 8px; }
+  .learner-badge { max-width: 34vw; padding: 0 10px; font-size: 0.85rem; }
+}
+
 
 /* ---- Voice picker button (header) ---- */
 .voice-btn {
@@ -291,6 +407,19 @@ body {
 .site-btn:active { transform: scale(0.92); }
 .site-btn:focus-visible { outline: 2px solid var(--c-primary); outline-offset: 2px; }
 
+/* ---- Hit areas -----------------------------------------------------------
+   The circles stay 38px so the header keeps its rhythm, but the tappable
+   region grows to the 48px --tap token the file already declares. 26 of 73
+   controls on the home screen measured under 44px, and a 38px target is the
+   most common cause of "fiddly" feedback on low-end phones. */
+.site-btn, .voice-btn, .lang-btn { position: relative; }
+.site-btn::before, .voice-btn::before, .lang-btn::before {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border-radius: inherit;
+}
+
 /* ---- The share glyph (inline SVG, see SHARE_ICON_SVG in app.js) ----
    A box with an arrow leaving it — the shape people already read as "share".
    Sized in em so it scales with whatever text it sits beside, and drawn in
@@ -399,7 +528,7 @@ body {
   position: relative;
   z-index: 1;
   display: inline-block;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -594,6 +723,103 @@ body {
 .home-resume-sub { font-size: 0.82rem; color: var(--c-text-soft); margin-top: 3px; }
 .home-resume-btn { flex: 0 0 auto; }
 
+/* Today's kitchen phrase, directly under the streak card.
+
+   Deliberately the lightest card on the screen: no button, no progress, no
+   badge — the whole surface is one tappable line. The streak above it is the
+   card that asks something of her; this one asks nothing and costs ten seconds,
+   and that difference has to be visible at a glance or it becomes a second
+   piece of homework. */
+.home-phrase {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  margin-top: 10px;
+  padding: 14px 16px;
+  text-align: left;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  transition: border-color .15s, background .15s;
+}
+.home-phrase:hover { border-color: var(--c-primary); }
+.home-phrase:active { background: var(--c-surface-2, #f7f7f7); }
+.home-phrase-emoji { font-size: 1.9rem; line-height: 1; flex: 0 0 auto; }
+.home-phrase-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.home-phrase-label {
+  font-size: 0.75rem; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--c-text-soft); font-weight: 600;
+}
+.home-phrase-canto { font-size: 1.45rem; font-weight: 700; line-height: 1.2; }
+.home-phrase-jyutping { font-size: 0.82rem; color: var(--c-text-soft); font-style: italic; }
+.home-phrase-meaning { font-size: 0.9rem; color: var(--c-text); }
+.home-phrase-play { font-size: 1.2rem; flex: 0 0 auto; opacity: .7; }
+.home-phrase.playing .home-phrase-play { opacity: 1; }
+
+/* The Sunday Table — the weekly appointment.
+
+   Rendered only in the two days before a Table and while one is open, so it is
+   allowed to be the most distinctive card on Home: a teal edge, a status pill,
+   and rows that are obviously doors rather than decoration. */
+.sunday-card {
+  margin-top: 12px;
+  padding: 14px 16px 12px;
+  background: #f4fbfa;
+  border: 1px solid #b7e0da;
+  border-radius: var(--radius);
+}
+.sunday-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; margin-bottom: 10px; flex-wrap: wrap;
+}
+.sunday-title { font-weight: 700; font-size: 1rem; color: #14584f; }
+.sunday-status {
+  font-size: 0.72rem; font-weight: 600; letter-spacing: .02em;
+  padding: 3px 9px; border-radius: 999px;
+  background: #dff3ef; color: #14584f; white-space: nowrap;
+}
+.sunday-status.is-open { background: var(--c-secondary, #2a9d8f); color: #fff; }
+
+.sunday-row {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  padding: 10px 0; text-align: left;
+  background: none; border: 0; border-top: 1px solid #d8eeea;
+  font: inherit; color: inherit; cursor: pointer;
+}
+.sunday-row:first-of-type { border-top: 0; }
+.sunday-row:hover .sunday-row-title { color: var(--c-secondary, #2a9d8f); }
+.sunday-row-icon { font-size: 1.5rem; line-height: 1; flex: 0 0 auto; }
+.sunday-row-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.sunday-row-label {
+  font-size: 0.68rem; text-transform: uppercase; letter-spacing: .05em;
+  color: var(--c-text-soft); font-weight: 600;
+}
+.sunday-row-title { font-size: 0.95rem; font-weight: 600; line-height: 1.3; }
+.sunday-play { font-size: 0.82rem; font-weight: 600; color: var(--c-secondary, #2a9d8f); white-space: nowrap; }
+
+.sunday-digest { border-top: 1px solid #d8eeea; padding-top: 10px; margin-top: 2px; }
+.sunday-digest-row {
+  display: flex; align-items: baseline; gap: 7px; width: 100%;
+  padding: 4px 0; text-align: left;
+  background: none; border: 0; font: inherit; color: inherit; cursor: pointer;
+  font-size: 0.86rem; line-height: 1.35;
+}
+.sunday-digest-row:hover .sunday-digest-title { color: var(--c-secondary, #2a9d8f); }
+.sunday-digest-dot { color: var(--c-secondary, #2a9d8f); flex: 0 0 auto; }
+.sunday-digest-title { min-width: 0; }
+
+.sunday-result {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; flex-wrap: wrap;
+  margin-top: 10px; padding-top: 10px; border-top: 1px solid #d8eeea;
+}
+.sunday-result-line { font-size: 0.86rem; font-weight: 600; color: #14584f; }
+.sunday-share { font-size: 0.82rem; padding: 7px 14px; }
+
 .home-section-title {
   display: flex;
   align-items: center;
@@ -750,7 +976,11 @@ body {
 #home-discover-promo .home-section-title::before { content: '🌏'; }
 .discover-promo-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* auto-fit rather than a fixed three columns: the row grew a fourth card
+     (Outings) and a fixed 3 would leave it alone on a second line at phone
+     width. 150px is the width below which the description stops being readable,
+     so a 360px screen gets two rows of two and a desktop gets one row of four. */
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 8px;
 }
 .discover-promo-card {
@@ -779,7 +1009,7 @@ body {
   color: var(--c-text);
 }
 .discover-promo-desc {
-  font-size: 0.7rem;
+  font-size: 0.8125rem;
   color: var(--c-text-soft);
   line-height: 1.35;
 }
@@ -806,7 +1036,7 @@ body {
   border-radius: 999px;
   background: var(--c-primary);
   color: #fff;
-  font-size: 0.55rem;
+  font-size: 0.625rem;
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -817,27 +1047,26 @@ body {
   line-height: 1.45;
   margin: -4px 0 10px;
 }
-#home-games-promo .games-grid {
-  display: grid;
-  gap: 8px;
-}
-#home-games-promo .game-card {
-  padding: 10px 12px;
-  gap: 11px;
+#home-games-promo .games-row { gap: 8px; }
+#home-games-promo .game-tile {
+  flex: 0 0 auto;
+  width: 62px;
+  padding: 4px 2px;
+  gap: 6px;
 }
 #home-games-promo .game-art {
   width: 44px;
   height: 44px;
-  border-radius: 12px;
+  border-radius: 13px;
 }
-#home-games-promo .game-art i {
-  width: 12px;
-  height: 17px;
-  font-size: 7px;
-}
-#home-games-promo .game-art i.suit { font-size: 9px; }
-#home-games-promo .game-name { font-size: 0.85rem; }
-#home-games-promo .game-desc { font-size: 0.68rem; line-height: 1.35; }
+#home-games-promo .game-tile-name { font-size: 0.75rem; }
+/* The UNO mark is three cards, and each is ROTATED — so its painted width is
+   wider than its layout width. At the hub's 58px badge there is room; at the
+   promo's 44px the outer card's corner spilled a pixel outside the rounded box
+   (scrollWidth 46 in a 44 box, in all four languages). Smaller cards and a
+   tighter gap for the promo only. */
+#home-games-promo .game-art { gap: 2px; }
+#home-games-promo .game-art i { width: 12px; height: 17px; font-size: 7px; }
 
 .home-categories {
   margin-top: 24px;
@@ -883,8 +1112,11 @@ body {
    clipped grid; a soft outline keeps it visible without competing with the
    category pills above. */
 .cat-strip-toggle {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin: 10px auto 0;
+  min-height: 44px;
   padding: 6px 14px;
   font-size: 0.85rem;
   font-weight: 600;
@@ -1058,6 +1290,93 @@ body {
   margin: -4px 0 16px;
 }
 
+/* ---- The credit strip on the Games hub -----------------------------------
+   The one place in the app where the reward is stated next to the behaviour
+   that earns it. Deliberately quiet: a badge, not a banner. It is hidden
+   entirely (not rendered as zeros) for a device with no identity yet, so a
+   first-time player sees a games list rather than an empty promise.          */
+.games-credit {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin: -4px 0 16px;
+}
+.games-credit-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.games-credit-balance {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--c-text);
+  line-height: 1;
+}
+.games-credit-word {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--c-text-soft);
+  margin-left: 5px;
+}
+.games-credit-today {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--c-text-soft);
+}
+.games-credit-boxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.games-credit-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--c-border);
+  color: var(--c-text-soft);
+  background: transparent;
+}
+.games-credit-box.is-done {
+  color: var(--c-text);
+  border-color: transparent;
+  background: color-mix(in srgb, var(--c-primary) 14%, transparent);
+}
+.games-credit-tick {
+  display: inline-grid;
+  place-items: center;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  font-size: 9px;
+  line-height: 1;
+}
+.games-credit-box.is-done .games-credit-tick {
+  background: var(--c-primary);
+  border-color: var(--c-primary);
+  color: #fff;
+}
+.games-credit-link {
+  margin-top: 10px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--c-primary);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
 .games-grid {
   display: flex;
   flex-direction: column;
@@ -1123,6 +1442,54 @@ a.game-card:active { transform: scale(0.985); }
    made legible in a 15px tile, but at 11px it at least reads as a character
    rather than as dirt, and the gold ? tile beside it carries the meaning. */
 .game-art i.cjk { font-size: 11px; letter-spacing: -0.5px; }
+/* The three new marks (Big Two, Word match, Sudoku) are inline SVG. They fill
+   the art tile and scale with it, so they stay crisp at every density and need
+   no asset — same reason the UNO tiles are drawn in CSS. */
+.game-art svg { width: 100%; height: 100%; display: block; }
+
+/* The Games hub and the Home promo share one horizontal row of icon tiles — no
+   descriptions, no tags, just the mark and its name. The row scrolls if four
+   tiles ever outrun a very narrow phone, but it never pushes the page sideways
+   (only an inner element scrolls, so document scrollWidth is untouched). */
+.games-row {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 2px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.games-row::-webkit-scrollbar { display: none; }
+.game-tile {
+  flex: 1 1 0;
+  max-width: 84px;
+  min-width: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  text-decoration: none;
+  color: var(--c-text);
+  padding: 6px 4px;
+  border-radius: 16px;
+  border: 1px solid transparent;
+  transition: transform 0.12s, background 0.2s;
+}
+a.game-tile:active { transform: scale(0.96); background: var(--c-primary-tint); }
+.game-tile-name {
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  /* `anywhere` broke "Checkers" into "Checker" + "s" at 390px. Wrap at the
+     space instead, and clamp to two lines so tiles stay the same height. */
+  overflow-wrap: normal;
+  word-break: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 
 .game-art-soon {
   font-size: 26px;
@@ -1190,6 +1557,430 @@ a.game-card:active { transform: scale(0.985); }
   color: var(--c-text-soft);
   text-align: center;
 }
+
+/* ---- The story card: how to play with a friend ---------------------------
+   A four-step animated walkthrough of the room-code flow, sitting under the
+   games row. Everything inside .gs-* is a miniature of the real screens — the
+   phone, the code chip, the share sheet — drawn in CSS so it costs no images
+   and scales with the theme tokens.
+
+   The text inside the mock is deliberately tiny (8–14px). It is a PICTURE of
+   a phone, not an interface: reading it is not the point, recognising the
+   shape of it is. The words that matter are in the caption below, at normal
+   size, and the stage is aria-hidden so nothing here is announced twice. */
+.games-story {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  padding: 13px 14px 12px;
+  margin: 14px 0 0;
+}
+.games-story-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.games-story-title {
+  font-size: 0.98rem;
+  font-weight: 800;
+  line-height: 1.3;
+}
+.games-story-play {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--c-border);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--c-text-soft);
+  font-size: 0.72rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.games-story-play:hover {
+  color: var(--c-primary);
+  border-color: var(--c-primary);
+}
+
+/* The stage holds the mock. Its height is fixed so the four scenes — one
+   phone, then two — swap without the card resizing under the reader's thumb. */
+.games-story-stage {
+  display: grid;
+  place-items: center;
+  min-height: 164px;
+  margin: 8px 0 2px;
+}
+
+/* The caption carries the story. Three lines are reserved whatever the
+   language: a card that grows and shrinks as the steps turn reads as broken,
+   and the four captions are different lengths in every one of the four
+   languages (Filipino runs longest, Chinese shortest). */
+.games-story-caption {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(0.88rem * 1.55 * 3);
+  font-size: 0.88rem;
+  line-height: 1.55;
+  text-align: center;
+  color: var(--c-text);
+}
+
+.games-story-bar {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--c-border);
+  overflow: hidden;
+  margin-top: 10px;
+}
+.games-story-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--c-primary);
+  transform-origin: left center;
+  animation: gs-fill 5.2s linear forwards;
+}
+@keyframes gs-fill {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+/* The dots are 30px tap targets around an 8px mark — a bare 8px dot is not
+   something a thumb can choose, and this is the only manual control over the
+   story. */
+.games-story-dots {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 8px;
+}
+.games-story-dot {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.games-story-dot::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--c-border);
+  transition: background 0.2s, transform 0.2s;
+}
+.games-story-dot.is-on::before {
+  background: var(--c-primary);
+  transform: scale(1.4);
+}
+
+/* ---- The miniature phone ------------------------------------------------ */
+.gs-phone {
+  width: 96px;
+  padding: 5px;
+  border-radius: 14px;
+  background: var(--c-text);
+  box-shadow: 0 4px 14px var(--c-shadow-lg);
+}
+.gs-screen {
+  position: relative;
+  height: 150px;
+  border-radius: 10px;
+  background: var(--c-bg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 8px;
+  font-size: 8px;
+  line-height: 1.25;
+  text-align: center;
+}
+/* Scene two has no button to pin to the bottom, so its three elements would
+   otherwise sit in a row across the top of an otherwise empty screen. */
+.gs-screen-mid { justify-content: center; }
+.gs-appbar {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-weight: 800;
+  font-size: 9px;
+  color: var(--c-text);
+}
+.gs-appdot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--c-primary);
+}
+.gs-field {
+  width: 100%;
+  min-height: 17px;
+  padding: 3px 5px;
+  border: 1px solid var(--c-border);
+  border-radius: 5px;
+  background: var(--c-surface);
+  color: var(--c-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+.gs-field-code {
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: var(--c-primary);
+}
+.gs-typed {
+  opacity: 0;
+  animation: gs-typed 0.5s ease-out 0.5s forwards;
+}
+.gs-typed-b { animation-delay: 1.1s; }
+@keyframes gs-typed {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.gs-caret {
+  width: 1px;
+  height: 9px;
+  background: var(--c-text);
+  animation: gs-caret 1s steps(1) infinite;
+}
+@keyframes gs-caret {
+  0%, 49%  { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+.gs-btn {
+  position: relative;
+  width: 100%;
+  margin-top: auto;
+  padding: 6px 4px;
+  border-radius: 6px;
+  background: var(--c-primary);
+  color: #fff;
+  font-weight: 700;
+  font-size: 8px;
+  overflow: hidden;
+}
+.gs-btn-go { background: var(--c-secondary); }
+
+/* The tap: a ring that closes on the button and a ripple that spreads from
+   the point of contact, then the whole thing repeats — the scene is a loop of
+   the same two-second action, which is what makes it read as "press this". */
+.gs-tap {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  animation: gs-tap 2.4s ease-out infinite;
+}
+@keyframes gs-tap {
+  0%   { transform: scale(2.6); opacity: 0; }
+  18%  { transform: scale(1);   opacity: 0.95; }
+  34%  { transform: scale(0.9); opacity: 0.95; }
+  50%  { transform: scale(2.2); opacity: 0; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+.gs-ripple {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.75);
+  animation: gs-ripple 2.4s ease-out infinite;
+}
+@keyframes gs-ripple {
+  0%, 30% { transform: scale(0); opacity: 0; }
+  38%     { transform: scale(0); opacity: 0.9; }
+  70%     { transform: scale(7); opacity: 0; }
+  100%    { transform: scale(7); opacity: 0; }
+}
+
+/* The code chip: it pops in, then a shine sweeps across it once per loop. */
+.gs-seats {
+  display: flex;
+  gap: 6px;
+}
+.gs-avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 8px;
+  font-weight: 800;
+  color: #fff;
+  background: var(--c-secondary);
+}
+.gs-ava-me { background: var(--c-primary); }
+.gs-ava-wait {
+  background: var(--c-surface);
+  border: 1px dashed var(--c-border);
+  color: var(--c-text-soft);
+}
+.gs-ava-friend { background: var(--c-accent); color: var(--c-text); }
+.gs-count {
+  font-size: 7px;
+  font-weight: 700;
+  color: var(--c-text-soft);
+}
+.gs-code {
+  position: relative;
+  width: 100%;
+  padding: 6px 4px 5px;
+  border-radius: 8px;
+  border: 1px solid var(--c-border);
+  background: var(--c-surface);
+  overflow: hidden;
+  animation: gs-pop 0.55s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+.gs-code small {
+  display: block;
+  font-size: 6.5px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--c-text-soft);
+}
+.gs-code strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 2.5px;
+  color: var(--c-primary);
+}
+.gs-codehint {
+  font-size: 6.5px;
+  color: var(--c-text-soft);
+}
+.gs-chain {
+  position: absolute;
+  right: 4px;
+  top: 4px;
+  font-size: 8px;
+}
+.gs-shine {
+  position: absolute;
+  left: -40%;
+  top: 0;
+  width: 30%;
+  height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.85), transparent);
+  animation: gs-shine 2.8s ease-in-out 1s infinite;
+}
+@keyframes gs-pop {
+  from { transform: scale(0.6); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+@keyframes gs-shine {
+  0%        { left: -40%; }
+  55%, 100% { left: 120%; }
+}
+
+/* Step three: the share sheet rises from the bottom of the mock. */
+.gs-code-dim {
+  animation: none;
+  opacity: 0.55;
+}
+.gs-code-dim strong { font-size: 11px; }
+.gs-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 5px 7px 7px;
+  border-radius: 9px 9px 10px 10px;
+  background: var(--c-surface);
+  border-top: 1px solid var(--c-border);
+  box-shadow: 0 -3px 10px var(--c-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  animation: gs-rise 0.5s cubic-bezier(0.2, 0.9, 0.3, 1) 0.7s both;
+}
+.gs-grip {
+  width: 22px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--c-border);
+  margin: 0 auto 1px;
+}
+.gs-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 5px;
+  border-radius: 5px;
+  background: var(--c-bg);
+  font-size: 7.5px;
+  font-weight: 600;
+  color: var(--c-text);
+}
+.gs-ico { font-size: 9px; }
+.gs-row-wa { background: #dcf8c6; }
+@keyframes gs-rise {
+  from { transform: translateY(105%); }
+  to   { transform: translateY(0); }
+}
+
+/* Step four: two phones, and the link flying between them. */
+.gs-pair {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.gs-fly {
+  position: absolute;
+  left: 56px;
+  top: 24%;
+  font-size: 12px;
+  animation: gs-fly 2.6s ease-in-out 1s infinite;
+}
+@keyframes gs-fly {
+  0%        { transform: translateX(0) scale(0.7); opacity: 0; }
+  15%       { transform: translateX(10px) scale(1); opacity: 1; }
+  70%       { transform: translateX(78px) scale(1); opacity: 1; }
+  90%, 100% { transform: translateX(88px) scale(0.7); opacity: 0; }
+}
+
+/* ---- Pause, and the readers who asked for less movement ------------------
+   Pausing is one rule: every animation in the card stops where it is, the
+   progress bar included, and resuming continues from that exact point. There
+   is no second timer to get out of step, because there is no second timer. */
+.games-story.is-paused .games-story-fill,
+.games-story.is-paused .gs-phone *,
+.games-story.is-paused .gs-fly {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* No auto-advance: with the progress animation switched off, its
+     animationend never fires, so the story waits on step one for a tap on a
+     dot. The card is still fully readable — the scenes simply hold still. */
+  .games-story-fill { animation: none; transform: scaleX(1); }
+  .games-story .gs-phone *,
+  .games-story .gs-fly { animation: none !important; }
+  .gs-typed { opacity: 1; }
+  .gs-sheet { transform: translateY(0); }
+}
+
 
 /* ===========================================================================
    SHARE PAGE (#view-share)
@@ -2194,7 +2985,7 @@ a.game-card:active { transform: scale(0.985); }
   align-items: center;
   gap: 2px;
   color: var(--c-text-soft);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 600;
   transition: color 0.15s;
   min-height: 64px;
@@ -2220,7 +3011,8 @@ a.game-card:active { transform: scale(0.985); }
   border-radius: 999px;
   background: var(--c-primary);
   color: #fff;
-  font-size: 0.5rem;
+  /* 0.5rem was 8px — unreadable at arm's length. */
+  font-size: 0.625rem;
   font-weight: 800;
   line-height: 1.35;
   letter-spacing: 0.02em;
@@ -2261,7 +3053,13 @@ a.game-card:active { transform: scale(0.985); }
 }
 
 /* A segmented control rather than two loose buttons: culture and news are one
-   choice, so they read as a single track with the selected half filled. */
+   choice, so they read as a single track with the selected half filled.
+
+   Four tabs since Outings arrived (2026-10-29). At 320px the four labels plus
+   their padding come to more than the track, so the tabs are `flex: 1 0 auto` —
+   they share the width when there is room and stop shrinking at their own text
+   when there is not — and the track scrolls sideways instead of clipping a label
+   or wrapping one onto a second line inside a pill. */
 .discover-tabs {
   display: flex;
   gap: 4px;
@@ -2269,19 +3067,23 @@ a.game-card:active { transform: scale(0.985); }
   margin-bottom: 14px;
   background: #eef1f5;
   border-radius: 999px;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
+.discover-tabs::-webkit-scrollbar { display: none; }
 
 .discover-tab {
-  flex: 1;
-  padding: 8px 12px;
+  flex: 1 0 auto;
+  padding: 8px 10px;
   border: none;
   border-radius: 999px;
   background: transparent;
   color: var(--c-text-soft);
   font-family: inherit;
-  font-size: 0.92rem;
+  font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
   min-height: var(--tap);
   transition: background 0.15s, color 0.15s;
 }
@@ -2344,7 +3146,7 @@ a.game-card:active { transform: scale(0.985); }
 .post-card-main { display: flex; flex-direction: column; gap: 3px; flex: 1 1 auto; min-width: 0; }
 
 .post-card-meta {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -2736,7 +3538,10 @@ a.game-card:active { transform: scale(0.985); }
    and the type steps down a notch on the narrowest phones. */
 .nav-btn > span:not(.nav-icon) { white-space: nowrap; }
 @media (max-width: 400px) {
-  .nav-btn { font-size: 0.64rem; padding: 8px 2px 6px; }
+  /* 0.64rem was 10.24px — the smallest text in the app. 0.7rem is the floor
+     that still lets the longest Filipino labels (Pagsusulit, Tuklasin) fit
+     five tabs across 320px without wrapping. */
+  .nav-btn { font-size: 0.7rem; padding: 8px 2px 6px; }
 }
 
 /* ===========================================================================
@@ -4150,13 +4955,16 @@ a.game-card:active { transform: scale(0.985); }
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 0 0 22px;
+  margin: 18px 0 0;
   padding: 12px 14px;
-  background: var(--c-surface-alt, #f1f5f9);
-  border: 1px solid var(--c-primary, #1d3557);
-  border-left: 4px solid var(--c-primary, #1d3557);
+  /* Neutral info tint, not a red rule. Red is the form's error colour
+     (.form-error) and the primary button's fill — using it for a help link
+     made an untouched form look already broken. */
+  background: #eef4fb;
+  border: 1px solid #cfe0f3;
+  border-left: 4px solid #3b6ea5;
   border-radius: var(--radius-sm, 8px);
-  color: var(--c-text, #1d3557);
+  color: #1f4e79;
   text-decoration: none;
   font-size: 0.9rem;
   line-height: 1.45;
@@ -4322,6 +5130,25 @@ a.game-card:active { transform: scale(0.985); }
 }
 .report-export .btn { text-decoration: none; }
 
+/* Legend under the games chart: two stacked series, so the reader needs to be
+   told which colour is which. The swatch is a real box rather than a coloured
+   character so it inherits nothing from the surrounding font. */
+.report-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: 2px 0 8px;
+  font-size: 0.78rem;
+  color: var(--c-text-soft);
+}
+.report-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.report-legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
 /* ---- Learner statistics (inside My Progress) ------------------------------ */
 
 /* The streak leads with a number big enough to read at arm's length. It is the
@@ -4425,6 +5252,11 @@ a.game-card:active { transform: scale(0.985); }
   text-decoration: none;
   border: 1px solid var(--c-border);
   border-radius: 999px;
+  /* 34px tall pills measured under the 44px floor — these are the densest
+     cluster of small targets on the page. */
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   padding: 6px 13px;
   transition: color 0.15s, border-color 0.15s;
 }
@@ -4731,18 +5563,23 @@ a.game-card:active { transform: scale(0.985); }
   margin-top: 4px; font-size: 0.8rem; color: var(--c-text-soft);
 }
 .living-card-stat { display: inline-flex; align-items: center; gap: 4px; }
+/* A card with nothing to count yet. Softer than a tally, and phrased as an
+   invitation — this is the only thing standing between an empty shelf and a
+   shelf that looks abandoned. */
+.living-card-invite { color: var(--c-primary); font-weight: 500; }
 
-/* Reaction bar: summary chips (tap to toggle) plus a hidden picker. */
+/* Reaction bar: one row of emoji, all of them visible from the start.
+   The picker and the "Be the first to react" hint were removed together —
+   they existed to hide the seven choices behind a tap, and the tap was the
+   reason nobody reacted. */
 .living-reactions { margin-top: 18px; }
 .living-react-summary {
   display: flex; align-items: center; gap: 8px;
   padding: 8px 10px; border-radius: 12px;
   background: var(--c-surface); border: 1px solid var(--c-border);
-  cursor: pointer; -webkit-tap-highlight-color: transparent;
 }
 .living-react-total { font-weight: 700; color: var(--c-text); font-size: 0.9rem; }
 .living-react-chips { display: flex; align-items: center; gap: 3px; flex-wrap: wrap; }
-.living-react-hint { font-size: 0.82rem; color: var(--c-text-soft); }
 .living-react-chip {
   display: inline-flex; align-items: center; gap: 3px;
   padding: 3px 9px; border-radius: 999px;
@@ -4750,23 +5587,15 @@ a.game-card:active { transform: scale(0.985); }
   font: inherit; font-size: 0.9rem; cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
+/* Still at zero: quieter, so the counts are what the eye lands on first —
+   but present, because an emoji nobody can see is a reaction nobody gives. */
+.living-react-chip.is-empty {
+  background: transparent; border-color: var(--c-border); opacity: 0.75;
+}
+.living-react-chip.is-empty:hover { opacity: 1; border-color: var(--c-primary); }
 .living-react-chip.is-active { border-color: var(--c-primary-dark); }
 .living-react-emoji { font-size: 1.05rem; line-height: 1; }
 .living-react-count { font-size: 0.78rem; font-weight: 700; color: var(--c-text); }
-.living-react-picker {
-  display: flex; gap: 4px; margin-top: 8px; padding: 6px;
-  border-radius: 999px; background: var(--c-surface);
-  border: 1px solid var(--c-border); box-shadow: 0 2px 8px var(--c-shadow);
-  width: fit-content;
-}
-.living-react-pick {
-  width: 40px; height: 40px; border-radius: 50%;
-  border: none; background: transparent; cursor: pointer;
-  font-size: 1.45rem; line-height: 1; padding: 0;
-  transition: transform 0.1s;
-  -webkit-tap-highlight-color: transparent;
-}
-.living-react-pick:hover, .living-react-pick:active { transform: scale(1.25); }
 
 /* Comment thread. */
 .living-comments { margin-top: 22px; }
@@ -4803,3 +5632,289 @@ a.game-card:active { transform: scale(0.985); }
   box-shadow: 0 0 0 3px var(--c-primary-tint);
 }
 .living-comment-submit { align-self: flex-end; }
+
+/* =============================================================================
+   OUTINGS — the shelf of places and one place's page.
+
+   The card is a row, not a tile: at 320px a photograph above a title above two
+   chips is a screen and a half of scrolling for one place, and there are
+   seventeen. A 116px thumbnail beside the text shows eight places per screen,
+   which is the number that makes the shelf browsable rather than a list to
+   scroll through one card at a time.
+   ============================================================================= */
+.place-card {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  width: 100%;
+  padding: 0;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+}
+.place-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px var(--c-shadow-lg);
+  border-color: var(--c-primary);
+}
+.place-card:active { transform: scale(0.99); }
+
+.place-card-photo {
+  position: relative;
+  flex: 0 0 116px;
+  width: 116px;
+  min-height: 116px;
+  background: #eef1f5;
+}
+.place-card-photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+/* The kind emoji, so the card still says what sort of outing it is when the
+   photograph is still loading on a slow connection. */
+.place-card-emoji {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  font-size: 0.95rem;
+  line-height: 1;
+  box-shadow: 0 1px 4px var(--c-shadow-lg);
+}
+
+.place-card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0; /* a flex child will not shrink below its text without this */
+  padding: 10px 12px;
+}
+.place-card-title {
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--c-text);
+  line-height: 1.25;
+}
+.place-card-zh {
+  font-family: var(--font-cn);
+  font-size: 0.76rem;
+  color: var(--c-text-soft);
+}
+.place-card-sum {
+  font-size: 0.8rem;
+  color: var(--c-text-soft);
+  line-height: 1.4;
+  margin-top: 2px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.place-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.place-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #f1f3f6;
+  color: var(--c-text-soft);
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+/* Free is the single most useful fact on the shelf, so it gets the one colour
+   in the row that is not grey. */
+.place-chip--free {
+  background: #e3f5ec;
+  color: #1f7a52;
+}
+
+/* ---- One place ---- */
+.place-article { padding-bottom: 24px; }
+
+.place-hero {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  border-radius: var(--radius);
+  background: #eef1f5;
+}
+.place-head { padding: 14px 0 2px; }
+.place-title {
+  font-size: 1.3rem;
+  line-height: 1.25;
+  margin: 0;
+  color: var(--c-text);
+}
+.place-title-zh {
+  font-family: var(--font-cn);
+  font-size: 0.9rem;
+  color: var(--c-text-soft);
+  margin: 2px 0 0;
+}
+.place-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.place-meta-row .place-chip { font-size: 0.74rem; padding: 3px 9px; }
+
+.place-summary {
+  font-size: 0.98rem;
+  line-height: 1.6;
+  color: var(--c-text);
+  margin: 14px 0 0;
+}
+
+.place-h2 {
+  font-size: 1.05rem;
+  margin: 24px 0 10px;
+  color: var(--c-primary-dark);
+}
+
+/* The route. Numbered, because the order is the instruction — "walk 10 minutes
+   to the pier" before "ferry" is a different journey from the reverse. */
+.place-steps {
+  list-style: none;
+  counter-reset: step;
+  margin: 0;
+  padding: 0;
+}
+.place-steps li {
+  counter-increment: step;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 12px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.92rem;
+  line-height: 1.4;
+  margin-bottom: 6px;
+}
+.place-steps li::before {
+  content: counter(step);
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--c-primary-tint);
+  color: var(--c-primary-dark);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.place-step-icon { flex: 0 0 auto; font-size: 1rem; line-height: 1.2; }
+
+/* The price list. A dotted leader keeps the fare and the amount on one line at
+   320px even when the label is three words long in Filipino. */
+.place-fees {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.place-fees li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px dashed var(--c-border);
+  font-size: 0.92rem;
+}
+.place-fees li:last-child { border-bottom: none; }
+.place-fee-when {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--c-text-soft);
+  font-weight: 500;
+}
+.place-fee-amt {
+  font-weight: 700;
+  color: var(--c-text);
+  white-space: nowrap;
+}
+.place-free-note {
+  display: inline-block;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  background: #e3f5ec;
+  color: #1f7a52;
+  font-weight: 700;
+  font-size: 0.95rem;
+  margin: 0;
+}
+.place-prices-note {
+  font-size: 0.72rem;
+  color: var(--c-text-soft);
+  line-height: 1.4;
+  margin: 10px 0 0;
+}
+/* A one-way fare needs saying, and it needs to be readable rather than a
+   footnote — it changes the number she plans with. */
+.place-oneway-note {
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--c-text);
+  background: var(--c-bg);
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin: 10px 0 0;
+}
+.place-hours {
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--c-text);
+  margin: 0;
+}
+.place-tips {
+  margin: 0 0 0 18px;
+  padding: 0;
+}
+.place-tips li {
+  font-size: 0.92rem;
+  line-height: 1.55;
+  margin-bottom: 9px;
+}
+.place-credit {
+  font-size: 0.68rem;
+  color: var(--c-text-soft);
+  line-height: 1.4;
+  margin: 22px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--c-border);
+}
+.place-credit a { color: inherit; }
+
+@media (max-width: 360px) {
+  .place-card-photo { flex-basis: 96px; width: 96px; min-height: 96px; }
+  .place-card-title { font-size: 0.92rem; }
+  .place-card-sum { -webkit-line-clamp: 2; font-size: 0.76rem; }
+}

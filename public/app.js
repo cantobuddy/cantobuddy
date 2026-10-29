@@ -119,6 +119,11 @@ const STATE = {
     counts: null,
     shown: NEWS_PAGE_SIZE,
     current: null,
+    // Which kind of outing the Outings channel is narrowed to, or null for all.
+    // Separate from `category` because the two channels' filters are different
+    // vocabularies and must not be read by each other's renderer.
+    placeKind: null,
+    place: null,
   },
   // Stories — a helper's own life story, read from the Stories channel inside
   // Discover. `list` caches the shelf so a tab switch is instant; `current` is
@@ -141,6 +146,11 @@ const STATE = {
   // above: most of the year there is no festival within the window, and that
   // "no" must not be re-asked on every language switch.
   homeFestival: null,
+  // Today's kitchen phrase, from /api/phrase/today. Cached for the day so a
+  // language switch repaints it without a second fetch.
+  homePhrase: null,
+  // The Sunday Table, from /api/sunday-table. Same null/false distinction.
+  sundayTable: null,
 };
 
 // ---- TTS (Cantonese text-to-speech) with selectable practice voices --------
@@ -326,6 +336,25 @@ function hasRealGenderedVoice(gender) {
 }
 
 /**
+ * Record that she has actually used the app, once.
+ *
+ * The push invite waits for this (see whenEngaged() in push-client.js). Asking
+ * for notification permission before she has heard a single word is the
+ * reliable way to earn a permanent block — and on Android Chrome a block cannot
+ * be re-asked from the page, so the cost of asking too early is permanent.
+ *
+ * The event is what lets push-client react in the same page load rather than
+ * polling; the localStorage flag is what lets it fire on her next visit.
+ */
+function markEngaged() {
+  try {
+    if (localStorage.getItem('cb_engaged') === '1') return;
+    localStorage.setItem('cb_engaged', '1');
+    window.dispatchEvent(new Event('cb:engaged'));
+  } catch (e) { /* private mode — the invite simply waits */ }
+}
+
+/**
  * Speak Cantonese text using the learner's selected practice voice.
  * Falls back to any available Chinese voice if Cantonese is unavailable.
  */
@@ -334,6 +363,7 @@ function speak(text, btn) {
     alert('Audio is not supported on this browser. Please use Chrome or Safari.');
     return;
   }
+  markEngaged();
   window.speechSynthesis.cancel();
 
   const profile = getSelectedProfile();
@@ -364,7 +394,12 @@ function updateVoiceButton() {
   const btn = document.getElementById('voice-btn');
   if (!btn) return;
   const profile = getSelectedProfile();
-  btn.textContent = profile.emoji;
+  // Two spans now live in this button: the voice emoji, and the word shown
+  // beside it in the header's overflow sheet. Writing textContent here would
+  // wipe both, so target the emoji span when it exists.
+  const curEl = btn.querySelector('.voice-cur');
+  if (curEl) curEl.textContent = profile.emoji;
+  else btn.textContent = profile.emoji;
   const gender =
     profile.gender === 'female'
       ? t('voice.woman')
@@ -561,6 +596,11 @@ function navigate(view) {
   if (view === 'share') renderSharePage();
   if (view === 'discover') renderDiscover();
   if (view === 'categories') renderCategoriesPage();
+  // The Games hub carries the credit strip, and the strip is only honest if it
+  // is fresh: she may have just come back from a game that paid a credit, and a
+  // stale strip would show yesterday's boxes. Fetched once and cached — the
+  // second visit costs nothing.
+  if (view === 'games') refreshGamesCreditStrip();
   // Opening the write form re-reads her own submissions: the point of the
   // screen is "here is what happened to the last one", and a stale list would
   // be worse than none.
@@ -752,10 +792,13 @@ async function init() {
     // card simply does not appear.
     await fetchLearnerStats();
     renderHomeCards();
+    renderHomePhrase();
+    renderHomeSundayTable();
     renderHomeFestival();
     renderHomeDailyCulture();
     renderHomeDiscoverPromo();
   renderHomeGamesPromo();
+  renderGamesHub();
 
     // A view named in the URL, so a page outside the SPA can send her back to a
     // specific screen. The Games tab needs this: the game is a real page at
@@ -779,10 +822,13 @@ async function init() {
 function rerenderForLanguage() {
   renderHomeCategories();
   renderHomeCards();
+  renderHomePhrase();
+  renderHomeSundayTable();
   renderHomeFestival();
   renderHomeDailyCulture();
   renderHomeDiscoverPromo();
   renderHomeGamesPromo();
+  renderGamesHub();
   renderCategoryChips();
   renderQuizTypes();
   renderVocabList();
@@ -802,6 +848,9 @@ function rerenderForLanguage() {
   // An open Living passage: one body of text, rebuilt from the cached row so the
   // language switch does not leave it stranded in the old language.
   if (active && active.id === 'view-living' && STATE.living.current) renderLivingPage(STATE.living.current);
+  // An open outing: the transport sentences and the fee labels are translated,
+  // so the page has to be rebuilt rather than left in the old language.
+  if (active && active.id === 'view-place' && STATE.discover.place) renderPlace(STATE.discover.place);
   // The write form is static markup and re-translates in place, so only her
   // own submissions below it are rebuilt. Her half-typed draft is untouched.
   if (active && active.id === 'view-story-new') renderStoryMine();
@@ -949,6 +998,209 @@ function renderHomeCards() {
 }
 
 /**
+ * Today's phrase for her kitchen — one phrase, one tap, ten seconds.
+ *
+ * Shown to EVERY device, including one that has never practised. That is a
+ * deliberate exception to the "a stranger sees the old screen" rule the streak
+ * card follows: the streak is a reward for having started, but this card is the
+ * reason to start, so hiding it from new devices would hide it from the only
+ * people it can help.
+ *
+ * Silent on failure. A daily phrase that cannot load is not worth an error
+ * message, and an empty div is the same screen as before the feature existed.
+ */
+async function renderHomePhrase() {
+  const wrap = document.getElementById('home-phrase');
+  if (!wrap) return;
+  try {
+    if (STATE.homePhrase === null) {
+      const res = await apiGet('/api/phrase/today');
+      STATE.homePhrase = (res && res.phrase) || false;
+    }
+    const p = STATE.homePhrase;
+    if (!p) { wrap.innerHTML = ''; return; }
+
+    wrap.innerHTML = `
+      <button class="home-phrase" onclick="speakHomePhrase(this)">
+        <span class="home-phrase-emoji">${escapeHtml(p.emoji || '🍳')}</span>
+        <span class="home-phrase-main">
+          <span class="home-phrase-label">${escapeHtml(t('home.phraseTitle'))}</span>
+          <span class="home-phrase-canto">${escapeHtml(p.cantonese)}</span>
+          <span class="home-phrase-jyutping">${escapeHtml(p.jyutping)}</span>
+          <span class="home-phrase-meaning">${escapeHtml(meaning(p))}</span>
+        </span>
+        <span class="home-phrase-play" aria-hidden="true">🔊</span>
+      </button>`;
+  } catch (err) {
+    wrap.innerHTML = '';
+  }
+}
+
+/** Hear today's phrase. Reuses the practice voice she already chose. */
+function speakHomePhrase(btn) {
+  const p = STATE.homePhrase;
+  if (!p) return;
+  speak(p.cantonese, btn);
+}
+
+/**
+ * The four games, as the Sunday Table needs them: where to send her, what to
+ * call it, and the emoji it already wears on the Games tab.
+ */
+const SUNDAY_GAME_META = {
+  uno: { emoji: '🎴', path: '/games/uno', name: () => 'UNO' },
+  bigtwo: { emoji: '🃏', path: '/games/bigtwo', name: () => t('games.bigtwoName') },
+  wordmatch: { emoji: '🔤', path: '/games/wordmatch', name: () => t('games.matchName') },
+  sudoku: { emoji: '🔢', path: '/games/sudoku', name: () => t('games.sudokuName') },
+};
+
+function sundayGameMeta(key) {
+  return SUNDAY_GAME_META[key] || SUNDAY_GAME_META.uno;
+}
+
+/**
+ * The Sunday Table card.
+ *
+ * Shown only while a Table is open, on the day itself, or within two days of it.
+ * A weekly appointment that advertises itself seven days a week is not an
+ * appointment, it is a banner — and this screen already carries a phrase card
+ * and a festival card that both earn their space by being occasional.
+ *
+ * Nothing here invents social proof. The proposal sketched "Ana is already in",
+ * and that line is not shippable: there is no presence system, so the sentence
+ * would be fabricated. The card says what is actually true — what the Table is,
+ * when it opens, which game is featured, which passage to read, and what
+ * happened in Hong Kong this week.
+ */
+async function renderHomeSundayTable() {
+  const wrap = document.getElementById('home-sunday-table');
+  if (!wrap) return;
+  try {
+    if (STATE.sundayTable === null) {
+      STATE.sundayTable = await apiGet('/api/sunday-table');
+    }
+    const st = STATE.sundayTable;
+    if (!st || !st.date) { wrap.innerHTML = ''; return; }
+
+    // Two days out, or open now. Outside that the card is noise.
+    const soon = st.active || st.minutesUntil <= 2 * 24 * 60;
+    if (!soon) { wrap.innerHTML = ''; return; }
+
+    const game = sundayGameMeta(st.featuredGame);
+    const status = st.active
+      ? `<span class="sunday-status is-open">${escapeHtml(t('sunday.openNow'))}</span>`
+      : st.minutesUntil <= 60
+        ? `<span class="sunday-status">${escapeHtml(t('sunday.startsIn').replace('{n}', st.minutesUntil))}</span>`
+        : `<span class="sunday-status">${escapeHtml(t('sunday.when'))}</span>`;
+
+    const passage = st.passage
+      ? `<button class="sunday-row" onclick="openLiving('${escapeHtml(st.passage.slug)}')">
+           <span class="sunday-row-icon">${escapeHtml(st.passage.icon || '📖')}</span>
+           <span class="sunday-row-main">
+             <span class="sunday-row-label">${escapeHtml(t('sunday.passage'))}</span>
+             <span class="sunday-row-title">${escapeHtml(livingField(st.passage, 'title'))}</span>
+           </span>
+           <span class="post-card-arrow" aria-hidden="true">›</span>
+         </button>`
+      : '';
+
+    const digest = (st.digest || []).map((p) => `
+      <button class="sunday-digest-row" onclick="openPost('${escapeHtml(p.slug)}')">
+        <span class="sunday-digest-dot">·</span>
+        <span class="sunday-digest-title">${escapeHtml(postField(p, 'title'))}</span>
+      </button>`).join('');
+
+    wrap.innerHTML = `
+      <section class="sunday-card">
+        <header class="sunday-head">
+          <span class="sunday-title">🫖 ${escapeHtml(t('sunday.title'))}</span>
+          ${status}
+        </header>
+        <button class="sunday-row sunday-row-game" onclick="location.href='${game.path}'">
+          <span class="sunday-row-icon">${game.emoji}</span>
+          <span class="sunday-row-main">
+            <span class="sunday-row-label">${escapeHtml(t('sunday.featured'))}</span>
+            <span class="sunday-row-title">${escapeHtml(game.name())}</span>
+          </span>
+          <span class="sunday-play">${escapeHtml(t('sunday.play'))} ›</span>
+        </button>
+        ${passage}
+        ${digest ? `<div class="sunday-digest">
+          <div class="sunday-row-label">${escapeHtml(t('sunday.digest'))}</div>
+          ${digest}
+        </div>` : ''}
+        <div id="sunday-result"></div>
+      </section>`;
+
+    renderSundayResult(st);
+  } catch (err) {
+    wrap.innerHTML = '';
+  }
+}
+
+/**
+ * Her own result from today's Table, and a card she can send to a friend.
+ *
+ * Only rendered when she has actually finished a game today. An empty "share my
+ * result" button would ask her to send a lie, and the first thing a friend would
+ * see is that there was nothing to share.
+ */
+async function renderSundayResult(st) {
+  const host = document.getElementById('sunday-result');
+  if (!host || !STATE.deviceId) return;
+  try {
+    const res = await apiGet(`/api/games/record?public_id=${encodeURIComponent(STATE.deviceId)}&since=${encodeURIComponent(st.date)}`);
+    const rec = res && res.games ? res.games[st.featuredGame] : null;
+    if (!rec || !rec.played) { host.innerHTML = ''; return; }
+    STATE.sundayRecord = rec;
+    host.innerHTML = `
+      <div class="sunday-result">
+        <span class="sunday-result-line">${escapeHtml(t('sunday.resultLine')
+          .replace('{wins}', rec.wins).replace('{played}', rec.played))}</span>
+        <button class="btn btn-secondary sunday-share" onclick="shareSundayResult()">
+          ${escapeHtml(t('sunday.share'))}
+        </button>
+      </div>`;
+  } catch (err) {
+    host.innerHTML = '';
+  }
+}
+
+/** The shareable Sunday Table card, built from her actual result. */
+function sundaySpec(st, rec) {
+  const k = cardTokens();
+  const game = sundayGameMeta(st.featuredGame);
+  return {
+    accent: k.secondary,
+    tint: '#e6f5f3',
+    eyebrow: t('sunday.title'),
+    blocks: [
+      { type: 'emoji', value: game.emoji, size: 130, y: 290 },
+      { type: 'wrap', value: game.name(), size: 60, y: 450, maxLines: 2, lineHeight: 74 },
+      { type: 'text', value: `${rec.wins} / ${rec.played}`, weight: 700, size: 96, color: k.secondary, y: 640 },
+      { type: 'text', value: t('sunday.when'), weight: 500, size: 40, color: k.soft, y: 790 },
+    ],
+  };
+}
+
+async function shareSundayResult() {
+  const st = STATE.sundayTable;
+  const rec = STATE.sundayRecord;
+  if (!st || !rec || !rec.played) return;
+  const game = sundayGameMeta(st.featuredGame);
+  const text = t('sunday.shareText')
+    .replace('{wins}', rec.wins)
+    .replace('{played}', rec.played)
+    .replace('{game}', game.name());
+  await sharePicture({
+    spec: sundaySpec(st, rec),
+    text: `${text} ${shareUrl('/')}`,
+    url: shareUrl('/'),
+    filename: 'cantobuddy-sunday-table.png',
+  });
+}
+
+/**
  * The "coming up" card: the next festival, at most three days out.
  *
  * It sits ABOVE Today's Culture because it is the only card on this screen with
@@ -1051,6 +1303,10 @@ function renderHomeDiscoverPromo() {
     { key: 'culture', emoji: '🏛️', label: t('discover.tabCulture'), desc: t('discover.cultureLead') },
     { key: 'news',    emoji: '📰', label: t('discover.tabNews'),    desc: t('discover.newsLead') },
     { key: 'living', emoji: '🏠', label: t('discover.tabLiving'), desc: t('discover.livingLead') },
+    // Outings earns a card here rather than living only behind the tab: a day
+    // off is a plan she makes in advance, and the one screen she opens on a
+    // Sunday morning is Home.
+    { key: 'places', emoji: '🗺️', label: t('discover.tabPlaces'), desc: t('discover.placesLead') },
   ];
   wrap.innerHTML =
     `<h4 class="home-section-title">${escapeHtml(t('discover.title'))}</h4>` +
@@ -1070,48 +1326,348 @@ function renderHomeDiscoverPromo() {
  * she sees there. Rendered by JS — not markup — so a language switch re-reads
  * the strings, which static [data-i18n] text would not do.
  */
+/* ------------------------------------------------------------------ games
+   ONE source for every game icon, so the Games hub and the Home promo can never
+   drift apart — a tile added to one and forgotten in the other is how the hub
+   kept three games after a fourth went live. Each game has its own art class so
+   the four marks read as four DIFFERENT objects, not one template recoloured:
+   UNO keeps three tilted letter tiles; Big Two is a white playing card; Word
+   match is two speech bubbles; Sudoku is a mini grid. */
+const GAMES_CATALOG = [
+  {
+    href: '/games/uno',
+    artClass: 'game-art--uno',
+    art: '<i>U</i><i>N</i><i>O</i>',
+    nameFixed: 'UNO',
+  },
+  {
+    href: '/games/bigtwo',
+    artClass: 'game-art--bigtwo',
+    art: `<svg viewBox="0 0 48 48" aria-hidden="true">
+      <rect x="10" y="12" width="19" height="27" rx="3" fill="#ffffff" stroke="#cdd5df" stroke-width="1.4" transform="rotate(-14 19 25)"/>
+      <rect x="18" y="13" width="20" height="28" rx="3" fill="#ffffff" stroke="#cdd5df" stroke-width="1.4"/>
+      <text x="22.5" y="25" font-size="9" font-weight="800" fill="#222">2</text>
+      <text x="23" y="36" font-size="9" fill="#222">♠</text>
+      <text x="32" y="22" font-size="9" fill="#222">♠</text>
+    </svg>`,
+    nameKey: 'games.bigtwoName',
+  },
+  {
+    href: '/games/wordmatch',
+    artClass: 'game-art--wordmatch',
+    art: `<svg viewBox="0 0 48 48" aria-hidden="true">
+      <rect x="6" y="10" width="21" height="16" rx="6" fill="#14b8a6"/>
+      <text x="16.5" y="22" font-size="11" font-weight="700" fill="#fff" text-anchor="middle">文</text>
+      <rect x="21" y="22" width="21" height="16" rx="6" fill="#ec4899"/>
+      <text x="31.5" y="34" font-size="11" font-weight="700" fill="#fff" text-anchor="middle">字</text>
+    </svg>`,
+    nameKey: 'games.matchName',
+  },
+  {
+    href: '/games/sudoku',
+    artClass: 'game-art--sudoku',
+    art: `<svg viewBox="0 0 48 48" aria-hidden="true">
+      <rect x="9" y="9" width="30" height="30" rx="3" fill="#ffffff" stroke="#cdd5df" stroke-width="1.6"/>
+      <line x1="19" y1="9" x2="19" y2="39" stroke="#cdd5df" stroke-width="1"/>
+      <line x1="29" y1="9" x2="29" y2="39" stroke="#cdd5df" stroke-width="1"/>
+      <line x1="9" y1="19" x2="39" y2="19" stroke="#cdd5df" stroke-width="1"/>
+      <line x1="9" y1="29" x2="39" y2="29" stroke="#cdd5df" stroke-width="1"/>
+      <text x="14" y="22" font-size="9" fill="#222">5</text>
+      <text x="24" y="22" font-size="9" fill="#222">8</text>
+      <text x="34" y="22" font-size="9" fill="#222">3</text>
+      <text x="14" y="32" font-size="9" fill="#2b6cf0">7</text>
+      <text x="24" y="32" font-size="9" fill="#222">2</text>
+    </svg>`,
+    nameKey: 'games.sudokuName',
+  },
+  {
+    href: '/games/chinesechecker',
+    artClass: 'game-art--checkers',
+    art: `<svg viewBox="0 0 48 48" aria-hidden="true">
+      <path d="M24 6 L28.6 15.6 L39 17 L31.5 24.3 L33.3 34.7 L24 30 L14.7 34.7 L16.5 24.3 L9 17 L19.4 15.6 Z"
+            fill="#ffffff" stroke="#cdd5df" stroke-width="1.6" stroke-linejoin="round"/>
+      <circle cx="24" cy="24" r="2.4" fill="#e8503a"/>
+      <circle cx="24" cy="13.4" r="2.2" fill="#2f7fd1"/>
+      <circle cx="24" cy="34.6" r="2.2" fill="#2e9e5b"/>
+      <circle cx="12.2" cy="18.8" r="2.2" fill="#e0a91b"/>
+      <circle cx="35.8" cy="29.2" r="2.2" fill="#8b5cf6"/>
+      <circle cx="12.2" cy="29.2" r="2.2" fill="#d6559b"/>
+      <circle cx="35.8" cy="18.8" r="2.2" fill="#e8503a"/>
+    </svg>`,
+    nameKey: 'games.checkersName',
+  },
+];
+
+function gameTile(g) {
+  const name = g.nameKey ? t(g.nameKey) : g.nameFixed;
+  return `<a class="game-tile" href="${g.href}">`
+    + `<span class="game-art ${g.artClass}" aria-hidden="true">${g.art}</span>`
+    + `<span class="game-tile-name">${escapeHtml(name)}</span>`
+    + `</a>`;
+}
+
+/* The Games hub (#view-games). Filled by JS so it always matches the catalog. */
+function renderGamesHub() {
+  const row = document.getElementById('games-row');
+  if (!row) return;
+  row.innerHTML = GAMES_CATALOG.map(gameTile).join('');
+  renderGamesCreditStrip();
+  renderGamesStory();
+}
+
+/* ---- The story card: how to play with a friend ----------------------------
+   Four moves, in the order they happen, drawn on a phone she recognises:
+   create a room, read the code, share the link, friend joins.
+
+   WHY IT EXISTS. The hub's lead sentence — "one person makes a room and sends
+   the code to the rest" — is the whole product, and it is also the whole
+   problem: it does not say what a room IS, where the code appears, or what she
+   is meant to DO with it. So she opens UNO, meets a form and a four-letter
+   field, and leaves. Text has already failed here; this shows the moves.
+
+   HOW IT ADVANCES. The step change is driven by the progress bar's own
+   `animationend` rather than by a second timer. One clock for both the bar and
+   the step means they cannot drift apart, and pausing the animation pauses the
+   story with no extra bookkeeping — see .games-story.is-paused in styles.css.
+   Under `prefers-reduced-motion` the animation is switched off entirely, so
+   the card sits on step one and the dots are the only way through. That is the
+   intended behaviour for that reader, not a degraded fallback.
+
+   The stage is `aria-hidden` decoration: every word a screen reader needs is
+   in the caption below it, which is why the animation can be skipped without
+   losing the story. */
+const GAMES_STORY_MS = 5200;
+const GAMES_STORY_CODE = 'K7QM';
+let _storyStep = 0;
+let _storyPaused = false;
+
+/* One scene per move. Each returns the markup for a miniature phone (or two)
+   whose own animations run while the scene is on screen — the tap on the
+   create button, the code popping in, the share sheet rising, the link flying
+   from one phone to the other. The sample code is a fixed string on purpose:
+   a random one would change on every language switch and every step, and a
+   story that cannot be recognised is not a story. */
+const GAMES_STORY_SCENES = [
+  // 1 — the lobby: type a name, tap Create a room.
+  () => `
+    <div class="gs-phone">
+      <div class="gs-screen">
+        <div class="gs-appbar"><span class="gs-appdot"></span>UNO</div>
+        <div class="gs-field"><span class="gs-typed">${escapeHtml(t('games.story1Name'))}</span><span class="gs-caret"></span></div>
+        <div class="gs-btn"><span>${escapeHtml(t('games.story1Btn'))}</span><span class="gs-ripple"></span><span class="gs-tap"></span></div>
+      </div>
+    </div>`,
+  // 2 — the room answers with a four-letter code.
+  () => `
+    <div class="gs-phone">
+      <div class="gs-screen gs-screen-mid">
+        <div class="gs-seats">
+          <span class="gs-avatar gs-ava-me">M</span>
+          <span class="gs-avatar gs-ava-wait">?</span>
+        </div>
+        <div class="gs-code">
+          <small>${escapeHtml(t('games.story2Label'))}</small>
+          <strong>${GAMES_STORY_CODE}</strong>
+          <span class="gs-chain">🔗</span>
+          <span class="gs-shine"></span>
+        </div>
+        <small class="gs-codehint">${escapeHtml(t('games.story2Hint'))}</small>
+      </div>
+    </div>`,
+  // 3 — tapping the code raises the share sheet.
+  () => `
+    <div class="gs-phone">
+      <div class="gs-screen">
+        <div class="gs-code gs-code-dim"><strong>${GAMES_STORY_CODE}</strong><span class="gs-chain">🔗</span></div>
+        <div class="gs-sheet">
+          <span class="gs-grip"></span>
+          <span class="gs-row gs-row-wa"><span class="gs-ico">💬</span>WhatsApp</span>
+          <span class="gs-row"><span class="gs-ico">🔗</span>${escapeHtml(t('games.story3Copy'))}</span>
+          <span class="gs-row"><span class="gs-ico">⋯</span>${escapeHtml(t('games.story3More'))}</span>
+        </div>
+      </div>
+    </div>`,
+  // 4 — the friend opens the link and takes a seat.
+  () => `
+    <div class="gs-pair">
+      <div class="gs-phone">
+        <div class="gs-screen">
+          <div class="gs-seats">
+            <span class="gs-avatar gs-ava-me">M</span>
+            <span class="gs-avatar gs-ava-friend">A</span>
+          </div>
+          <div class="gs-count">2 / 4</div>
+          <div class="gs-btn gs-btn-go">${escapeHtml(t('games.story4Start'))}</div>
+        </div>
+      </div>
+      <div class="gs-phone">
+        <div class="gs-screen">
+          <div class="gs-field gs-field-code">${GAMES_STORY_CODE}</div>
+          <div class="gs-field"><span class="gs-typed gs-typed-b">Ana</span><span class="gs-caret"></span></div>
+          <div class="gs-btn gs-btn-go">${escapeHtml(t('games.story4Join'))}</div>
+        </div>
+      </div>
+      <span class="gs-fly">🔗</span>
+    </div>`,
+];
+
+/** Draw the current scene, its caption and its dot, and restart the bar. */
+function renderGamesStory() {
+  const stage = document.getElementById('games-story-stage');
+  const cap = document.getElementById('games-story-caption');
+  const dots = document.getElementById('games-story-dots');
+  const fill = document.getElementById('games-story-fill');
+  if (!stage || !cap || !dots) return;
+
+  const total = GAMES_STORY_SCENES.length;
+  stage.innerHTML = GAMES_STORY_SCENES[_storyStep]();
+  cap.textContent = t('games.story' + (_storyStep + 1));
+
+  dots.innerHTML = GAMES_STORY_SCENES.map((_, n) => {
+    const on = n === _storyStep;
+    const label = t('games.storyStepOf').replace('{n}', n + 1).replace('{total}', total);
+    return `<button type="button" class="games-story-dot${on ? ' is-on' : ''}"`
+      + ` aria-label="${escapeHtml(label)}"${on ? ' aria-current="true"' : ''}`
+      + ` onclick="showStoryStep(${n})"></button>`;
+  }).join('');
+
+  // Restart the progress bar. Writing `none` and then clearing it does nothing
+  // unless a layout is forced in between, or the browser batches both writes
+  // into one frame and the animation never sees a change.
+  if (fill) {
+    fill.style.animation = 'none';
+    void fill.offsetWidth;
+    fill.style.animation = '';
+  }
+
+  // Wired once, on the first render, rather than on every language switch.
+  if (fill && !fill.dataset.wired) {
+    fill.dataset.wired = '1';
+    fill.addEventListener('animationend', () => {
+      if (!_storyPaused) showStoryStep(_storyStep + 1);
+    });
+  }
+
+  updateStoryPlayBtn();
+}
+
+/** Jump to a step (wrapping), used by the dots and by the auto-advance. */
+function showStoryStep(n) {
+  const total = GAMES_STORY_SCENES.length;
+  _storyStep = ((n % total) + total) % total;
+  renderGamesStory();
+}
+
+/**
+ * The play/pause control.
+ *
+ * It pauses the CSS animation rather than clearing a timer, so the bar and the
+ * step stay on the same clock and resuming continues from where it stopped —
+ * a story that jumps forward when you unpause it has not been paused.
+ */
+function toggleStoryPlay() {
+  _storyPaused = !_storyPaused;
+  const card = document.getElementById('games-story');
+  if (card) card.classList.toggle('is-paused', _storyPaused);
+  updateStoryPlayBtn();
+}
+
+function updateStoryPlayBtn() {
+  const btn = document.getElementById('games-story-play');
+  if (!btn) return;
+  const key = _storyPaused ? 'games.storyPlay' : 'games.storyPause';
+  btn.textContent = _storyPaused ? '▶' : '❚❚';
+  btn.title = t(key);
+  btn.setAttribute('aria-label', t(key));
+}
+
+/**
+ * Fetch the rewards if they are not cached yet, then redraw the strip.
+ *
+ * A failure leaves the strip hidden rather than showing a zero: an offline
+ * player who is told she has no credits has been told something false, and the
+ * games list below is the reason she opened this screen.
+ */
+async function refreshGamesCreditStrip() {
+  try {
+    if (!_rewards) await fetchRewards();
+  } catch { /* leave _rewards as it was */ }
+  renderGamesCreditStrip();
+}
+
+/**
+ * The credit strip on the Games hub.
+ *
+ * WHAT IT FIXES. Three defects found together, and this one block addresses all
+ * three:
+ *
+ *   1. **The games were silent.** All four game pages contained no mention of
+ *      credits at all, so a player finished a game, a credit was written
+ *      server-side, and nothing anywhere said so.
+ *   2. **The balance was buried.** The album is inside My Progress, which left
+ *      the bottom bar to make room for Games — so the reward was two taps deep
+ *      on a screen she has no reason to open, right after the activity that
+ *      earns it.
+ *   3. **The explanation was stale.** The album's hint still described quiz
+ *      answers only, so reading, reacting and playing were undocumented.
+ *
+ * The strip therefore shows two things: the balance, and which of today's three
+ * credits are already taken. A total on its own is a number she cannot act on;
+ * three boxes, one of which is still open, is a task.
+ *
+ * Hidden entirely when there is nothing to say — a first-time player with no
+ * device identity yet sees a games list, not an empty reward widget.
+ */
+function renderGamesCreditStrip() {
+  const el = document.getElementById('games-credit-strip');
+  if (!el) return;
+  const r = _rewards;
+  // No device, no rewards, or a device with no daily kinds at all: nothing
+  // useful to say yet. Rendering "0 credits" to a newcomer is a promise with no
+  // way to keep it.
+  if (!r || !STATE.deviceId || !r.dailyKinds || !r.dailyKinds.length) {
+    el.hidden = true;
+    el.innerHTML = '';
+    return;
+  }
+
+  const taken = new Set(r.today || []);
+  const creditWord = r.credits === 1 ? t('rewards.creditOne') : t('rewards.credits');
+  const open = r.dailyKinds.filter((k) => !taken.has(k));
+
+  const boxes = r.dailyKinds.map((k) => {
+    const done = taken.has(k);
+    return `<span class="games-credit-box${done ? ' is-done' : ''}">
+      <span class="games-credit-tick" aria-hidden="true">${done ? '✓' : ''}</span>
+      ${escapeHtml(t('credits.kind.' + k))}
+    </span>`;
+  }).join('');
+
+  el.hidden = false;
+  el.innerHTML = `
+    <div class="games-credit-head">
+      <span class="games-credit-balance">${r.credits}<span class="games-credit-word">${escapeHtml(creditWord)}</span></span>
+      <span class="games-credit-today">${open.length
+        ? escapeHtml(t('credits.todayLeft').replace('{n}', open.length))
+        : escapeHtml(t('credits.todayDone'))}</span>
+    </div>
+    <div class="games-credit-boxes">${boxes}</div>
+    <button class="games-credit-link" onclick="navigate('progress')">${escapeHtml(t('credits.seeAlbum'))}</button>`;
+}
+
 function renderHomeGamesPromo() {
   const wrap = document.getElementById('home-games-promo');
   if (!wrap) return;
-  const games = [
-    {
-      href: '/games/uno',
-      art: '<i>U</i><i>N</i><i>O</i>',
-      name: 'UNO',
-      desc: t('games.unoDesc'),
-    },
-    {
-      href: '/games/bigtwo',
-      art: '<i>2</i><i class="suit">♠</i><i class="suit">♥</i>',
-      name: t('games.bigtwoName'),
-      desc: t('games.bigtwoDesc'),
-    },
-    {
-      href: '/games/wordmatch',
-      art: '<i class="cjk">配</i><i class="cjk">對</i><i>?</i>',
-      name: t('games.matchName'),
-      desc: t('games.matchDesc'),
-    },
-  ];
   wrap.innerHTML =
-    `<div class="games-promo">` +
-      `<div class="games-promo-head">` +
-        `<h4 class="home-section-title">${escapeHtml(t('games.promoTitle'))}</h4>` +
-        `<span class="games-promo-badge">${escapeHtml(t('games.promoBadge'))}</span>` +
-      `</div>` +
-      `<p class="games-promo-lead">${escapeHtml(t('games.promoLead'))}</p>` +
-      `<div class="games-grid">` +
-      games.map((g) => `
-        <a class="game-card game-card-live" href="${g.href}">
-          <span class="game-art" aria-hidden="true">${g.art}</span>
-          <span class="game-body">
-            <span class="game-name">${escapeHtml(g.name)}</span>
-            <span class="game-desc">${escapeHtml(g.desc)}</span>
-          </span>
-          <span class="game-go" aria-hidden="true">›</span>
-        </a>`).join('') +
-      `</div>` +
-    `</div>`;
+    `<div class="games-promo">`
+      + `<div class="games-promo-head">`
+        + `<h4 class="home-section-title">${escapeHtml(t('games.promoTitle'))}</h4>`
+        + `<span class="games-promo-badge">${escapeHtml(t('games.promoBadge'))}</span>`
+      + `</div>`
+      + `<div class="games-row games-row--home">`
+      + GAMES_CATALOG.map(gameTile).join('')
+      + `</div>`
+    + `</div>`;
 }
 
 function filterByCategory(catId) {
@@ -1500,6 +2056,41 @@ function closeModal(e) {
 }
 
 // ---- Learner name ----------------------------------------------------------
+
+/* ---- Header overflow sheet (phones) ---------------------------------------
+   Below 600px the five secondary header controls live behind one button. This
+   is the whole of the behaviour: toggle, close on an outside click, close on
+   Escape. Desktop never opens it — the panel is display:none above 600px, so a
+   stray toggle is harmless rather than a visible bug. */
+function toggleHeaderExtra(ev) {
+  if (ev) ev.stopPropagation();
+  const panel = document.getElementById('header-extra');
+  const btn = document.getElementById('header-more');
+  if (!panel || !btn) return;
+  const open = panel.classList.toggle('open');
+  btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+
+function closeHeaderExtra() {
+  const panel = document.getElementById('header-extra');
+  const btn = document.getElementById('header-more');
+  if (!panel) return;
+  panel.classList.remove('open');
+  if (btn) btn.setAttribute('aria-expanded', 'false');
+}
+
+document.addEventListener('click', (e) => {
+  const panel = document.getElementById('header-extra');
+  if (!panel || !panel.classList.contains('open')) return;
+  // A click inside the sheet is an action: let it run, then close the sheet.
+  if (panel.contains(e.target)) { closeHeaderExtra(); return; }
+  if (e.target.closest && e.target.closest('#header-more')) return;
+  closeHeaderExtra();
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeHeaderExtra();
+});
 
 function updateLearnerBadge() {
   const badge = document.getElementById('learner-badge');
@@ -3975,7 +4566,7 @@ function sanitizePostHtml(html) {
  * a fresh visit does.
  */
 function showChannel(channel) {
-  STATE.discover.channel = ['news', 'stories', 'living'].includes(channel) ? channel : 'culture';
+  STATE.discover.channel = ['news', 'stories', 'living', 'places'].includes(channel) ? channel : 'culture';
   STATE.discover.category = null;
   STATE.discover.region = null;
   STATE.discover.shown = NEWS_PAGE_SIZE;
@@ -4255,8 +4846,9 @@ async function renderDiscover() {
     note.textContent = t(
       channel === 'news' ? 'discover.newsLead'
         : channel === 'living' ? 'discover.livingLead'
-          : channel === 'stories' ? 'discover.storiesLead'
-            : 'discover.cultureLead'
+          : channel === 'places' ? 'discover.placesLead'
+            : channel === 'stories' ? 'discover.storiesLead'
+              : 'discover.cultureLead'
     );
   }
   // The "share your story" button belongs to one channel only. It is a
@@ -4272,6 +4864,8 @@ async function renderDiscover() {
 
   if (channel === 'living') return renderLivingList(feed);
   if (channel === 'stories') return renderStoryList(feed);
+  // Outings is local data, not a feed: no fetch, no pager, no cache key.
+  if (channel === 'places') return renderPlaces(feed);
 
   // Serve the cache when we have it, so a tab switch is instant and a language
   // switch does not hit the network again. The key carries the topic filter,
@@ -4305,6 +4899,228 @@ async function renderDiscover() {
     : `<p class="discover-empty">${escapeHtml(t('discover.empty'))}</p>`;
 
   if (pager) renderPostPager(pager, posts);
+}
+
+/* ------------------------------------------------------------------- outings
+   The Outings channel. Data lives in public/places.js; this section only draws
+   it. Three rules worth knowing before editing anything here:
+
+   1. Nothing is fetched. A place is a fixed record shipped with the app, so the
+      channel renders instantly and works with no connection at all — which is
+      the state a helper is in when she is standing on a hill.
+   2. Every sentence about transport is built from a template plus a proper
+      noun ("MTR to {station}"), because the noun is a station name that is the
+      same in four languages and the sentence around it is not. See the
+      `place.step*` keys in i18n.js.
+   3. The photograph's author is shown on the page. It is somebody's work under
+      a licence that requires their name; the credit is not decoration.
+   ------------------------------------------------------------------------- */
+
+/** `{name}` substitution — t() returns its string raw, it does not interpolate. */
+function placeText(key, vars) {
+  return String(t(key)).replace(/\{(\w+)\}/g, (m, k) => (vars && vars[k] != null ? String(vars[k]) : m));
+}
+
+/** The shipped place list, or an empty list if places.js failed to load. */
+function placeList() {
+  return typeof PLACES !== 'undefined' && Array.isArray(PLACES) ? PLACES : [];
+}
+
+const PLACE_STEP_ICONS = { mtr: '🚇', walk: '🚶', bus: '🚌', minibus: '🚐', ferry: '⛴️', tram: '🚊' };
+const PLACE_KIND_EMOJI = { views: '🌃', hike: '🥾', island: '🏝️', market: '🛍️', park: '🌳', coast: '🌊' };
+const PLACE_TIME_KEYS = { fewHours: 'place.timeFew', halfDay: 'place.timeHalf', fullDay: 'place.timeFull' };
+
+/* places.js is a separate script; if it fails to load the channel must render
+   an empty list rather than throw on a missing global. */
+const PLACE_KIND_LIST = (typeof PLACE_KINDS !== 'undefined' && Array.isArray(PLACE_KINDS))
+  ? PLACE_KINDS
+  : ['views', 'hike', 'island', 'market', 'park', 'coast'];
+
+const placeCap = (s) => String(s).charAt(0).toUpperCase() + String(s).slice(1);
+
+/** "HK$5" for a round fare, "HK$16.7" for one that is not. */
+function placeMoney(n) {
+  const v = Math.round(Number(n) * 10) / 10;
+  return Number.isInteger(v) ? `HK$${v}` : `HK$${v.toFixed(1)}`;
+}
+
+/** The summary in the reader's language, falling back to English. */
+function placeSummary(p) {
+  const l = currentLang();
+  return (p.summary && (p.summary[l] || p.summary.en)) || '';
+}
+
+/** The one price that goes on the card: free, or the first (cheapest) fare. */
+function placePriceChip(p) {
+  if (!p.fee) return '';
+  if (p.fee.free) return t('place.free');
+  const first = p.fee.items && p.fee.items[0];
+  if (!first) return t('place.free');
+  // A ferry fare is not the price of the outing. Printing "HK$16.7" for a day on
+  // an island reads as the whole cost when the trip back is another $16.7, so a
+  // one-way fare says so on the chip as well as under the table.
+  const each = p.fee.oneWay ? ` ${t('place.eachWay')}` : '';
+  return `${first.approx ? '≈' : ''}${placeMoney(first.hkd)}${each}`;
+}
+
+/** One route step, in the reader's language. */
+function placeStepText(s) {
+  if (s.t === 'mtr') {
+    const base = placeText('place.stepMtr', { station: s.station });
+    return s.exit ? `${base} · ${placeText('place.stepExit', { exit: s.exit })}` : base;
+  }
+  if (s.t === 'walk') {
+    return s.to
+      ? placeText('place.stepWalkTo', { min: s.min, to: s.to })
+      : placeText('place.stepWalk', { min: s.min });
+  }
+  if (s.t === 'bus') {
+    if (s.from && s.to) return `${placeText('place.stepBusFrom', { route: s.route, from: s.from })} → ${s.to}`;
+    if (s.to) return placeText('place.stepBusTo', { route: s.route, to: s.to });
+    return placeText('place.stepBus', { route: s.route });
+  }
+  if (s.t === 'minibus') return placeText('place.stepMinibusTo', { route: s.route, to: s.to });
+  if (s.t === 'ferry') {
+    return s.min
+      ? placeText('place.stepFerryMin', { to: s.to, min: s.min })
+      : placeText('place.stepFerryTo', { to: s.to });
+  }
+  if (s.t === 'tram') return placeText('place.stepTram');
+  return '';
+}
+
+/** The kind chips. Rendered into the shared filter host the News channel uses. */
+function renderPlaceFilters() {
+  const host = document.getElementById('discover-filters');
+  if (!host) return;
+  const active = STATE.discover.placeKind;
+  const chip = (key, label, emoji) => `
+    <button type="button" class="chip news-filter-chip${(active || 'all') === key ? ' active' : ''}"
+            aria-pressed="${(active || 'all') === key ? 'true' : 'false'}"
+            onclick="showPlaceKind('${key}')">${emoji} ${escapeHtml(label)}</button>`;
+  host.innerHTML =
+    `<span class="discover-filters-label">${escapeHtml(t('discover.filterLabel'))}</span>` +
+    `<div class="discover-filters-row">${chip('all', t('place.all'), '🗺️')}` +
+    PLACE_KIND_LIST.map((k) => chip(k, t(`place.kind${placeCap(k)}`), PLACE_KIND_EMOJI[k])).join('') +
+    `</div>`;
+  host.hidden = false;
+}
+
+/** Narrows the Outings channel to one kind. 'all' clears it. */
+function showPlaceKind(kind) {
+  const next = kind && kind !== 'all' && PLACE_KIND_LIST.includes(kind) ? kind : null;
+  if (STATE.discover.placeKind === next) return;
+  STATE.discover.placeKind = next;
+  renderPlaces();
+}
+
+/** One card. A <button>, so the whole card is the tap target on a phone. */
+function placeCardHtml(p) {
+  const free = !!(p.fee && p.fee.free);
+  return `
+    <button type="button" class="place-card" onclick="openPlace('${p.slug}')">
+      <span class="place-card-photo">
+        <img src="${escapeHtml(p.card)}" alt="" loading="lazy" decoding="async">
+        <span class="place-card-emoji" aria-hidden="true">${escapeHtml(p.emoji)}</span>
+      </span>
+      <span class="place-card-text">
+        <span class="place-card-title">${escapeHtml(p.name)}</span>
+        <span class="place-card-zh">${escapeHtml(p.nameZh)}</span>
+        <span class="place-card-sum">${escapeHtml(placeSummary(p))}</span>
+        <span class="place-card-meta">
+          <span class="place-chip">📍 ${escapeHtml(p.area)}</span>
+          <span class="place-chip">⏱ ${escapeHtml(t(PLACE_TIME_KEYS[p.time] || 'place.timeFew'))}</span>
+          <span class="place-chip${free ? ' place-chip--free' : ''}">💵 ${escapeHtml(placePriceChip(p))}</span>
+        </span>
+      </span>
+    </button>`;
+}
+
+/** The Outings shelf. Called by renderDiscover() and by showPlaceKind(). */
+function renderPlaces(feed) {
+  const host = feed || document.getElementById('discover-feed');
+  if (!host) return;
+  const all = placeList();
+  if (!all.length) {
+    host.innerHTML = `<p class="discover-empty">${escapeHtml(t('discover.loadFailed'))}</p>`;
+    return;
+  }
+  renderPlaceFilters();
+  const kind = STATE.discover.placeKind;
+  const shown = kind ? all.filter((p) => p.kind === kind) : all;
+  host.innerHTML = shown.map(placeCardHtml).join('');
+}
+
+/** Opens one outing. */
+function openPlace(slug) {
+  const p = placeList().find((x) => x.slug === slug);
+  if (!p) return;
+  STATE.discover.place = p;
+  navigate('place');
+  renderPlace(p);
+}
+
+/** Draws the open outing. Also re-run on a language switch. */
+function renderPlace(p) {
+  const host = document.getElementById('place-body');
+  if (!host || !p) return;
+
+  const free = !!(p.fee && p.fee.free);
+  const feeRows = free
+    ? ''
+    : (p.fee.items || []).map((it) => {
+      const when = it.when ? ` <span class="place-fee-when">${escapeHtml(t(`place.fee${placeCap(it.when)}`))}</span>` : '';
+      return `<li><span>${escapeHtml(t(`place.fee${placeCap(it.label)}`))}${when}</span>
+                <span class="place-fee-amt">${it.approx ? '≈' : ''}${placeMoney(it.hkd)}</span></li>`;
+    }).join('');
+
+  const steps = (p.steps || []).map((s) => `
+    <li><span class="place-step-icon" aria-hidden="true">${PLACE_STEP_ICONS[s.t] || '•'}</span>
+        <span>${escapeHtml(placeStepText(s))}</span></li>`).join('');
+
+  const tips = (p.goodToKnow || []).map((tip) => `<li>${escapeHtml(tip)}</li>`).join('');
+
+  const credit = (typeof PLACE_CREDITS !== 'undefined' && PLACE_CREDITS[p.slug]) || null;
+  const creditHtml = credit
+    ? `<p class="place-credit">${escapeHtml(placeText('place.credit', {
+      author: credit.author.replace(/\s*\(Wikimedia Commons\)$/i, '') || 'Wikimedia Commons',
+      licence: credit.licence,
+    }))} · <a href="${escapeHtml(credit.page)}" target="_blank" rel="noopener noreferrer">Wikimedia Commons</a></p>`
+    : '';
+
+  host.innerHTML = `
+    <img class="place-hero" src="${escapeHtml(p.photo)}" alt="" decoding="async">
+    <div class="place-head">
+      <h1 class="place-title"><span aria-hidden="true">${escapeHtml(p.emoji)}</span> ${escapeHtml(p.name)}</h1>
+      <p class="place-title-zh">${escapeHtml(p.nameZh)}</p>
+      <div class="place-meta-row">
+        <span class="place-chip">📍 ${escapeHtml(p.area)}</span>
+        <span class="place-chip">⏱ ${escapeHtml(t(PLACE_TIME_KEYS[p.time] || 'place.timeFew'))}</span>
+        <span class="place-chip${free ? ' place-chip--free' : ''}">💵 ${escapeHtml(placePriceChip(p))}</span>
+      </div>
+    </div>
+
+    <p class="place-summary">${escapeHtml(placeSummary(p))}</p>
+
+    <h2 class="place-h2">🚇 ${escapeHtml(t('place.howToGet'))}</h2>
+    <ol class="place-steps">${steps}</ol>
+
+    <h2 class="place-h2">💵 ${escapeHtml(t('place.cost'))}</h2>
+    ${free
+      ? `<p class="place-free-note">🎉 ${escapeHtml(t('place.free'))}</p>`
+      : `<ul class="place-fees">${feeRows}</ul>`}
+    ${!free && p.fee.oneWay
+      ? `<p class="place-oneway-note">↔️ ${escapeHtml(t('place.oneWayNote'))}</p>`
+      : ''}
+    <p class="place-prices-note">${escapeHtml(t('place.pricesNote'))}</p>
+
+    <h2 class="place-h2">🕒 ${escapeHtml(t('place.open'))}</h2>
+    <p class="place-hours">${escapeHtml(p.hours)}</p>
+
+    <h2 class="place-h2">💡 ${escapeHtml(t('place.goodToKnow'))}</h2>
+    <ul class="place-tips">${tips}</ul>
+
+    ${creditHtml}`;
 }
 
 /** The Stories channel: the shelf of published stories, newest first. */
@@ -4461,6 +5277,18 @@ function livingCardHtml(post) {
   const excerpt = (body.split(/\n{2,}/)[0] || '').trim();
   const reacts = Number(post.reaction_count) || 0;
   const comments = Number(post.comment_count) || 0;
+
+  // A tally is only worth showing when it is real. "💬 0" is not a small
+  // number, it is a verdict on the whole shelf: it tells a first visitor that
+  // nobody comes here. So zero renders nothing at all, and a card with nothing
+  // to count says what it wants instead of counting to nothing.
+  const stats = [];
+  if (reacts) stats.push(`👍 ${reacts}`);
+  if (comments) stats.push(`💬 ${comments}`);
+  const footerStats = stats.length
+    ? stats.map((s) => `<span class="living-card-stat">${s}</span>`).join('')
+    : `<span class="living-card-stat living-card-invite">${escapeHtml(t('living.cardInvite'))}</span>`;
+
   return `
     <button class="post-card living-card" onclick="openLiving('${escapeHtml(post.slug)}')">
       <span class="post-card-icon">${escapeHtml(post.icon || '🏠')}</span>
@@ -4469,8 +5297,7 @@ function livingCardHtml(post) {
         <span class="post-card-title">${escapeHtml(title)}</span>
         <span class="post-card-summary">${escapeHtml(excerpt)}</span>
         <span class="living-card-footer">
-          <span class="living-card-stat">${reacts ? '👍 ' + reacts : '👍'}</span>
-          <span class="living-card-stat">💬 ${comments}</span>
+          ${footerStats}
           <span class="living-card-stat">↗</span>
         </span>
       </span>
@@ -4529,10 +5356,28 @@ async function openLiving(slug) {
     STATE.living.comments = data.comments || [];
     renderLivingPage(data.post);
     markRead(`living:${slug}`);
+    awardReadingCredit(slug);
   } catch (err) {
     console.warn('Could not load the passage:', err);
     host.innerHTML = `<p class="discover-empty">${escapeHtml(t('story.notFound'))}</p>`;
   }
+}
+
+/**
+ * Opening a passage pays one credit a day.
+ *
+ * Fire-and-forget: a reading credit is never worth blocking the page she came
+ * to read, and a failure costs her one credit, not the passage. Silent unless
+ * it actually paid, so the toast appears on the first passage of the day and
+ * never again — a "+1" on every passage would turn reading into a slot machine.
+ */
+async function awardReadingCredit(slug) {
+  try {
+    const res = await apiPost(`/api/living/${encodeURIComponent(slug)}/read`, { public_id: STATE.deviceId });
+    if (res && res.creditsAwarded) {
+      showToast(t('living.creditRead').replace('{n}', res.creditsAwarded));
+    }
+  } catch { /* a credit is not worth an error message */ }
 }
 
 /** Draws the open passage: body, reaction bar, comments, share. */
@@ -4576,7 +5421,20 @@ function renderLivingPage(post) {
   renderLivingComments();
 }
 
-/** The reaction bar: a summary (tap to open the picker) plus the Facebook set. */
+/**
+ * The reaction bar: every emoji, on screen, from the start.
+ *
+ * This used to be a summary pill reading "Be the first to react" that had to be
+ * TAPPED to reveal the seven choices. That put a click between a reader and the
+ * only action on the page, and worse, the pill looked like a status rather than
+ * an invitation — so most readers never tapped it and the passage collected no
+ * reactions at all. A row of emoji says "pick one" without being told to, which
+ * is the whole point of showing them.
+ *
+ * Chips that have a count are tinted so the eye lands on where the activity is;
+ * the ones still at zero stay quiet but visible, because a hidden emoji is a
+ * reaction nobody can give.
+ */
 function renderLivingReactions() {
   const host = document.getElementById('living-reactions');
   if (!host) return;
@@ -4584,32 +5442,20 @@ function renderLivingReactions() {
   const my = STATE.living.myReaction;
   const count = Object.values(reactions).reduce((a, b) => a + b, 0);
 
-  const chips = LIVING_REACTIONS
-    .filter((r) => (reactions[r.key] || 0) > 0 || r.key === my)
-    .map((r) => {
-      const n = reactions[r.key] || 0;
-      const active = r.key === my ? ' is-active' : '';
-      return `<button class="living-react-chip${active}" title="${escapeHtml(t(r.labelKey))}" onclick="reactLiving('${STATE.living.current.slug}', '${r.key}')">
-        <span class="living-react-emoji">${r.emoji}</span>${n ? `<span class="living-react-count">${n}</span>` : ''}
-      </button>`;
-    }).join('');
+  const chips = LIVING_REACTIONS.map((r) => {
+    const n = reactions[r.key] || 0;
+    const active = r.key === my ? ' is-active' : '';
+    const empty = n === 0 && r.key !== my ? ' is-empty' : '';
+    return `<button class="living-react-chip${active}${empty}" title="${escapeHtml(t(r.labelKey))}" onclick="reactLiving('${STATE.living.current.slug}', '${r.key}')">
+      <span class="living-react-emoji">${r.emoji}</span>${n ? `<span class="living-react-count">${n}</span>` : ''}
+    </button>`;
+  }).join('');
 
   host.innerHTML = `
-    <div class="living-react-summary" onclick="toggleLivingPicker()" role="button" tabindex="0">
+    <div class="living-react-summary">
       ${count ? `<span class="living-react-total">${count}</span>` : ''}
-      <span class="living-react-chips">${chips || `<span class="living-react-hint">${escapeHtml(t('living.reactTitle'))}</span>`}</span>
-    </div>
-    <div class="living-react-picker" id="living-react-picker" hidden>
-      ${LIVING_REACTIONS.map((r) => `
-        <button class="living-react-pick" title="${escapeHtml(t(r.labelKey))}" onclick="reactLiving('${STATE.living.current.slug}', '${r.key}')">${r.emoji}</button>
-      `).join('')}
+      <span class="living-react-chips">${chips}</span>
     </div>`;
-}
-
-/** Show/hide the reaction picker. */
-function toggleLivingPicker() {
-  const p = document.getElementById('living-react-picker');
-  if (p) p.hidden = !p.hidden;
 }
 
 /** Send (or toggle) a reaction, then repaint the bar from the server's state. */
@@ -4619,6 +5465,11 @@ async function reactLiving(slug, emoji) {
     STATE.living.reactions = res.reactions || {};
     STATE.living.myReaction = res.myReaction || null;
     renderLivingReactions();
+    // The first reaction of her day is worth one credit. It is a 2-second
+    // action, so the reward has to be visible immediately or it teaches
+    // nothing — but it is said quietly, because a coin pop-up on a passage
+    // about a wage dispute would be grotesque.
+    if (res.creditsAwarded) showToast(t('living.creditEarned').replace('{n}', res.creditsAwarded));
   } catch (err) {
     console.warn('Could not react:', err);
     showToast(t('share.failed'));

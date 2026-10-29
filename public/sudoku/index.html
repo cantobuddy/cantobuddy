@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Sudoku · CantoBuddy</title>
+<script src="/games/sudoku/core.js"></script>
+<style>
+  :root {
+    --primary: #2b6cf0;
+    --primary-tint: #e6efff;
+    --ink: #1f2937;
+    --muted: #6b7280;
+    --bg: #f5f7fb;
+    --surface: #ffffff;
+    --border: #e3e8ef;
+    --wrong: #e63946;
+    --given: #1f2937;
+    --radius: 16px;
+    --font-en: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: var(--font-en);
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 480px; margin: 0 auto; padding: 16px 16px 40px; }
+  .topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .back { color: var(--primary); text-decoration: none; font-weight: 700; font-size: 0.95rem; }
+  h1 { font-size: 1.35rem; margin: 0; }
+  .badge { background: var(--primary); color: #fff; font-size: 0.6rem; font-weight: 800; padding: 3px 8px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .hidden { display: none !important; }
+
+  /* ---- menu ----------------------------------------------------------- */
+  .menu { text-align: center; }
+  .menu .lead { color: var(--muted); font-size: 0.92rem; margin: 6px 0 18px; }
+  /* Her lifetime record. Muted on purpose: it is a fact, not a challenge. */
+  .recline { color: var(--muted); font-size: 0.82rem; text-align: center; margin: 12px 0 0; }
+  .levels { display: flex; gap: 8px; justify-content: center; margin: 14px 0 22px; }
+  .level {
+    flex: 1 1 0; max-width: 130px; padding: 12px 6px; border-radius: 14px;
+    border: 2px solid var(--border); background: var(--surface); cursor: pointer;
+    font-weight: 800; font-size: 0.95rem; color: var(--ink); transition: all .15s;
+  }
+  .level small { display: block; font-weight: 600; font-size: 0.68rem; color: var(--muted); margin-top: 3px; }
+  .level.active { border-color: var(--primary); background: var(--primary-tint); color: var(--primary); }
+  .btn {
+    display: block; width: 100%; padding: 16px; border: none; border-radius: 14px;
+    font-size: 1.05rem; font-weight: 800; cursor: pointer; transition: transform .1s, background .15s;
+  }
+  .btn:active { transform: scale(0.985); }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-ghost { background: var(--surface); color: var(--primary); border: 2px solid var(--border); }
+  .btn-row { display: flex; gap: 10px; }
+  .divider { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 0.82rem; margin: 22px 0 14px; }
+  .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+  .field { display: block; text-align: left; margin: 0 0 12px; }
+  .field label { display: block; font-size: 0.78rem; font-weight: 700; color: var(--muted); margin-bottom: 5px; }
+  .field input {
+    width: 100%; padding: 13px 14px; font-size: 1rem; border: 2px solid var(--border);
+    border-radius: 12px; background: var(--surface); color: var(--ink);
+  }
+  .field input:focus { outline: none; border-color: var(--primary); }
+  /* ---- avatar picker (mirrors the UNO lobby) ----------------------------- */
+  .av-label { display: block; text-align: left; font-size: 0.78rem; font-weight: 700; color: var(--muted); margin: 2px 0 8px; }
+  .avatars { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin: 0 0 18px; }
+  .avatars button {
+    aspect-ratio: 1; min-height: 48px; padding: 0; border-radius: 14px; font-size: 26px;
+    background: var(--surface); border: 2px solid var(--border);
+    display: grid; place-items: center; transition: .15s; cursor: pointer;
+  }
+  .avatars button.on { border-color: var(--primary); background: var(--primary-tint); transform: translateY(-2px); box-shadow: 0 6px 14px rgba(43,108,240,.18); }
+  .join-row { display: flex; gap: 10px; }
+  .join-row .field { flex: 1 1 auto; }
+  .join-row .btn { flex: 0 0 auto; width: auto; align-self: flex-end; padding: 13px 18px; }
+
+  /* ---- room topbar (mirrors Big Two / Word Match) --------------------- */
+  .room-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: nowrap; }
+  .codechip {
+    display: flex; align-items: center; gap: 8px; background: var(--surface);
+    border: 1px solid var(--border); padding: 7px 12px; border-radius: 13px;
+    box-shadow: 0 4px 12px rgba(23,26,35,.05); cursor: pointer;
+    flex: 0 1 auto; min-width: 0;   /* may shrink so the buttons never overflow */
+  }
+  .codechip > div { min-width: 0; }
+  .codechip small {
+    display: block; font-size: 9.5px; color: var(--muted); letter-spacing: .4px;
+    line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .codechip b { font-size: 16px; letter-spacing: 3px; line-height: 1.1; white-space: nowrap; }
+  .spacer { flex: 1; }
+  .status { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--muted); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: #c3c8d2; display: inline-block; }
+  .dot.on { background: #2fbf71; box-shadow: 0 0 0 3px rgba(47,191,113,.18); }
+  .iconbtn {
+    flex: 0 0 auto; width: 36px; height: 36px; border-radius: 11px; background: var(--surface);
+    border: 1px solid var(--border); display: grid; place-items: center; font-size: 15px;
+    box-shadow: 0 4px 12px rgba(23,26,35,.05); cursor: pointer; position: relative;
+  }
+  .iconbtn:active { transform: scale(.94); }
+  /* A red dot on the chat button when a message arrived while the panel is shut. */
+  .iconbtn.has-unread::after {
+    content: ""; position: absolute; top: 6px; right: 6px; width: 8px; height: 8px;
+    border-radius: 50%; background: #e63946; box-shadow: 0 0 0 2px #fff;
+  }
+  /* The WhatsApp invite — same green + white treatment as UNO, sized to the
+     36px topbar buttons so it reads as one of them. */
+  .wa-btn {
+    flex: 0 0 auto; width: 36px; height: 36px; border-radius: 11px; background: var(--surface);
+    border: 1px solid var(--border); color: #25d366; display: grid; place-items: center;
+    box-shadow: 0 4px 12px rgba(23,26,35,.05); transition: .15s; cursor: pointer;
+  }
+  .wa-btn:active { transform: scale(.93); }
+  .wa-btn svg { width: 20px; height: 20px; display: block; }
+  .stat-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0 14px; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 8px 12px; flex: 1 1 0; min-width: 84px; text-align: center; }
+  .stat b { display: block; font-size: 1.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .stat span { font-size: 0.68rem; color: var(--muted); }
+  .players { display: flex; flex-direction: column; gap: 8px; margin: 10px 0 14px; }
+  .player { display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 9px 12px; }
+  .player .av { font-size: 1.3rem; }
+  .player .pn { flex: 1 1 auto; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .player .pn small { color: var(--muted); font-weight: 600; margin-left: 4px; }
+  .pbar { flex: 0 0 70px; height: 8px; background: var(--border); border-radius: 999px; overflow: hidden; }
+  .pbar i { display: block; height: 100%; background: var(--primary); width: 0; }
+  .player.done { border-color: var(--primary); background: var(--primary-tint); }
+
+  /* ---- board ---------------------------------------------------------- */
+  .board {
+    --n: 9;
+    width: min(94vw, 384px); margin: 0 auto; background: var(--ink);
+    border: 3px solid var(--ink); border-radius: 8px; overflow: hidden;
+    display: grid; grid-template-columns: repeat(var(--n), 1fr); gap: 1px;
+    touch-action: manipulation; user-select: none;
+  }
+  .cell {
+    aspect-ratio: 1 / 1; background: var(--surface); display: grid; place-items: center;
+    font-size: clamp(14px, 5vw, 26px); font-weight: 700; color: var(--primary);
+    cursor: pointer; position: relative;
+  }
+  .cell.given { color: var(--given); font-weight: 800; background: #f0f3f8; cursor: default; }
+  .cell.peers { background: #eef3fb; }
+  .cell.sel { background: var(--primary-tint); box-shadow: inset 0 0 0 2px var(--primary); }
+  .cell.wrong { color: var(--wrong); }
+  .cell.box-r { box-shadow: inset -2px 0 0 var(--ink); }
+  .cell.box-b { box-shadow: inset 0 -2px 0 var(--ink); }
+  .cell.box-r.box-b { box-shadow: inset -2px 0 0 var(--ink), inset 0 -2px 0 var(--ink); }
+  .cell.box-r.sel, .cell.box-b.sel { box-shadow: inset 0 0 0 2px var(--primary), inset -2px 0 0 var(--ink); }
+
+  .pad { width: min(94vw, 384px); margin: 14px auto 0; display: grid; gap: 8px; }
+  .pad-nums { grid-template-columns: repeat(5, 1fr); }
+  .num {
+    padding: 14px 0; border: 2px solid var(--border); border-radius: 12px; background: var(--surface);
+    font-size: 1.2rem; font-weight: 800; color: var(--ink); cursor: pointer;
+  }
+  .num:active { transform: scale(0.96); background: var(--primary-tint); }
+  .pad-tools { grid-template-columns: 1fr 1fr; }
+  .tool { padding: 12px; border-radius: 12px; border: 2px solid var(--border); background: var(--surface); font-weight: 700; color: var(--ink); cursor: pointer; }
+  .tool.hint { color: var(--primary); border-color: var(--primary); }
+
+  /* ---- chat ----------------------------------------------------------- */
+  .chat { margin-top: 18px; }
+  .chat-log { display: flex; flex-direction: column; gap: 6px; max-height: 160px; overflow-y: auto; margin-bottom: 8px; }
+  .msg { font-size: 0.9rem; }
+  .msg b { color: var(--primary); }
+  .msg.shout { font-size: 1.3rem; }
+  .chat-input { display: flex; gap: 8px; }
+  .chat-input input { flex: 1 1 auto; padding: 11px 12px; border: 2px solid var(--border); border-radius: 12px; font-size: 0.95rem; }
+  .chat-input button { padding: 11px 16px; border: none; border-radius: 12px; background: var(--primary); color: #fff; font-weight: 700; cursor: pointer; }
+
+  /* ---- result overlay ------------------------------------------------- */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(20,28,40,0.55); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 50;
+  }
+  .card { background: var(--surface); border-radius: 20px; padding: 26px 22px; width: 100%; max-width: 340px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+  .card .emoji { font-size: 2.6rem; }
+  .card h2 { margin: 8px 0 4px; font-size: 1.3rem; }
+  .card p { color: var(--muted); margin: 0 0 18px; }
+  .toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 999px; font-size: 0.85rem; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 60; }
+  .toast.show { opacity: 1; }
+
+  /* Keep the topbar on one row on narrow phones: drop the "Live" word (the dot
+     still shows), and at 320px drop the chip's label so the code stays visible. */
+  @media (max-width: 560px) { .status span:last-child { display: none; } }
+  @media (max-width: 359px) { .codechip small { display: none; } .codechip { padding: 8px 10px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a class="back" href="/?view=games">← Games</a>
+    <h1 id="title">Sudoku</h1>
+  </div>
+
+  <!-- MENU -->
+  <section id="menu" class="menu">
+    <p class="lead" id="lead"></p>
+    <div class="field">
+      <label id="nameLbl"></label>
+      <input id="nameInput" maxlength="12" placeholder="" />
+    </div>
+    <label class="av-label" id="avatarLbl"></label>
+    <div class="avatars" id="avatarPicker"></div>
+    <div class="levels" id="levels"></div>
+    <button class="btn btn-primary" id="aloneBtn"></button>
+    <button class="btn btn-ghost" id="createBtn" style="margin-top:10px"></button>
+    <div class="divider" id="divider"></div>
+    <div class="join-row">
+      <div class="field" style="margin:0">
+        <label id="codeLbl"></label>
+        <input id="codeInput" maxlength="4" placeholder="" />
+      </div>
+      <button class="btn btn-ghost" id="joinBtn"></button>
+    </div>
+    <!-- Her record across every game. Empty and hidden until she has finished
+         one, so a stranger's first screen is unchanged. -->
+    <p id="myRecord" class="recline hidden"></p>
+  </section>
+
+  <!-- ROOM -->
+  <section id="room" class="hidden">
+    <div class="room-head">
+      <div class="codechip" id="codeChip">
+        <div>
+          <small id="codeChipLabel"></small>
+          <b id="codeText">----</b>
+        </div>
+        <span style="font-size:15px">🔗</span>
+      </div>
+      <button class="wa-btn" id="waBtn" type="button"></button>
+      <span class="spacer"></span>
+      <div class="status"><span class="dot" id="liveDot"></span><span id="liveText"></span></div>
+      <button class="iconbtn" id="soundBtn"><span id="soundIcon"></span></button>
+      <button class="iconbtn" id="chatBtn"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 11.8a7.6 7.6 0 0 1-7.6 7.6H9.4L4.5 22v-4.6a7.6 7.6 0 1 1 16-5.6z"/></svg></button>
+      <button class="iconbtn" id="leaveBtn"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4.5h3.5A1.5 1.5 0 0 1 19 6v12a1.5 1.5 0 0 1-1.5 1.5H14"/><path d="M9.5 8 5.5 12l4 4"/><path d="M5.5 12H15"/></svg></button>
+    </div>
+    <div class="stat-row" id="statRow"></div>
+    <div class="players hidden" id="players"></div>
+    <div class="board" id="board"></div>
+    <div class="pad pad-nums" id="padNums"></div>
+    <div class="pad pad-tools" id="padTools"></div>
+    <div class="chat hidden" id="chat">
+      <div class="chat-log" id="chatLog"></div>
+      <div class="chat-input">
+        <input id="chatInput" maxlength="140" placeholder="" />
+        <button id="chatSend"></button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="overlay hidden" id="overlay">
+  <div class="card">
+    <div class="emoji" id="ovEmoji">🎉</div>
+    <h2 id="ovTitle"></h2>
+    <p id="ovBody"></p>
+    <p id="ovRecord" class="recline hidden"></p>
+    <button class="btn btn-primary" id="ovAgain"></button>
+    <button class="btn btn-ghost" id="ovHome" style="margin-top:10px"></button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* The page title and its one-line description carry an emoji, the same way
+   every culture heading does: it is the first thing on the screen and the
+   only part of a game page a player who has never opened it will read. The
+   emoji is language-neutral, so it is prefixed once per language block
+   rather than stored separately. */
+var DICT = {
+    en: {
+      title: '🔢 Sudoku', lead: '🧩 Numbers, not words. Play alone or race a room.',
+      chooseLevel: 'Level', easy: 'Easy', easySub: '4×4', medium: 'Medium', mediumSub: '6×6', hard: 'Hard', hardSub: '9×9', expert: 'Expert', expertSub: '9×9',
+      aloneBtn: 'Play alone', divider: 'or play together',
+      nameLbl: 'Your name', namePh: 'e.g. Mama', createBtn: 'Create room', avatarLbl: 'Pick an avatar',
+      codeLbl: 'Room code', codePh: '4 letters', joinBtn: 'Join',
+      copy: 'Copy link', copied: 'Copied!', invite: 'Share this room link',
+      progress: 'Progress', mistakes: 'Mistakes', time: 'Time', players: 'Players',
+      waiting: 'Waiting for players… tap Start when ready', hostStart: 'Start game',
+      solved: 'Solved!', youWon: 'You won!', winner: 'Winner: ', rematch: 'Play again',
+      newPuzzle: 'New puzzle', backHome: '← Games', leave: 'Leave',
+      clear: 'Clear', hint: 'Hint', send: 'Send', say: 'Say something…',
+      wrong: 'Not correct — try another number', soloOnly: 'Hints are for playing alone',
+      roomNotFound: 'Room not found. Check the code.', needName: 'Please enter a name.',
+      ended: 'Game over', youSolved: 'You solved it!', waInvite: 'Invite on WhatsApp', inviteText: 'Come play Sudoku! Room code {code} → {url}',
+      recordLine: '🏆 {wins} won · {played} played',
+      codeChipLabel: 'Room code · tap to share', soundTitle: 'Sound', chatTitle: 'Chat', leaveTitle: 'Leave the room', liveOnline: 'Live', confirmLeave: 'Leave this room?',
+    },
+    fil: {
+      title: '🔢 Sudoku', lead: '🧩 Mga numero, hindi salita. Mag-isa o sabay sa kuwarto.',
+      chooseLevel: 'Level', easy: 'Madali', easySub: '4×4', medium: 'Katamtaman', mediumSub: '6×6', hard: 'Mahirap', hardSub: '9×9', expert: 'Expert', expertSub: '9×9',
+      aloneBtn: 'Mag-isa', divider: 'o sabay-sama',
+      nameLbl: 'Pangalan mo', namePh: 'hal. Mama', createBtn: 'Gumawa ng kuwarto', avatarLbl: 'Pumili ng avatar',
+      codeLbl: 'Code ng kuwarto', codePh: '4 letra', joinBtn: 'Sumali',
+      copy: 'Kopyahin link', copied: 'Nakopya!', invite: 'Ibahagi ang link ng kuwarto',
+      progress: 'Progreso', mistakes: 'Mali', time: 'Oras', players: 'Mga manlalaro',
+      waiting: 'Hintay ng kalaro… pindutin ang Start kapag ready', hostStart: 'Simulan',
+      solved: 'Ayos!', youWon: 'Nanalo ka!', winner: 'Panalo: ', rematch: 'Laruin ulit',
+      newPuzzle: 'Bago puzzle', backHome: '← Mga Laro', leave: 'Umalis',
+      clear: 'Burahin', hint: 'Tulong', send: 'Sugo', say: 'Magsabi…',
+      wrong: 'Mali — subukan ang ibang numero', soloOnly: 'Ang tulong ay para sa mag-isa',
+      roomNotFound: 'Hindi mahanap ang kuwarto. I-check ang code.', needName: 'Ilagay ang pangalan.',
+      ended: 'Tapos na', youSolved: 'Na-solve mo!', waInvite: 'Anyayahan sa WhatsApp', inviteText: 'Halina, mag-Sudoku tayo! Code {code} → {url}',
+      recordLine: '🏆 {wins} panalo · {played} laro',
+      codeChipLabel: 'Code ng kuwarto · i-tap para i-share', soundTitle: 'Tunog', chatTitle: 'Chat', leaveTitle: 'Umalis sa kuwarto', liveOnline: 'Live', confirmLeave: 'Umalis sa kuwartong ito?',
+    },
+    zh: {
+      title: '🔢 数独', lead: '🧩 填数字，不用词语。单人玩或和朋友比赛。',
+      chooseLevel: '难度', easy: '简单', easySub: '4×4', medium: '中等', mediumSub: '6×6', hard: '困难', hardSub: '9×9', expert: '专家', expertSub: '9×9',
+      aloneBtn: '单人玩', divider: '或一起玩',
+      nameLbl: '你的名字', namePh: '例如 妈妈', createBtn: '创建房间', avatarLbl: '挑个头像',
+      codeLbl: '房间码', codePh: '4 个字母', joinBtn: '加入',
+      copy: '复制链接', copied: '已复制！', invite: '分享这个房间链接',
+      progress: '进度', mistakes: '错误', time: '时间', players: '玩家',
+      waiting: '等待玩家……准备好了点开始', hostStart: '开始游戏',
+      solved: '完成！', youWon: '你赢了！', winner: '获胜者：', rematch: '再来一局',
+      newPuzzle: '新题目', backHome: '← 游戏', leave: '离开',
+      clear: '清除', hint: '提示', send: '发送', say: '说点什么…',
+      wrong: '不对——换个数字试试', soloOnly: '提示只供单人玩',
+      roomNotFound: '找不到房间，请检查房间码。', needName: '请输入名字。',
+      ended: '游戏结束', youSolved: '你解出来了！', waInvite: '用 WhatsApp 邀请家人', inviteText: '来玩数独！房间配对码 {code} → {url}',
+      recordLine: '🏆 贏了 {wins} 場 · 共 {played} 場',
+      codeChipLabel: '房间码 · 点按分享', soundTitle: '音效', chatTitle: '聊天', leaveTitle: '离开房间', liveOnline: '连线中', confirmLeave: '离开这个房间？',
+    },
+    id: {
+      title: '🔢 Sudoku', lead: '🧩 Angka, bukan kata. Main sendiri atau bareng di ruang.',
+      chooseLevel: 'Level', easy: 'Mudah', easySub: '4×4', medium: 'Sedang', mediumSub: '6×6', hard: 'Sulit', hardSub: '9×9', expert: 'Ahli', expertSub: '9×9',
+      aloneBtn: 'Main sendiri', divider: 'atau bareng',
+      nameLbl: 'Nama kamu', namePh: 'mis. Mama', createBtn: 'Buat ruang', avatarLbl: 'Pilih avatar',
+      codeLbl: 'Kode ruang', codePh: '4 huruf', joinBtn: 'Gabung',
+      copy: 'Salin tautan', copied: 'Tersalin!', invite: 'Bagikan tautan ruang',
+      progress: 'Progres', mistakes: 'Salah', time: 'Waktu', players: 'Pemain',
+      waiting: 'Tunggu pemain… klik Mulai bila siap', hostStart: 'Mulai',
+      solved: 'Selesai!', youWon: 'Kamu menang!', winner: 'Pemenang: ', rematch: 'Main lagi',
+      newPuzzle: 'Soal baru', backHome: '← Game', leave: 'Keluar',
+      clear: 'Hapus', hint: 'Petunjuk', send: 'Kirim', say: 'Bilang sesuatu…',
+      wrong: 'Salah — coba angka lain', soloOnly: 'Petunjuk hanya untuk main sendiri',
+      roomNotFound: 'Ruang tak ditemukan. Cek kodenya.', needName: 'Masukkan nama.',
+      ended: 'Selesai', youSolved: 'Kamu menyelesaikannya!', waInvite: 'Undang lewat WhatsApp', inviteText: 'Ayo main Sudoku! Kode ruang {code} → {url}',
+      recordLine: '🏆 {wins} menang · {played} main',
+      codeChipLabel: 'Kode ruangan · ketuk untuk bagikan', soundTitle: 'Suara', chatTitle: 'Obrolan', leaveTitle: 'Keluar ruangan', liveOnline: 'Langsung', confirmLeave: 'Keluar dari ruang ini?',
+    },
+  };
+
+  var lang = localStorage.getItem('cb_lang') || 'en';
+  if (!DICT[lang]) lang = 'en';
+  var D = DICT[lang];
+  function t(k) { return (DICT[lang] && DICT[lang][k]) || DICT.en[k] || k; }
+
+  // ---- state ----
+  var S = null;
+  var session = { token: null, code: null };
+  var level = 'easy';
+  var selected = -1;
+  var evSource = null;
+  var wrongFlash = {};   // index -> true, cleared on next state render
+  var timerId = null;
+
+  // The same twelve animal avatars the UNO lobby uses, in the same order, so a
+  // player picks the same face everywhere in the game centre.
+  var AVATARS = ['🦊','🐼','🐯','🐸','🐧','🦄','🐙','🐨','🐰','🦁','🐳','🐝'];
+  var myAvatar = AVATARS[0];
+
+  // The WhatsApp mark — a speech bubble with a handset, in currentColor so the
+  // button decides the green. Copied from the UNO table's WA_ICON.
+  var WA_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
+    '<path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Z" fill="none" stroke="currentColor" stroke-width="2"/>' +
+    '<path d="M8.6 7.6c.3-.1.6 0 .8.3l.8 1.3c.1.3.1.6-.1.8l-.5.5c-.2.2-.2.4-.1.6.5.9 1.3 1.7 2.2 2.2.2.1.4.1.6-.1l.5-.5c.2-.2.5-.3.8-.1l1.3.8c.3.2.4.5.3.8-.3 1-1.3 1.7-2.4 1.6-2.8-.3-5.2-2.7-5.5-5.5-.1-1.1.6-2.1 1.6-2.4Z" fill="currentColor"/>' +
+    '</svg>';
+
+  // Hand the room invite to WhatsApp instead of the clipboard. The link is the
+  // same /games/sudoku/ABCD the copy button writes; carrying it (not just the
+  // four-letter code) means the recipient taps once and lands in the room.
+  function shareOnWhatsApp() {
+    var code = session.code || (S && S.code) || '';
+    var url = location.origin + '/games/sudoku/' + code;
+    var msg = t('inviteText').replace('{code}', code).replace('{url}', url);
+    window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank', 'noopener');
+  }
+
+  // ---- dom ----
+  function $(id) { return document.getElementById(id); }
+
+  // ---- sound ----------------------------------------------------------
+  // A tiny synth, the same idea as the other tables: a short note for a correct
+  // cell, a low buzz for a wrong one, a rising chime on a win, a pop for chat.
+  // Sudoku had no audio at all before, so the topbar's sound button needed
+  // something to turn on. The choice is remembered between visits.
+  var soundOn = localStorage.getItem('sudoku.sound') !== 'off';
+  var audioCtx = null;
+  var ICON_SOUND_ON = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.2l4.3 3.5V6L7.2 9.5H4z"/><path d="M15.4 9a4.2 4.2 0 0 1 0 6"/><path d="M18 6.6a7.6 7.6 0 0 1 0 10.8"/></svg>';
+  var ICON_SOUND_OFF = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.2l4.3 3.5V6L7.2 9.5H4z"/><path d="M16 9.8l4.4 4.4M20.4 9.8 16 14.2"/></svg>';
+
+  function ac() {
+    if (!audioCtx) {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      audioCtx = new AC();
+    }
+    if (audioCtx.state === 'suspended') { try { audioCtx.resume(); } catch (e) {} }
+    return audioCtx;
+  }
+  function tone(freq, start, dur, type, gain) {
+    var ctx = ac(); if (!ctx) return;
+    var o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type || 'sine';
+    o.frequency.value = freq;
+    var t0 = ctx.currentTime + (start || 0);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(gain || 0.07, t0 + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(t0); o.stop(t0 + dur + 0.03);
+  }
+  function sfx(kind) {
+    if (!soundOn) return;
+    if (kind === 'tick') { tone(660, 0, 0.09, 'sine', 0.06); tone(990, 0.03, 0.09, 'sine', 0.04); }
+    else if (kind === 'wrong') { tone(190, 0, 0.16, 'sawtooth', 0.05); tone(150, 0.07, 0.18, 'sawtooth', 0.04); }
+    else if (kind === 'win') { tone(523, 0, 0.15, 'triangle', 0.07); tone(659, 0.13, 0.15, 'triangle', 0.07); tone(784, 0.26, 0.3, 'triangle', 0.08); }
+    else if (kind === 'pop') { tone(520, 0, 0.08, 'sine', 0.05); }
+  }
+  function renderSoundIcon() {
+    var el = $('soundIcon'); if (!el) return;
+    el.innerHTML = soundOn ? ICON_SOUND_ON : ICON_SOUND_OFF;
+    var btn = $('soundBtn');
+    btn.title = t('soundTitle');
+    btn.setAttribute('aria-label', t('soundTitle'));
+  }
+
+  // ---- room chrome / chat state --------------------------------------
+  var chatOpen = false;
+  var unreadChat = 0;
+  var chatPrimed = false;   // the first state is history, not news
+  var lastChatLen = 0;
+  var resultShown = false;  // the win chime plays once per round
+
+  // Fill the language-dependent chrome of the room topbar. Called from
+  // buildMenu() so it is ready before the room is ever shown, and again after a
+  // language switch or leaving a room.
+  function paintChrome() {
+    $('codeChipLabel').textContent = t('codeChipLabel');
+    $('waBtn').innerHTML = WA_ICON;
+    $('waBtn').title = t('waInvite');
+    $('waBtn').setAttribute('aria-label', t('waInvite'));
+    $('chatBtn').title = t('chatTitle');
+    $('chatBtn').setAttribute('aria-label', t('chatTitle'));
+    $('leaveBtn').title = t('leaveTitle');
+    $('leaveBtn').setAttribute('aria-label', t('leaveTitle'));
+    $('liveText').textContent = t('liveOnline');
+    renderSoundIcon();
+  }
+
+  function resetRoomUi() {
+    chatOpen = false;
+    unreadChat = 0;
+    chatPrimed = false;
+    lastChatLen = 0;
+    resultShown = false;
+    if ($('chatBtn')) $('chatBtn').classList.remove('has-unread');
+  }
+
+  function api(path, body) {
+    return fetch(path, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body || {}),
+    }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, status: r.status, data: j }; }); });
+  }
+
+  function toast(msg) {
+    var el = $('toast'); el.textContent = msg; el.classList.add('show');
+    setTimeout(function () { el.classList.remove('show'); }, 1600);
+  }
+
+  function connect(token) {
+    if (evSource) evSource.close();
+    evSource = new EventSource('/games/sudoku/api/events?token=' + encodeURIComponent(token));
+    evSource.onmessage = function (e) {
+      try {
+        var d = JSON.parse(e.data);
+        if (d.fatal === 'expired') { toast(t('roomNotFound')); return; }
+        S = d;
+        $('liveDot').classList.add('on');
+        render();
+      } catch (err) { /* ignore */ }
+    };
+    evSource.onerror = function () { $('liveDot').classList.remove('on'); };
+  }
+
+  // ---- menu setup ----
+  function renderAvatars() {
+    var box = $('avatarPicker');
+    if (!box) return;
+    box.innerHTML = '';
+    AVATARS.forEach(function (a) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = a;
+      b.className = a === myAvatar ? 'on' : '';
+      b.setAttribute('aria-label', a);
+      b.addEventListener('click', function () { myAvatar = a; renderAvatars(); });
+      box.appendChild(b);
+    });
+  }
+
+  /**
+   * The same device identity the rest of the app uses (DEVICE_KEY in app.js).
+   *
+   * It is what lets a win here and a quiz there belong to one person, and it is
+   * why the record survives closing the tab. Created here if the app has never
+   * been opened on this device — the format matches, so the two agree whichever
+   * gets there first.
+   */
+  function deviceId() {
+    try {
+      var id = localStorage.getItem('cb_device');
+      if (!id) {
+        var b = new Uint8Array(16);
+        crypto.getRandomValues(b);
+        id = 'dev_' + Array.prototype.map.call(b, function (x) {
+          return x.toString(16).padStart(2, '0');
+        }).join('');
+        localStorage.setItem('cb_device', id);
+      }
+      return id;
+    } catch (e) { return null; }
+  }
+
+  /** Her record at this game, for the menu. Nothing at all if she has never played. */
+  function loadMyRecord() {
+    var el = $('myRecord');
+    if (!el) return;
+    fetch('/api/games/record?public_id=' + encodeURIComponent(deviceId() || ''))
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var rec = d && d.games && d.games.sudoku;
+        if (!rec || !rec.played) { el.classList.add('hidden'); return; }
+        el.textContent = t('recordLine').replace('{wins}', rec.wins).replace('{played}', rec.played);
+        el.classList.remove('hidden');
+      })
+      .catch(function () { /* a record is not worth an error message */ });
+  }
+
+  function buildMenu() {
+    loadMyRecord();
+    document.documentElement.lang = lang === 'zh' ? 'zh-Hans' : lang;
+    $('title').textContent = t('title');
+    $('lead').textContent = t('lead');
+    $('nameLbl').textContent = t('nameLbl');
+    $('nameInput').placeholder = t('namePh');
+    $('avatarLbl').textContent = t('avatarLbl');
+    $('codeLbl').textContent = t('codeLbl');
+    $('codeInput').placeholder = t('codePh');
+    $('aloneBtn').textContent = t('aloneBtn');
+    $('divider').textContent = t('divider');
+    $('createBtn').textContent = t('createBtn');
+    $('joinBtn').textContent = t('joinBtn');
+    // Paint the room topbar (code chip label, WhatsApp, sound/chat/leave) up
+    // front so nothing is a blank box between showRoom() and the first state.
+    paintChrome();
+
+    // Remember the name and a starting face, so a player does not retype it
+    // every time they come back to play.
+    var saved = localStorage.getItem('sudoku.name');
+    if (saved && !$('nameInput').value) $('nameInput').value = saved;
+    renderAvatars();
+
+    var levels = [['easy', t('easy'), t('easySub')], ['medium', t('medium'), t('mediumSub')], ['hard', t('hard'), t('hardSub')], ['expert', t('expert'), t('expertSub')]];
+    $('levels').innerHTML = levels.map(function (l) {
+      return '<button class="level' + (l[0] === level ? ' active' : '') + '" data-l="' + l[0] + '">' + l[1] + '<small>' + l[2] + '</small></button>';
+    }).join('');
+    Array.prototype.forEach.call(document.querySelectorAll('#levels .level'), function (b) {
+      b.addEventListener('click', function () {
+        level = b.getAttribute('data-l');
+        Array.prototype.forEach.call(document.querySelectorAll('#levels .level'), function (x) {
+          x.classList.toggle('active', x.getAttribute('data-l') === level);
+        });
+      });
+    });
+  }
+
+  // ---- actions ----
+  function startAlone() {
+    var name = $('nameInput').value.trim();
+    localStorage.setItem('sudoku.name', name);
+    api('/games/sudoku/api/solo', { level: level, name: name || t('title'), avatar: myAvatar, deviceId: deviceId() })
+      .then(function (r) {
+        if (!r.ok) { toast(t('roomNotFound')); return; }
+        session = { token: r.data.token, code: r.data.code };
+        connect(session.token);
+        showRoom();
+      });
+  }
+
+  function createTogether() {
+    var name = $('nameInput').value.trim();
+    if (!name) { toast(t('needName')); return; }
+    localStorage.setItem('sudoku.name', name);
+    api('/games/sudoku/api/create', { level: level, name: name, avatar: myAvatar, deviceId: deviceId() })
+      .then(function (r) {
+        if (!r.ok) { toast(t('roomNotFound')); return; }
+        session = { token: r.data.token, code: r.data.code };
+        connect(session.token);
+        showRoom();
+      });
+  }
+
+  function joinTogether() {
+    var name = $('nameInput').value.trim();
+    var code = $('codeInput').value.trim().toUpperCase();
+    if (!name) { toast(t('needName')); return; }
+    if (!code) { toast(t('roomNotFound')); return; }
+    localStorage.setItem('sudoku.name', name);
+    api('/games/sudoku/api/join', { code: code, name: name, avatar: myAvatar, deviceId: deviceId() })
+      .then(function (r) {
+        if (!r.ok) { toast(t('roomNotFound')); return; }
+        session = { token: r.data.token, code: r.data.code };
+        connect(session.token);
+        showRoom();
+      });
+  }
+
+  function sendSet(index, value) {
+    return api('/games/sudoku/api/action', { token: session.token, type: 'set', index: index, value: value })
+      .then(function (r) {
+        if (r.ok && r.data && r.data.correct === false) {
+          wrongFlash[index] = true;
+          renderBoard();
+          toast(t('wrong'));
+          sfx('wrong');
+        } else if (r.ok && r.data && r.data.correct === true) {
+          sfx('tick');
+        }
+      });
+  }
+  function sendClear(index) { api('/games/sudoku/api/action', { token: session.token, type: 'clear', index: index }); }
+  function sendHint(index) {
+    api('/games/sudoku/api/action', { token: session.token, type: 'hint', index: index })
+      .then(function (r) { if (!r.ok) toast(t('soloOnly')); else sfx('tick'); });
+  }
+
+  function showRoom() {
+    $('menu').classList.add('hidden');
+    $('room').classList.remove('hidden');
+    $('overlay').classList.add('hidden');
+    resetRoomUi();
+  }
+  function showMenu() {
+    $('room').classList.add('hidden');
+    $('menu').classList.remove('hidden');
+    $('overlay').classList.add('hidden');
+    if (evSource) { evSource.close(); evSource = null; }
+  }
+
+  // ---- render ----
+  function fmtTime(sec) {
+    var m = Math.floor(sec / 60), s = sec % 60;
+    return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+  }
+
+  function render() {
+    if (!S) return;
+    // Topbar: the code chip + invite are for a shared room only. Solo has no one
+    // to invite and its room cannot be joined, so those controls are hidden.
+    $('codeChip').classList.toggle('hidden', !!S.solo);
+    $('waBtn').classList.toggle('hidden', !!S.solo);
+    $('chatBtn').classList.toggle('hidden', !!S.solo);
+    if (!S.solo) $('codeText').textContent = S.code;
+
+    var elapsed = S.startedAt ? Math.max(0, Math.floor((S.serverNow - S.startedAt) / 1000)) : 0;
+    var stats = '<div class="stat"><b>' + fmtTime(elapsed) + '</b><span>' + t('time') + '</span></div>'
+      + '<div class="stat"><b>' + S.you.progress + '/' + (S.n * S.n - S.givens) + '</b><span>' + t('progress') + '</span></div>'
+      + '<div class="stat"><b>' + S.you.mistakes + '</b><span>' + t('mistakes') + '</span></div>';
+    $('statRow').innerHTML = stats;
+
+    // players (only in together mode)
+    var playersBox = $('players');
+    if (S.solo) {
+      playersBox.classList.add('hidden');
+    } else {
+      playersBox.classList.remove('hidden');
+      playersBox.innerHTML = S.players.map(function (p) {
+        var total = S.n * S.n - S.givens;
+        var pct = total ? Math.round((p.progress / total) * 100) : 0;
+        var tag = p.isHost ? ' <small>★</small>' : (p.connected ? '' : ' <small>(…)</small>');
+        return '<div class="player' + (p.done ? ' done' : '') + '"><span class="av">' + p.avatar + '</span>'
+          + '<span class="pn">' + escapeHtml(p.name) + tag + '</span>'
+          + '<span class="pbar"><i style="width:' + pct + '%"></i></span></div>';
+      }).join('');
+    }
+
+    // chat (together only) — kept up to date even while hidden, shown on demand
+    var chatBox = $('chat');
+    if (S.solo) {
+      chatBox.classList.add('hidden');
+    } else {
+      $('chatInput').placeholder = t('say');
+      $('chatSend').textContent = t('send');
+      $('chatLog').innerHTML = S.chat.map(function (m) {
+        if (m.kind === 'shout') return '<div class="msg shout">' + escapeHtml(m.avatar || '') + ' ' + escapeHtml(m.text) + '</div>';
+        return '<div class="msg"><b>' + escapeHtml(m.name) + ':</b> ' + escapeHtml(m.text) + '</div>';
+      }).join('');
+      // Unread dot + pop: the first state is history, not news.
+      if (!chatPrimed) { chatPrimed = true; lastChatLen = S.chat.length; }
+      else if (S.chat.length > lastChatLen) {
+        var lastMsg = S.chat[S.chat.length - 1];
+        lastChatLen = S.chat.length;
+        if (lastMsg && lastMsg.id !== S.you.id) {
+          if (!chatOpen) { unreadChat++; $('chatBtn').classList.add('has-unread'); }
+          sfx('pop');
+        }
+      }
+      chatBox.classList.toggle('hidden', !chatOpen);
+      var log = $('chatLog'); log.scrollTop = log.scrollHeight;
+    }
+
+    // board + controls
+    if (S.state === 'lobby') {
+      $('board').classList.add('hidden');
+      $('padNums').classList.add('hidden');
+      $('padTools').classList.add('hidden');
+      // host sees start
+      if (S.you.isHost) {
+        $('padTools').classList.remove('hidden');
+        $('padTools').innerHTML = '<button class="tool" id="startBtn" style="grid-column:1/3;background:var(--primary);color:#fff">' + t('hostStart') + '</button>';
+        $('startBtn').addEventListener('click', function () {
+          api('/games/sudoku/api/action', { token: session.token, type: 'start' });
+        });
+      } else {
+        $('padTools').innerHTML = '<div class="stat" style="grid-column:1/3">' + t('waiting') + '</div>';
+        $('padTools').classList.remove('hidden');
+      }
+    } else {
+      // playing or ended -> show board
+      $('board').classList.remove('hidden');
+      $('padNums').classList.remove('hidden');
+      $('padTools').classList.remove('hidden');
+      renderBoard();
+      renderPad();
+      if (S.state === 'ended') showResult();
+    }
+  }
+
+  function renderBoard() {
+    var board = $('board');
+    board.style.setProperty('--n', S.n);
+    var n = S.n, br = S.br, bc = S.bc;
+    var cells = '';
+    for (var i = 0; i < n * n; i++) {
+      var r = Math.floor(i / n), c = i % n;
+      var cls = 'cell';
+      var val = S.board[i];
+      if (S.puzzle[i] !== 0) cls += ' given';
+      else if (val !== 0) cls += ' filled';
+      if (i === selected) cls += ' sel';
+      if (wrongFlash[i]) cls += ' wrong';
+      if ((c + 1) % bc === 0 && c !== n - 1) cls += ' box-r';
+      if ((r + 1) % br === 0 && r !== n - 1) cls += ' box-b';
+      cells += '<div class="' + cls + '" data-i="' + i + '">' + (val !== 0 ? val : '') + '</div>';
+    }
+    board.innerHTML = cells;
+    Array.prototype.forEach.call(board.querySelectorAll('.cell'), function (el) {
+      var idx = Number(el.getAttribute('data-i'));
+      if (S.puzzle[idx] !== 0) return; // given not selectable
+      el.addEventListener('click', function () { selected = idx; wrongFlash = {}; renderBoard(); });
+    });
+  }
+
+  function renderPad() {
+    var nums = '';
+    for (var v = 1; v <= S.n; v++) {
+      nums += '<button class="num" data-v="' + v + '">' + v + '</button>';
+    }
+    $('padNums').innerHTML = nums;
+    Array.prototype.forEach.call($('padNums').querySelectorAll('.num'), function (b) {
+      b.addEventListener('click', function () {
+        if (selected < 0) return;
+        var v = Number(b.getAttribute('data-v'));
+        sendSet(selected, v);
+      });
+    });
+    var tools = '<button class="tool" id="clearBtn">' + t('clear') + '</button>';
+    if (S.solo) tools += '<button class="tool hint" id="hintBtn">' + t('hint') + '</button>';
+    else tools += '<button class="tool" id="shoutBtn">👏</button>';
+    $('padTools').innerHTML = tools;
+    var cl = $('clearBtn');
+    if (cl) cl.addEventListener('click', function () { if (selected >= 0) sendClear(selected); });
+    var hi = $('hintBtn');
+    if (hi) hi.addEventListener('click', function () { if (selected >= 0) sendHint(selected); });
+    var sh = $('shoutBtn');
+    if (sh) sh.addEventListener('click', function () {
+      // Open the panel so the sender sees their own emoji land.
+      chatOpen = true;
+      $('chat').classList.remove('hidden');
+      api('/games/sudoku/api/action', { token: session.token, type: 'shout', emoji: '👏' });
+    });
+  }
+
+  function showResult() {
+    var ov = $('overlay');
+    ov.classList.remove('hidden');
+    if (!resultShown) { resultShown = true; sfx('win'); }
+    if (S.solo) {
+      $('ovEmoji').textContent = '🎉';
+      $('ovTitle').textContent = t('youSolved');
+      $('ovBody').textContent = t('solved');
+    } else if (S.you.isWinner) {
+      $('ovEmoji').textContent = '🏆';
+      $('ovTitle').textContent = t('youWon');
+      $('ovBody').textContent = t('winner') + (S.players.find(function (p) { return p.id === S.winner; }) || {}).name;
+    } else {
+      var w = S.players.find(function (p) { return p.id === S.winner; });
+      $('ovEmoji').textContent = '🏁';
+      $('ovTitle').textContent = t('ended');
+      $('ovBody').textContent = w ? (t('winner') + w.name) : '';
+    }
+    // The number that just changed, on the screen where she can see it change.
+    var rec = S.you && S.you.record;
+    var recEl = $('ovRecord');
+    if (rec && rec.played) {
+      recEl.textContent = t('recordLine').replace('{wins}', rec.wins).replace('{played}', rec.played);
+      recEl.classList.remove('hidden');
+    } else {
+      recEl.classList.add('hidden');
+    }
+    $('ovAgain').textContent = S.solo ? t('newPuzzle') : t('rematch');
+    $('ovHome').textContent = t('backHome');
+    $('ovAgain').onclick = function () {
+      if (S.solo) startAlone();
+      else api('/games/sudoku/api/action', { token: session.token, type: 'start' });
+      resultShown = false;
+      ov.classList.add('hidden');
+    };
+    $('ovHome').onclick = function () { showMenu(); buildMenu(); };
+  }
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  // ---- events ----
+  $('aloneBtn').addEventListener('click', startAlone);
+  $('createBtn').addEventListener('click', createTogether);
+  $('joinBtn').addEventListener('click', joinTogether);
+
+  // Tapping the code chip copies the invite (code + link) — the same message the
+  // WhatsApp button sends, so it can be pasted into any chat.
+  $('codeChip').addEventListener('click', function () {
+    if (!S || S.solo) return;
+    var link = location.origin + '/games/sudoku/' + S.code;
+    var msg = t('inviteText').replace('{code}', S.code).replace('{url}', link);
+    if (navigator.clipboard) navigator.clipboard.writeText(msg).then(function () { toast(t('copied')); }, function () { toast(link); });
+    else toast(link);
+  });
+  $('waBtn').addEventListener('click', shareOnWhatsApp);
+
+  $('soundBtn').addEventListener('click', function () {
+    soundOn = !soundOn;
+    localStorage.setItem('sudoku.sound', soundOn ? 'on' : 'off');
+    renderSoundIcon();
+    if (soundOn) sfx('tick');
+  });
+  $('chatBtn').addEventListener('click', function () {
+    chatOpen = !chatOpen;
+    unreadChat = 0;
+    $('chatBtn').classList.remove('has-unread');
+    if (S && !S.solo) $('chat').classList.toggle('hidden', !chatOpen);
+  });
+  $('leaveBtn').addEventListener('click', function () {
+    if (!confirm(t('confirmLeave'))) return;
+    if (session.token) api('/games/sudoku/api/action', { token: session.token, type: 'leave' });
+    if (evSource) { evSource.close(); evSource = null; }
+    session = { token: null, code: null };
+    S = null;
+    resetRoomUi();
+    showMenu();
+    buildMenu();
+  });
+
+  $('chatSend').addEventListener('click', function () {
+    var v = $('chatInput').value.trim();
+    if (!v) return;
+    api('/games/sudoku/api/action', { token: session.token, type: 'chat', text: v });
+    $('chatInput').value = '';
+  });
+  $('chatInput').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); $('chatSend').click(); }
+  });
+
+  // prefill join code from a shared link like /games/sudoku/ABCD
+  var m = location.pathname.match(/\/games\/sudoku\/([A-Z0-9]{4})$/);
+  if (m) { $('codeInput').value = m[1]; }
+
+  buildMenu();
+  // One global ticker drives the live clock off the local clock, anchored to the
+  // server's `startedAt` at the last state we received. No per-render intervals.
+  setInterval(function () {
+    if (S && S.state === 'playing' && S.startedAt) {
+      var sec = Math.max(0, Math.floor((Date.now() - S.startedAt) / 1000));
+      var firstStat = document.querySelector('#statRow .stat b');
+      if (firstStat) firstStat.textContent = fmtTime(sec);
+    }
+  }, 1000);
+
+  // Expose a tiny hook for automated tests (mirrors the other game pages).
+  window.S = function () { return S; };
+  window.__sudoku = { get state() { return S; }, get session() { return session; } };
+})();
+</script>
+</body>
+</html>

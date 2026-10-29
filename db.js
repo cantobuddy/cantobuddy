@@ -21,8 +21,10 @@ const {
   SEED_CATEGORIES, SEED_VOCABULARY, SEED_SCENARIOS, SEED_USERS,
   MANDARIN_GLOSSES, CATEGORY_ZH_NAMES,
   INDONESIAN_GLOSSES, CATEGORY_ID_NAMES,
+  USAGE_NOTES,
   SEED_POSTS,
   SEED_LIVING,
+  SEED_LIVING_COMMENTS,
 } = require('./data');
 const { SEED_STICKERS } = require('./stickers');
 // The news taxonomy and the keyword classifier that fills it. Required here
@@ -46,6 +48,23 @@ const newsCategory = require('./news-category');
 
 const HKT_OFFSET_MS = 8 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * How long an employer pairing window may stay open. Three days.
+ *
+ * A window lets someone who can name an employer sign that employer in on a
+ * brand-new device, so its length is a security decision, and the operator pays
+ * for it in a different currency: every open window is a "pairing open" badge
+ * on the People tab. A badge that outlives its usefulness teaches the operator
+ * to ignore badges, which is the one outcome worse than a closed window. Three
+ * days is long enough for an employer who was told "click Allow new device" to
+ * actually do it, and short enough that a forgotten one clears itself.
+ *
+ * Enforced in two places so it cannot be argued around: openDeviceReauth clamps
+ * whatever it is handed, and the migration ceiling below retires anything that
+ * somehow got further out than this.
+ */
+const PAIRING_WINDOW_MS = 3 * DAY_MS;
 
 /** The Hong Kong calendar date (YYYY-MM-DD) for an instant. */
 const hktDate = (ms) => new Date(ms + HKT_OFFSET_MS).toISOString().slice(0, 10);
@@ -321,6 +340,38 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_learner_stickers ON learner_stickers(learner_id);
 
+  /* Credits earned by something other than a quiz answer.
+
+     Until now a credit WAS a correct answer: getCredits() summed progress.score
+     and that was the whole model. The daily reaction needs a credit that is not
+     a quiz, and inventing a fake progress row to carry it would corrupt the two
+     things progress is used for — her streak and her practice statistics — to
+     buy a coin. So small non-quiz rewards live here instead, and a credit is now
+     progress.score plus this table.
+
+     The UNIQUE key is the rule, not a safety net: one credit per device per kind
+     per Hong Kong day, enforced by SQLite rather than by whoever calls it. A
+     double tap, a retry, or two tabs cannot pay twice, and there is no counter to
+     drift. 'day' is the HKT date string, because the day has to change when HER
+     day changes, not when UTC's does. */
+  /* One row per credit that is not a quiz answer. kind is a closed set -
+     'reaction', 'reading', 'game' - listed in CREDIT_KINDS below. The UNIQUE
+     key is the whole anti-farm design: one credit per device per kind per Hong
+     Kong day, so a double tap, a retry, two tabs or a replayed request all
+     collapse into a single row. This is why kind must never be built from user
+     input: a typo does not error, it silently opens a fresh daily allowance. */
+  CREATE TABLE IF NOT EXISTS credit_events (
+    id         INTEGER PRIMARY KEY,
+    public_id  TEXT NOT NULL,
+    learner_id INTEGER REFERENCES learners(id) ON DELETE CASCADE,
+    kind       TEXT NOT NULL,
+    points     INTEGER NOT NULL DEFAULT 1,
+    day        TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    UNIQUE(public_id, kind, day)
+  );
+  CREATE INDEX IF NOT EXISTS idx_credit_events_learner ON credit_events(learner_id);
+
   CREATE TABLE IF NOT EXISTS sessions (
     sid        TEXT PRIMARY KEY,
     data       TEXT NOT NULL,
@@ -489,6 +540,34 @@ db.exec(`
     ON posts(source_key) WHERE source_key IS NOT NULL;
   CREATE INDEX IF NOT EXISTS idx_posts_feed ON posts(status, channel, published_at DESC);
 
+  /* Tombstones for pruned posts.
+
+     WHY THIS EXISTS. pruneNewsPast() DELETES imported news after three days.
+     The row is gone, so /discover/:slug correctly answers 404 — but a 404 is a
+     weak statement: it says "not here right now", which is also what a typo or
+     a transient failure looks like. Search Console keeps those URLs in
+     "Not found (404)" for months, and the operator reads that bucket as a
+     fault even though the deletion was deliberate.
+
+     A tombstone lets the same URL answer 410 Gone instead: the same decision,
+     stated precisely. Google drops a 410 in weeks rather than months, and —
+     the part that matters more — the bucket stops being a mystery, because
+     every entry in it is a URL we retired on purpose.
+
+     ONLY THE SLUG IS KEPT. Remembering the body would defeat the prune this
+     table exists to record: the point of deleting a three-day-old wire story
+     is that it is not worth storing. The tombstone is a receipt, not an
+     archive.
+
+     Tombstones are themselves pruned by pruneGonePosts() after
+     GONE_POST_TTL_DAYS — long enough for Google to let go, short enough that
+     the table stays a few hundred rows. */
+  CREATE TABLE IF NOT EXISTS gone_posts (
+    slug    TEXT PRIMARY KEY,
+    gone_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_gone_posts_at ON gone_posts(gone_at);
+
   /* A helper's own story, submitted for publication.
 
      THE PRIVACY DECISION, AND WHY IT LIVES IN THE SCHEMA. A story is the first
@@ -636,6 +715,7 @@ db.exec(`
     auth             TEXT NOT NULL,
     learner_id       INTEGER REFERENCES learners(id) ON DELETE SET NULL,
     source           TEXT NOT NULL DEFAULT 'web',
+    lang             TEXT NOT NULL DEFAULT 'en',
     last_active_at   TEXT,
     last_reminded_at TEXT,
     created_at       TEXT NOT NULL,
@@ -643,6 +723,55 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_push_last_active ON push_subscriptions(last_active_at);
   CREATE INDEX IF NOT EXISTS idx_push_reminded   ON push_subscriptions(last_reminded_at);
+
+  -- Every reminder actually sent, one row per device per HKT day.
+  --
+  -- The PRIMARY KEY is the point: a sweep claims the day with an INSERT OR
+  -- IGNORE, and only a successful claim is allowed to send. Two overlapping
+  -- sweeps, a restarted process, or a doubled interval cannot produce two
+  -- notifications on the same evening — the database decides, not the clock.
+  --
+  -- The kind column is kept so the ladder knows which rung has already been
+  -- used. It is read back only for pushes sent on or after her last practice,
+  -- which is what lets the ladder start over when she returns and goes quiet.
+  CREATE TABLE IF NOT EXISTS push_log (
+    endpoint   TEXT NOT NULL,
+    sent_on    TEXT NOT NULL,          -- HKT date, 'YYYY-MM-DD'
+    kind       TEXT NOT NULL,          -- streak | new | sticker | phrase
+    created_at TEXT NOT NULL,
+    PRIMARY KEY (endpoint, sent_on)
+  );
+  CREATE INDEX IF NOT EXISTS idx_push_log_endpoint ON push_log(endpoint, sent_on);
+
+  -- One row per player per finished game, across all four tables.
+  --
+  -- The games kept their win tally on an in-memory room object, so a restart
+  -- erased it and there was never a reason to come back tomorrow: no record, no
+  -- rivalry, nothing to defend. This is that record.
+  --
+  -- The won column is 0 or 1 rather than a stored total, because a total can
+  -- drift out of step with the games it was built from. Wins are a SUM, exactly
+  -- like credits.
+  --
+  -- Rows are keyed on public_id, the device identity the app already uses
+  -- (cb_device), so a win at Sudoku on Sunday and a quiz on Monday belong to the
+  -- same person. A player whose device id is unknown is simply not recorded —
+  -- inventing an identity would attach someone else's history to her.
+  --
+  -- There is deliberately no unique constraint tying a row to a room: a rematch
+  -- is a new result, and two friends on one phone in the same room are two rows.
+  CREATE TABLE IF NOT EXISTS game_results (
+    id           INTEGER PRIMARY KEY,
+    public_id    TEXT NOT NULL,
+    display_name TEXT NOT NULL DEFAULT '',
+    game         TEXT NOT NULL,
+    won          INTEGER NOT NULL DEFAULT 0,
+    players      INTEGER NOT NULL DEFAULT 0,
+    room_code    TEXT NOT NULL DEFAULT '',
+    created_at   TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_game_results_device ON game_results(public_id, game);
+  CREATE INDEX IF NOT EXISTS idx_game_results_game   ON game_results(game, created_at);
 `);
 
 // ---------------------------------------------------------------------------
@@ -758,12 +887,20 @@ function migrateSchema() {
      shown once and never recoverable, so a forgotten code meant permanent
      lock-out. Sign-in is now name + a device token stored in the browser. To
      avoid stranding every existing employer at deploy, any employer who has no
-     trusted device yet is given a 90-day pairing window: their next name-only
-     sign-in on their own browser links that device and closes the window. The
-     window is the only reason a foreign machine typing the name gets in during
-     the gap, and it shuts the moment the real employer signs in once. */
+     trusted device yet is given a pairing window: their next name-only sign-in
+     on their own browser links that device and closes the window. The window is
+     the only reason a foreign machine typing the name gets in during the gap,
+     and it shuts the moment the real employer signs in once.
+
+     The window is THREE DAYS, not ninety. Ninety was the original value and it
+     was wrong for a reason worth writing down: the badge is the only thing an
+     operator sees, so a window nobody used did not read as "stale" — it read as
+     "this employer is permanently pairing", on employers who had never signed in
+     at all. A window that outlives the reason it was opened is not a safety
+     net, it is a lie about the state of the account. The operator can always
+     open a fresh one with "Allow new device". */
   if (!db.prepare("SELECT value FROM meta WHERE key = 'employer_device_migration'").get()) {
-    const openUntil = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
+    const openUntil = new Date(Date.now() + PAIRING_WINDOW_MS).toISOString();
     const migrated = db
       .prepare(
         `UPDATE users
@@ -775,6 +912,33 @@ function migrateSchema() {
       .run(openUntil);
     db.prepare("INSERT OR REPLACE INTO meta (key, value) VALUES ('employer_device_migration', '1')").run();
     if (migrated.changes) changes.push(`opened device pairing for ${migrated.changes} existing employer(s)`);
+  }
+
+  /* Retire the 90-day windows the migration above used to grant.
+     This runs once, after that migration, and it is the whole point of the
+     exercise: the deploy that shipped 90-day windows left every device-less
+     employer wearing a "pairing open" badge for three months, and most of them
+     had never signed in even once. An operator reading that list cannot tell a
+     live window from a forgotten one, so the badge stopped meaning anything.
+
+     The test is "expires more than three days from now", which is exactly the
+     set of windows nobody can still be inside. A window the operator opened by
+     hand runs fifteen minutes, so it expires minutes from now and is untouched
+     by this — only the long-granted ones are cleared. Closing one costs nothing:
+     "Allow new device" opens a fresh window whenever a real employer turns up. */
+  if (!db.prepare("SELECT value FROM meta WHERE key = 'employer_pairing_ceiling'").get()) {
+    const ceiling = new Date(Date.now() + PAIRING_WINDOW_MS).toISOString();
+    const retired = db
+      .prepare(
+        `UPDATE users
+           SET device_reauth_open_until = NULL
+         WHERE role = 'employer'
+           AND device_reauth_open_until IS NOT NULL
+           AND device_reauth_open_until > ?`
+      )
+      .run(ceiling);
+    db.prepare("INSERT OR REPLACE INTO meta (key, value) VALUES ('employer_pairing_ceiling', '1')").run();
+    if (retired.changes) changes.push(`retired ${retired.changes} stale pairing window(s)`);
   }
 
   /* Referral attribution.
@@ -1038,6 +1202,36 @@ function migrateSchema() {
     if (filled) changes.push(`vocabulary.indonesian filled for ${filled} entr${filled === 1 ? 'y' : 'ies'}`);
   }
 
+  /* Usage notes — the prose that makes a word page worth indexing.
+
+     THIS CANNOT RIDE ALONG WITH migrateContent(), and the reason is the whole
+     point of the map. migrateContent() is INSERT OR IGNORE: it can add a word
+     that is not on disk, and it can never touch one that is. Every word these
+     notes belong to is ALREADY on disk, so the insert path is guaranteed to be
+     a no-op and the notes would reach a fresh database only. The same trap that
+     the comment at line ~1146 records for the living passages.
+
+     Guarded on the SIZE of the overlay, not a boolean, for the reason spelled
+     out above the Mandarin block: a boolean would let batch 1 permanently block
+     batch 2, with a manual SQL edit in production as the only fix. Adding notes
+     to data.js is the intended workflow, so the guard has to be a count.
+
+     `usage_note = ''` in the WHERE, so an operator who has edited a note in the
+     admin screen keeps their wording — the same courtesy the gloss backfills
+     extend. */
+  const noteCount = String(Object.keys(USAGE_NOTES).length);
+  const noteState = db.prepare("SELECT value FROM meta WHERE key = 'vocab_usage_notes'").get();
+  if (!noteState || Number(noteState.value) < Number(noteCount)) {
+    const upd = db.prepare("UPDATE vocabulary SET usage_note = ?, updated_at = ? WHERE id = ? AND usage_note = ''");
+    const now = new Date().toISOString();
+    let filled = 0;
+    for (const [id, note] of Object.entries(USAGE_NOTES)) {
+      filled += upd.run(note, now, Number(id)).changes;
+    }
+    db.prepare("INSERT OR REPLACE INTO meta (key, value) VALUES ('vocab_usage_notes', ?)").run(noteCount);
+    if (filled) changes.push(`vocabulary.usage_note filled for ${filled} entr${filled === 1 ? 'y' : 'ies'}`);
+  }
+
   // progress.learner_id used to reference users(id), which could never be
   // populated because helpers do not have accounts. It now references
   // learners(id). SQLite cannot alter a foreign key in place, so the table is
@@ -1147,6 +1341,30 @@ function migrateSchema() {
     db.prepare("INSERT OR REPLACE INTO meta (key, value) VALUES ('news_future_dates_repaired', '1')").run();
     if (shifted) changes.push(`shifted ${shifted} future-dated Inquirer post(s) back 8h`);
   }
+
+  /* ---- push_subscriptions.lang ------------------------------------------- */
+  /* Reminders are the one message that reaches her outside the app, so they
+     are the one place English is least defensible: a Filipino helper who reads
+     the app in Filipino should not be nudged in English. The language is
+     captured from the page that subscribed (or last pinged) and stored here;
+     devices that subscribed before this column existed default to English and
+     are corrected on their next page load. */
+  if (addColumnIfMissing('push_subscriptions', 'lang', "TEXT NOT NULL DEFAULT 'en'")) {
+    changes.push('push_subscriptions.lang');
+  }
+
+  /* ---- living_comments.seed_key ------------------------------------------ */
+  /* Seeded starter comments need to be insert-once-per-version without ever
+     touching a real helper's comment. A nullable seed_key with a UNIQUE index
+     does that: every seeded row carries a stable key like
+     'seed:living-medical-sick:1', every user comment leaves it NULL, and SQLite
+     allows many NULLs in a UNIQUE index — so the constraint only ever applies to
+     the rows this code writes. A version bump can then replace or retire one
+     seeded comment by key without a table scan or a LIKE. */
+  if (addColumnIfMissing('living_comments', 'seed_key', 'TEXT')) {
+    changes.push('living_comments.seed_key');
+  }
+  db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_living_comments_seed ON living_comments(seed_key)');
 
   return changes;
 }
@@ -1265,6 +1483,16 @@ function vocabValues(v) {
 /* Bumped whenever the SEED_* content changes in a way an EXISTING database
    needs to pick up. See migrateContent() below. */
 const CONTENT_VERSION = 9; // v1 = original 64 · v2 = Tier A expansion · v3 = coverage top-up (every category ≥5) · v4 = Simplified Chinese glosses (all 132) · v5 = Restaurant category + 10 entries (all 142 glossed) · v6 = the 9 empty (category x level) combinations filled, +38 entries (all 180 glossed) · v7 = Festivals category (id 19, 節日/Festivals) + 36 vocabulary rows (ids 181–216), all four languages · v8 = festival coverage completed: +24 rows (ids 217–240) for the five events that had no words at all (Ching Ming, Buddha's Birthday, Chongyang, Winter Solstice, Christmas), plus 龍舟, all four languages · v9 = five everyday categories (ids 20–24: Food, Fruit, Colours, Money, Counting) + 94 vocabulary rows (ids 241–334), all four languages, every new category filling all three levels
+
+// Living passages content version. Unlike the vocabulary/category migration,
+// living_posts are purely editorial (no operator-edit UI exists for them), so
+// each bump UPSERTs the full seeded set — updating existing passages in place and
+// inserting any new slugs. The UPDATE path preserves each row's `id`, so user
+// reactions and comments (foreign-keyed on living_posts(id) with ON DELETE
+// CASCADE) survive untouched. Guarded so a content drop runs exactly once per
+// version on every deployment, including the production database that already
+// carries the original 14 short passages.
+const LIVING_CONTENT_VERSION = 4; // v1 = original 14 short passages · v2 = expanded 18 passages (English, ~500 words each) via the Living upgrade · v3 = wage correction: FDW Minimum Allowable Wage stated as HK$5,220/month (was wrong HK$42.1/hr) · v4 = prominent MAW effective date: HK$5,220 applies to contracts signed on/after 3 Oct 2026
 // NOTE: the Simplified glosses (vocabulary.mandarin), the Indonesian glosses
 // (vocabulary.indonesian) and BOTH per-language category name sets
 // (categories.name_zh, categories.name_id) are NOT applied by migrateContent() —
@@ -1425,19 +1653,112 @@ function seedPostsIfNeeded() {
 
 const postsSeeded = seedPostsIfNeeded();
 
+/* ---------------------------------------------------------------------------
+   Refreshing the SEEDED culture articles.
+
+   `seedPostsIfNeeded` only ever INSERTs, and only while the seeded count is
+   below the array length — so once a post is in the database, editing its text
+   in data.js changes nothing on any existing database. That is right for a
+   news item and wrong for an article the operator wrote and then improved: the
+   expansion of 2026-10-29 (every culture article roughly doubled, emoji in
+   every heading) would otherwise have reached new installs only, and the
+   production database would have served the old bodies forever.
+
+   Two guards, both deliberate:
+
+   1. `culture_content_version`. A content drop runs ONCE per version, on every
+      boot, including production. Bump it when the seed text changes.
+   2. `updated_at = created_at`. A row an operator has edited in the admin has
+      a later updated_at, so it is LEFT ALONE. Her edit wins over the seed —
+      which is the same promise `seedPostsIfNeeded` makes, kept in the one place
+      where a seed update could otherwise silently overwrite her work.
+
+   Only `channel = 'culture'` and only slugs that came from the seed, so a
+   hand-written post and every imported news item are untouched.
+   --------------------------------------------------------------------------- */
+const CULTURE_CONTENT_VERSION = 1; // v1 = the 2026-10-29 expansion: +~6,000 words and emoji in every heading
+
+function refreshCultureContentIfNeeded() {
+  const row = db.prepare("SELECT value FROM meta WHERE key = 'culture_content_version'").get();
+  const current = row ? Number(row.value) || 0 : 0;
+  if (current >= CULTURE_CONTENT_VERSION) return 0;
+
+  const upd = db.prepare(`
+    UPDATE posts SET
+      icon      = ?,
+      title_en  = ?,
+      summary_en = ?,
+      body_en   = ?
+    WHERE slug = ?
+      AND channel = 'culture'
+      AND updated_at = created_at
+  `);
+
+  let refreshed = 0;
+  db.exec('BEGIN');
+  try {
+    for (const p of SEED_POSTS) {
+      if ((p.channel || 'culture') !== 'culture') continue;
+      // `updated_at` is deliberately NOT written here. It is the only marker
+      // that distinguishes "the seed changed" from "an operator edited this",
+      // and a refresh that stamped it would make every FUTURE version bump skip
+      // the row it had just refreshed. Leaving it equal to created_at keeps the
+      // row refreshable; an admin edit moves it and protects the row for good.
+      refreshed += upd.run(
+        p.icon || '🏮',
+        p.title_en || '',
+        p.summary_en || '',
+        p.body_en || '',
+        p.slug
+      ).changes;
+    }
+    db.prepare('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)').run(
+      'culture_content_version',
+      String(CULTURE_CONTENT_VERSION)
+    );
+    db.exec('COMMIT');
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
+  return refreshed;
+}
+
+const cultureRefreshed = refreshCultureContentIfNeeded();
+
 /**
  * Seed the Living passages. Guarded on the SEED size (like seedPostsIfNeeded)
  * so re-running on an existing database never re-inserts and never clobbers an
  * operator's edits — INSERT OR IGNORE keys on slug, and this only runs while the
  * seeded count is below the seed array length.
  */
+// Living passages are editorial, curated content — there is no operator-edit UI
+// for them — so when the seeded set changes we UPSERT the whole thing: existing
+// slugs are UPDATEd in place (preserving their `id` and therefore every user
+// reaction and comment foreign-keyed on that id), and brand-new slugs are
+// INSERTed. The migration is versioned on `living_content_version` so a content
+// drop runs exactly once per version on every boot, including the production
+// database that already holds the original 14 short passages.
 function seedLivingIfNeeded() {
-  const row = db.prepare("SELECT value FROM meta WHERE key = 'living_seeded'").get();
+  const row = db.prepare("SELECT value FROM meta WHERE key = 'living_content_version'").get();
   const current = row ? Number(row.value) || 0 : 0;
-  if (current >= SEED_LIVING.length) return 0;
+  if (current >= LIVING_CONTENT_VERSION) return 0;
 
   const now = new Date().toISOString();
-  const ins = db.prepare(`
+  const upsertExisting = db.prepare(`
+    UPDATE living_posts SET
+      category     = ?,
+      sub_key      = ?,
+      icon         = ?,
+      title_en     = ?, title_fil = ?, title_zh = ?, title_id = ?,
+      body_en      = ?, body_fil  = ?, body_zh  = ?, body_id  = ?,
+      sub_en       = ?, sub_fil   = ?, sub_zh   = ?, sub_id   = ?,
+      status       = ?,
+      published_at = ?,
+      updated_at   = ?
+    WHERE slug = ?
+  `);
+  const insertNew = db.prepare(`
     INSERT OR IGNORE INTO living_posts
       (slug, category, sub_key, icon,
        title_en, title_fil, title_zh, title_id,
@@ -1446,37 +1767,102 @@ function seedLivingIfNeeded() {
        status, published_at, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
+  const findSlug = db.prepare('SELECT id FROM living_posts WHERE slug = ?');
+
+  let added = 0, refreshed = 0;
+  db.exec('BEGIN');
+  try {
+    for (const p of SEED_LIVING) {
+      const existing = findSlug.get(p.slug);
+      if (existing) {
+        refreshed += upsertExisting.run(
+          p.category || 'medical',
+          p.sub_key || '',
+          p.icon || '🏠',
+          p.title_en || '', p.title_fil || '', p.title_zh || '', p.title_id || '',
+          p.body_en || '', p.body_fil || '', p.body_zh || '', p.body_id || '',
+          p.sub_en || '', p.sub_fil || '', p.sub_zh || '', p.sub_id || '',
+          p.status === 'draft' ? 'draft' : 'published',
+          p.published_at || now,
+          now,
+          p.slug
+        ).changes;
+      } else {
+        added += insertNew.run(
+          p.slug,
+          p.category || 'medical',
+          p.sub_key || '',
+          p.icon || '🏠',
+          p.title_en || '', p.title_fil || '', p.title_zh || '', p.title_id || '',
+          p.body_en || '', p.body_fil || '', p.body_zh || '', p.body_id || '',
+          p.sub_en || '', p.sub_fil || '', p.sub_zh || '', p.sub_id || '',
+          p.status === 'draft' ? 'draft' : 'published',
+          p.published_at || now,
+          now,
+          now
+        ).changes;
+      }
+    }
+    db.prepare('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)').run(
+      'living_content_version',
+      String(LIVING_CONTENT_VERSION)
+    );
+    db.exec('COMMIT');
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
+  return added + refreshed;
+}
+
+const livingSeeded = seedLivingIfNeeded();
+
+/* Starter comments under the Living passages.
+
+   Versioned separately from the passages themselves (living_comments_version),
+   because a comment drop and a passage drop have no reason to move together —
+   editing a passage must not re-open a thread, and adding a comment must not
+   rewrite eighteen bodies.
+
+   Insert-once per seed_key via INSERT OR IGNORE against the UNIQUE index. That
+   means this is safe to run on every boot AND safe to run on a database where
+   an operator has since deleted one of these comments on purpose: a deleted
+   row is gone, but the version guard stops the next boot from resurrecting it.
+   The one case that re-inserts is a version bump, which is a deliberate act.
+
+   The public_id is 'seed_curator' — a device id that no browser will ever
+   present, so a seeded comment can never be mistaken for one of her own. */
+const LIVING_COMMENTS_VERSION = 1;
+
+function seedLivingCommentsIfNeeded() {
+  const row = db.prepare("SELECT value FROM meta WHERE key = 'living_comments_version'").get();
+  const current = row ? Number(row.value) || 0 : 0;
+  if (current >= LIVING_COMMENTS_VERSION) return 0;
+
+  const findPost = db.prepare('SELECT id FROM living_posts WHERE slug = ?');
+  const insert = db.prepare(`
+    INSERT OR IGNORE INTO living_comments
+      (post_id, public_id, display_name, body, status, created_at, seed_key)
+    VALUES (?, 'seed_curator', ?, ?, 'published', ?, ?)
+  `);
 
   let added = 0;
   db.exec('BEGIN');
   try {
-    for (const p of SEED_LIVING) {
-      added += ins.run(
-        p.slug,
-        p.category || 'medical',
-        p.sub_key || '',
-        p.icon || '🏠',
-        p.title_en || '',
-        p.title_fil || '',
-        p.title_zh || '',
-        p.title_id || '',
-        p.body_en || '',
-        p.body_fil || '',
-        p.body_zh || '',
-        p.body_id || '',
-        p.sub_en || '',
-        p.sub_fil || '',
-        p.sub_zh || '',
-        p.sub_id || '',
-        p.status === 'draft' ? 'draft' : 'published',
-        p.published_at || now,
-        now,
-        now
-      ).changes;
+    for (const c of SEED_LIVING_COMMENTS) {
+      const post = findPost.get(c.slug);
+      // A seed entry for a slug that no longer exists is a no-op, not an
+      // error: passages get retired, and a retired passage taking its starter
+      // comment with it is correct.
+      if (!post) continue;
+      // Dated a little in the past so a starter note never appears above a
+      // real helper's reply — it is context, not the newest news.
+      const when = new Date(Date.now() - 36 * 3600 * 1000).toISOString();
+      added += insert.run(post.id, c.display_name || 'CantoBuddy team', c.body, when, c.seed_key).changes;
     }
     db.prepare('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)').run(
-      'living_seeded',
-      String(SEED_LIVING.length)
+      'living_comments_version',
+      String(LIVING_COMMENTS_VERSION)
     );
     db.exec('COMMIT');
   } catch (err) {
@@ -1486,7 +1872,7 @@ function seedLivingIfNeeded() {
   return added;
 }
 
-const livingSeeded = seedLivingIfNeeded();
+const livingCommentsSeeded = seedLivingCommentsIfNeeded();
 
 // ---------------------------------------------------------------------------
 // Content migration — bring an EXISTING database up to the current CONTENT set.
@@ -1600,6 +1986,21 @@ const S = {
   countScenarios: db.prepare('SELECT COUNT(*) AS n FROM scenarios'),
 
   listVocabulary: db.prepare('SELECT * FROM vocabulary ORDER BY level, id'),
+  /* The pool behind the daily phrase card. Bounded to the kitchen categories so
+     the card is not offering her "aeroplane" under a heading that says kitchen —
+     the ids are the SEED_CATEGORIES ids 3 (Kitchen), 16 (Meals & Feeding) and
+     20 (Food); see daily-phrase.js, which owns that decision. */
+  /* The daily card promises a phrase she can say to her employer, so single
+     characters are excluded: the pool is vocabulary, and 26% of it is one
+     character (水, 食, 飲). Those are fine flashcards and useless sentences.
+     length() on TEXT counts characters in SQLite, so this is not a byte test. */
+  listDailyPhrasePool: db.prepare(`
+    SELECT id, cantonese, jyutping, english, tagalog, mandarin, indonesian, emoji, level, category_id
+      FROM vocabulary
+     WHERE category_id IN (3, 16, 20)
+       AND length(cantonese) >= 2
+     ORDER BY id
+  `),
   listVocabularyByLevel: db.prepare('SELECT * FROM vocabulary WHERE level = ? ORDER BY id'),
   listVocabularyByCategory: db.prepare('SELECT * FROM vocabulary WHERE category_id = ? ORDER BY level, id'),
   listVocabularyByBoth: db.prepare('SELECT * FROM vocabulary WHERE level = ? AND category_id = ? ORDER BY id'),
@@ -1810,6 +2211,23 @@ const S = {
   `),
 
   sumScoreByLearner: db.prepare('SELECT COALESCE(SUM(score), 0) AS n FROM progress WHERE learner_id = ?'),
+  // The second half of a credit balance — see credit_events in the schema.
+  sumCreditEventsByLearner: db.prepare('SELECT COALESCE(SUM(points), 0) AS n FROM credit_events WHERE learner_id = ?'),
+  // OR IGNORE + UNIQUE(public_id, kind, day) is the whole rate limit: the second
+  // attempt on the same day changes 0 rows and the caller learns it paid nothing.
+  insertCreditEvent: db.prepare(`
+    INSERT OR IGNORE INTO credit_events (public_id, learner_id, kind, points, day, created_at)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `),
+  // A device can react before it has ever entered a name. Those credits are
+  // real and must not be lost when she finally identifies herself, so the
+  // learner link is backfilled rather than required up front.
+  backfillCreditEventsLearner: db.prepare(
+    'UPDATE credit_events SET learner_id = ? WHERE public_id = ? AND learner_id IS NULL'
+  ),
+  creditEventsForDay: db.prepare(
+    'SELECT kind, points FROM credit_events WHERE public_id = ? AND day = ?'
+  ),
   listStickersByLearner: db.prepare('SELECT sticker_key, unlocked_at FROM learner_stickers WHERE learner_id = ?'),
   // OR IGNORE + the UNIQUE constraint is what makes unlocking safe to repeat:
   // a second call for an already-earned sticker changes nothing.
@@ -2119,6 +2537,17 @@ const S = {
       WHERE channel = 'news' AND origin = 'auto'
         AND COALESCE(published_at, created_at) < ?`
   ),
+  /* Tombstones. Written in the same transaction as the DELETE that creates the
+     need for them — see pruneNewsPast(), where the order matters: mark first,
+     then delete, so a crash between the two leaves a tombstone for a row that
+     still exists (harmless: a live post answers 200 long before the tombstone
+     is consulted) rather than a deleted row with no receipt (a permanent 404). */
+  markPostGone: db.prepare(
+    'INSERT INTO gone_posts (slug, gone_at) VALUES (?, ?) ON CONFLICT(slug) DO NOTHING'
+  ),
+  getPostGone: db.prepare('SELECT slug FROM gone_posts WHERE slug = ?'),
+  deleteGoneBefore: db.prepare('DELETE FROM gone_posts WHERE gone_at < ?'),
+  countGonePosts: db.prepare('SELECT COUNT(*) AS n FROM gone_posts'),
   /* Published news counts per category, for the filter chips. 'all' is every
      published news row a learner can actually read, so the chip row can show
      "All news 41" beside "Work 12" — and a number that does not match the list
@@ -2269,12 +2698,13 @@ const S = {
   listPushSubscriptions: db.prepare('SELECT * FROM push_subscriptions ORDER BY created_at DESC'),
   getPushSubscription: db.prepare('SELECT * FROM push_subscriptions WHERE endpoint = ?'),
   upsertPushSubscription: db.prepare(`
-    INSERT INTO push_subscriptions (endpoint, p256dh, auth, learner_id, source, last_active_at, created_at, updated_at)
-    VALUES (@endpoint, @p256dh, @auth, @learner_id, @source, @now, @now, @now)
+    INSERT INTO push_subscriptions (endpoint, p256dh, auth, learner_id, source, lang, last_active_at, created_at, updated_at)
+    VALUES (@endpoint, @p256dh, @auth, @learner_id, @source, @lang, @now, @now, @now)
     ON CONFLICT(endpoint) DO UPDATE SET
       p256dh = excluded.p256dh,
       auth = excluded.auth,
       learner_id = COALESCE(excluded.learner_id, push_subscriptions.learner_id),
+      lang = excluded.lang,
       last_active_at = excluded.last_active_at,
       updated_at = excluded.updated_at
   `),
@@ -2282,10 +2712,86 @@ const S = {
   countPushSubscriptions: db.prepare('SELECT COUNT(*) AS n FROM push_subscriptions'),
   touchPushSubscription: db.prepare('UPDATE push_subscriptions SET last_active_at = ?, updated_at = ? WHERE endpoint = ?'),
   markPushReminded: db.prepare('UPDATE push_subscriptions SET last_reminded_at = ?, updated_at = ? WHERE endpoint = ?'),
-  stalePushSubscriptions: db.prepare(`
-    SELECT * FROM push_subscriptions
-     WHERE last_active_at IS NOT NULL AND last_active_at < ?
-       AND (last_reminded_at IS NULL OR last_reminded_at < ?)
+
+  /* ---- The reminder ladder (see push-reminders.js) ---------------------- */
+
+  /* Practice days for every learner that has a subscribed device, in one
+     query. `+8 hours` converts to HKT, matching learnerActiveDays — a streak
+     counted in UTC would break at 8am Hong Kong time, which is the middle of
+     her morning. */
+  pushActiveDays: db.prepare(`
+    SELECT DISTINCT p.learner_id AS learner_id, date(p.created_at, '+8 hours') AS day
+      FROM progress p
+     WHERE p.learner_id IN (SELECT learner_id FROM push_subscriptions WHERE learner_id IS NOT NULL)
+     ORDER BY day DESC
+  `),
+
+  /* Credits per subscribed learner — the sticker message needs the distance to
+     the next threshold, and a push must never write (getRewards() unlocks as a
+     side effect, so it is not used here).
+
+     This must match getCredits() exactly, including credit_events: a reminder
+     that says "4 more answers" when she is one reaction away is wrong in the one
+     message she is most likely to act on. Two definitions of a balance is how
+     they drift, so both halves are summed here too. */
+  pushCredits: db.prepare(`
+    SELECT l.id AS learner_id,
+           (SELECT COALESCE(SUM(score), 0)  FROM progress      WHERE learner_id = l.id)
+         + (SELECT COALESCE(SUM(points), 0) FROM credit_events WHERE learner_id = l.id) AS credits
+      FROM learners l
+     WHERE l.id IN (SELECT learner_id FROM push_subscriptions WHERE learner_id IS NOT NULL)
+  `),
+
+  /* The newest published post, for "New today: …". Only the title in the
+     device's language, with English as the fallback. */
+  latestPublishedPost: db.prepare(`
+    SELECT slug, title_en, title_fil, title_zh, title_id
+      FROM posts
+     WHERE status = 'published'
+     ORDER BY COALESCE(published_at, created_at) DESC, id DESC
+     LIMIT 1
+  `),
+
+  /* Recent sends, keyed by endpoint. Read back to learn (a) whether anything
+     already went out today, and (b) which rung was last used after her most
+     recent practice. */
+  recentPushLog: db.prepare(`
+    SELECT endpoint, sent_on, kind FROM push_log WHERE sent_on >= ?
+  `),
+
+  /* The claim. INSERT OR IGNORE against the (endpoint, sent_on) primary key is
+     what makes "one message per evening" true even if two sweeps overlap. */
+  claimPushLog: db.prepare(`
+    INSERT OR IGNORE INTO push_log (endpoint, sent_on, kind, created_at) VALUES (?, ?, ?, ?)
+  `),
+
+  /* Links a device to a learner, but never re-links one that already has an
+     owner: two people sharing a phone must not steal each other's streak. */
+  linkPushLearner: db.prepare(`
+    UPDATE push_subscriptions SET learner_id = ?, updated_at = ?
+     WHERE endpoint = ? AND learner_id IS NULL
+  `),
+  setPushLang: db.prepare('UPDATE push_subscriptions SET lang = ? WHERE endpoint = ?'),
+
+  // --- game results (see recordGameResults below) ---
+  insertGameResult: db.prepare(`
+    INSERT INTO game_results (public_id, display_name, game, won, players, room_code, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `),
+  gameRecordTotals: db.prepare(`
+    SELECT game, COUNT(*) AS played, COALESCE(SUM(won), 0) AS wins
+      FROM game_results
+     WHERE public_id = ?
+     GROUP BY game
+  `),
+  // The same sums, bounded to games finished since a moment. created_at is an
+  // ISO-8601 UTC string, so a string comparison is a time comparison — no date
+  // parsing in SQL, and no timezone to get wrong.
+  gameRecordTotalsSince: db.prepare(`
+    SELECT game, COUNT(*) AS played, COALESCE(SUM(won), 0) AS wins
+      FROM game_results
+     WHERE public_id = ? AND created_at >= ?
+     GROUP BY game
   `),
 
   // --- Living: supportive passages about life in Hong Kong ---
@@ -2293,7 +2799,7 @@ const S = {
     SELECT id, slug, category, sub_key, icon,
            title_en, title_fil, title_zh, title_id,
            sub_en, sub_fil, sub_zh, sub_id,
-           published_at,
+           published_at, updated_at,
            (SELECT COALESCE(SUM(count), 0) FROM living_reactions WHERE post_id = living_posts.id) AS reaction_count,
            (SELECT COUNT(*) FROM living_comments WHERE post_id = living_posts.id AND status = 'published') AS comment_count
       FROM living_posts
@@ -2305,7 +2811,7 @@ const S = {
     SELECT id, slug, category, sub_key, icon,
            title_en, title_fil, title_zh, title_id,
            sub_en, sub_fil, sub_zh, sub_id,
-           published_at,
+           published_at, updated_at,
            (SELECT COALESCE(SUM(count), 0) FROM living_reactions WHERE post_id = living_posts.id) AS reaction_count,
            (SELECT COUNT(*) FROM living_comments WHERE post_id = living_posts.id AND status = 'published') AS comment_count
       FROM living_posts
@@ -2323,6 +2829,29 @@ const S = {
   getLivingPostBySlug: db.prepare(`
     SELECT * FROM living_posts
      WHERE slug = ? AND status = 'published'
+  `),
+
+  /* The Sunday Table needs a cheap catalogue, not eighteen full bodies: it picks
+     one passage of the week and links to it, and the passage page fetches its own
+     body. Ordered by slug because sunday-table.js chooses by index and must not
+     depend on insertion order. */
+  sundayTablePassages: db.prepare(`
+    SELECT slug, category, icon, title_en, title_fil, title_zh, title_id
+      FROM living_posts
+     WHERE status = 'published'
+     ORDER BY slug ASC
+  `),
+
+  /* "What happened in Hong Kong this week" — bounded by date, not by count, so a
+     quiet week reads as quiet instead of reaching back a month to fill four
+     slots. */
+  sundayTableDigest: db.prepare(`
+    SELECT slug, channel, icon, title_en, title_fil, title_zh, title_id,
+           summary_en, summary_fil, summary_zh, summary_id, published_at
+      FROM posts
+     WHERE status = 'published' AND published_at >= ?
+     ORDER BY published_at DESC, id DESC
+     LIMIT ?
   `),
   insertLivingPost: db.prepare(`
     INSERT INTO living_posts
@@ -2373,7 +2902,7 @@ const S = {
 // ---------------------------------------------------------------------------
 // Web Push subscriptions
 // ---------------------------------------------------------------------------
-function insertSubscription({ endpoint, p256dh, auth, learnerId = null, source = 'web' }) {
+function insertSubscription({ endpoint, p256dh, auth, learnerId = null, source = 'web', lang = 'en' }) {
   if (!endpoint) return null;
   const now = new Date().toISOString();
   try {
@@ -2383,6 +2912,7 @@ function insertSubscription({ endpoint, p256dh, auth, learnerId = null, source =
       auth,
       learner_id: learnerId ? Number(learnerId) : null,
       source,
+      lang: PUSH_LANGS.includes(lang) ? lang : 'en',
       now,
     });
     return S.getPushSubscription.get(endpoint);
@@ -2406,15 +2936,6 @@ function updateLastActive(endpoint) {
   S.touchPushSubscription.run(now, now, endpoint);
 }
 
-// Devices that have not interacted for `days` and were not reminded recently —
-// used by the practice-reminder job so a quiet helper gets a gentle nudge.
-function listStaleForReminder(days) {
-  const since = Math.max(1, Number(days) || 3);
-  const cutoff = new Date(Date.now() - since * 86400000).toISOString();
-  const remindCutoff = new Date(Date.now() - since * 86400000).toISOString();
-  return S.stalePushSubscriptions.all(cutoff, remindCutoff);
-}
-
 function markReminded(endpoint) {
   if (!endpoint) return;
   const now = new Date().toISOString();
@@ -2424,6 +2945,215 @@ function markReminded(endpoint) {
 function countSubscriptions() {
   const row = S.countPushSubscriptions.get();
   return row ? Number(row.n) || 0 : 0;
+}
+
+/* ---------------------------------------------------------------------------
+   The reminder ladder
+   --------------------------------------------------------------------------- */
+
+const PUSH_LANGS = ['en', 'fil', 'zh', 'id'];
+
+/**
+ * Attach a device to a learner.
+ *
+ * Subscriptions created before this existed have `learner_id = NULL`, which
+ * makes the streak unknowable for them. Every page load pings
+ * /api/push/ping, so this runs constantly and backfills those devices without
+ * asking anyone to opt in again. It only ever fills a NULL — a shared phone
+ * must not silently transfer one helper's streak to another.
+ */
+function linkSubscriptionLearner(endpoint, learnerId) {
+  if (!endpoint || !learnerId) return false;
+  try {
+    return S.linkPushLearner.run(Number(learnerId), new Date().toISOString(), endpoint).changes > 0;
+  } catch (e) {
+    console.error('linkSubscriptionLearner failed:', e.message);
+    return false;
+  }
+}
+
+/** Keep a device's notification language in step with the language she reads. */
+function setSubscriptionLang(endpoint, lang) {
+  if (!endpoint || !PUSH_LANGS.includes(lang)) return false;
+  try {
+    return S.setPushLang.run(lang, endpoint).changes > 0;
+  } catch (e) {
+    return false;
+  }
+}
+
+/** The newest published post, for the day-3 "New today: …" message. */
+function latestPost() {
+  return S.latestPublishedPost.get() || null;
+}
+
+/**
+ * Everything the planner needs, for every subscribed device, in three queries.
+ *
+ * Deliberately not one query per device: a push sweep runs every ten minutes,
+ * and the number of subscribed devices is the one number that is supposed to
+ * grow. Three table scans stay flat as that happens.
+ *
+ * `lastPushKind` is the last rung sent **on or after her most recent practice
+ * day**. Filtering on that date is what lets the ladder restart from the bottom
+ * when a helper comes back after a month and then goes quiet again — without it,
+ * she would be stuck on whatever rung she had reached before.
+ */
+function listPushTargets(nowMs = Date.now()) {
+  const subs = S.listPushSubscriptions.all();
+  if (!subs.length) return [];
+
+  const today = hktDate(nowMs);
+  const logSince = hktDate(nowMs - 30 * DAY_MS);
+
+  const daysByLearner = new Map();
+  for (const r of S.pushActiveDays.all()) {
+    if (!daysByLearner.has(r.learner_id)) daysByLearner.set(r.learner_id, []);
+    daysByLearner.get(r.learner_id).push(r.day);
+  }
+
+  const creditsByLearner = new Map();
+  for (const r of S.pushCredits.all()) creditsByLearner.set(r.learner_id, Number(r.credits) || 0);
+
+  const pushesByEndpoint = new Map();
+  for (const r of S.recentPushLog.all(logSince)) {
+    if (!pushesByEndpoint.has(r.endpoint)) pushesByEndpoint.set(r.endpoint, []);
+    pushesByEndpoint.get(r.endpoint).push(r);
+  }
+
+  const post = S.latestPublishedPost.get();
+
+  return subs.map((s) => {
+    const lang = PUSH_LANGS.includes(s.lang) ? s.lang : 'en';
+    const activeDays = (s.learner_id && daysByLearner.get(s.learner_id)) || [];
+    // pushActiveDays is ordered by day DESC, so the first entry is the latest.
+    const lastPracticeDay = activeDays.length ? activeDays[0] : null;
+
+    const pushes = pushesByEndpoint.get(s.endpoint) || [];
+    const pushedToday = pushes.some((p) => p.sent_on === today);
+    const sincePractice = pushes
+      .filter((p) => !lastPracticeDay || p.sent_on >= lastPracticeDay)
+      .sort((a, b) => a.sent_on.localeCompare(b.sent_on));
+
+    return {
+      endpoint: s.endpoint,
+      // The encryption keys stay here and are handed straight to the sender —
+      // the planner never sees them, and never needs to.
+      keys: { p256dh: s.p256dh, auth: s.auth },
+      lang,
+      learnerId: s.learner_id || null,
+      activeDays,
+      lastPracticeDay,
+      lastActiveAt: s.last_active_at || s.created_at || null,
+      credits: (s.learner_id && creditsByLearner.get(s.learner_id)) || 0,
+      headline: post ? (post[`title_${lang}`] || post.title_en) : null,
+      pushedToday,
+      practisedToday: activeDays.includes(today),
+      lastPushKind: sincePractice.length ? sincePractice[sincePractice.length - 1].kind : null,
+    };
+  });
+}
+
+/**
+ * Claim this evening's send for one device.
+ *
+ * Returns true only for the caller that actually inserted the row, so a send is
+ * permitted only after the claim succeeds. This is the whole reason push_log
+ * has a primary key instead of a "have we sent today?" flag that someone has to
+ * remember to set.
+ */
+function claimPush(endpoint, kind, sentOn) {
+  if (!endpoint || !kind || !sentOn) return false;
+  try {
+    return S.claimPushLog.run(endpoint, sentOn, kind, new Date().toISOString()).changes > 0;
+  } catch (e) {
+    console.error('claimPush failed:', e.message);
+    return false;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Game results — the record a helper can defend
+   --------------------------------------------------------------------------- */
+
+/* The allow-list, and it is a guard rather than a convenience: `recordGameResults`
+   returns 0 for anything not in here, so a game missing from this array does not
+   error — it silently never records a win. Chinese Checkers was added here in the
+   same commit that added the game, because the alternative is a table that plays
+   perfectly and leaves no trace. */
+const GAME_KEYS = ['uno', 'bigtwo', 'wordmatch', 'sudoku', 'chinesechecker'];
+
+/**
+ * Write one row per player who finished a game.
+ *
+ * `players` is `[{ deviceId, name, won }]`. A player with no device id is
+ * skipped rather than guessed at: the whole point of the record is that it is
+ * *hers*, and a row attached to the wrong person is worse than no row.
+ *
+ * Never throws into a game loop — a table must not break because its record
+ * could not be written.
+ */
+function recordGameResults({ game, roomCode = '', players = [] }) {
+  if (!GAME_KEYS.includes(game) || !Array.isArray(players) || !players.length) return 0;
+  const at = new Date().toISOString();
+  const total = players.length;
+  let written = 0;
+  for (const p of players) {
+    if (!p || !p.deviceId) continue;
+    try {
+      S.insertGameResult.run(
+        String(p.deviceId),
+        String(p.name || '').slice(0, 24),
+        game,
+        p.won ? 1 : 0,
+        total,
+        String(roomCode || '').slice(0, 8),
+        at
+      );
+      written += 1;
+    } catch (e) {
+      console.error('recordGameResults failed:', e.message);
+    }
+  }
+  return written;
+}
+
+/** Every game's record for one device. Missing games come back as zeros. */
+function gameRecordsForDevice(publicId, sinceIso = null) {
+  const out = {};
+  for (const g of GAME_KEYS) out[g] = { wins: 0, played: 0 };
+  if (!publicId) return out;
+  // `sinceIso` narrows the same sums to games finished on or after a moment —
+  // used by the Sunday Table card, which must say "I won 2 of 3 today" and not
+  // "I have won 2 of 3 ever". Same query shape either way, so the two cannot
+  // disagree about what a win is.
+  const rows = sinceIso
+    ? S.gameRecordTotalsSince.all(String(publicId), String(sinceIso))
+    : S.gameRecordTotals.all(String(publicId));
+  for (const r of rows) {
+    if (!GAME_KEYS.includes(r.game)) continue;
+    out[r.game] = { wins: Number(r.wins) || 0, played: Number(r.played) || 0 };
+  }
+  return out;
+}
+
+/**
+ * One game's record for several devices at once — the room's own scoreboard.
+ * One query for the whole table, because this runs on every join.
+ */
+function gameRecordsForDevices(publicIds, game) {
+  const map = new Map();
+  const ids = [...new Set((publicIds || []).filter(Boolean).map(String))];
+  if (!ids.length || !GAME_KEYS.includes(game)) return map;
+  const marks = ids.map(() => '?').join(',');
+  const rows = db.prepare(`
+    SELECT public_id, COUNT(*) AS played, COALESCE(SUM(won), 0) AS wins
+      FROM game_results
+     WHERE game = ? AND public_id IN (${marks})
+     GROUP BY public_id
+  `).all(game, ...ids);
+  for (const r of rows) map.set(r.public_id, { wins: Number(r.wins) || 0, played: Number(r.played) || 0 });
+  return map;
 }
 
 // ---------------------------------------------------------------------------
@@ -2750,7 +3480,8 @@ function getStats() {
 // ---------------------------------------------------------------------------
 
 /**
- * A learner's credit balance: one credit per correct quiz answer, ever.
+ * A learner's credit balance: one credit per correct quiz answer, ever, plus
+ * any small non-quiz rewards recorded in credit_events.
  *
  * Derived rather than stored. `progress` is already upserted on `session_id`,
  * so a quiz in progress holds exactly one row at any moment — summing `score`
@@ -2759,9 +3490,67 @@ function getStats() {
  * (a running ledger updated on every write) would need reconciliation the first
  * time a row is updated rather than inserted, which is exactly the bug this
  * avoids.
+ *
+ * credit_events follows the same rule for the same reason: the balance is a SUM
+ * of facts, so it cannot drift from the facts that produced it.
  */
 function getCredits(learnerId) {
-  return Number(S.sumScoreByLearner.get(Number(learnerId)).n) || 0;
+  const id = Number(learnerId);
+  return (Number(S.sumScoreByLearner.get(id).n) || 0)
+    + (Number(S.sumCreditEventsByLearner.get(id).n) || 0);
+}
+
+/**
+ * Award a small non-quiz credit, at most once per device per kind per HKT day.
+ *
+ * Returns `{ awarded, points, day }`. `awarded: false` is the normal case for
+ * the second and later attempts in a day, and is not an error — the caller uses
+ * it to decide whether to say "+1" or say nothing.
+ *
+ * The learner is resolved from the device id, not accepted from the caller: a
+ * client must never be able to name the balance it is adding to. A device with
+ * no learner yet still gets the row (learner_id NULL); identifyLearner backfills
+ * the link later.
+ */
+/**
+ * The closed set of credit kinds. Anything else is refused rather than written,
+ * because an unknown kind does not fail loudly — it quietly starts a second
+ * daily allowance for the same activity, which is the one bug this table's
+ * UNIQUE key cannot catch.
+ *
+ *   reaction — she left a reaction standing on a Living passage.
+ *   reading  — she opened a passage to read it.
+ *   game     — she finished a game at one of the four tables, win or lose.
+ *
+ * Quiz answers are NOT here: they are `progress.score`, summed alongside these.
+ */
+const CREDIT_KINDS = ['reaction', 'reading', 'game'];
+
+function awardDailyCredit({ publicId, kind, points = 1, nowMs = Date.now() } = {}) {
+  const pub = String(publicId || '').trim();
+  const k = String(kind || '').trim();
+  if (!pub || !k) return { awarded: false, points: 0, day: null };
+  if (!CREDIT_KINDS.includes(k)) return { awarded: false, points: 0, day: null, reason: 'unknown-kind' };
+
+  const n = Math.max(1, Math.min(10, Number(points) || 1));
+  const day = hktDayString(nowMs);
+  const learner = getLearnerByPublicId(pub);
+  const info = S.insertCreditEvent.run(
+    pub,
+    learner ? learner.id : null,
+    k,
+    n,
+    day,
+    new Date(nowMs).toISOString()
+  );
+  const awarded = info.changes > 0;
+  return { awarded, points: awarded ? n : 0, day };
+}
+
+/** The Hong Kong calendar date (YYYY-MM-DD) for a moment. HKT is UTC+8, always
+ *  — no daylight saving has ever applied here, so a fixed offset is exact. */
+function hktDayString(nowMs = Date.now()) {
+  return new Date(Number(nowMs) + 8 * 3600 * 1000).toISOString().slice(0, 10);
 }
 
 /**
@@ -2796,7 +3585,39 @@ function getRewards(learnerId) {
     newly_unlocked: newly,
     // What to aim for next, so the album can show a progress bar.
     next: SEED_STICKERS.find((s) => credits < s.credits) || null,
+    // WHICH of today's credits she has already taken.
+    //
+    // Without this the album could only ever show a balance, and a balance is a
+    // number she cannot act on: nothing on the screen says the three daily
+    // credits are three *separate* things, so she sees "4 credits", finishes a
+    // game, sees "4 credits" again, and concludes the system is broken. The
+    // checklist below is what turns a total into a task.
+    //
+    // Keyed on the device id, not the learner id, because a device can earn a
+    // credit before it has ever entered a name — the same reason credit_events
+    // carries both columns. `day` is the Hong Kong calendar date, so "today"
+    // means today where she is.
+    today: creditKindsTodayForLearner(id),
+    // Every kind there is, so the client can render the ones still open without
+    // hard-coding the list and drifting from it.
+    dailyKinds: CREDIT_KINDS.slice(),
   };
+}
+
+/**
+ * The credit kinds this learner has already taken today, in CREDIT_KINDS order.
+ *
+ * Reads through the learner row rather than taking a device id because
+ * getRewards is learner-keyed and every other field in that response is too.
+ * A learner with no device row (impossible in practice, but cheap to be safe
+ * about) simply has none.
+ */
+function creditKindsTodayForLearner(learnerId, nowMs = Date.now()) {
+  const learner = S.getLearnerById.get(Number(learnerId));
+  if (!learner) return [];
+  const day = hktDate(nowMs);
+  const taken = new Set(S.creditEventsForDay.all(String(learner.public_id), day).map((r) => r.kind));
+  return CREDIT_KINDS.filter((k) => taken.has(k));
 }
 
 // ---------------------------------------------------------------------------
@@ -2953,9 +3774,26 @@ function countDevices(employerId) {
   return S.countDevicesByEmployer.get(employerId).n;
 }
 
-/** Open a pairing window for `minutes` so an unrecognised device can link. */
+/**
+ * Open a pairing window for `minutes` so an unrecognised device can link.
+ *
+ * Clamped at both ends rather than trusted. The caller is an authenticated
+ * operator and the default is fifteen minutes, so in practice neither guard
+ * fires — they exist because the cost of a bad window is paid later, by whoever
+ * reads the People tab and sees a badge that will not go away.
+ *
+ *   - Above the ceiling, a request for a year is a bug or a mistake, and the
+ *     answer is three days either way.
+ *   - At or below zero, `Number(x) || 15` used to let -500 straight through and
+ *     write a window that expired BEFORE it was opened — which reads as "never
+ *     paired" forever after, the exact stale badge this whole mechanism exists
+ *     to prevent. Non-positive and non-numeric both fall back to the default.
+ */
 function openDeviceReauth(employerId, minutes) {
-  const until = new Date(Date.now() + (Number(minutes) || 15) * 60000).toISOString();
+  const requested = Number(minutes);
+  const sane = Number.isFinite(requested) && requested > 0 ? requested : 15;
+  const capped = Math.min(sane, PAIRING_WINDOW_MS / 60000);
+  const until = new Date(Date.now() + capped * 60000).toISOString();
   S.updateUserReauth.run(until, employerId);
   return until;
 }
@@ -3107,6 +3945,11 @@ function identifyLearner({ public_id, display_name, referrer }) {
     // a referrer is already recorded, so a later visit from a different link
     // cannot steal credit from the one that actually brought her in.
     if (ref) S.setLearnerReferrer.run(ref, existing.id);
+    // Credits earned before she had a name (a reaction on her very first visit)
+    // are attached to the device only. Now that the device has a learner, they
+    // belong to her — otherwise the first thing the app asks her to do is the
+    // one thing that pays nothing.
+    S.backfillCreditEventsLearner.run(existing.id, pid);
     return getLearnerById(existing.id);
   }
 
@@ -3119,11 +3962,13 @@ function identifyLearner({ public_id, display_name, referrer }) {
       S.adoptLearnerPublicId.run(pid, now, legacy.id);
       S.setLearnerReferralCode.run(uniqueReferralCode(pid), legacy.id);
       if (ref) S.setLearnerReferrer.run(ref, legacy.id);
+      S.backfillCreditEventsLearner.run(legacy.id, pid);
       return getLearnerById(legacy.id);
     }
   }
 
   const info = S.insertLearner.run(pid, name, now, now, ref || null, uniqueReferralCode(pid));
+  S.backfillCreditEventsLearner.run(Number(info.lastInsertRowid), pid);
   return getLearnerById(Number(info.lastInsertRowid));
 }
 
@@ -3221,9 +4066,41 @@ const FEEDBACK_STATUSES = ['new', 'reviewing', 'resolved'];
  * message is empty after trimming — an empty submission is a mis-tap, not
  * feedback, and storing it would only add noise to the inbox.
  */
+/**
+ * Privacy-safe spam guard. No IP is read or stored — the check looks only at
+ * the message text and the optional contact field the sender chose to type.
+ * Matches are dropped exactly like an empty message: nothing is stored and the
+ * public routes answer identically, so a bot gets no signal that it was
+ * filtered (it simply never lands in the operator's inbox).
+ *
+ * The patterns are deliberately narrow — the specific domains seen in real
+ * solicitation traffic plus a few SEO-bait phrases that a genuine learner
+ * would almost never type. Generic words like "register" or "submit" are kept
+ * OUT on purpose so a real correction ("the registration guide is wrong") is
+ * never suppressed. When the operator sees a new solicitation, its domain is
+ * added here.
+ */
+const SPAM_PATTERNS = [
+  /siteindex\.live/i,
+  /searchregister\.site/i,
+  /search-cantobuddy\.com/i,
+  /get your site indexed/i,
+  /submit your (site|website) to (search engines|google)/i,
+  /search engine registration/i,
+  /buy (cheap )?(backlinks|views|seo)/i,
+];
+function isSpamMessage(text, contact) {
+  const hay = `${text || ''} ${contact || ''}`;
+  return SPAM_PATTERNS.some((re) => re.test(hay));
+}
+
 function createFeedback({ role = 'learner', message, contact = '', user_id = null, lang = 'en', page = '' } = {}) {
   const text = String(message ?? '').trim().slice(0, FEEDBACK_MAX);
   if (!text) return null;
+  // Drop solicitation/spam before it ever reaches the inbox. Treated like an
+  // empty submission: null means "nothing stored", and the caller answers the
+  // same as it would for a mis-tap.
+  if (isSpamMessage(text, contact)) return null;
   const r = role === 'employer' ? 'employer' : 'learner';
   // Only keep an employer id that resolves. A session can outlive the user it
   // points at (the account was deleted mid-visit), and a foreign-key failure
@@ -3304,6 +4181,16 @@ const POST_BODY_MAX = 20000;
  * 0 disables the window entirely (news never expires).
  */
 const DEFAULT_NEWS_MAX_AGE_DAYS = 3;
+
+/**
+ * How long a tombstone is kept after a post is pruned. 180 days.
+ *
+ * A tombstone's only job is to turn a 404 into a 410 for long enough that
+ * Google stops asking. Google re-crawls a dead URL a handful of times and then
+ * gives up; six months is far past that, and it is short enough that the table
+ * never becomes an archive of every wire story the site has ever carried.
+ */
+const GONE_POST_TTL_DAYS = 180;
 
 const newsMaxAgeDays = () => {
   const raw = process.env.NEWS_MAX_AGE_DAYS;
@@ -3622,8 +4509,53 @@ function pruneNewsPast({ days } = {}) {
     published_at: r.published_at || r.created_at,
   }));
   if (!pruned.length) return { removed: 0, pruned, days: windowDays };
-  S.deleteNewsOlderThan.run(cutoff);
+  /* Mark BEFORE deleting, and in the same transaction.
+     The two statements have to land together or the URL becomes a permanent
+     404 with no record of why. Marking first means the worst case is a
+     tombstone for a row that still exists — which is invisible, because a live
+     post is served by the 200 path and the tombstone is only consulted when
+     the row is missing. The other order would be a silent, unrecoverable 404. */
+  const goneAt = new Date().toISOString();
+  db.exec('BEGIN');
+  try {
+    for (const p of pruned) if (p.slug) S.markPostGone.run(p.slug, goneAt);
+    S.deleteNewsOlderThan.run(cutoff);
+    db.exec('COMMIT');
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
   return { removed: pruned.length, pruned, days: windowDays };
+}
+
+/**
+ * Was this slug retired on purpose?
+ *
+ * True only for a post that pruneNewsPast() deleted. The SEO layer uses it to
+ * answer 410 Gone rather than 404, so a URL we removed deliberately says so
+ * instead of looking like a typo. Never true for a post that still exists —
+ * callers check the row first.
+ */
+function isPostGone(slug) {
+  const s = String(slug || '').trim();
+  if (!s) return false;
+  return Boolean(S.getPostGone.get(s));
+}
+
+/**
+ * Drop tombstones older than GONE_POST_TTL_DAYS.
+ *
+ * The receipt has done its job once Google has stopped asking: a 410 only
+ * matters while the crawler is still revisiting the URL. Without this the
+ * table would grow by every wire story the site has ever carried, which is the
+ * exact unbounded growth the prune exists to prevent.
+ *
+ * @returns {{removed:number, days:number}}
+ */
+function pruneGonePosts() {
+  const cutoff = beforeIso(GONE_POST_TTL_DAYS);
+  const res = S.deleteGoneBefore.run(cutoff);
+  return { removed: Number(res.changes) || 0, days: GONE_POST_TTL_DAYS };
 }
 
 /**
@@ -4164,6 +5096,7 @@ function getPeopleOverview() {
   const employers = S.listEmployers.all().map((u) => {
     const active = S.listLinksByEmployer.all(u.id);
     const all = S.listAllLinksByEmployer.all(u.id);
+    const reauthOpen = isDeviceReauthOpen(u.id);
     return {
       id: u.id,
       username: u.username,
@@ -4177,7 +5110,11 @@ function getPeopleOverview() {
       invitations_sent: S.countInvitationsByEmployer.get(u.id).n,
       invitations_pending: S.countPendingInvitationsByEmployer.get(u.id).n,
       device_count: countDevices(u.id),
-      reauth_open: isDeviceReauthOpen(u.id),
+      reauth_open: reauthOpen,
+      // When the window shuts, so the operator can tell a live badge from a
+      // stale one at a glance. Null when nothing is open — `reauth_open` is the
+      // boolean, this is the reason.
+      reauth_until: reauthOpen ? u.device_reauth_open_until : null,
       helpers: active.map((l) => ({
         link_id: l.id,
         learner_id: l.learner_id,
@@ -4536,6 +5473,267 @@ function getVisitorReport(days) {
   };
 }
 
+/* --- games: who plays, alone or together, and for how long ---------------
+
+   These read game_results, which is written once per player per finished game
+   (see recordGameResults). Three of the operator's questions are answerable
+   from it directly and one is not, and the difference matters more than the
+   numbers:
+
+   ANSWERABLE  how many people play, which games, alone or in a group, how
+               often they come back. `players` is the table size at the moment
+               the game was recorded, so 1 means she played alone and 2+ means
+               she was at a table with someone.
+
+   NOT ANSWERABLE  how many MINUTES a game takes. There is no rooms table —
+               rooms live in memory and die with the process — so there is no
+               "room opened" instant to subtract from "result written". The
+               session span below is therefore the app-wide span from
+               learner_daily (first thing she did that day to last thing), and
+               it is labelled as such everywhere it is shown. Claiming it as
+               game time would be inventing a number. */
+// WHAT COUNTS AS "A GAME". recordGameResults writes ONE ROW PER PLAYER who
+// finished, so a four-person UNO table where one player has no device token
+// writes three rows. A game is therefore not a row: it is one call, and every
+// row from a call shares the same room_code AND the same created_at (the call
+// stamps one instant for the whole table). So `room_code || '|' || created_at`
+// is the game's identity, and counting rows would report a table of four as
+// three separate games — which is exactly the bug this comment exists to
+// prevent coming back.
+const GAME_KEY = `room_code || '|' || created_at`;
+
+const reportGameTotals = db.prepare(`
+  SELECT game,
+         COUNT(DISTINCT ${GAME_KEY})                                      AS played,
+         COUNT(*)                                                        AS results,
+         COALESCE(SUM(won), 0)                                           AS wins,
+         COUNT(DISTINCT public_id)                                       AS players,
+         COUNT(DISTINCT CASE WHEN players <= 1 THEN ${GAME_KEY} END)      AS solo_games,
+         COUNT(DISTINCT CASE WHEN players >= 2 THEN ${GAME_KEY} END)      AS group_games,
+         COUNT(DISTINCT CASE WHEN players <= 1 THEN public_id END)       AS solo_players,
+         COUNT(DISTINCT CASE WHEN players >= 2 THEN public_id END)       AS group_players,
+         MAX(players)                                                    AS biggest_table
+    FROM game_results
+   WHERE created_at >= ?
+   GROUP BY game
+`);
+// Everything, unbounded by the window: "how many people have ever played" is a
+// different question from "how many played this month", and the operator asks
+// both.
+const reportGameAllTime = db.prepare(`
+  SELECT COUNT(DISTINCT public_id) AS players, COUNT(DISTINCT ${GAME_KEY}) AS played
+    FROM game_results
+`);
+// Distinct players inside the window. Kept as its own statement rather than
+// summed from byGame, because a device that played two games is one person,
+// and adding the per-game counts would report her twice.
+const reportGamePlayersInWindow = db.prepare(`
+  SELECT DISTINCT public_id
+    FROM game_results
+   WHERE created_at >= ?
+`);
+const reportGameByDay = db.prepare(`
+  SELECT date(created_at, '+8 hours')                                    AS day,
+         COUNT(DISTINCT ${GAME_KEY})                                     AS games,
+         COUNT(DISTINCT public_id)                                       AS players,
+         COUNT(DISTINCT CASE WHEN players <= 1 THEN ${GAME_KEY} END)     AS solo,
+         COUNT(DISTINCT CASE WHEN players >= 2 THEN ${GAME_KEY} END)     AS grouped
+    FROM game_results
+   WHERE created_at >= ?
+   GROUP BY day
+   ORDER BY day
+`);
+// Per device, all time. GROUP BY rather than a window function because the
+// interesting output is a distribution ("how many played exactly once"), and a
+// distribution needs the rows, not an aggregate. `games` is distinct games, so
+// sitting at one four-person table counts once, not four times.
+const reportGamesPerPlayer = db.prepare(`
+  SELECT public_id,
+         COUNT(DISTINCT ${GAME_KEY})                       AS games,
+         COUNT(DISTINCT date(created_at, '+8 hours'))    AS active_days
+    FROM game_results
+   GROUP BY public_id
+`);
+// The whole-app session span. first_at/last_at are the first and last recorded
+// action of that Hong Kong day, so their difference is how long she stayed —
+// not what she did. See the block comment above.
+const reportSessionSpans = db.prepare(`
+  SELECT first_at, last_at
+    FROM learner_daily
+   WHERE first_at IS NOT NULL AND last_at IS NOT NULL
+`);
+const reportCreditByKind = db.prepare(`
+  SELECT kind,
+         COUNT(*)                    AS events,
+         COUNT(DISTINCT public_id)   AS devices,
+         COALESCE(SUM(points), 0)    AS points
+    FROM credit_events
+   WHERE created_at >= ?
+   GROUP BY kind
+`);
+// How many devices hit the ceiling — all three daily kinds on one day. This is
+// the number that says whether the once-a-day rule is a motivator or a wall.
+const reportCreditCeiling = db.prepare(`
+  SELECT COUNT(*) AS device_days
+    FROM (SELECT public_id, day
+            FROM credit_events
+           WHERE created_at >= ?
+           GROUP BY public_id, day
+          HAVING COUNT(DISTINCT kind) = 3)
+`);
+const reportCreditDevices = db.prepare(`
+  SELECT COUNT(DISTINCT public_id) AS devices
+    FROM credit_events
+   WHERE created_at >= ?
+`);
+
+/**
+ * The games report.
+ *
+ * Everything is keyed on the device identity, so two helpers who share a name
+ * stay two people — the same rule as every other report here.
+ *
+ * A NOTE ON WHAT `players` MEANS IN game_results. It is the size of the table
+ * the game was recorded for, not the number of rows written: a player with no
+ * device id is skipped (see recordGameResults), so a four-person UNO table
+ * where one person has no token records three rows, each saying players = 4.
+ * That is the honest reading — "she was at a table of four" — and it is why
+ * solo_games + group_games equals played while solo_players + group_players
+ * does not have to equal players.
+ */
+function getGameReport(days) {
+  const span = REPORT_RANGES.includes(Number(days)) ? Number(days) : 30;
+  const now = Date.now();
+  const from = hktDate(now - (span - 1) * DAY_MS);
+  const fromIso = new Date(now - (span + 1) * DAY_MS).toISOString();
+
+  const allTime = reportGameAllTime.get();
+  const totals = reportGameTotals.all(fromIso);
+
+  const byGame = GAME_KEYS.map((game) => {
+    const r = totals.find((t) => t.game === game);
+    // `played` is GAMES and `results` is PLAYER-RESULTS. They differ for every
+    // table game, and the win rate is deliberately computed from `results`:
+    // "of the times someone finished this game, how often did she win" is a
+    // question about players, and dividing wins by games would answer a
+    // different one — a four-person table where one player won would read as a
+    // 100% win rate, which is true of the table and false of the three who
+    // lost.
+    const played = r ? Number(r.played) || 0 : 0;
+    const results = r ? Number(r.results) || 0 : 0;
+    const wins = r ? Number(r.wins) || 0 : 0;
+    return {
+      game,
+      played,
+      results,
+      wins,
+      players: r ? Number(r.players) || 0 : 0,
+      winRate: results ? Math.round((wins / results) * 100) : null,
+      soloGames: r ? Number(r.solo_games) || 0 : 0,
+      groupGames: r ? Number(r.group_games) || 0 : 0,
+      soloPlayers: r ? Number(r.solo_players) || 0 : 0,
+      groupPlayers: r ? Number(r.group_players) || 0 : 0,
+      biggestTable: r ? Number(r.biggest_table) || 0 : 0,
+    };
+  });
+
+  const sum = (k) => byGame.reduce((n, g) => n + g[k], 0);
+  const soloGames = sum('soloGames');
+  const groupGames = sum('groupGames');
+
+  // ---- how long they stay -------------------------------------------------
+  const perPlayer = reportGamesPerPlayer.all();
+  const gamesCounts = perPlayer.map((r) => Number(r.games) || 0).sort((a, b) => a - b);
+  const dayCounts = perPlayer.map((r) => Number(r.active_days) || 0).sort((a, b) => a - b);
+  const median = (arr) => {
+    if (!arr.length) return null;
+    const mid = arr.length >> 1;
+    return arr.length % 2 ? arr[mid] : Math.round((arr[mid - 1] + arr[mid]) / 2);
+  };
+
+  // The session span, from the app-wide daily rollup. Values are clamped at
+  // both ends: a negative difference is a clock that moved, and anything over
+  // twelve hours is a day the rollup never closed rather than a session.
+  const spans = [];
+  for (const r of reportSessionSpans.all()) {
+    const mins = (Date.parse(r.last_at) - Date.parse(r.first_at)) / 60000;
+    if (Number.isFinite(mins) && mins >= 0 && mins <= 720) spans.push(mins);
+  }
+  spans.sort((a, b) => a - b);
+
+  // ---- credits ------------------------------------------------------------
+  const creditRows = reportCreditByKind.all(fromIso);
+  const byKind = {};
+  for (const k of CREDIT_KINDS) byKind[k] = { events: 0, devices: 0, points: 0 };
+  for (const r of creditRows) {
+    if (!(r.kind in byKind)) continue;
+    byKind[r.kind] = {
+      events: Number(r.events) || 0,
+      devices: Number(r.devices) || 0,
+      points: Number(r.points) || 0,
+    };
+  }
+
+  // ---- the trend, gap-filled ---------------------------------------------
+  const byDay = new Map(reportGameByDay.all(fromIso).map((r) => [r.day, r]));
+  const series = [];
+  for (let i = span - 1; i >= 0; i--) {
+    const day = hktDate(now - i * DAY_MS);
+    const r = byDay.get(day);
+    series.push({
+      day,
+      games: r ? Number(r.games) || 0 : 0,
+      players: r ? Number(r.players) || 0 : 0,
+      solo: r ? Number(r.solo) || 0 : 0,
+      grouped: r ? Number(r.grouped) || 0 : 0,
+    });
+  }
+
+  return {
+    days: span,
+    from,
+    // --- how many people play ---
+    playersAllTime: Number(allTime.players) || 0,
+    gamesAllTime: Number(allTime.played) || 0,
+    playersThisPeriod: reportGamePlayersInWindow.all(fromIso).length,
+    // --- alone or together ---
+    soloGames,
+    groupGames,
+    soloShare: soloGames + groupGames ? Math.round((soloGames / (soloGames + groupGames)) * 100) : null,
+    // --- how long they stay ---
+    gamesPerPlayer: {
+      median: median(gamesCounts),
+      mean: gamesCounts.length
+        ? Math.round((gamesCounts.reduce((a, b) => a + b, 0) / gamesCounts.length) * 10) / 10
+        : null,
+      playedOnce: gamesCounts.filter((n) => n <= 1).length,
+      cameBack: gamesCounts.filter((n) => n >= 2).length,
+      most: gamesCounts.length ? gamesCounts[gamesCounts.length - 1] : 0,
+    },
+    activeDaysPerPlayer: {
+      median: median(dayCounts),
+      most: dayCounts.length ? dayCounts[dayCounts.length - 1] : 0,
+    },
+    sessionSpan: {
+      // Minutes, app-wide. See the block comment: this is NOT game time.
+      medianMinutes: spans.length ? Math.round(median(spans)) : null,
+      meanMinutes: spans.length
+        ? Math.round(spans.reduce((a, b) => a + b, 0) / spans.length)
+        : null,
+      sampleDays: spans.length,
+    },
+    // --- credits ---
+    credits: {
+      byKind,
+      devicesWithAny: Number(reportCreditDevices.get(fromIso).devices) || 0,
+      deviceDaysAtCeiling: Number(reportCreditCeiling.get(fromIso).device_days) || 0,
+      dailyCeiling: CREDIT_KINDS.length,
+    },
+    byGame,
+    series,
+  };
+}
+
 /** Everything the Reports tab needs, in one read. */
 function getReport(days) {
   return {
@@ -4544,6 +5742,10 @@ function getReport(days) {
     trends: getReportTrends(days),
     employers: getReportEmployers(),
     visitors: getVisitorReport(days),
+    // The games report rides along so the Reports tab needs one round trip, not
+    // two. It reads a different table and answers a different question, but it
+    // is still the operator's numbers on the operator's screen.
+    games: getGameReport(days),
   };
 }
 
@@ -4767,6 +5969,9 @@ module.exports = {
   deleteScenario,
 
   listVocabulary,
+  dailyPhrasePool: () => S.listDailyPhrasePool.all(),
+  sundayTablePassages: () => S.sundayTablePassages.all(),
+  sundayTableDigest: (fromIso, limit = 4) => S.sundayTableDigest.all(String(fromIso), Number(limit)),
   getVocabulary,
   createVocabulary,
   updateVocabulary,
@@ -4777,6 +5982,9 @@ module.exports = {
   getStats,
 
   getCredits,
+  awardDailyCredit,
+  CREDIT_KINDS,
+  hktDayString,
   getRewards,
 
   findUserByUsername,
@@ -4815,6 +6023,7 @@ module.exports = {
   getReportEmployers,
   getReportHelpers,
   getVisitorReport,
+  getGameReport,
   REPORT_RANGES,
 
   // Feedback inbox — helper submissions are anonymous by design.
@@ -4848,6 +6057,8 @@ module.exports = {
   deletePost,
   deleteNewsPostsFromSourcesNotIn,
   pruneNewsPast,
+  isPostGone,
+  pruneGonePosts,
   importPost,
   POST_CHANNELS,
   POST_STATUSES,
@@ -4867,8 +6078,18 @@ module.exports = {
   listSubscriptions,
   countSubscriptions,
   updateLastActive,
-  listStaleForReminder,
   markReminded,
+  // The reminder ladder: who to consider, what to say, and the send claim.
+  listPushTargets,
+  claimPush,
+  linkSubscriptionLearner,
+  setSubscriptionLang,
+  latestPost,
+  // Game results — the record behind "You 7 · Ana 5".
+  recordGameResults,
+  gameRecordsForDevice,
+  gameRecordsForDevices,
+  GAME_KEYS,
   getStoryForModeration,
   getStoryCounts,
   setStoryStatus,

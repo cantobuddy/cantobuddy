@@ -47,6 +47,11 @@ const UPDATED = '2026-10-06';
 // require time (a wrong date must fail loudly, not ship quietly).
 const { HOLIDAY_GUIDE, holidaysGuideBody } = require('./holidays');
 
+// The Chinese Checkers rules, in four languages. One module feeds both this
+// guide and the in-game "How to play" panel, so the page that explains the game
+// and the game itself cannot end up disagreeing about the rules.
+const CHECKERS_RULES = require('./public/chinesechecker/rules.js');
+
 const GUIDES = [
   /* ===================================================================== */
   {
@@ -1154,6 +1159,40 @@ const GUIDES = [
       zh: holidaysGuideBody('zh'),
       id: holidaysGuideBody('id'),
     },
+  },
+
+  /* =====================================================================
+     The Chinese Checkers rules.
+
+     Not a Cantonese guide, and it does not pretend to be one. It exists
+     because the app ships the game and a game with no page explaining it is
+     only findable by people who already know it is there. The body is
+     generated from public/chinesechecker/rules.js, which is the same module
+     the in-game "How to play" panel renders - so a correction lands in both
+     places at once instead of in one of them.
+     ===================================================================== */
+  {
+    slug: CHECKERS_RULES.slugs,
+    icon: '⭐',
+    // Not UPDATED: this guide is new today, and stamping it with the site-wide
+    // vocabulary date would under-claim it.
+    updated: '2026-10-27',
+    title: CHECKERS_RULES.titles,
+    description: CHECKERS_RULES.descriptions,
+    body: {
+      en: CHECKERS_RULES.guideBody('en'),
+      fil: CHECKERS_RULES.guideBody('fil'),
+      zh: CHECKERS_RULES.guideBody('zh'),
+      id: CHECKERS_RULES.guideBody('id'),
+    },
+    // Rendered visibly and as FAQPage data. The questions are the ones the
+    // rules genuinely leave open (can you jump your own pegs, is a jump ever
+    // forced, why not five players), not invented filler.
+    faq: CHECKERS_RULES.faqEntries(),
+    related: [
+      { href: '/games/chinesechecker', label: { en: 'Play Chinese Checkers' } },
+      { href: '/guide/learn-cantonese', label: { en: "Learn Cantonese: the complete beginner's guide" } },
+    ],
   },
 ];
 

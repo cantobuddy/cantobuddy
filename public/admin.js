@@ -188,14 +188,48 @@ async function adminSendPush() {
   }
 }
 
-async function adminSendReminders() {
-  const days = Number(document.getElementById('push-remind-days').value) || 3;
+/** Turn a sweep summary into one line the operator can read. */
+function reminderSummary(r) {
+  if (r.disabled) return 'Push is disabled on the server.';
+  if (r.dryRun || r.sent === 0 && r.claimed === 0) {
+    const n = (r.planned || []).length;
+    return n
+      ? `${n} device(s) would be sent to this evening.`
+      : 'Nothing to send right now — no device is due a message.';
+  }
+  const parts = [`Sent ${r.sent}`];
+  if (r.failed) parts.push(`${r.failed} failed`);
+  if (r.expired) parts.push(`${r.expired} gone`);
+  return parts.join(' · ');
+}
+
+/** Show what the ladder would say tonight, without sending anything. */
+async function adminPreviewReminders() {
   const res = document.getElementById('push-remind-result');
-  res.textContent = 'Sending…';
+  const plan = document.getElementById('push-remind-plan');
+  res.textContent = 'Checking…';
+  plan.style.display = 'none';
   try {
-    const r = await apiPost('/api/admin/push/reminders', { days });
-    if (r.disabled) { res.textContent = 'Push is disabled on the server.'; return; }
-    res.textContent = `Queued ${r.queued != null ? r.queued : 0} reminder(s).`;
+    const r = await apiPost('/api/admin/push/reminders', { dryRun: true });
+    res.textContent = reminderSummary(r);
+    const lines = (r.planned || []).map((p) => `• [${p.kind}/${p.lang}] ${p.title}`);
+    if (lines.length) {
+      plan.textContent = lines.join('\n');
+      plan.style.display = 'block';
+    }
+  } catch (e) {
+    res.textContent = 'Error: ' + e.message;
+  }
+}
+
+async function adminSendReminders() {
+  const res = document.getElementById('push-remind-result');
+  const plan = document.getElementById('push-remind-plan');
+  res.textContent = 'Sending…';
+  plan.style.display = 'none';
+  try {
+    const r = await apiPost('/api/admin/push/reminders', {});
+    res.textContent = reminderSummary(r);
   } catch (e) {
     res.textContent = 'Error: ' + e.message;
   }
@@ -624,7 +658,7 @@ async function renderAdminStats() {
   }
 }
 
-// ---- People: employers, their helpers, and learners with no employer --------
+// ---- People: employers and the helpers connected to them -------------------
 //
 // Read-only. The operator runs the service but is not a party to the consent
 // relationship, so this screen shows who is connected to whom and nothing more
@@ -641,6 +675,28 @@ function fmtDate(iso) {
   const d = new Date(iso);
   if (isNaN(d.getTime())) return '—';
   return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+/**
+ * "in 14 min" / "in 2 days" — how much longer a pairing window has.
+ *
+ * The badge used to be a bare "pairing open", which is exactly the problem: a
+ * window opened fourteen minutes ago and one opened three months ago looked
+ * identical, so the operator had no way to tell a live window from a forgotten
+ * one and learned to ignore all of them. Relative wording also keeps the chip
+ * short, which matters because it sits inline in a metadata line.
+ */
+function fmtUntil(iso) {
+  if (!iso) return '';
+  const ms = Date.parse(iso) - Date.now();
+  if (isNaN(ms)) return '';
+  if (ms <= 0) return 'now';
+  const mins = Math.round(ms / 60000);
+  if (mins < 60) return `in ${mins} min`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `in ${hours} hr`;
+  const days = Math.round(hours / 24);
+  return `in ${days} day${days === 1 ? '' : 's'}`;
 }
 
 /** A transient confirmation. The admin shell has no toast element, so make one. */
@@ -713,8 +769,10 @@ function employerCard(e) {
         </div>`).join('')
     : '<div class="helper-none">No helpers connected yet.</div>';
 
+  // The window is short by construction now, so say when it ends rather than
+  // leaving the operator to guess how long it has been sitting there.
   const deviceChip = e.reauth_open
-    ? ' <span class="status-chip status-accepted">pairing open</span>'
+    ? ` <span class="status-chip status-accepted">pairing open · closes ${fmtUntil(e.reauth_until)}</span>`
     : '';
 
   return `
@@ -757,11 +815,9 @@ async function openDeviceReauth(employerId) {
 async function renderAdminPeople() {
   const summaryEl = document.getElementById('admin-people-summary');
   const empEl = document.getElementById('admin-employers');
-  const unEl = document.getElementById('admin-unconnected');
   if (!empEl) return;
 
   empEl.innerHTML = '<div class="progress-empty">Loading…</div>';
-  unEl.innerHTML = '';
 
   try {
     const data = await apiGet('/api/admin/people');
@@ -778,28 +834,13 @@ async function renderAdminPeople() {
         <h4>Helpers connected</h4>
         <div class="stat-number">${t.helpers}</div>
         <div class="stat-label">linked to an employer</div>
-      </div>
-      <div class="stat-card">
-        <h4>No employer</h4>
-        <div class="stat-number">${t.unconnected}</div>
-        <div class="stat-label">using the app alone</div>
       </div>`;
 
     empEl.innerHTML = data.employers.length
       ? data.employers.map(employerCard).join('')
       : '<div class="progress-empty">No employer accounts yet.</div>';
-
-    unEl.innerHTML = data.unconnected.length
-      ? data.unconnected.map((l) => `
-          <div class="learner-stat">
-            <div class="learner-stat-name">👤 ${escapeHtml(l.display_name || 'Unnamed learner')}</div>
-            <div class="learner-stat-sub">last active ${fmtDate(l.last_seen_at)} · ${learnerLine(l.summary)}</div>
-            ${levelChips(l.summary && l.summary.byLevel)}
-          </div>`).join('')
-      : '<div class="progress-empty">Every learner is connected to an employer.</div>';
   } catch (err) {
     empEl.innerHTML = '<div class="progress-empty">Could not load the people overview.</div>';
-    unEl.innerHTML = '';
   }
 }
 
@@ -835,6 +876,10 @@ async function renderAdminReport() {
   const vChartEl = document.getElementById('admin-visitor-chart');
   const vNotesEl = document.getElementById('admin-visitor-notes');
   const pathsEl = document.getElementById('admin-top-paths');
+  const gTotalsEl = document.getElementById('admin-games-totals');
+  const gChartEl = document.getElementById('admin-games-chart');
+  const gNotesEl = document.getElementById('admin-games-notes');
+  const gTableEl = document.getElementById('admin-games-table');
   if (!totalsEl) return;
 
   chartEl.innerHTML = '<div class="progress-empty">Loading…</div>';
@@ -847,6 +892,10 @@ async function renderAdminReport() {
   if (pChartEl) pChartEl.innerHTML = '<div class="progress-empty">Loading…</div>';
   if (pNotesEl) pNotesEl.innerHTML = '';
   pathsEl.innerHTML = '';
+  if (gTotalsEl) gTotalsEl.innerHTML = '';
+  if (gChartEl) gChartEl.innerHTML = '<div class="progress-empty">Loading…</div>';
+  if (gNotesEl) gNotesEl.innerHTML = '';
+  if (gTableEl) gTableEl.innerHTML = '';
 
   try {
     const data = await apiGet(`/api/admin/report?days=${ADMIN.reportDays}`);
@@ -889,6 +938,8 @@ async function renderAdminReport() {
       ? v.topPaths.map(topPathRow).join('')
       : '<div class="progress-empty">No landing-page views recorded yet.</div>';
 
+    renderAdminGames(data.games);
+
     chartEl.innerHTML = trendChart(data.trends);
     notesEl.innerHTML = trendNotes(data.trends);
 
@@ -907,6 +958,161 @@ function reportCard(title, value, sub) {
     <div class="stat-number">${escapeHtml(String(value))}</div>
     <div class="stat-label">${escapeHtml(sub)}</div>
   </div>`;
+}
+
+// ---- Games -----------------------------------------------------------------
+//
+// Three questions the operator asks about games, and the honest answer to each:
+//
+//   how many people play     distinct devices with a finished game
+//   alone or together        the `players` column, which is the table size
+//   how long they stay       repeat play (games per device) and the app-wide
+//                            session span — NOT a game timer, because there is
+//                            no rooms table to time. The copy says so.
+//
+// The chart is grouped bars rather than one series per game, because the
+// finding the operator is looking for is the split between playing alone and
+// playing at a table, and that split is invisible in a total.
+
+function renderAdminGames(g) {
+  const totalsEl = document.getElementById('admin-games-totals');
+  const chartEl = document.getElementById('admin-games-chart');
+  const notesEl = document.getElementById('admin-games-notes');
+  const tableEl = document.getElementById('admin-games-table');
+  if (!totalsEl) return;
+
+  ADMIN.games = g || null;
+
+  if (!g || !g.gamesAllTime) {
+    totalsEl.innerHTML = reportCard('Players', 0, 'no finished games recorded yet');
+    chartEl.innerHTML = '<div class="progress-empty">No games recorded yet. This fills in as soon as someone finishes one.</div>';
+    notesEl.innerHTML = '<div class="report-note">Nothing recorded yet. A row is written per player the moment a game finishes — win or lose, solo or at a table.</div>';
+    tableEl.innerHTML = '';
+    return;
+  }
+
+  const span = g.sessionSpan;
+  const per = g.gamesPerPlayer;
+  totalsEl.innerHTML = [
+    reportCard('Players, all time', g.playersAllTime,
+      `${g.playersThisPeriod} played in the last ${g.days} days`),
+    reportCard('Games finished', g.gamesAllTime,
+      `${g.soloGames} alone · ${g.groupGames} at a table`),
+    reportCard('Playing alone', g.soloShare === null ? '—' : `${g.soloShare}%`,
+      `${g.soloGames} of ${g.soloGames + g.groupGames} games`),
+    reportCard('Games per player', per.median === null ? '—' : per.median,
+      `median · ${per.cameBack} came back, ${per.playedOnce} played once`),
+    reportCard('Session length', span.medianMinutes === null ? '—' : `${span.medianMinutes} min`,
+      `median, whole app · ${span.sampleDays} days sampled`),
+    reportCard('Credits earned', g.credits.devicesWithAny,
+      `devices · ceiling ${g.credits.dailyCeiling}/day`),
+  ].join('');
+
+  chartEl.innerHTML = gamesChart(g.series);
+  notesEl.innerHTML = gamesNotes(g);
+
+  tableEl.innerHTML = g.byGame
+    .filter((row) => row.played > 0)
+    .map(gamesRow)
+    .join('') || '<div class="progress-empty">No games finished in this period.</div>';
+}
+
+function gamesRow(row) {
+  const label = GAME_LABELS[row.game] || row.game;
+  // Games and player-results are different numbers for every table game, and
+  // the row says both. The win rate is per player-result, so it reads "of the
+  // times someone finished this, how often did she win" — never "how often did
+  // the table produce a winner", which would be near-always 100%.
+  const win = row.winRate === null ? '—' : `${row.winRate}% (${row.wins} of ${row.results})`;
+  const mode = row.soloGames && row.groupGames
+    ? `${row.soloGames} alone · ${row.groupGames} at a table`
+    : row.groupGames
+      ? `${row.groupGames} at a table (up to ${row.biggestTable})`
+      : `${row.soloGames} alone`;
+  return `<div class="learner-stat">
+    <div class="learner-stat-name">🎮 ${escapeHtml(label)}</div>
+    <div class="learner-stat-sub">
+      ${row.played} game(s) · ${row.results} player-result(s) · ${row.players} player(s) · ${escapeHtml(win)} · ${escapeHtml(mode)}
+    </div>
+  </div>`;
+}
+
+const GAME_LABELS = {
+  uno: 'UNO',
+  bigtwo: 'Big Two',
+  wordmatch: 'Word Match',
+  sudoku: 'Sudoku',
+};
+
+/**
+ * Alone vs at a table, one day at a time.
+ *
+ * Same geometry as the practice chart on purpose — the three charts on this tab
+ * are one set, and a reader who has learned to read one should not have to
+ * learn a second. The two series are stacked rather than side by side because
+ * the question is "of the games that day, how many were company", and a stack
+ * answers that with the total height.
+ */
+function gamesChart(series) {
+  const s = (series || []).filter((d) => d.games > 0);
+  if (!s.length) return '<div class="progress-empty">No games finished in this period.</div>';
+
+  const W = 680, H = 200, PAD_L = 34, PAD_B = 22, PAD_T = 10;
+  const plotW = W - PAD_L - 8;
+  const plotH = H - PAD_B - PAD_T;
+  const max = Math.max(...s.map((d) => d.games), 1);
+  const step = plotW / s.length;
+  const barW = Math.max(2, Math.min(18, step - 3));
+
+  const bars = s.map((d, i) => {
+    const x = PAD_L + i * step + (step - barW) / 2;
+    const totalH = (d.games / max) * plotH;
+    const soloH = d.games ? (d.solo / d.games) * totalH : 0;
+    const groupH = totalH - soloH;
+    const yTotal = PAD_T + plotH - totalH;
+    const ySolo = PAD_T + plotH - soloH;
+    return `<rect x="${x.toFixed(1)}" y="${ySolo.toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(soloH, d.solo ? 1 : 0).toFixed(1)}" fill="#2a9d8f"><title>${d.day}: ${d.solo} alone</title></rect>
+      <rect x="${x.toFixed(1)}" y="${yTotal.toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(groupH, d.grouped ? 1 : 0).toFixed(1)}" fill="#e76f51"><title>${d.day}: ${d.grouped} at a table</title></rect>`;
+  }).join('');
+
+  const ticks = [0, Math.round(max / 2), max].map((v) => {
+    const y = PAD_T + plotH - (v / max) * plotH;
+    return `<line x1="${PAD_L}" y1="${y.toFixed(1)}" x2="${W - 8}" y2="${y.toFixed(1)}" stroke="var(--c-border)" stroke-width="1"/>
+      <text x="${PAD_L - 5}" y="${(y + 3).toFixed(1)}" text-anchor="end" font-size="9" fill="var(--c-text-soft)">${v}</text>`;
+  }).join('');
+
+  return `<svg viewBox="0 0 ${W} ${H}" class="report-svg" role="img" aria-label="Games finished per day, alone versus at a table" style="width:100%;height:auto">
+    ${ticks}${bars}
+    <line x1="${PAD_L}" y1="${PAD_T + plotH}" x2="${W - 8}" y2="${PAD_T + plotH}" stroke="var(--c-border)" stroke-width="1"/>
+  </svg>
+  <div class="report-legend">
+    <span><i style="background:#2a9d8f"></i>played alone</span>
+    <span><i style="background:#e76f51"></i>at a table</span>
+  </div>`;
+}
+
+function gamesNotes(g) {
+  const per = g.gamesPerPlayer;
+  const span = g.sessionSpan;
+  const notes = [
+    `${g.playersAllTime} device(s) have finished a game; ${g.playersThisPeriod} in the last ${g.days} days.`,
+  ];
+  if (g.soloGames + g.groupGames) {
+    notes.push(`${g.soloGames} finished alone and ${g.groupGames} at a table — ${g.soloShare}% of games were played solo.`);
+  }
+  if (per.cameBack) {
+    notes.push(`${per.cameBack} came back for a second game; ${per.playedOnce} played exactly once. Median ${per.median} game(s) per player, most ${per.most}.`);
+  } else if (per.playedOnce) {
+    notes.push(`Every player so far has played exactly once — nobody has come back for a second game yet.`);
+  }
+  if (span.medianMinutes !== null) {
+    notes.push(`Session length is the whole app, not a game: median ${span.medianMinutes} minutes between the first and last thing she did that day, over ${span.sampleDays} recorded day(s). There is no rooms table, so there is no game timer and this number should not be quoted as one.`);
+  }
+  const gameCredit = g.credits.byKind.game;
+  if (gameCredit && gameCredit.events) {
+    notes.push(`${gameCredit.devices} device(s) earned the game credit in this period (${gameCredit.events} credit(s) of ${g.credits.devicesWithAny} total). ${g.credits.deviceDaysAtCeiling} day(s) hit all ${g.credits.dailyCeiling} available credits.`);
+  }
+  return notes.map((n) => `<div class="report-note">${escapeHtml(n)}</div>`).join('');
 }
 
 /**

@@ -1,0 +1,1725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#123a5c">
+<title>Chinese Checkers · CantoBuddy</title>
+<link rel="icon" href="/favicon.ico">
+<style>
+  /* One screen, no scrolling: a board game where the board scrolls away is a
+     board game you cannot see while you think. Everything below is sized in
+     vmin/clamp so it holds together from a 320px phone to a tablet. */
+  *,*::before,*::after{box-sizing:border-box}
+  :root{
+    --ink:#12212f;
+    --muted:#5b6b7a;
+    --line:#d7e0e8;
+    --paper:#f4f7fa;
+    --card:#ffffff;
+    --blue:#1f6fb2;
+    --blue-d:#154e7e;
+    --gold:#e0a91b;
+    --good:#1f8a54;
+    --bad:#c0392b;
+    --seat0:#e8503a; --seat1:#2f7fd1; --seat2:#2e9e5b;
+    --seat3:#e0a91b; --seat4:#8b5cf6; --seat5:#d6559b;
+  }
+  html,body{height:100%;margin:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans",sans-serif;
+    background:linear-gradient(170deg,#eaf2f9 0%,#f7fafc 45%,#eef4f8 100%);
+    color:var(--ink);
+    -webkit-tap-highlight-color:transparent;
+    overflow:hidden;
+  }
+  .wrap{height:100dvh;display:flex;flex-direction:column;max-width:640px;margin:0 auto;padding:8px 10px 10px}
+  .hidden{display:none!important}
+
+  /* ---------- top bar ---------- */
+  .top{display:flex;align-items:center;gap:4px;flex:0 0 auto;padding:2px 0 6px}
+  .top h1{font-size:15px;margin:0;letter-spacing:0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .top .spacer{flex:1}
+  /* The table controls, the same cluster the other three games carry: a live
+     indicator and three icon buttons. Icon-only on purpose — four words in four
+     languages do not fit beside a title, and the icon is the one thing that
+     needs no translation. Each keeps an aria-label and a title from STR.
+     40px, not 48px: four 48s plus the title overflow a 390px phone, and a row
+     that scrolls sideways on a board game is worse than a smaller target. */
+  .iconbtn{
+    flex:0 0 auto;width:40px;height:40px;border-radius:12px;background:#fff;
+    border:1.5px solid var(--line);display:grid;place-items:center;padding:0;
+    color:var(--ink);cursor:pointer;transition:transform .06s ease;
+  }
+  .iconbtn:active{transform:translateY(1px)}
+  .iconbtn svg{width:18px;height:18px;display:block}
+  .iconbtn.off{color:var(--muted);background:#f2f5f8}
+  .livechip{display:flex;align-items:center;gap:5px;flex:0 0 auto;font-size:12px;font-weight:700;color:var(--muted)}
+  .livechip .dot{width:8px;height:8px;border-radius:50%;background:var(--good);flex:0 0 auto}
+  .livechip.off .dot{background:var(--gold)}
+  /* Narrow phones: the live chip keeps only its dot, and on the narrowest one
+     the rules icon steps aside while a game is on — the lobby still has it, and
+     the title is worth more than a fourth icon. */
+  @media (max-width:380px){
+    .livechip .live-text{display:none}
+  }
+  @media (max-width:380px){
+    .iconbtn{width:38px;height:38px;border-radius:11px}
+    .iconbtn svg{width:17px;height:17px}
+  }
+  @media (max-width:340px){
+    body.in-table #rulesBtn{display:none}
+  }
+  .btn{
+    font:inherit;font-size:14px;font-weight:700;border:0;border-radius:11px;
+    padding:9px 14px;background:var(--blue);color:#fff;cursor:pointer;
+    box-shadow:0 2px 0 var(--blue-d);transition:transform .06s ease;
+  }
+  .btn:active{transform:translateY(1px);box-shadow:0 1px 0 var(--blue-d)}
+  .btn.ghost{background:#fff;color:var(--blue-d);border:1.5px solid var(--line);box-shadow:none}
+  .btn.small{font-size:13px;padding:7px 11px;border-radius:9px}
+  .btn:disabled{opacity:.45;cursor:default}
+
+  /* ---------- lobby ---------- */
+  .lobby{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding-bottom:8px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px;box-shadow:0 1px 2px rgba(18,33,47,.05)}
+  .card h2{font-size:14px;margin:0 0 10px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+  label.field{display:block;font-size:13px;font-weight:700;color:var(--muted);margin:0 0 6px}
+  input[type=text]{
+    width:100%;font:inherit;font-size:16px;padding:11px 12px;border:1.5px solid var(--line);
+    border-radius:11px;background:#fbfdff;color:var(--ink);
+  }
+  input[type=text]:focus{outline:2px solid var(--blue);outline-offset:-1px;border-color:var(--blue)}
+  .row{display:flex;gap:8px;align-items:center}
+  .avatars{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+  .avatars button{
+    font-size:20px;line-height:1;width:40px;height:40px;border-radius:11px;border:1.5px solid var(--line);
+    background:#fbfdff;cursor:pointer;padding:0;
+  }
+  .avatars button.on{border-color:var(--blue);background:#e8f2fb;box-shadow:0 0 0 2px #cfe5f7 inset}
+  .choices{display:flex;gap:8px;flex-wrap:wrap}
+  .choices button{
+    font:inherit;font-size:14px;font-weight:700;padding:10px 13px;border-radius:11px;
+    border:1.5px solid var(--line);background:#fbfdff;color:var(--ink);cursor:pointer;
+  }
+  .choices button.on{border-color:var(--blue);background:#e8f2fb;color:var(--blue-d)}
+  .hint{font-size:13px;color:var(--muted);margin:8px 0 0;line-height:1.4}
+  .err{font-size:13.5px;font-weight:600;color:var(--bad);margin-top:8px;min-height:18px}
+
+  /* ---------- table ---------- */
+  .table{flex:1;display:flex;flex-direction:column;min-height:0}
+  .status{
+    flex:0 0 auto;display:flex;align-items:center;gap:8px;
+    background:var(--card);border:1px solid var(--line);border-radius:13px;
+    padding:8px 11px;margin-bottom:7px;font-size:14px;font-weight:700;
+  }
+  .status .dot{width:9px;height:9px;border-radius:50%;background:var(--muted);flex:0 0 auto}
+  .status.mine{background:#e8f6ee;border-color:#bfe4ce;color:#0f5c37}
+  .status.mine .dot{background:var(--good);animation:pulse 1.4s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+  .boardwrap{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;position:relative}
+  svg.board{width:100%;height:100%;display:block;touch-action:manipulation}
+  .hole{fill:#dfe8f0;stroke:#c3d2de;stroke-width:.045}
+  /* The reachable-step marker. It takes the colour of the player whose step it
+     is — a red peg marked with a blue dot reads as somebody else's move, which
+     is exactly how it was reported: "only blue colour have, red doesn't". The
+     fallback keeps it legible if the variable is ever unset. */
+  .hole.tgt{fill:var(--tgt,#4b93cc);fill-opacity:.30;stroke:var(--tgt,#4b93cc);stroke-width:.10}
+  .hole.pickable{cursor:pointer}
+  /* The stroke lives on the BODY, not on the .peg group: stroke inherits, so a
+     stroke on the group would also outline the specular highlight and the
+     bounce-light crescent and turn a marble into a Venn diagram. */
+  .peg{stroke:none}
+  .peg .body{stroke:rgba(0,0,0,.16);stroke-width:.045}
+  .peg.sel .body{stroke:#12212f;stroke-width:.15}
+  /* The peg in flight. Pointer-events off so it cannot eat a tap, and lifted
+     slightly so it reads as being above the board while it travels. */
+  .peg.flyer{pointer-events:none;filter:drop-shadow(0 .10px .12px rgba(0,0,0,.30))}
+  .peg.flyer .body{stroke:rgba(0,0,0,.20);stroke-width:.05}
+  .peghit{fill:transparent;cursor:pointer}
+  .homeglow{fill:none;stroke-width:.12;opacity:.55}
+
+  /* ---------- players strip ---------- */
+  .seats{flex:0 0 auto;display:flex;gap:6px;overflow-x:auto;padding:2px 0 6px;-webkit-overflow-scrolling:touch}
+  .seat{
+    flex:0 0 auto;display:flex;align-items:center;gap:6px;background:var(--card);
+    border:1.5px solid var(--line);border-radius:11px;padding:5px 9px;font-size:13px;font-weight:700;
+  }
+  .seat.turn{border-color:var(--gold);box-shadow:0 0 0 2px #f6e6bb inset}
+  .seat .sw{width:11px;height:11px;border-radius:50%;flex:0 0 auto}
+  .seat .cnt{color:var(--muted);font-weight:600;font-size:12px}
+
+  /* The host's start control. Without it a room could be created and joined but
+     never begun: the server has always accepted a host 'start' action, and the
+     status line has always told the host to "start when everyone is in" — there
+     was simply no button to press. */
+  .startbar{flex:0 0 auto;display:flex;align-items:center;gap:9px;padding:0 0 8px}
+  .startbar .hint{font-size:13px;font-weight:600;color:var(--muted)}
+  .startbar .grow{flex:1}
+  /* The room code, tap to copy the invite. The status line has always read
+     "Share the code", and the code was never shown anywhere on the page — so
+     the one instruction the host is given could not be followed. */
+  .codechip{
+    display:flex;align-items:center;gap:7px;background:#fff;border:1.5px solid var(--line);
+    border-radius:11px;padding:5px 10px;font:inherit;cursor:pointer;
+  }
+  .codechip small{color:var(--muted);font-size:12px;font-weight:600}
+  .codechip b{letter-spacing:2.5px;font-size:16px;font-family:ui-monospace,Menlo,monospace}
+
+  /* ---------- bottom bar ---------- */
+  .bar{flex:0 0 auto;display:flex;gap:7px;align-items:center}
+  .bar .grow{flex:1}
+  .emoji{display:flex;gap:4px}
+  .emoji button{font-size:19px;line-height:1;width:36px;height:36px;border-radius:10px;border:1.5px solid var(--line);background:#fff;cursor:pointer;padding:0}
+
+  /* ---------- chat panel ---------- */
+  .feed{
+    position:absolute;left:0;right:0;bottom:0;max-height:62%;display:flex;flex-direction:column;
+    background:var(--card);border:1px solid var(--line);border-radius:14px 14px 0 0;
+    box-shadow:0 -6px 24px rgba(18,33,47,.14);z-index:20;
+  }
+  .feed-head{display:flex;align-items:center;gap:8px;padding:9px 11px;border-bottom:1px solid var(--line);font-weight:700;font-size:14px}
+  .feed-head .spacer{flex:1}
+  .feed-close{font:inherit;font-size:18px;line-height:1;border:0;background:none;color:var(--muted);cursor:pointer;padding:2px 6px}
+  .feed-body{flex:1;overflow-y:auto;padding:8px 11px;display:flex;flex-direction:column;gap:6px}
+  .msg{font-size:13.5px;line-height:1.35;word-break:break-word}
+  .msg b{color:var(--blue-d)}
+  .msg.shout{font-size:26px;text-align:center}
+  .feed-foot{display:flex;gap:6px;padding:8px;border-top:1px solid var(--line)}
+  .feed-foot input{flex:1;font:inherit;font-size:15px;padding:9px 11px;border:1.5px solid var(--line);border-radius:10px;background:#fbfdff}
+
+  /* ---------- on-table bubbles ----------
+     The whole point: a message must be readable WITHOUT opening the panel. The
+     panel is closed by default on a phone, so anything that only appears inside
+     it is a message the other player never sees. pointer-events:none so the
+     bubble can never steal a tap meant for a peg. */
+  #tableSay{
+    position:absolute;left:0;right:0;top:6px;display:flex;flex-direction:column;
+    align-items:center;gap:5px;pointer-events:none;z-index:15;
+  }
+  .ts-item{
+    max-width:86%;background:rgba(18,33,47,.92);color:#fff;border-radius:13px;
+    padding:7px 12px;font-size:13.5px;line-height:1.3;font-weight:600;
+    box-shadow:0 3px 12px rgba(0,0,0,.22);display:flex;gap:6px;align-items:baseline;
+    animation:tsIn .22s ease-out;
+  }
+  .ts-item .who{font-size:12px;opacity:.8;font-weight:700;white-space:nowrap}
+  .ts-item .what{word-break:break-word}
+  .ts-item.big{font-size:30px;padding:4px 14px}
+  @keyframes tsIn{from{opacity:0;transform:translateY(-7px) scale(.96)}to{opacity:1;transform:none}}
+  .ts-item.out{opacity:0;transform:translateY(-6px);transition:opacity .35s ease,transform .35s ease}
+
+  /* ---------- overlay ---------- */
+  .overlay{
+    position:absolute;inset:0;background:rgba(244,247,250,.94);display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:12px;z-index:30;border-radius:14px;padding:20px;text-align:center;
+  }
+  .overlay h2{margin:0;font-size:23px;line-height:1.25}
+  .overlay p{margin:0;font-size:14.5px;color:var(--muted);max-width:30ch;line-height:1.45}
+  .overlay .big{font-size:44px;line-height:1}
+  .code{font-family:ui-monospace,Menlo,monospace;font-size:22px;font-weight:800;letter-spacing:3px;color:var(--blue-d)}
+
+  /* ---------- how to play ----------
+     A sheet over the whole page, not a panel inside the lobby: a first-time
+     player opens it before they have chosen anything, and on a small phone the
+     lobby itself already scrolls. `max-height:86%` keeps the close button and
+     the top of the text on screen so it never looks like a page that has lost
+     its way out. */
+  .sheet{
+    position:fixed;inset:0;background:rgba(18,33,47,.55);display:flex;align-items:center;
+    justify-content:center;padding:16px;z-index:80;
+  }
+  .sheet.hidden{display:none}
+  .sheet-card{
+    background:#fff;border-radius:18px;width:100%;max-width:520px;max-height:86%;
+    display:flex;flex-direction:column;box-shadow:0 18px 50px rgba(9,22,34,.35);overflow:hidden;
+  }
+  .sheet-head{
+    display:flex;align-items:center;gap:10px;padding:14px 16px 12px;border-bottom:1px solid var(--line);
+  }
+  .sheet-head h2{margin:0;font-size:17px;line-height:1.25;flex:1}
+  .sheet-x{
+    border:0;background:#eef3f8;color:#12212f;width:32px;height:32px;border-radius:50%;
+    font-size:15px;font-weight:800;cursor:pointer;line-height:1;flex:0 0 auto;
+  }
+  .sheet-body{overflow-y:auto;padding:14px 16px 20px;-webkit-overflow-scrolling:touch}
+  .sheet-body .lede{margin:0 0 14px;color:var(--muted);font-size:14px;line-height:1.5}
+  .sheet-body h3{margin:16px 0 5px;font-size:14.5px;line-height:1.3;color:#12212f}
+  .sheet-body h3:first-of-type{margin-top:0}
+  .sheet-body p{margin:0;font-size:14px;line-height:1.55;color:#33475a}
+  .sheet-body ul{margin:7px 0 0;padding-left:19px}
+  .sheet-body li{font-size:14px;line-height:1.55;color:#33475a;margin-bottom:4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1 data-k="appTitle">Chinese Checkers</h1>
+    <span class="spacer"></span>
+    <!-- The table controls, matching the other games. Everything here is
+         icon-only and carries no `data-k`, because applyTranslations() writes
+         `textContent` into every `[data-k]` element and would wipe the SVG. The
+         labels are set from STR in syncLabels(). -->
+    <div class="livechip hidden" id="liveChip"><span class="dot"></span><span class="live-text" id="liveText">Live</span></div>
+    <button class="iconbtn hidden" id="soundBtn" type="button"><span id="soundGlyph"></span></button>
+    <button class="iconbtn hidden" id="chatBtn" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 11.8a7.6 7.6 0 0 1-7.6 7.6H9.4L4.5 22v-4.6a7.6 7.6 0 1 1 16-5.6z"/></svg>
+    </button>
+    <button class="iconbtn" id="rulesBtn" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.4"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.3c-.7.3-1 .9-1 1.6v.4"/><path d="M12 17.1h.01"/></svg>
+    </button>
+    <button class="iconbtn hidden" id="leaveBtn" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4.5h3.5A1.5 1.5 0 0 1 19 6v12a1.5 1.5 0 0 1-1.5 1.5H14"/><path d="M9.5 8 5.5 12l4 4"/><path d="M5.5 12H15"/></svg>
+    </button>
+  </div>
+
+  <!-- ===================== LOBBY ===================== -->
+  <div class="lobby" id="lobby">
+    <div class="card">
+      <label class="field" data-k="nameLabel">Your name</label>
+      <input type="text" id="nameInput" maxlength="12" autocomplete="off" data-k-ph="namePlaceholder" placeholder="Your name">
+      <div class="avatars" id="avatars"></div>
+    </div>
+
+    <div class="card">
+      <h2 data-k="soloHead">Play with the computer</h2>
+      <label class="field" data-k="seatsLabel">How many players</label>
+      <div class="choices" id="soloSeats"></div>
+      <label class="field" style="margin-top:12px" data-k="levelLabel">How hard</label>
+      <div class="choices" id="soloLevel"></div>
+      <button class="btn" id="soloBtn" style="width:100%;margin-top:14px" data-k="startSolo">Start a game</button>
+    </div>
+
+    <div class="card">
+      <h2 data-k="onlineHead">Play with family</h2>
+      <label class="field" data-k="seatsLabel2">How many players</label>
+      <div class="choices" id="roomSeats"></div>
+      <button class="btn" id="createBtn" style="width:100%;margin-top:14px" data-k="createRoom">Create a room</button>
+      <div class="hint" data-k="onlineHint">You will get a 4-letter code to share.</div>
+    </div>
+
+    <div class="card">
+      <h2 data-k="joinHead">Join a room</h2>
+      <div class="row">
+        <input type="text" id="codeInput" maxlength="4" autocomplete="off" placeholder="ABCD" style="text-transform:uppercase;letter-spacing:3px;font-weight:700">
+        <button class="btn" id="joinBtn" data-k="joinBtn">Join</button>
+      </div>
+    </div>
+
+    <div class="err" id="lobbyErr"></div>
+  </div>
+
+  <!-- ===================== TABLE ===================== -->
+  <div class="table hidden" id="table">
+    <div class="status" id="status"><span class="dot"></span><span id="statusText"></span></div>
+    <div class="seats" id="seats"></div>
+    <div class="startbar hidden" id="startBar">
+      <button class="codechip" id="codeChip" type="button">
+        <small data-k="codeIs">Room code</small>
+        <b id="codeText">----</b>
+      </button>
+      <span class="grow"></span>
+      <button class="btn" id="startBtn" data-k="startBtn">Start game</button>
+      <span class="hint" id="startHint"></span>
+    </div>
+    <div class="boardwrap" id="boardWrap">
+      <svg class="board" id="board" xmlns="http://www.w3.org/2000/svg"></svg>
+      <div id="tableSay"></div>
+      <aside class="feed hidden" id="feed">
+        <div class="feed-head"><span data-k="chatHead">Messages</span><span class="spacer"></span><button class="feed-close" id="feedClose">✕</button></div>
+        <div class="feed-body" id="feedBody"></div>
+        <div class="feed-foot">
+          <input type="text" id="chatInput" maxlength="140" autocomplete="off" data-k-ph="chatPlaceholder" placeholder="Say something">
+          <button class="btn small" id="chatSend" data-k="sendBtn">Send</button>
+        </div>
+      </aside>
+      <div class="overlay hidden" id="overlay">
+        <div class="big" id="ovIcon">🎉</div>
+        <h2 id="ovTitle"></h2>
+        <p id="ovText"></p>
+        <div class="row">
+          <button class="btn" id="ovAgain" data-k="againBtn">Play again</button>
+          <button class="btn ghost" id="ovLobby" data-k="backLobby">Lobby</button>
+        </div>
+      </div>
+    </div>
+    <div class="bar">
+      <div class="emoji" id="emojiBar"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" style="position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(14px);background:#12212f;color:#fff;padding:10px 16px;border-radius:11px;font-size:14px;font-weight:600;opacity:0;transition:.18s ease;pointer-events:none;z-index:60"></div>
+
+<!-- The rules. Content is rendered from rules.js, which is the same module the
+     guide page at /guide/how-to-play-chinese-checkers is built from. -->
+<div class="sheet hidden" id="rulesSheet" role="dialog" aria-modal="true" aria-labelledby="rulesTitle">
+  <div class="sheet-card">
+    <div class="sheet-head">
+      <h2 id="rulesTitle" data-k="howTo">How to play</h2>
+      <button class="sheet-x" id="rulesClose" type="button" aria-label="Close">✕</button>
+    </div>
+    <div class="sheet-body" id="rulesBody"></div>
+  </div>
+</div>
+
+<script src="/games/chinesechecker/core.js"></script>
+<script src="/games/chinesechecker/rules.js"></script>
+<script>
+/* The engine publishes itself as `CheckerCore` so it cannot collide with
+   anything else on the page. Aliased here once, because `Core.N`, `Core.CELLS`
+   and `Core.legalMoves` read far better than the namespaced form at every one of
+   the forty-odd call sites below. */
+const Core = window.CheckerCore;
+
+/* ===================================================================== i18n
+   Four languages, because the app ships in four. The board itself is language
+   free - a peg is a peg - so everything that needs words is here and nothing
+   else in the file is. */
+/* The page title and its one-line description carry an emoji, the same way
+   every culture heading does: it is the first thing on the screen and the
+   only part of a game page a player who has never opened it will read. The
+   emoji is language-neutral, so it is prefixed once per language block
+   rather than stored separately. */
+const STR = {
+  en: {
+    appTitle: '⭐ Chinese Checkers',
+    nameLabel: 'Your name',
+    namePlaceholder: 'Your name',
+    soloHead: '🤖 Play with the computer',
+    onlineHead: 'Play with family',
+    joinHead: 'Join a room',
+    seatsLabel: 'How many players',
+    seatsLabel2: 'How many players',
+    levelLabel: 'How hard',
+    seats2: '2 players', seats3: '3 players', seats4: '4 players', seats6: '6 players',
+    levelEasy: 'Easy', levelNormal: 'Normal',
+    startSolo: 'Start a game',
+    createRoom: 'Create a room',
+    onlineHint: 'You will get a 4-letter code to share.',
+    joinBtn: 'Join',
+    backLobby: 'Lobby',
+    waiting: 'Waiting for players…',
+    waitingHost: 'Share the code, then start when everyone is in.',
+    startBtn: 'Start game',
+    yourTurn: 'Your turn — tap one of your pegs',
+    turnOf: '{name} is thinking…',
+    turnOfYou: 'Your turn',
+    you: 'You',
+    homeOf: '{n}/10 home',
+    cpu: 'computer',
+    chatHead: 'Messages',
+    liveOnline: 'Live',
+    liveReconnecting: 'Reconnecting',
+    soundOn: 'Sound on',
+    soundOff: 'Sound off',
+    chatPlaceholder: 'Say something',
+    sendBtn: 'Send',
+    copyLink: 'Copy link',
+    copied: 'Link copied',
+    codeIs: 'Room code',
+    winner: '{name} wins!',
+    youWin: 'You win!',
+    draw: 'It is a draw',
+    endedText: 'All ten pegs are home.',
+    againBtn: 'Play again',
+    needTwo: 'At least 2 players are needed.',
+    errNameRequired: 'Type your name first.',
+    errNameTaken: 'Someone in that room already has that name.',
+    errRoomNotFound: 'No room with that code. Check it again?',
+    errRoomFull: 'That room is full.',
+    errAlreadyPlaying: 'That game has already started.',
+    errAlreadyEnded: 'That game has already finished.',
+    errNotYourTurn: 'It is not your turn yet.',
+    errIllegalMove: 'A peg cannot go there.',
+    errNotYourPeg: 'That is not your peg.',
+    errOccupied: 'That spot is taken.',
+    errTooManyRooms: 'Too many games right now — try again in a moment.',
+    errExpired: 'That game is over — start a new one.',
+    errNet: 'Connection dropped for a moment — try again.',
+    errGeneric: 'Something went wrong.',
+    howTo: 'How to play',
+    close: 'Close',
+  },
+  fil: {
+    appTitle: '⭐ Chinese Checkers',
+    nameLabel: 'Pangalan mo',
+    namePlaceholder: 'Pangalan mo',
+    soloHead: '🤖 Maglaro sa computer',
+    onlineHead: 'Maglaro kasama ang pamilya',
+    joinHead: 'Sumali sa kuwarto',
+    seatsLabel: 'Ilang manlalaro',
+    seatsLabel2: 'Ilang manlalaro',
+    levelLabel: 'Gaano kahirap',
+    seats2: '2 manlalaro', seats3: '3 manlalaro', seats4: '4 na manlalaro', seats6: '6 na manlalaro',
+    levelEasy: 'Madali', levelNormal: 'Katamtaman',
+    startSolo: 'Simulan',
+    createRoom: 'Gumawa ng kuwarto',
+    onlineHint: 'Bibigyan ka ng 4-letrang code na ipapamahagi.',
+    joinBtn: 'Sumali',
+    backLobby: 'Lobby',
+    waiting: 'Naghihintay ng manlalaro…',
+    waitingHost: 'Ibahagi ang code, tapos simulan kapag kumpleto na.',
+    startBtn: 'Simulan ang laro',
+    yourTurn: 'Ikaw ang taya — pumili ng iyong piraso',
+    turnOf: 'Nag-iisip si {name}…',
+    turnOfYou: 'Ikaw ang taya',
+    you: 'Ikaw',
+    homeOf: '{n}/10 nasa bahay',
+    cpu: 'computer',
+    chatHead: 'Mga mensahe',
+    liveOnline: 'Live',
+    liveReconnecting: 'Kumokonekta ulit',
+    soundOn: 'Tunog naka-on',
+    soundOff: 'Tunog patay',
+    chatPlaceholder: 'Magsabi ng kahit ano',
+    sendBtn: 'Ipadala',
+    copyLink: 'Kopyahin ang link',
+    copied: 'Nakopya ang link',
+    codeIs: 'Code ng kuwarto',
+    winner: 'Panalo si {name}!',
+    youWin: 'Ikaw ang panalo!',
+    draw: 'Parehas lang',
+    endedText: 'Nasa bahay na ang lahat ng sampung piraso.',
+    againBtn: 'Maglaro ulit',
+    needTwo: 'Kailangan ng hindi bababa sa 2 manlalaro.',
+    errNameRequired: 'Isulat muna ang pangalan mo.',
+    errNameTaken: 'May gumagamit na ng pangalang iyan sa kuwartong iyon.',
+    errRoomNotFound: 'Walang kuwartong may ganoong code. Tingnan ulit?',
+    errRoomFull: 'Puno na ang kuwartong iyon.',
+    errAlreadyPlaying: 'Nagsimula na ang larong iyon.',
+    errAlreadyEnded: 'Tapos na ang larong iyon.',
+    errNotYourTurn: 'Hindi pa ikaw ang taya.',
+    errIllegalMove: 'Hindi makakarating doon ang piraso.',
+    errNotYourPeg: 'Hindi iyan ang piraso mo.',
+    errOccupied: 'May nakalagay na doon.',
+    errTooManyRooms: 'Sobra ang laro ngayon — subukan ulit mamaya.',
+    errExpired: 'Tapos na ang larong iyon — gumawa ng bago.',
+    errNet: 'Naputol sandali ang koneksyon — subukan ulit.',
+    errGeneric: 'May nangyaring mali.',
+    howTo: 'Paano laruin',
+    close: 'Isara',
+  },
+  zh: {
+    appTitle: '⭐ 中国跳棋',
+    nameLabel: '你的名字',
+    namePlaceholder: '你的名字',
+    soloHead: '🤖 和电脑下棋',
+    onlineHead: '和家人一起玩',
+    joinHead: '加入房间',
+    seatsLabel: '几位玩家',
+    seatsLabel2: '几位玩家',
+    levelLabel: '难度',
+    seats2: '2 人', seats3: '3 人', seats4: '4 人', seats6: '6 人',
+    levelEasy: '简单', levelNormal: '普通',
+    startSolo: '开始下棋',
+    createRoom: '创建房间',
+    onlineHint: '会给你一个 4 位字母的房间号，发给家人。',
+    joinBtn: '加入',
+    backLobby: '大厅',
+    waiting: '等待其他玩家…',
+    waitingHost: '把房间号发出去，人齐了就开始。',
+    startBtn: '开始游戏',
+    yourTurn: '轮到你了 — 点一颗你的棋子',
+    turnOf: '{name} 正在思考…',
+    turnOfYou: '轮到你了',
+    you: '你',
+    homeOf: '已到家 {n}/10',
+    cpu: '电脑',
+    chatHead: '消息',
+    liveOnline: '在线',
+    liveReconnecting: '重连中',
+    soundOn: '声音开',
+    soundOff: '声音关',
+    chatPlaceholder: '说点什么',
+    sendBtn: '发送',
+    copyLink: '复制链接',
+    copied: '链接已复制',
+    codeIs: '房间号',
+    winner: '{name} 赢了！',
+    youWin: '你赢了！',
+    draw: '平局',
+    endedText: '十颗棋子全部到家。',
+    againBtn: '再来一局',
+    needTwo: '至少要 2 位玩家。',
+    errNameRequired: '请先填名字。',
+    errNameTaken: '那个房间里已经有人用这个名字了。',
+    errRoomNotFound: '找不到这个房间号，再确认一下？',
+    errRoomFull: '那个房间已经满了。',
+    errAlreadyPlaying: '那一局已经开始了。',
+    errAlreadyEnded: '那一局已经结束了。',
+    errNotYourTurn: '还没轮到你。',
+    errIllegalMove: '棋子走不到那里。',
+    errNotYourPeg: '那不是你的棋子。',
+    errOccupied: '那个位置已经有棋子了。',
+    errTooManyRooms: '现在游戏太多，稍等一下再试。',
+    errExpired: '那一局已经结束了 — 开一局新的吧。',
+    errNet: '连接断了一下，再试一次。',
+    errGeneric: '出了点问题。',
+    howTo: '玩法',
+    close: '关闭',
+  },
+  id: {
+    appTitle: '⭐ Dam Cina',
+    nameLabel: 'Namamu',
+    namePlaceholder: 'Namamu',
+    soloHead: '🤖 Bermain dengan komputer',
+    onlineHead: 'Bermain dengan keluarga',
+    joinHead: 'Gabung ke ruangan',
+    seatsLabel: 'Berapa pemain',
+    seatsLabel2: 'Berapa pemain',
+    levelLabel: 'Tingkat kesulitan',
+    seats2: '2 pemain', seats3: '3 pemain', seats4: '4 pemain', seats6: '6 pemain',
+    levelEasy: 'Mudah', levelNormal: 'Sedang',
+    startSolo: 'Mulai bermain',
+    createRoom: 'Buat ruangan',
+    onlineHint: 'Kamu akan dapat kode 4 huruf untuk dibagikan.',
+    joinBtn: 'Gabung',
+    backLobby: 'Lobi',
+    waiting: 'Menunggu pemain…',
+    waitingHost: 'Bagikan kodenya, lalu mulai kalau semua sudah masuk.',
+    startBtn: 'Mulai permainan',
+    yourTurn: 'Giliranmu — ketuk salah satu bidakmu',
+    turnOf: '{name} sedang berpikir…',
+    turnOfYou: 'Giliranmu',
+    you: 'Kamu',
+    homeOf: '{n}/10 sudah di rumah',
+    cpu: 'komputer',
+    chatHead: 'Pesan',
+    liveOnline: 'Tersambung',
+    liveReconnecting: 'Menyambung ulang',
+    soundOn: 'Suara aktif',
+    soundOff: 'Suara mati',
+    chatPlaceholder: 'Katakan sesuatu',
+    sendBtn: 'Kirim',
+    copyLink: 'Salin tautan',
+    copied: 'Tautan disalin',
+    codeIs: 'Kode ruangan',
+    winner: '{name} menang!',
+    youWin: 'Kamu menang!',
+    draw: 'Seri',
+    endedText: 'Kesepuluh bidak sudah sampai rumah.',
+    againBtn: 'Main lagi',
+    needTwo: 'Butuh minimal 2 pemain.',
+    errNameRequired: 'Isi namamu dulu.',
+    errNameTaken: 'Sudah ada yang memakai nama itu di ruangan tersebut.',
+    errRoomNotFound: 'Tidak ada ruangan dengan kode itu. Coba periksa lagi?',
+    errRoomFull: 'Ruangan itu sudah penuh.',
+    errAlreadyPlaying: 'Permainan itu sudah dimulai.',
+    errAlreadyEnded: 'Permainan itu sudah selesai.',
+    errNotYourTurn: 'Belum giliranmu.',
+    errIllegalMove: 'Bidak tidak bisa ke sana.',
+    errNotYourPeg: 'Itu bukan bidakmu.',
+    errOccupied: 'Tempat itu sudah terisi.',
+    errTooManyRooms: 'Terlalu banyak permainan sekarang — coba lagi sebentar.',
+    errExpired: 'Permainan itu sudah berakhir — buat yang baru.',
+    errNet: 'Koneksi terputus sebentar — coba lagi.',
+    errGeneric: 'Ada yang tidak beres.',
+    howTo: 'Cara bermain',
+    close: 'Tutup',
+  },
+};
+
+const LANG = (function () {
+  const saved = (localStorage.getItem('cb_lang') || '').toLowerCase();
+  if (STR[saved]) return saved;
+  const nav = (navigator.language || 'en').toLowerCase();
+  if (nav.indexOf('zh') === 0) return 'zh';
+  if (nav.indexOf('id') === 0) return 'id';
+  if (nav.indexOf('tl') === 0 || nav.indexOf('fil') === 0) return 'fil';
+  return 'en';
+})();
+
+function t(key, vars) {
+  let s = (STR[LANG] || STR.en)[key];
+  if (s === undefined) s = STR.en[key];
+  if (s === undefined) return key;
+  if (vars) Object.keys(vars).forEach((k) => { s = s.split('{' + k + '}').join(String(vars[k])); });
+  return s;
+}
+
+/* ================================================================ helpers */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const AVATARS = ['🦊','🐼','🐯','🐸','🐧','🦄','🐙','🐨','🐰','🦁','🐳','🐝'];
+const EMOJI = ['🎉','👏','😮','🔥','💪','😅'];
+const SESSION_KEY = 'cc.session';
+const SOUND_KEY = 'cc.sound';
+
+const SEAT_COLOR = ['var(--seat0)','var(--seat1)','var(--seat2)','var(--seat3)','var(--seat4)','var(--seat5)'];
+const SEAT_HEX = ['#e8503a','#2f7fd1','#2e9e5b','#e0a91b','#8b5cf6','#d6559b'];
+
+/* SVG helpers for the peg material. A marble is not a flat disc: what makes it
+   read as glass is a light source (up and to the left), a dark rim where the
+   sphere turns away, and a sliver of bounce light on the opposite edge. */
+const SVGNS = 'http://www.w3.org/2000/svg';
+
+/** Blend `hex` toward `toward` by `t` (0 = hex, 1 = toward). */
+function mixHex(hex, toward, t) {
+  const p = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const a = p(hex), b = p(toward);
+  const out = a.map((v, i) => Math.round(v + (b[i] - v) * t));
+  return '#' + out.map((v) => v.toString(16).padStart(2, '0')).join('');
+}
+
+let sound = localStorage.getItem(SOUND_KEY) !== 'off';
+let S = null;                  // last state from the server
+let session = null;            // { code, token, name, avatar }
+let es = null;
+let selected = null;           // cell index of the peg picked up
+let targets = [];              // legal destinations for `selected`
+let lastChatKey = null;
+let chatPrimed = false;
+let feedOpen = false;
+
+function toast(msg) {
+  const el = $('#toast');
+  el.textContent = msg;
+  el.style.opacity = '1';
+  el.style.transform = 'translateX(-50%) translateY(0)';
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateX(-50%) translateY(14px)';
+  }, 2200);
+}
+
+/* A short blip, not a soundtrack. Sound is off by default only if the player
+   turned it off somewhere else in the app; here it is on, because a game played
+   with other people needs a cue that it is your turn. */
+let actx = null;
+function beep(freq, dur, type, gain) {
+  if (!sound) return;
+  try {
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    const o = actx.createOscillator();
+    const g = actx.createGain();
+    o.type = type || 'sine';
+    o.frequency.value = freq;
+    g.gain.value = gain == null ? 0.05 : gain;
+    o.connect(g); g.connect(actx.destination);
+    o.start();
+    g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + (dur || 0.08));
+    o.stop(actx.currentTime + (dur || 0.08) + 0.02);
+    } catch (e) { /* audio is a nicety */ }
+  }
+
+  // Reflects the current sound preference on the toolbar button. beep() itself
+  // reads `sound`, so once this is in sync the toggle needs nothing else.
+  // An icon rather than the words "🔊 Sound", because four languages' worth of
+  // label does not fit beside the title — the state is carried by the glyph and
+  // the accessible name, not by text on screen.
+  const ICON_SOUND_ON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 9.5h3l4-3.2v11.4l-4-3.2h-3z"/><path d="M15.4 9.2a4 4 0 0 1 0 5.6"/><path d="M17.9 6.7a7.5 7.5 0 0 1 0 10.6"/></svg>';
+  const ICON_SOUND_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 9.5h3l4-3.2v11.4l-4-3.2h-3z"/><path d="m16 9.6 4.2 4.8"/><path d="m20.2 9.6-4.2 4.8"/></svg>';
+  function renderSoundIcon() {
+    const g = $('#soundGlyph');
+    if (g) g.innerHTML = sound ? ICON_SOUND_ON : ICON_SOUND_OFF;
+    const b = $('#soundBtn');
+    if (b) b.classList.toggle('off', !sound);
+    if (typeof syncLabels === 'function') syncLabels();
+  }
+
+  /* The connection light. Green "Live" while the SSE stream is open, amber
+     "Reconnecting" while EventSource is retrying — the same language the other
+     three games use, and the reason a stalled table no longer looks like a
+     frozen board. */
+  function setLive(ok) {
+    const chip = $('#liveChip');
+    const txt = $('#liveText');
+    if (!chip) return;
+    chip.classList.toggle('off', !ok);
+    if (txt) txt.textContent = ok ? t('liveOnline') : t('liveReconnecting');
+    chip.setAttribute('aria-label', ok ? t('liveOnline') : t('liveReconnecting'));
+  }
+
+  function myName() { return ($('#nameInput').value || '').trim().slice(0, 12); }
+
+function deviceId() {
+  try {
+    let id = localStorage.getItem('cb_device');
+    if (!id) {
+      const b = new Uint8Array(16);
+      crypto.getRandomValues(b);
+      id = 'dev_' + Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
+      localStorage.setItem('cb_device', id);
+    }
+    return id;
+  } catch (e) { return null; }
+}
+
+function saveSession() {
+  try { localStorage.setItem(SESSION_KEY, JSON.stringify(session)); } catch (e) { /* private mode */ }
+}
+function loadSession() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    return s && s.code && s.token ? s : null;
+  } catch (e) { return null; }
+}
+function clearSession() {
+  try { localStorage.removeItem(SESSION_KEY); } catch (e) { /* ignore */ }
+}
+
+/* ================================================================ lobby UI */
+function buildLobby() {
+  $('#nameInput').value = localStorage.getItem('cc.name') || '';
+
+  const av = $('#avatars');
+  const chosen = localStorage.getItem('cc.avatar') || AVATARS[0];
+  av.innerHTML = '';
+  AVATARS.forEach((a) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = a;
+    if (a === chosen) b.className = 'on';
+    b.onclick = () => {
+      $$('#avatars button').forEach((x) => x.classList.remove('on'));
+      b.classList.add('on');
+      localStorage.setItem('cc.avatar', a);
+    };
+    av.appendChild(b);
+  });
+
+  const pick = (host, values, key, labels, def) => {
+    const saved = Number(localStorage.getItem(key)) || def;
+    host.innerHTML = '';
+    values.forEach((v) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = t(labels(v));
+      b.dataset.v = v;
+      if (v === saved) b.className = 'on';
+      b.onclick = () => {
+        [...host.children].forEach((x) => x.classList.remove('on'));
+        b.classList.add('on');
+        localStorage.setItem(key, v);
+      };
+      host.appendChild(b);
+    });
+  };
+
+  pick($('#soloSeats'), [2, 3, 4, 6], 'cc.soloSeats', (v) => 'seats' + v, 2);
+  pick($('#roomSeats'), [2, 3, 4, 6], 'cc.roomSeats', (v) => 'seats' + v, 2);
+  pick($('#soloLevel'), ['easy', 'normal'], 'cc.level',
+    (v) => 'level' + v.charAt(0).toUpperCase() + v.slice(1), 'normal');
+
+  const em = $('#emojiBar');
+  em.innerHTML = '';
+  EMOJI.forEach((e) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = e;
+    b.onclick = () => act('shout', { emoji: e });
+    em.appendChild(b);
+  });
+
+  $('#soloBtn').onclick = () => startSolo();
+  $('#createBtn').onclick = () => createRoom();
+  $('#joinBtn').onclick = () => joinRoom();
+  $('#codeInput').onkeydown = (e) => { if (e.key === 'Enter') joinRoom(); };
+  $('#leaveBtn').onclick = () => leaveTable();
+  $('#chatBtn').onclick = () => toggleFeed(true);
+  $('#feedClose').onclick = () => toggleFeed(false);
+  $('#chatSend').onclick = () => sendChat();
+  $('#chatInput').onkeydown = (e) => { if (e.key === 'Enter') sendChat(); };
+  $('#ovLobby').onclick = () => leaveTable();
+  $('#ovAgain').onclick = () => act('again');
+  $('#startBtn').onclick = () => startNow();
+  $('#codeChip').onclick = () => copyInvite();
+
+  $('#rulesBtn').onclick = () => openRules(true);
+  $('#rulesClose').onclick = () => openRules(false);
+  $('#soundBtn').onclick = () => {
+    sound = !sound;
+    localStorage.setItem(SOUND_KEY, sound ? 'on' : 'off');
+    renderSoundIcon();
+  };
+  renderSoundIcon();
+  // Tapping the dimmed area outside the card closes it, which is what everyone
+  // tries before looking for the ✕.
+  $('#rulesSheet').onclick = (e) => { if (e.target === $('#rulesSheet')) openRules(false); };
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !$('#rulesSheet').classList.contains('hidden')) openRules(false);
+  });
+
+  translateStatic();
+}
+
+/* ============================================================== the rules
+   Rendered from rules.js, the same module content.js builds the public guide
+   page from. Nothing here is written out twice: if a rule changes, it changes
+   in one file and both the panel and /guide/how-to-play-chinese-checkers follow.
+
+   Built as DOM nodes rather than innerHTML because the text comes from a shared
+   module that a future editor could fill from anywhere; textContent cannot turn
+   a stray < into markup. */
+let rulesBuilt = false;
+
+function renderRules() {
+  if (rulesBuilt) return;
+  const R = window.CheckerRules;
+  if (!R) return;                       // script failed to load: no panel, no crash
+  const r = R.forLang(LANG);
+  $('#rulesTitle').textContent = r.title;
+  const body = $('#rulesBody');
+  body.innerHTML = '';
+
+  const lede = document.createElement('p');
+  lede.className = 'lede';
+  lede.textContent = r.lede;
+  body.appendChild(lede);
+
+  r.sections.forEach((s) => {
+    const h = document.createElement('h3');
+    h.textContent = s.h;
+    body.appendChild(h);
+    const p = document.createElement('p');
+    p.textContent = s.p;
+    body.appendChild(p);
+    if (s.list && s.list.length) {
+      const ul = document.createElement('ul');
+      s.list.forEach((li) => {
+        const el = document.createElement('li');
+        el.textContent = li;
+        ul.appendChild(el);
+      });
+      body.appendChild(ul);
+    }
+  });
+  rulesBuilt = true;
+}
+
+function openRules(on) {
+  const sheet = $('#rulesSheet');
+  if (on) {
+    renderRules();
+    sheet.classList.remove('hidden');
+    // Focus the close button so a keyboard or screen-reader user is not left
+    // behind the dialog, and so Escape has somewhere to land.
+    $('#rulesClose').focus();
+  } else {
+    sheet.classList.add('hidden');
+  }
+}
+
+function translateStatic() {
+  document.documentElement.lang = LANG === 'fil' ? 'tl' : LANG;
+  $$('[data-k]').forEach((el) => { el.textContent = t(el.dataset.k); });
+  $$('[data-k-ph]').forEach((el) => { el.placeholder = t(el.dataset.kPh); });
+  document.title = t('appTitle') + ' · CantoBuddy';
+  syncLabels();
+}
+
+/* The icon buttons have no text, so their name has to be carried by aria-label
+   and title — and re-carried whenever the language changes. Kept in one place
+   because there are now four of them and a missing label is invisible until
+   somebody with a screen reader opens the game. */
+function syncLabels() {
+  const put = (id, key) => {
+    const b = document.getElementById(id);
+    if (!b) return;
+    b.setAttribute('aria-label', t(key));
+    b.setAttribute('title', t(key));
+  };
+  put('soundBtn', sound ? 'soundOn' : 'soundOff');
+  put('chatBtn', 'chatHead');
+  put('rulesBtn', 'howTo');
+  put('leaveBtn', 'backLobby');
+}
+
+function choiceValue(host, def) {
+  const on = host.querySelector('button.on');
+  return on ? on.dataset.v : String(def);
+}
+
+function errText(code) {
+  const map = {
+    nameRequired: 'errNameRequired',
+    nameTaken: 'errNameTaken',
+    roomNotFound: 'errRoomNotFound',
+    roomFull: 'errRoomFull',
+    alreadyPlaying: 'errAlreadyPlaying',
+    alreadyEnded: 'errAlreadyEnded',
+    notYourTurn: 'errNotYourTurn',
+    illegalMove: 'errIllegalMove',
+    notYourPeg: 'errNotYourPeg',
+    occupied: 'errOccupied',
+    tooManyRooms: 'errTooManyRooms',
+    expired: 'errExpired',
+    cannotStart: 'needTwo',
+    noCode: 'errGeneric',
+  };
+  return t(map[code] || 'errGeneric');
+}
+
+/**
+ * Where this game's API lives.
+ *
+ * The page is reachable at BOTH /games/chinesechecker and /games/chinesechecker/
+ * — the games hub links the slash-less form and a shared invite is
+ * /games/chinesechecker/ABCD, which is slash-less too. Express serves all three
+ * shapes with the same HTML, so a bare relative fetch('api/solo') resolves
+ * against whatever directory the address bar happens to imply:
+ *
+ *   /games/chinesechecker/      -> /games/chinesechecker/api/solo   correct
+ *   /games/chinesechecker       -> /games/api/solo                 404
+ *   /games/chinesechecker/ABCD  -> /games/chinesechecker/api/solo   correct
+ *
+ * The 404 arrived as "Something went wrong." on the lobby's error line, which
+ * is why the bug looked like a server fault. Deriving the base from the URL
+ * instead of trusting the relative form fixes every shape at once.
+ */
+const BASE = (function () {
+  let p = location.pathname;
+  if (!p.endsWith('/')) {
+    const seg = p.split('/').pop();
+    // Drop the room code but KEEP the slash: '/games/chinesechecker/ABCD' ->
+    // '/games/chinesechecker/', never '/games/chinesechecker'.
+    p = /^[A-Z0-9]{4}$/.test(seg) ? p.slice(0, -seg.length) : p + '/';
+  }
+  return p;
+})();
+
+async function api(path, body) {
+  const r = await fetch(BASE + path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body || {}),
+  });
+  let data = null;
+  try { data = await r.json(); } catch (e) { data = {}; }
+  if (!r.ok) throw new Error(data && data.error ? data.error : 'errGeneric');
+  return data;
+}
+
+function rememberIdentity() {
+  localStorage.setItem('cc.name', myName());
+}
+
+async function startSolo() {
+  const name = myName();
+  if (!name) { $('#lobbyErr').textContent = t('errNameRequired'); return; }
+  rememberIdentity();
+  $('#lobbyErr').textContent = '';
+  try {
+    const d = await api('api/solo', {
+      name: name,
+      avatar: localStorage.getItem('cc.avatar') || AVATARS[0],
+      seats: Number(choiceValue($('#soloSeats'), 2)),
+      level: choiceValue($('#soloLevel'), 'normal'),
+      deviceId: deviceId(),
+    });
+    session = { code: d.code, token: d.token, name: d.name, avatar: d.avatar };
+    saveSession();
+    enterTable(d.code);
+  } catch (e) {
+    $('#lobbyErr').textContent = errText(e.message);
+  }
+}
+
+async function createRoom() {
+  const name = myName();
+  if (!name) { $('#lobbyErr').textContent = t('errNameRequired'); return; }
+  rememberIdentity();
+  $('#lobbyErr').textContent = '';
+  try {
+    const d = await api('api/create', {
+      name: name,
+      avatar: localStorage.getItem('cc.avatar') || AVATARS[0],
+      seats: Number(choiceValue($('#roomSeats'), 2)),
+      deviceId: deviceId(),
+    });
+    session = { code: d.code, token: d.token, name: d.name, avatar: d.avatar };
+    saveSession();
+    enterTable(d.code);
+  } catch (e) {
+    $('#lobbyErr').textContent = errText(e.message);
+  }
+}
+
+async function joinRoom() {
+  const name = myName();
+  if (!name) { $('#lobbyErr').textContent = t('errNameRequired'); return; }
+  const code = ($('#codeInput').value || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
+  if (!code) { $('#lobbyErr').textContent = t('errRoomNotFound'); return; }
+  rememberIdentity();
+  $('#lobbyErr').textContent = '';
+  try {
+    const d = await api('api/join', {
+      code: code,
+      name: name,
+      avatar: localStorage.getItem('cc.avatar') || AVATARS[0],
+      deviceId: deviceId(),
+    });
+    session = { code: d.code, token: d.token, name: d.name, avatar: d.avatar };
+    saveSession();
+    enterTable(d.code);
+  } catch (e) {
+    $('#lobbyErr').textContent = errText(e.message);
+  }
+}
+
+/* ============================================================== table life */
+function enterTable(code) {
+  $('#lobby').classList.add('hidden');
+  $('#table').classList.remove('hidden');
+  document.body.classList.add('in-table');
+  // The table controls belong to a table: there is nothing to be live to, or to
+  // leave, while sitting in the lobby.
+  ['#liveChip', '#soundBtn', '#chatBtn', '#leaveBtn'].forEach((sel) => {
+    const el = $(sel);
+    if (el) el.classList.remove('hidden');
+  });
+  setLive(false);          // until the stream actually opens
+  selected = null;
+  targets = [];
+  chatPrimed = false;
+  lastChatKey = null;
+  $('#tableSay').innerHTML = '';
+  history.replaceState(null, '', '/games/chinesechecker/' + code);
+  connect();
+}
+
+function leaveTable() {
+  if (es) { try { es.close(); } catch (e) { /* ignore */ } es = null; }
+  stopFx();
+  clearSession();
+  session = null;
+  S = null;
+  selected = null;
+  targets = [];
+  $('#table').classList.add('hidden');
+  $('#lobby').classList.remove('hidden');
+  document.body.classList.remove('in-table');
+  ['#liveChip', '#soundBtn', '#chatBtn', '#leaveBtn'].forEach((sel) => {
+    const el = $(sel);
+    if (el) el.classList.add('hidden');
+  });
+  $('#overlay').classList.add('hidden');
+  toggleFeed(false);
+  $('#tableSay').innerHTML = '';
+  history.replaceState(null, '', '/games/chinesechecker/');
+}
+
+function connect() {
+  if (es) { try { es.close(); } catch (e) { /* ignore */ } }
+  es = new EventSource(BASE + 'api/events?token=' + encodeURIComponent(session.token));
+  es.onmessage = (ev) => {
+    let st;
+    try { st = JSON.parse(ev.data); } catch (e) { return; }
+    if (st.fatal) {
+      toast(errText(st.fatal));
+      leaveTable();
+      return;
+    }
+    applyState(st);
+  };
+  es.onopen = () => setLive(true);
+  es.onerror = () => { /* EventSource retries on its own */ setLive(false); };
+}
+
+/* ============================================================ state → view */
+function applyState(st) {
+  const prev = S;
+  S = st;
+
+  /* A new move to play? Decided before the board is drawn, because the resting
+     peg on the destination cell has to be skipped in the SAME pass — setting it
+     afterwards would leave the piece drawn twice. */
+  const moved = prev && st.ply > prev.ply;
+  const anim = (moved && st.lastMove && st.lastMove.path && st.lastMove.path.length >= 3)
+    ? st.lastMove : null;
+  /* Whatever is in flight belongs to an older ply, and it is allowed to FINISH.
+     The old code stopped it here, which is what truncated the player's own slow
+     route whenever the computer answered quickly. Only the destination of the
+     new move is hidden; the other flyer keeps its own timer. */
+  if (moved && anim) fxHidden.add(anim.to);
+  if (prev && st.ply < prev.ply) stopFx();     // a new round: no stale ghost
+
+  renderSeats();
+  renderStatus();
+  renderStart();
+  renderBoard();
+  renderOverlay();
+  renderFeed();
+
+  /* After the board exists, so the flyer is drawn over the pegs it passes. */
+  if (anim) animateMove(anim);
+
+  /* The bubble. Keyed on time + author, NOT on id, because a chat item's id is
+     the AUTHOR - the same player's second message carries the same id and would
+     dedupe to silence. `chatPrimed` is separate from `lastChatKey` on purpose:
+     priming on "the key was null" looks equivalent and is not, because a room
+     with no chat yet never sets a key, so the very first message anyone sends
+     would be swallowed as backlog - which is exactly the message the feature
+     exists for. */
+  const chat = st.chat || [];
+  const newest = chat.length ? chat[chat.length - 1] : null;
+  const key = newest ? newest.t + ':' + newest.id + ':' + newest.text : null;
+  if (!chatPrimed) {
+    chatPrimed = true;
+    lastChatKey = key;
+  } else if (key && key !== lastChatKey) {
+    lastChatKey = key;
+    if (newest.id !== st.you.id) {
+      showTableSay(newest);
+      if (newest.kind !== 'shout') beep(880, 0.05, 'sine', 0.05);
+    }
+  }
+
+  /* Sound cues. A move made by somebody else is the thing you need to notice
+     when your back is turned; your own move you already know about. */
+  if (prev && prev.ply !== undefined && st.ply > prev.ply) {
+    if (st.lastMove && st.lastMove.seat !== st.you.seat) beep(st.lastMove.jump ? 620 : 520, 0.06, 'triangle', 0.05);
+  }
+  if (prev && prev.state !== 'ended' && st.state === 'ended') {
+    const won = st.winner === st.you.id;
+    beep(won ? 880 : 330, 0.18, 'sine', 0.07);
+    if (won) setTimeout(() => beep(1180, 0.22, 'sine', 0.06), 170);
+  }
+  if (st.state === 'playing' && st.turn === st.you.seat && (!prev || prev.turn !== st.turn || prev.state !== 'playing')) {
+    beep(700, 0.07, 'sine', 0.05);
+  }
+
+  if (prev && prev.ply !== st.ply) { selected = null; targets = []; }
+  if (st.state !== 'playing') { selected = null; targets = []; }
+}
+
+/**
+ * The host's start control.
+ *
+ * Only exists while the room is in the lobby. The server refuses 'start' from
+ * anyone but the host, so a guest is shown the wait line instead of a button
+ * that would fail. Empty seats are filled by bots when the host starts, which
+ * is what makes a family of three usable on a six-seat board.
+ */
+function renderStart() {
+  const bar = $('#startBar');
+  if (!S || !S.you) { bar.classList.add('hidden'); return; }
+  const inLobby = S.state === 'lobby';
+  bar.classList.toggle('hidden', !inLobby);
+  if (!inLobby) return;
+  const host = !!S.you.isHost;
+  $('#codeText').textContent = S.code || (session && session.code) || '----';
+  $('#startBtn').classList.toggle('hidden', !host);
+  $('#startHint').textContent = host ? '' : t('waiting');
+}
+
+/** Tapping the code copies the invite. A four-letter code is easy to mistype
+ *  and the URL is what actually carries it, so the clipboard gets the link. */
+async function copyInvite() {
+  const code = (session && session.code) || (S && S.code) || '';
+  const url = location.origin + '/games/chinesechecker/' + code;
+  try {
+    await navigator.clipboard.writeText(url);
+    toast(t('copied'));
+  } catch (e) {
+    // Clipboard access needs a secure context and a user gesture; if the
+    // browser refuses, show the link rather than claiming success.
+    toast(url);
+  }
+}
+
+async function startNow() {
+  const btn = $('#startBtn');
+  btn.disabled = true;
+  try {
+    await api('api/action', { type: 'start', token: session.token });
+  } catch (e) {
+    toast(errText(e.message));
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function playerAt(seat) {
+  return (S && S.players || []).find((p) => p.seat === seat) || null;
+}
+
+function renderStatus() {
+  const el = $('#status');
+  const txt = $('#statusText');
+  if (!S) return;
+  if (S.state === 'lobby') {
+    el.classList.remove('mine');
+    txt.textContent = S.you.isHost ? t('waitingHost') : t('waiting');
+    return;
+  }
+  if (S.state === 'ended') {
+    el.classList.remove('mine');
+    txt.textContent = S.winner ? t('winner', { name: S.winner === S.you.id ? t('you') : S.winnerName }) : t('draw');
+    return;
+  }
+  const mine = S.turn === S.you.seat;
+  el.classList.toggle('mine', mine);
+  if (mine) { txt.textContent = t('yourTurn'); return; }
+  const p = playerAt(S.turn);
+  txt.textContent = t('turnOf', { name: p ? p.name : '' });
+}
+
+function renderSeats() {
+  const host = $('#seats');
+  host.innerHTML = '';
+  (S.players || []).forEach((p) => {
+    const d = document.createElement('div');
+    d.className = 'seat' + (S.state === 'playing' && S.turn === p.seat ? ' turn' : '');
+    const sw = document.createElement('span');
+    sw.className = 'sw';
+    sw.style.background = SEAT_HEX[p.seat];
+    const nm = document.createElement('span');
+    nm.textContent = p.id === S.you.id ? t('you') : p.name;
+    d.appendChild(sw);
+    d.appendChild(nm);
+    if (p.bot) {
+      const b = document.createElement('span');
+      b.className = 'cnt';
+      b.textContent = '🤖';
+      d.appendChild(b);
+    }
+    const c = document.createElement('span');
+    c.className = 'cnt';
+    c.textContent = t('homeOf', { n: p.home });
+    d.appendChild(c);
+    host.appendChild(d);
+  });
+}
+
+/* ============================================================== the board */
+let boardBuilt = false;
+
+function buildBoard() {
+  const svg = $('#board');
+  const B = Core.BOUNDS;
+  const pad = 0.85;
+  const w = B.maxX - B.minX + pad * 2;
+  const h = B.maxY - B.minY + pad * 2;
+  svg.setAttribute('viewBox', (B.minX - pad) + ' ' + (B.minY - pad) + ' ' + w + ' ' + h);
+  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+
+  /* --- the peg material -------------------------------------------------
+     One gradient per seat, generated from SEAT_HEX rather than written out six
+     times: the focus sits up and to the left so every marble in a corner is lit
+     from the same direction, which is what makes a row of them read as a set of
+     solid objects instead of a row of coloured dots. The 0% stop is a washed
+     version of the seat colour, not white — starting at white turns the focus
+     into a milky blob and the peg stops looking like coloured glass. */
+  const defs = document.createElementNS(SVGNS, 'defs');
+  SEAT_HEX.forEach((hex, i) => {
+    const g = document.createElementNS(SVGNS, 'radialGradient');
+    g.setAttribute('id', 'pegGrad' + i);
+    g.setAttribute('cx', '36%');
+    g.setAttribute('cy', '30%');
+    g.setAttribute('r', '80%');
+    [
+      [0, mixHex(hex, '#ffffff', 0.58)],
+      [38, mixHex(hex, '#ffffff', 0.16)],
+      [72, hex],
+      [100, mixHex(hex, '#000000', 0.46)],
+    ].forEach(([off, col]) => {
+      const s = document.createElementNS(SVGNS, 'stop');
+      s.setAttribute('offset', off + '%');
+      s.setAttribute('stop-color', col);
+      g.appendChild(s);
+    });
+    defs.appendChild(g);
+  });
+  const gloss = document.createElementNS(SVGNS, 'radialGradient');
+  gloss.setAttribute('id', 'pegGloss');
+  gloss.setAttribute('cx', '32%');
+  gloss.setAttribute('cy', '24%');
+  gloss.setAttribute('r', '52%');
+  [[0, 'rgba(255,255,255,.95)'], [48, 'rgba(255,255,255,.30)'], [100, 'rgba(255,255,255,0)']]
+    .forEach(([off, col]) => {
+      const s = document.createElementNS(SVGNS, 'stop');
+      s.setAttribute('offset', off + '%');
+      s.setAttribute('stop-color', col);
+      gloss.appendChild(s);
+    });
+  defs.appendChild(gloss);
+  svg.appendChild(defs);
+
+  /* Which corner each seat owns, drawn as a faint ring of the seat's colour so
+     a player can see where they are going without being told. */
+  const glow = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  glow.id = 'glowLayer';
+  svg.appendChild(glow);
+
+  const holes = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  Core.CELLS.forEach((c) => {
+    const el = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    el.setAttribute('cx', c.x);
+    el.setAttribute('cy', c.y);
+    el.setAttribute('r', 0.40);
+    el.setAttribute('class', 'hole');
+    el.dataset.cell = c.i;
+    holes.appendChild(el);
+  });
+  svg.appendChild(holes);
+
+  const pegs = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  pegs.id = 'pegLayer';
+  svg.appendChild(pegs);
+
+  /* Above the pegs, below the touch targets: the moving peg has to be seen over
+     the resting ones, but must never swallow a tap meant for a hole. */
+  const fx = document.createElementNS(SVGNS, 'g');
+  fx.id = 'fxLayer';
+  svg.appendChild(fx);
+
+  const hits = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  hits.id = 'hitLayer';
+  svg.appendChild(hits);
+
+  boardBuilt = true;
+}
+
+/* ============================================================== the marble */
+/* One peg, centred on (x, y). Extracted so that the peg the move animation
+   flies across the board is the SAME material as a resting one — a hand-made
+   clone that is a shade off reads as a different piece, which is worse than no
+   animation at all. */
+function makePeg(seat, x, y, extraClass) {
+  const g = document.createElementNS(SVGNS, 'g');
+  g.setAttribute('class', 'peg' + (extraClass ? ' ' + extraClass : ''));
+
+  /* Body: the gradient carries the sphere. Darker at the rim than at the
+     centre is the whole trick — a flat fill has no curvature. */
+  const body = document.createElementNS(SVGNS, 'circle');
+  body.setAttribute('cx', x);
+  body.setAttribute('cy', y);
+  body.setAttribute('r', 0.42);
+  body.setAttribute('class', 'body');
+  body.setAttribute('fill', 'url(#pegGrad' + seat + ')');
+  g.appendChild(body);
+
+  /* Bounce light on the lower-right rim: the thin crescent of light a glass
+     ball throws back from the surface it sits on. Without it the marble looks
+     lit from one side and floating. */
+  const bounce = document.createElementNS(SVGNS, 'path');
+  const R0 = 0.34;
+  const ax = x + R0 * 0.55, ay = y + R0 * 0.80;
+  bounce.setAttribute('d',
+    `M ${x - R0 * 0.62} ${y + R0 * 0.72}`
+    + ` A ${R0} ${R0} 0 0 0 ${ax.toFixed(3)} ${ay.toFixed(3)}`);
+  bounce.setAttribute('fill', 'none');
+  bounce.setAttribute('stroke', 'rgba(255,255,255,.42)');
+  bounce.setAttribute('stroke-width', '0.10');
+  bounce.setAttribute('stroke-linecap', 'round');
+  g.appendChild(bounce);
+
+  /* Specular: a soft blob plus a small hard catchlight. Two highlights, not
+     one — glass reflects the whole room, and the hard dot inside the soft
+     blob is what the eye reads as "polished". */
+  const spec = document.createElementNS(SVGNS, 'ellipse');
+  spec.setAttribute('cx', x - 0.11);
+  spec.setAttribute('cy', y - 0.13);
+  spec.setAttribute('rx', 0.17);
+  spec.setAttribute('ry', 0.12);
+  spec.setAttribute('fill', 'url(#pegGloss)');
+  spec.setAttribute('transform', `rotate(-28 ${x - 0.11} ${y - 0.13})`);
+  g.appendChild(spec);
+
+  const dot = document.createElementNS(SVGNS, 'circle');
+  dot.setAttribute('cx', x - 0.09);
+  dot.setAttribute('cy', y - 0.11);
+  dot.setAttribute('r', 0.055);
+  dot.setAttribute('fill', 'rgba(255,255,255,.92)');
+  g.appendChild(dot);
+
+  return g;
+}
+
+/* ====================================================== the move animation */
+/* WHY THIS EXISTS. A jump may clear a piece eight holes away and a chain may
+   run six hops, so the median move shifts a peg SIX holes and the longest seen
+   is sixteen. The board used to just redraw with the peg in its new cell, which
+   makes a legal chain look exactly like a peg teleporting — and that is what
+   players reported as "the computer not following the jump rules". The rules
+   were being followed; the route was invisible.
+
+   The flying peg lives in its own layer, `#fxLayer`, which renderBoard() never
+   clears. That matters because a state push (a chat message, say) re-renders
+   mid-animation, and an animation that vanishes halfway is worse than none.
+   While it runs, the destination cell's resting peg is skipped so the piece is
+   never in two places at once. */
+/* Cells whose resting peg is hidden because a flyer is on its way there, and the
+   timer driving each flyer.
+
+   A Set and a Map, not one index and one timer. The opponent answers ~0.6s after
+   your move, and the single-slot version called stopFx() the moment that reply
+   arrived — which cleared the layer mid-flight. YOUR route is the slow one
+   (520ms a hop), so it was cut off after about one hop and the peg simply
+   appeared at its destination, while the computer's route played in full. That
+   is exactly what was reported as "the red colour does not display slow motion
+   to step route like the blue colour". Two moves may now be in the air at once,
+   each with its own timer, and neither cancels the other. */
+const fxHidden = new Set();
+const fxTimers = new Map();     // destination cell -> interval id
+
+function stopFx() {
+  fxTimers.forEach((t) => clearInterval(t));
+  fxTimers.clear();
+  fxHidden.clear();
+  const layer = $('#fxLayer');
+  if (layer) layer.innerHTML = '';
+}
+
+function animateMove(move) {
+  const path = move && move.path;
+  /* A step is two cells and needs no explanation. Everything longer is a jump,
+     and the whole point is to show each hop. */
+  if (!path || path.length < 3) return;
+
+  const layer = $('#fxLayer');
+  if (!layer) return;
+
+  const hops = path.length - 1;
+  /* Pace. The player is watching their OWN peg, so their jumps are slowed right
+     down and held long enough to read each hop (the previous 60-130 ms blur was
+     the complaint). The computer's hops stay visibly stepped too, but a touch
+     quicker so the bot's turn does not drag. Both tighten as a chain grows so a
+     long jump never outlasts the player's patience. */
+  const mySeat = (S && S.you && typeof S.you.seat === 'number') ? S.you.seat : -1;
+  const myOwn = move.seat === mySeat;
+  const hopMs = myOwn
+    ? Math.max(300, Math.min(520, 2400 / hops))   // your move: ~2.4s for a 6-hop
+    : Math.max(190, Math.min(360, 1500 / hops));  // computer: ~1.5s for a 6-hop
+
+  const start = Core.CELLS[path[0]];
+  const flyer = makePeg(move.seat, start.x, start.y, 'flyer');
+  flyer.style.transition = `transform ${hopMs}ms ease-in-out`;
+  layer.appendChild(flyer);
+
+  let step = 0;
+  const timer = setInterval(() => {
+    step += 1;
+    if (step >= path.length) {
+      clearInterval(timer);
+      fxTimers.delete(move.to);
+      fxHidden.delete(move.to);
+      if (flyer.parentNode) flyer.parentNode.removeChild(flyer);
+      renderBoard();          // reveal the peg resting on its new cell
+      return;
+    }
+    const c = Core.CELLS[path[step]];
+    flyer.setAttribute('transform',
+      `translate(${(c.x - start.x).toFixed(3)} ${(c.y - start.y).toFixed(3)})`);
+    // One click per hop, rising as the peg climbs the chain, so a jump reads as
+    // a sequence of steps rather than a single teleport. Fires for both the
+    // player's own peg and the computer's — every animated move here is a jump.
+    beep(520 + step * 26, 0.03, 'triangle', 0.028);
+  }, hopMs);
+  fxTimers.set(move.to, timer);
+}
+
+function renderBoard() {
+  if (!boardBuilt) buildBoard();
+  if (!S) return;
+  const svg = $('#board');
+  const seatCorners = Core.seatCorners(S.seats);
+
+  // corner tint
+  const glow = $('#glowLayer');
+  glow.innerHTML = '';
+  seatCorners.forEach((cornerIdx, seat) => {
+    const p = playerAt(seat);
+    if (!p) return;
+    Core.CORNERS[cornerIdx].forEach((cell) => {
+      const c = Core.CELLS[cell];
+      const el = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      el.setAttribute('cx', c.x);
+      el.setAttribute('cy', c.y);
+      el.setAttribute('r', 0.50);
+      el.setAttribute('class', 'homeglow');
+      el.setAttribute('stroke', SEAT_HEX[seat]);
+      glow.appendChild(el);
+    });
+  });
+
+  // holes: mark legal targets, in the colour of the player they belong to
+  const svgEl = svg;
+  const tgtSeat = (S.you && typeof S.you.seat === 'number') ? S.you.seat
+    : (typeof S.turn === 'number' ? S.turn : 0);
+  svgEl.style.setProperty('--tgt', SEAT_HEX[tgtSeat] || '#4b93cc');
+  const holeEls = svg.querySelectorAll('.hole');
+  const tset = new Set(targets);
+  holeEls.forEach((el) => {
+    const cell = Number(el.dataset.cell);
+    el.classList.toggle('tgt', tset.has(cell));
+  });
+
+  // pegs
+  const layer = $('#pegLayer');
+  layer.innerHTML = '';
+  S.occ.forEach((v, i) => {
+    if (v < 0) return;
+    /* Hidden while a move is still travelling to this cell, so the peg is never
+       drawn in two places at once. */
+    if (fxHidden.has(i)) return;
+    const c = Core.CELLS[i];
+    layer.appendChild(makePeg(v, c.x, c.y, selected === i ? 'sel' : ''));
+  });
+
+  // touch targets, rebuilt each time so they always match the state
+  const hits = $('#hitLayer');
+  hits.innerHTML = '';
+  const myTurn = S.state === 'playing' && S.turn === S.you.seat;
+  if (myTurn) {
+    const tset2 = new Set(targets);
+    S.occ.forEach((v, i) => {
+      if (v !== S.you.seat && !tset2.has(i)) return;
+      if (v !== S.you.seat && v >= 0) return;
+      const c = Core.CELLS[i];
+      const el = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      el.setAttribute('cx', c.x);
+      el.setAttribute('cy', c.y);
+      el.setAttribute('r', 0.56);
+      el.setAttribute('class', 'peghit');
+      el.onclick = () => tapCell(i);
+      hits.appendChild(el);
+    });
+  }
+}
+
+function tapCell(cell) {
+  if (!S || S.state !== 'playing') return;
+  if (S.turn !== S.you.seat) { toast(t('errNotYourTurn')); return; }
+
+  if (targets.includes(cell)) {
+    const from = selected;
+    selected = null;
+    targets = [];
+    renderBoard();
+    act('move', { from: from, to: cell });
+    return;
+  }
+
+  if (S.occ[cell] === S.you.seat) {
+    if (selected === cell) { selected = null; targets = []; renderBoard(); return; }
+    selected = cell;
+    targets = Core.legalMoves(S.occ, cell, S.seats, S.you.seat);
+    if (!targets.length) toast(t('errIllegalMove'));
+    beep(520, 0.04, 'sine', 0.03);
+    renderBoard();
+    return;
+  }
+
+  selected = null;
+  targets = [];
+  renderBoard();
+}
+
+/* ============================================================== the chat */
+function toggleFeed(open) {
+  feedOpen = open === undefined ? !feedOpen : open;
+  $('#feed').classList.toggle('hidden', !feedOpen);
+  if (feedOpen) renderFeed();
+}
+
+function renderFeed() {
+  if (!S) return;
+  const body = $('#feedBody');
+  const atBottom = body.scrollHeight - body.scrollTop - body.clientHeight < 40;
+  body.innerHTML = '';
+  (S.chat || []).forEach((m) => {
+    const d = document.createElement('div');
+    d.className = 'msg' + (m.kind === 'shout' ? ' shout' : '');
+    if (m.kind === 'shout') {
+      d.textContent = m.text;
+    } else {
+      const b = document.createElement('b');
+      b.textContent = (m.name || '') + ': ';
+      d.appendChild(b);
+      // textContent, never innerHTML: this is a stranger's typing
+      d.appendChild(document.createTextNode(m.text));
+    }
+    body.appendChild(d);
+  });
+  if (atBottom) body.scrollTop = body.scrollHeight;
+}
+
+/* The on-table bubble: newest message or shout, over the board, ~4.6s, max 3.
+   Without this the message only ever exists inside a panel that is closed by
+   default - which is the bug this exists to fix. */
+function showTableSay(m) {
+  const host = $('#tableSay');
+  const d = document.createElement('div');
+  d.className = 'ts-item' + (m.kind === 'shout' ? ' big' : '');
+  if (m.kind === 'shout') {
+    d.textContent = m.text;
+  } else {
+    const who = document.createElement('span');
+    who.className = 'who';
+    who.textContent = (m.avatar ? m.avatar + ' ' : '') + (m.name || '');
+    const what = document.createElement('span');
+    what.className = 'what';
+    what.textContent = m.text;
+    d.appendChild(who);
+    d.appendChild(what);
+  }
+  host.appendChild(d);
+  while (host.children.length > 3) host.removeChild(host.firstChild);
+  setTimeout(() => {
+    d.classList.add('out');
+    setTimeout(() => { if (d.parentNode) d.parentNode.removeChild(d); }, 380);
+  }, 4600);
+}
+
+function sendChat() {
+  const el = $('#chatInput');
+  const text = (el.value || '').trim();
+  if (!text) return;
+  el.value = '';
+  act('chat', { text: text });
+}
+
+async function act(type, extra) {
+  if (!session) return;
+  try {
+    await api('api/action', Object.assign({ token: session.token, type: type }, extra || {}));
+  } catch (e) {
+    toast(errText(e.message));
+  }
+}
+
+/* ============================================================== overlay */
+function renderOverlay() {
+  const ov = $('#overlay');
+  if (!S || S.state !== 'ended') { ov.classList.add('hidden'); return; }
+  ov.classList.remove('hidden');
+  const won = S.winner === S.you.id;
+  $('#ovIcon').textContent = S.winner ? (won ? '🏆' : '🎉') : '🤝';
+  $('#ovTitle').textContent = S.winner
+    ? (won ? t('youWin') : t('winner', { name: S.winnerName }))
+    : t('draw');
+  $('#ovText').textContent = t('endedText');
+  $('#ovAgain').classList.toggle('hidden', !S.you.isHost);
+}
+
+/* ================================================================ boot */
+function boot() {
+  buildLobby();
+  buildBoard();
+
+  const path = location.pathname.replace(/\/+$/, '');
+  const m = path.match(/\/games\/chinesechecker\/([A-Za-z0-9]{4})$/);
+  if (m) $('#codeInput').value = m[1].toUpperCase();
+
+  const saved = loadSession();
+  if (saved) {
+    session = saved;
+    enterTable(saved.code);
+    // If the seat is gone the SSE stream says so on its first frame and we are
+    // sent back to the lobby; no need to probe over HTTP first.
+  }
+}
+
+window.addEventListener('pagehide', () => { if (es) { try { es.close(); } catch (e) { /* ignore */ } } });
+boot();
+</script>
+</body>
+</html>

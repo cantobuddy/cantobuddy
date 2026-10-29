@@ -40,11 +40,69 @@ const { GUIDES, GUIDE_BY_SLUG, UPDATED } = require('./content');
 const VOCAB_UPDATED = UPDATED;
 
 /**
+ * The date the WORD PAGE began rendering prose, as distinct from the date the
+ * vocabulary DATA changed.
+ *
+ * WHY THE DISTINCTION EXISTS. VOCAB_UPDATED above was a good enough answer
+ * while a word page was a pure function of its row: the row changed, the page
+ * changed, one date covered both. On 2026-10-26 that stopped being true —
+ * renderWord() started rendering `usage_note` and `example_*`, which had been
+ * sitting in the database unrendered since the beginning. The DATA did not
+ * change; the OUTPUT of 68 words did.
+ *
+ * Leaving those 272 URLs (68 words x 4 languages) stamped with the library date
+ * would tell Google "nothing here has moved" about the exact pages we want it
+ * to revisit — and they are the pages sitting in "Discovered - currently not
+ * indexed". lastmod is the signal Google uses to decide what to spend a recrawl
+ * on, so a stale one is not neutral; it is a reason not to come.
+ *
+ * APPLIED PER WORD, NOT PER FAMILY. Only a word that actually carries a note or
+ * an example gained a block; the other 266 render byte-identically to before.
+ * Stamping all 334 with today's date would be the over-claiming that teaches
+ * Google to distrust the whole sitemap. See wordLastmod().
+ *
+ * This is a fixed historical fact, not a version to bump: it records when the
+ * prose first appeared, and that will still be true next year.
+ */
+const WORD_PROSE_ADDED = '2026-10-26';
+
+/**
+ * The honest `lastmod` for one word page: the later of the library date and the
+ * date its prose first rendered.
+ *
+ * A word with no note and no example did not change on 2026-10-26 and must keep
+ * the library date — that is the whole point of doing this per word.
+ */
+function wordLastmod(w) {
+  const hasProse = Boolean(
+    String(w.usage_note || '').trim() ||
+    String(w.example_yue || '').trim() ||
+    String(w.example_en || '').trim()
+  );
+  if (!hasProse) return VOCAB_UPDATED;
+  // ISO dates compare correctly as strings; no Date objects needed.
+  return WORD_PROSE_ADDED > VOCAB_UPDATED ? WORD_PROSE_ADDED : VOCAB_UPDATED;
+}
+
+/**
  * Canonical origin. Overridable so a preview deployment can canonicalise to
  * itself instead of pointing at production. The default is the real domain
  * because a wrong-but-absolute canonical is far safer than a missing one.
  */
 const SITE_ORIGIN = (process.env.SITE_ORIGIN || 'https://cantobuddy.com').replace(/\/+$/, '');
+
+/**
+ * Sentinel returned by a renderer whose page was RETIRED on purpose.
+ *
+ * The route table below turns a null return into 404 and this into 410. It is
+ * a Symbol rather than a string or an object so it can never be confused with
+ * rendered HTML — a page body is always a string, so `body === GONE` cannot be
+ * true by accident.
+ *
+ * Only /discover/:slug returns it today, from the tombstone check in
+ * renderPost(). Every other renderer returns a string or null.
+ */
+const GONE = Symbol('gone');
 
 /**
  * Google Search Console ownership token.
@@ -201,6 +259,8 @@ const L = {
     allWords: (n) => `All ${n} words`,
     wordsIn: (c) => `Words in ${c}`,
     relatedIn: (c) => `More ${c} words`,
+    howToUse: 'How it is used',
+    example: 'In a sentence',
     home: 'Home',
     pronunciation: 'Pronunciation',
     meaning: 'Meaning',
@@ -241,6 +301,8 @@ const L = {
     allWords: (n) => `Lahat ng ${n} salita`,
     wordsIn: (c) => `Mga salita sa ${c}`,
     relatedIn: (c) => `Iba pang salitang ${c}`,
+    howToUse: 'Paano ito ginagamit',
+    example: 'Sa isang pangungusap',
     home: 'Simula',
     pronunciation: 'Pagbigkas',
     meaning: 'Kahulugan',
@@ -288,6 +350,8 @@ const L = {
     allWords: (n) => `全部 ${n} 个词`,
     wordsIn: (c) => `${c}类词汇`,
     relatedIn: (c) => `更多${c}类词汇`,
+    howToUse: '用法',
+    example: '例句',
     home: '首页',
     pronunciation: '发音',
     meaning: '意思',
@@ -337,6 +401,8 @@ const L = {
     allWords: (n) => `Semua ${n} kata`,
     wordsIn: (c) => `Kata dalam ${c}`,
     relatedIn: (c) => `Kata ${c} lainnya`,
+    howToUse: 'Cara pemakaiannya',
+    example: 'Dalam kalimat',
     home: 'Beranda',
     pronunciation: 'Pelafalan',
     meaning: 'Arti',
@@ -1021,6 +1087,18 @@ a.chip:hover{border-color:var(--red);color:var(--red)}
 dl.meta{display:grid;grid-template-columns:auto 1fr;gap:8px 18px;margin:0;font-size:15px}
 dl.meta dt{color:var(--muted)}
 dl.meta dd{margin:0;font-weight:600}
+/* The usage note and example sentence on a word page. These are the only
+   blocks on the page that are NOT a template — the note is written per word,
+   so it gets prose rhythm rather than the tight definition-list spacing. */
+p.usage-note{max-width:66ch;font-size:16.5px;line-height:1.7;color:var(--ink);
+  margin:0 0 4px;padding-left:15px;border-left:3px solid var(--red)}
+figure.example{max-width:66ch;margin:0;padding:16px 18px;background:#fff;
+  border:1px solid var(--line);border-radius:10px}
+figure.example p{margin:0 0 6px}
+figure.example p:last-child{margin-bottom:0}
+figure.example .ex-yue{font-size:19px;font-weight:600;line-height:1.5}
+figure.example .ex-jp{font-size:14px;color:var(--muted);letter-spacing:.01em}
+figure.example .ex-en{font-size:15.5px;color:var(--ink)}
 footer.site{border-top:1px solid var(--line);margin-top:44px;padding:24px 0 40px;
   color:var(--muted);font-size:14px}
 footer.site a{color:var(--muted)}
@@ -1063,6 +1141,10 @@ p.updated{color:var(--muted);font-size:13.5px;margin-top:30px}
 .contact-form button{font:inherit;font-weight:600;font-size:16px;padding:12px 26px;
   border:0;border-radius:999px;background:var(--red);color:#fff;cursor:pointer}
 .contact-form button:hover{background:#c1121f}
+/* Honeypot: parked far off-screen so a person can never see or reach it, but a
+   bot that blindly fills every field will. The server drops any submission that
+   arrives with it filled — no IP, no storage, the bot just thinks it sent. */
+.contact-form .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
 .contact-form .form-note{font-size:13.5px;color:var(--muted);margin:14px 0 0;line-height:1.55}
 .sent-note{background:#f1f8f4;border:1px solid #cfe8d8;border-radius:12px;
   padding:18px 20px;margin:0 0 26px;line-height:1.65}
@@ -1189,11 +1271,15 @@ function hreflangLinks(pathFor) {
 
 /**
  * Build a full HTML document.
- * @param {object} o  {lang,title,description,path,jsonLd,body,noindex,alternates}
+ * @param {object} o  {lang,title,description,path,jsonLd,body,noindex,alternates,canonicalPath}
  */
 function page(o) {
   const lang = LANGS.includes(o.lang) ? o.lang : 'en';
-  const canonical = `${SITE_ORIGIN}${o.path}`;
+  // canonicalPath is an override for a page that is a genuine duplicate of
+  // another URL rather than a document in its own right — the untranslated post
+  // variants, which are the English article served at a second address. See
+  // isTranslated().
+  const canonical = `${SITE_ORIGIN}${o.canonicalPath || o.path}`;
 
   // hreflang alternates. Emitted only when the caller supplies a real set —
   // a self-referential pair with no real counterpart would be a lie.
@@ -1639,6 +1725,67 @@ ${related
 
   const gloss = glossOf(w, lang);
 
+  /* "In Filipino" on the English page must show the FILIPINO gloss.
+   *
+   * It rendered w.english instead, so on a site built for Filipino helpers the
+   * one gloss that audience actually needs was replaced by the English they
+   * already understood. All 334 words carry a tagalog value and 323 of them
+   * differ from the English — so this was wrong on almost every page. It
+   * survived because 11 words happen to have tagalog === english
+   * (Chrysanthemum, Mooncake), and a spot-check landed on one of them.
+   *
+   * The fil/zh/id trees keep w.english, because their label genuinely reads
+   * "In English" (Sa Ingles / 英文 / Dalam bahasa Inggris) — there the English
+   * gloss is the correct answer, not a mistake.
+   *
+   * Falls back to the English when a word has no tagalog, so the row never
+   * renders empty. */
+  const otherGloss = lang === 'en' ? (String(w.tagalog || '').trim() || w.english) : w.english;
+
+  /* THE UNIQUE PROSE THIS PAGE ALREADY HAD AND WAS THROWING AWAY.
+   *
+   * Without this block a word page carried exactly one sentence of prose, and
+   * that sentence was a template: "<word> in Cantonese is <hanzi>, pronounced
+   * <jyutping>. It belongs to the <category> group…". Substituting four
+   * variables does not make 334 pages distinct, and Search Console said so
+   * plainly — 268 word URLs sat in "Discovered - currently not indexed" with
+   * "Last crawled: N/A", i.e. Google read the sitemap, looked at the cluster,
+   * and declined to spend budget on any of it.
+   *
+   * Meanwhile `usage_note` — the one field per word that is genuinely written
+   * by a human and genuinely differs ("The flower of the ninth month, so it
+   * belongs to Chongyang. Also the flower left at a grave — which is why it is
+   * not a flower you give someone for a birthday.") — was rendered NOWHERE.
+   * Not here, not in the app. 67 words carry one and none of it reached a
+   * crawler.
+   *
+   * The notes are English-only; the app's own convention is that a missing
+   * translation falls back to English rather than to nothing, so a Filipino or
+   * Chinese reader sees the English note under a localised heading. That is
+   * honest and it is strictly more than she got before.
+   *
+   * Words with neither a note nor an example still render without this block —
+   * no empty heading, no placeholder text. */
+  const usageNote = String(w.usage_note || '').trim();
+  const exampleYue = String(w.example_yue || '').trim();
+  const exampleJp = String(w.example_jyutping || '').trim();
+  const exampleEn = String(w.example_en || '').trim();
+  const hasExample = Boolean(exampleYue || exampleEn);
+
+  const usageBlock = usageNote
+    ? `<h2>${esc(t.howToUse)}</h2>
+<p class="usage-note">${esc(usageNote)}</p>`
+    : '';
+
+  const exampleBlock = hasExample
+    ? `<h2>${esc(t.example)}</h2>
+<figure class="example">
+  ${exampleYue ? `<p class="ex-yue" lang="yue">${esc(exampleYue)}</p>` : ''}
+  ${exampleJp ? `<p class="ex-jp">${esc(exampleJp)}</p>` : ''}
+  ${exampleEn ? `<p class="ex-en">${esc(exampleEn)}</p>` : ''}
+</figure>`
+    : '';
+
   const body = `
 ${crumbs(lang, [
     { label: t.categories, href: `${prefix}/learn` },
@@ -1658,11 +1805,13 @@ ${crumbs(lang, [
   <dt>${esc(t.cantonese)}</dt><dd>${esc(w.cantonese)}</dd>
   <dt>${esc(t.pronunciation)}</dt><dd>${esc(w.jyutping)}</dd>
   <dt>${esc(t.meaning)}</dt><dd>${esc(gloss)}</dd>
-  <dt>${esc(t.alsoSaid)}</dt><dd>${esc(w.english)}</dd>
+  <dt>${esc(t.alsoSaid)}</dt><dd>${esc(otherGloss)}</dd>
   ${w.mandarin && lang !== 'zh' ? `<dt>${esc(t.chinese || '中文')}</dt><dd lang="zh-Hans">${esc(w.mandarin)}</dd>` : ''}
   <dt>${esc(t.levelLabel)}</dt><dd><a href="${prefix}/level/${w.level}">${esc(levelName(w.level, lang))}</a></dd>
   <dt>${esc(t.categoryLabel)}</dt><dd><a href="${esc(catUrl)}">${esc(name)}</a></dd>
 </dl>
+${usageBlock}
+${exampleBlock}
 ${ctaCard(lang)}
 ${relatedBlock}
 `;
@@ -2637,6 +2786,35 @@ function postText(post, field, lang) {
   return String(post[`${field}_en`] || '');
 }
 
+/**
+ * Is this language a real translation of the post, or English wearing a
+ * different language's chrome?
+ *
+ * WHY THIS MATTERS, AND WHY IT IS NOT PEDANTIC. postText() falls back to the
+ * English when a translation is missing, which is right for a reader — a
+ * Filipino helper would rather see English than an empty page. But it means
+ * /fil/discover/<slug> can be BYTE-IDENTICAL to /discover/<slug> while
+ * declaring itself canonical.
+ *
+ * That is the exact shape Google reported as "Duplicate, Google chose
+ * different canonical than user": it found two identical documents, each
+ * insisting it was the original, and overrode us. All 21 seeded posts have no
+ * Filipino and no Indonesian translation, so 42 URLs were in that state.
+ *
+ * A variant with no translated body AND no translated summary is not a
+ * translation. It is the English document at a second address, and it must say
+ * so — see the canonicalPath in renderPost().
+ *
+ * English is always "translated": it is the base the others fall back TO.
+ */
+function isTranslated(post, lang) {
+  if (lang === 'en') return true;
+  return Boolean(
+    String(post[`body_${lang}`] || '').trim() ||
+    String(post[`summary_${lang}`] || '').trim()
+  );
+}
+
 /** A locale-independent date, which is what belongs in server-rendered HTML. */
 function postDateShort(iso) {
   const d = new Date(iso || '');
@@ -2832,12 +3010,25 @@ function renderPost(lang, slug) {
   const post = store.getPostBySlug(slug);
   // A draft has no public page. Treating it as missing is the honest answer:
   // it is not "not ready", to a reader it does not exist.
-  if (!post || post.status !== 'published') return null;
+  if (!post || post.status !== 'published') {
+    /* A post we DELETED on purpose answers 410, not 404.
+       pruneNewsPast() retires imported news after three days, and a plain 404
+       makes that look like a typo — which is why the operator's Search Console
+       filled with "Not found (404)" entries that were all deliberate. The
+       tombstone says so explicitly and Google drops the URL in weeks instead
+       of months. An unknown slug still 404s: nothing was retired, it just is
+       not a page. */
+    if (store.isPostGone(slug)) return GONE;
+    return null;
+  }
 
   const title = postText(post, 'title', lang);
   const summary = postText(post, 'summary', lang);
   const bodyHtml = sanitizeBodyHtml(postText(post, 'body', lang));
   const date = postDateShort(post.published_at || post.created_at);
+  // Does this tree actually translate the post, or is it the English text in
+  // another tree's clothing? Drives the canonical and the hreflang set below.
+  const translated = isTranslated(post, lang);
 
   // Attribution block, only when there is a source to attribute. Culture posts
   // have none, and an empty "Source:" line would be worse than no line.
@@ -2900,7 +3091,49 @@ ${ctaCard(lang)}
     path: `${prefix}/discover/${slug}`,
     jsonLd,
     body,
-    alternates: hreflangLinks((l) => `${LANG_PREFIX[l]}/discover/${slug}`),
+    /* IMPORTED NEWS IS NOINDEX, AND THAT IS THE POINT.
+     *
+     * The importer runs hourly and pruneNewsPast() deletes its rows after
+     * three days, so every imported article is a URL that is thin (a summary
+     * plus a link to the source — the body columns are never filled from a
+     * feed, for copyright reasons), duplicated from whoever wrote it, and
+     * guaranteed to 404 within 72 hours.
+     *
+     * Asking Google to index that was actively harmful, and the Search Console
+     * data proved it: ~25 of the 34 "Crawled - currently not indexed" pages
+     * were imported news, and another 24 URLs sat in "Not found (404)" after
+     * their rows were pruned. The site was spending its crawl budget on pages
+     * it would delete, and collecting error buckets for doing so.
+     *
+     * These pages are not hidden. They still render, still return 200, and are
+     * still linked from /discover — they exist for in-app freshness, which is
+     * what they are good at. They simply stop competing in the index, which
+     * frees crawl budget for the vocabulary pages that are meant to rank.
+     *
+     * `follow` stays on: the source attribution link is worth passing, and a
+     * noindex,follow page is still a useful hop.
+     *
+     * Operator-written news is NOT included: it never expires, so it is
+     * evergreen and indexable like any culture post. Same `origin === 'auto'`
+     * test the pruner uses, so the two cannot disagree about which rows die. */
+    noindex: post.origin === 'auto',
+    /* hreflang is meaningless on a noindex page — Google ignores it, and
+       emitting alternates that all point at noindex URLs only creates noise.
+       On an indexable post, the set is filtered to the languages that ACTUALLY
+       have a translation: listing /fil/discover/<slug> as the Filipino version
+       when it is the English article verbatim is the claim that produced the
+       duplicate-canonical report in the first place. */
+    alternates: post.origin === 'auto' || !translated
+      ? []
+      : hreflangLinks((l) => (isTranslated(post, l) ? `${LANG_PREFIX[l]}/discover/${slug}` : null)),
+    /* AN UNTRANSLATED VARIANT IS NOT A SEPARATE DOCUMENT.
+       /fil/discover/<slug> renders the English title and body, so declaring it
+       self-canonical asks Google to index two identical pages. It now points
+       its canonical at the English URL — which is simply true — and Google
+       files it as "Alternate page with proper canonical tag", an intentional
+       state, instead of "Duplicate, Google chose different canonical", which
+       means it overruled us. */
+    canonicalPath: translated ? `${prefix}/discover/${slug}` : `/discover/${slug}`,
   });
 }
 
@@ -3194,6 +3427,130 @@ function wordSlugMap() {
  */
 const SITE_STRUCTURE_DATE = '2026-10-17';
 
+// ---------------------------------------------------------------------------
+// Living passages (server-rendered head + hub)
+//
+// The Living passages are substantial, SEO-minded articles for prospective
+// foreign domestic helpers (the FDW system, the contract, real costs, everyday
+// life). They are served by the SPA at /living/<slug>, which deep-links and
+// renders them client-side — so a crawler DOES see the body after JS. The one
+// thing the SPA shell does not give them is a distinct <title> / meta / OG, so
+// every passage inherits the app's generic homepage title and competes with it.
+//
+// These helpers fix that without forking the page: livingPostShell() injects a
+// per-passage <head> (title, description, canonical, OG, Article JSON-LD) into
+// the SPA shell, so the SAME interactive page keeps a distinct identity for
+// search and social. renderLivingHub() is a standalone, crawlable directory of
+// every passage, so the set has a proper entry point and internal links.
+// ---------------------------------------------------------------------------
+
+const SPA_SHELL = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8');
+
+const LIVING_CAT_LABEL = {
+  medical: 'Medical', holiday: 'Holidays', entertainment: 'Entertainment',
+  homesick: 'Homesick', food: 'Food', transport: 'Transport',
+  churches: 'Churches', before: 'Before You Come',
+};
+
+/** Plain-text snippet for meta descriptions and hub cards. */
+function plainSnippet(s, n) {
+  const t = String(s || '').replace(/\s+/g, ' ').trim();
+  if (!t) return '';
+  return t.length > n ? t.slice(0, n).replace(/\s+\S*$/, '') + '…' : t;
+}
+
+/** Inject a per-passage <head> into the SPA shell, replacing the generic tags. */
+function injectLivingHead(shell, o) {
+  let h = shell;
+  h = h.replace(/<title>[^<]*<\/title>/, `<title>${esc(o.title)}</title>`);
+  h = h.replace(/<meta name="description"[^>]*>/, `<meta name="description" content="${esc(o.description)}" />`);
+  h = h.replace(/<link rel="canonical"[^>]*>/, `<link rel="canonical" href="${esc(SITE_ORIGIN + o.canonicalPath)}" />`);
+  h = h.replace(/<meta property="og:type"[^>]*>/, `<meta property="og:type" content="${esc(o.ogType || 'website')}" />`);
+  h = h.replace(/<meta property="og:title"[^>]*>/, `<meta property="og:title" content="${esc(o.title)}" />`);
+  h = h.replace(/<meta property="og:description"[^>]*>/, `<meta property="og:description" content="${esc(o.description)}" />`);
+  h = h.replace(/<meta property="og:url"[^>]*>/, `<meta property="og:url" content="${esc(SITE_ORIGIN + o.canonicalPath)}" />`);
+  h = h.replace(/<meta name="twitter:title"[^>]*>/, `<meta name="twitter:title" content="${esc(o.title)}" />`);
+  h = h.replace(/<meta name="twitter:description"[^>]*>/, `<meta name="twitter:description" content="${esc(o.description)}" />`);
+  const ld = o.jsonLd ? `\n  <script type="application/ld+json">${JSON.stringify(o.jsonLd)}</script>` : '';
+  return h.replace('</head>', `${ld}\n</head>`);
+}
+
+/** A passage's server-rendered shell, or null if it is missing/unpublished. */
+function livingPostShell(slug) {
+  const post = store.getLivingPostBySlug(String(slug || ''));
+  if (!post || post.status !== 'published') return null;
+  const title = `${post.title_en || post.slug} | CantoBuddy`;
+  const description = plainSnippet(post.sub_en || post.body_en, 155)
+    || 'A practical guide for foreign domestic helpers in Hong Kong.';
+  const canonicalPath = `/living/${post.slug}`;
+  const published = (post.published_at || SITE_STRUCTURE_DATE).slice(0, 10);
+  const modified = (post.updated_at || post.published_at || SITE_STRUCTURE_DATE).slice(0, 10);
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: post.title_en || post.slug,
+    description,
+    inLanguage: 'en',
+    datePublished: published,
+    dateModified: modified,
+    publisher: ORG_LD,
+    mainEntityOfPage: `${SITE_ORIGIN}${canonicalPath}`,
+  };
+  return injectLivingHead(SPA_SHELL, { title, description, canonicalPath, ogType: 'article', jsonLd });
+}
+
+/** Standalone, crawlable directory of every published Living passage. */
+function renderLivingHub() {
+  const posts = store.listLivingPosts({ limit: 300 });
+  const list = posts.length
+    ? `<ul class="guide-list">\n${posts.map((p) => {
+        const title = p.title_en || p.slug;
+        const sub = p.sub_en || '';
+        const snippet = plainSnippet(p.body_en, 160);
+        return `<li class="guide-card">
+  <a href="/living/${esc(p.slug)}">
+    <span class="em">${esc(p.icon || '🏠')}</span>
+    ${sub ? `<span class="pm">${esc(LIVING_CAT_LABEL[p.category] || p.category)} · ${esc(sub)}</span>` : `<span class="pm">${esc(LIVING_CAT_LABEL[p.category] || p.category)}</span>`}
+    <span class="gt">${esc(title)}</span>
+    ${snippet ? `<span class="gd">${esc(snippet)}</span>` : ''}
+  </a>
+</li>`;
+      }).join('\n')}\n</ul>`
+    : `<p class="lede">Practical guides for life in Hong Kong.</p>`;
+
+  const title = 'Practical guides for life in Hong Kong | CantoBuddy';
+  const description = 'Plain-English guides for foreign domestic helpers in Hong Kong — the FDW system, your contract, real costs, and everyday life before and after you arrive.';
+  const path = '/living';
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      ORG_LD,
+      breadcrumbLd([{ name: 'Living guides', path }]),
+      {
+        '@type': 'CollectionPage',
+        name: title,
+        description,
+        url: `${SITE_ORIGIN}${path}`,
+        inLanguage: 'en',
+        hasPart: posts.slice(0, 50).map((p) => ({
+          '@type': 'Article',
+          headline: p.title_en || p.slug,
+          url: `${SITE_ORIGIN}/living/${p.slug}`,
+          inLanguage: 'en',
+        })),
+      },
+    ],
+  };
+  const body = `
+${crumbs('en', [{ label: 'Living guides' }])}
+<h1>Living guides for domestic helpers in Hong Kong</h1>
+<p class="lede">${esc(description)}</p>
+${list}
+${ctaCard('en')}
+`;
+  return page({ lang: 'en', title, description, path, jsonLd, body });
+}
+
 function renderSitemap() {
   const urls = [];
 
@@ -3340,10 +3697,27 @@ ${alts}
 
   for (const prefix of Object.values(LANG_PREFIX)) {
     add(`${prefix}/discover`, '0.7', 'daily', hreflangLinks((l) => `${LANG_PREFIX[l]}/discover`), newestDiscoverItem);
+  }
+  /* ONE ENTRY PER TRANSLATED TREE, not one per tree.
+   *
+   * The loop above this used to list every post under all four prefixes. But a
+   * post with no Filipino translation serves the English article at
+   * /fil/discover/<slug>, and advertising that in the sitemap asks Google to
+   * index a second copy of a page it already has — the duplicate-canonical
+   * problem the canonical now fixes. A sitemap entry for a URL whose canonical
+   * points elsewhere is a contradiction; the honest answer is not to list it.
+   *
+   * The untranslated URL still renders and is still linked from the /fil/
+   * discover hub, so a reader loses nothing. It simply stops being advertised
+   * as a page in its own right. */
+  for (const lang of LANGS) {
+    const prefix = LANG_PREFIX[lang];
     for (const p of evergreenPosts) {
+      if (!isTranslated(p, lang)) continue;
       const d = postDateShort(p.published_at || p.updated_at || p.created_at);
       add(`${prefix}/discover/${p.slug}`, '0.6', 'monthly',
-        hreflangLinks((l) => `${LANG_PREFIX[l]}/discover/${p.slug}`), d || SITE_STRUCTURE_DATE);
+        hreflangLinks((l) => (isTranslated(p, l) ? `${LANG_PREFIX[l]}/discover/${p.slug}` : null)),
+        d || SITE_STRUCTURE_DATE);
     }
   }
 
@@ -3356,10 +3730,16 @@ ${alts}
     }
   }
 
-  // Categories, levels, words — in every language tree. All three are drawn
-  // from the vocabulary library, so their true freshness is the library's:
-  // UPDATED from content.js. A category page cannot change without the words
-  // in it changing, and a word cannot change without UPDATED moving.
+  // Categories, levels, words — in every language tree. Category and level
+  // pages are pure functions of the library, so their true freshness is
+  // UPDATED from content.js: a category cannot change without the words in it
+  // changing.
+  //
+  // A WORD page is the exception, and it is not a theoretical one. Its
+  // rendering gained blocks (usage note, example sentence) that do not live in
+  // the vocabulary data, so a word can now change without UPDATED moving. Those
+  // words get their own date from wordLastmod(); the rest keep the library date
+  // because they genuinely did not change.
   const cats = store.listEnabledCategories();
   const { bySlug } = buildWordIndex();
   for (const prefix of Object.values(LANG_PREFIX)) {
@@ -3370,9 +3750,28 @@ ${alts}
     for (const n of Object.keys(LEVELS)) {
       add(`${prefix}/level/${n}`, '0.7', 'monthly', hreflangLinks((l) => `${LANG_PREFIX[l]}/level/${n}`), VOCAB_UPDATED);
     }
-    for (const s of bySlug.keys()) {
-      add(`${prefix}/words/${s}`, '0.6', 'monthly', hreflangLinks((l) => `${LANG_PREFIX[l]}/words/${s}`), VOCAB_UPDATED);
+    for (const [s, w] of bySlug) {
+      add(`${prefix}/words/${s}`, '0.6', 'monthly',
+        hreflangLinks((l) => `${LANG_PREFIX[l]}/words/${s}`), wordLastmod(w));
     }
+  }
+
+  // Living passages — a server-rendered head + hub now exist for these (see
+  // livingPostShell / renderLivingHub). They are substantial, SEO-minded
+  // articles for prospective FDW helpers, and were previously absent from the
+  // sitemap, so Google was never told to crawl them. English only, like /portal:
+  // the fil/zh/id columns are empty, so the app falls back to English.
+  const livingPosts = store.listLivingPosts({ limit: 300 });
+  for (const p of livingPosts) {
+    const d = postDateShort(p.updated_at || p.published_at || SITE_STRUCTURE_DATE);
+    add(`/living/${p.slug}`, '0.7', 'monthly', null, d);
+  }
+
+  // Games — the UNO / Big Two / Word Match tables. App features, not search
+  // content, so they sit below the editorial pages; listed so they are at least
+  // discoverable and resolve to a real page rather than a soft 404 in the index.
+  for (const g of ['/games/uno', '/games/bigtwo', '/games/wordmatch', '/games/sudoku']) {
+    add(g, '0.5', 'monthly', null, SITE_STRUCTURE_DATE);
   }
 
   return `<?xml version="1.0" encoding="UTF-8"?>
@@ -3558,6 +3957,11 @@ We read every message. If it needs a reply, you will get one at the address you 
   <label for="cf-contact">Your email or phone <span class="opt">(optional — only if you want a reply)</span></label>
   <input id="cf-contact" name="contact" type="text" maxlength="120" autocomplete="email"
          placeholder="you@example.com" />
+
+  <div class="hp" aria-hidden="true">
+    <label for="cf-website">Website</label>
+    <input id="cf-website" name="website" type="text" tabindex="-1" autocomplete="off" />
+  </div>
 
   <button type="submit">Send message</button>
   <p class="form-note">We use your message only to answer it. It is stored with the rest of the feedback described in the <a href="/privacy">privacy policy</a>, and never published.</p>
@@ -3754,6 +4158,10 @@ function mount(app) {
         }
         // An unknown slug is a real 404 — not a soft 200, which would let
         // Google index unlimited junk URLs.
+        // A RETIRED slug is a 410: same "not here", but it tells Google the
+        // removal was deliberate, so the URL leaves the index in weeks rather
+        // than lingering in "Not found (404)" for months. See renderPost().
+        if (body === GONE) return html(res, renderNotFound(lang), 410);
         if (!body) return html(res, renderNotFound(lang), 404);
         html(res, body);
       });
@@ -3778,4 +4186,4 @@ function mount(app) {
   console.log(`  SEO:          ${SITE_ORIGIN}/sitemap.xml  (${store.listVocabulary({ enabledOnly: true }).length} words, ${store.listEnabledCategories().length} categories, ${LANGS.length} languages)`);
 }
 
-module.exports = { mount, portalPage, SITE_ORIGIN, slugify, buildWordIndex, wordSlugMap, LANG_PREFIX, LANGS, ROUTE_FAMILIES, HK_FESTIVALS, upcomingFestivals, upcomingFestivalPayload, festivalBanner };
+module.exports = { mount, portalPage, livingPostShell, renderLivingHub, SITE_ORIGIN, slugify, buildWordIndex, wordSlugMap, LANG_PREFIX, LANGS, ROUTE_FAMILIES, HK_FESTIVALS, upcomingFestivals, upcomingFestivalPayload, festivalBanner };

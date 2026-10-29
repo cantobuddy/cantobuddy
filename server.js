@@ -16,6 +16,10 @@ const SqliteSessionStore = require('./session-store');
 const seo = require('./seo');
 const news = require('./news');
 const push = require('./push');
+const reminders = require('./push-reminders');
+const dailyPhrase = require('./daily-phrase');
+const sundayTable = require('./sunday-table');
+const { createSweeper } = require('./push-sweep');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -62,6 +66,8 @@ app.set('trust proxy', 1);
 app.use('/games/uno', require('./uno').handle);
 app.use('/games/bigtwo', require('./bigtwo').handle);
 app.use('/games/wordmatch', require('./wordmatch').handle);
+app.use('/games/sudoku', require('./sudoku').handle);
+app.use('/games/chinesechecker', require('./chinesechecker').handle);
 
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -694,6 +700,50 @@ app.get('/api/festival', (req, res) => {
   res.json({ festival: seo.upcomingFestivalPayload() });
 });
 
+/**
+ * GET /api/phrase/today — one kitchen phrase, the same one for every device.
+ *
+ * Chosen by the Hong Kong date, not by the request, so two helpers comparing
+ * phones on a Sunday see the same phrase and the card cannot be "refreshed"
+ * into a different word. daily-phrase.js owns the choice and is pure, so the
+ * rotation is testable at any date.
+ *
+ * A five-minute cache for the same reason as /api/festival above: the answer
+ * changes at midnight HKT and at no other moment.
+ */
+app.get('/api/phrase/today', (req, res) => {
+  res.setHeader('Cache-Control', 'public, max-age=300');
+  const date = store.hktDayString();
+  const phrase = dailyPhrase.pickPhrase(store.dailyPhrasePool(), date);
+  if (!phrase) return res.json({ date, phrase: null });
+  res.json({ date, phrase });
+});
+
+/**
+ * GET /api/sunday-table — the weekly appointment: when it is, which game is
+ * featured, the passage of the week, and what happened in Hong Kong.
+ *
+ * A short cache (60s) because the answer changes at 16:00 and 18:00 HKT, and a
+ * card that says "starts in 3 minutes" for an hour is the kind of small lie that
+ * makes the whole surface untrustworthy.
+ *
+ * The featured game and the passage are chosen from the ISO week, not stored:
+ * there is no table row to fall out of sync with the calendar, and every server
+ * computes the same answer for the same week.
+ */
+app.get('/api/sunday-table', (req, res) => {
+  res.setHeader('Cache-Control', 'public, max-age=60');
+  const nowMs = Date.now();
+  const table = sundayTable.tableFor(nowMs);
+  const passage = sundayTable.passageOfWeek(store.sundayTablePassages(), table.week);
+  const fromIso = new Date(nowMs - sundayTable.DIGEST_DAYS * sundayTable.DAY_MS).toISOString();
+  const digest = sundayTable.digest(
+    store.sundayTableDigest(fromIso, sundayTable.DIGEST_MAX),
+    nowMs
+  );
+  res.json({ now: new Date(nowMs).toISOString(), ...table, passage, digest });
+});
+
 app.get('/api/posts/:slug', (req, res) => {
   const post = store.getPostBySlug(req.params.slug);
   // A draft is a 404 to a learner, exactly as if it did not exist.
@@ -938,7 +988,38 @@ app.post('/api/living/:slug/react', livingRateLimit, (req, res) => {
   if (!emoji) return res.status(400).json({ error: 'Missing reaction.' });
   const result = store.setLivingReaction(post.id, publicId, emoji);
   if (!result) return res.status(400).json({ error: 'Could not save reaction.' });
-  res.json(result);
+  // A standing reaction pays one credit a day, enforced by the database (see
+  // credit_events). A toggle-OFF pays nothing on purpose: the point is to make
+  // saying something about a passage a habit, not to make tapping the same emoji
+  // twice a way to farm stickers.
+  let creditsAwarded = 0;
+  if (result.myReaction) {
+    creditsAwarded = store.awardDailyCredit({ publicId, kind: 'reaction' }).points;
+  }
+  res.json({ ...result, creditsAwarded });
+});
+
+/**
+ * POST /api/living/:slug/read — she opened a passage.
+ *
+ * A POST rather than a write inside the GET: a GET must stay safe to prefetch,
+ * cache and crawl, and a crawler that earns her credits would make the number
+ * meaningless. The client fires this after the passage has rendered, so the
+ * credit follows the reading rather than standing in for it.
+ *
+ * One credit a day, not one per passage — the database decides that, not this
+ * route. Per-passage would pay up to 18 a day for tapping through the shelf,
+ * which is more than a ten-question quiz and would make a sticker mean nothing.
+ * The habit being rewarded is "she reads something today", and that happens
+ * once a day by definition.
+ */
+app.post('/api/living/:slug/read', livingRateLimit, (req, res) => {
+  const post = store.getLivingPostBySlug(req.params.slug);
+  if (!post) return res.status(404).json({ error: 'Not found' });
+  const publicId = String((req.body || {}).public_id || '').trim();
+  if (!publicId) return res.status(400).json({ error: 'Missing device id.' });
+  const { points } = store.awardDailyCredit({ publicId, kind: 'reading' });
+  res.json({ creditsAwarded: points });
 });
 
 /**
@@ -1174,6 +1255,10 @@ app.post('/api/feedback', feedbackRateLimit, (req, res) => {
  */
 app.post('/contact', feedbackRateLimit, (req, res) => {
   const b = req.body || {};
+  // Honeypot: only a bot fills the off-screen `website` field. A person never
+  // sees it. Drop the submission silently so the bot believes it succeeded; the
+  // real message path below is untouched.
+  if (String(b.website || '').trim()) return res.redirect(303, '/contact?sent=1');
   store.createFeedback({
     message: b.message,
     contact: b.contact,
@@ -1236,9 +1321,43 @@ app.get('/api/learners/rewards', (req, res) => {
 
   const learner = store.getLearnerByPublicId(publicId);
   // An unknown device simply has no rewards yet — not an error worth failing on.
-  if (!learner) return res.json({ credits: 0, stickers: [], newly_unlocked: [], next: null });
+  // The same shape as a known device with nothing, so the client can render the
+  // checklist with every box still open rather than special-casing a newcomer.
+  if (!learner) {
+    return res.json({
+      credits: 0,
+      stickers: [],
+      newly_unlocked: [],
+      next: null,
+      today: [],
+      dailyKinds: store.CREDIT_KINDS,
+    });
+  }
 
   res.json(store.getRewards(learner.id));
+});
+
+/**
+ * A device's record across all four tables.
+ *
+ * Public, and safe to be: the device id is the only key, exactly like
+ * /api/learners/rewards, and it returns nothing but counts. An unknown device
+ * gets four zeroed records rather than an error, because a device the server has
+ * not seen yet is the ordinary first-visit case.
+ *
+ * The game pages are served outside the SPA and have no session, so this is the
+ * only way their menus can show "7 wins · 12 games" before she has joined a room.
+ */
+app.get('/api/games/record', (req, res) => {
+  const publicId = req.query.public_id;
+  // `since` is an optional HKT calendar date (YYYY-MM-DD). The Sunday Table
+  // needs "what she did today", not "what she has ever done", and a result card
+  // that quietly reports a lifetime total as Sunday's score would be a small
+  // lie in the one artefact she sends to her friends.
+  const since = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query.since || ''))
+    ? new Date(`${req.query.since}T00:00:00+08:00`).toISOString()
+    : null;
+  res.json({ games: store.gameRecordsForDevice(publicId, since) });
 });
 
 /**
@@ -1616,37 +1735,65 @@ async function notifySubscribers(payload) {
   return res;
 }
 
-/** Mark quiet devices reminded and nudge them to practise. Fire-and-forget. */
-function runPracticeReminders(days) {
-  if (!push.isEnabled()) return { disabled: true };
-  const subs = store.listStaleForReminder(days);
-  if (!subs.length) return { sent: 0 };
-  // Mark first so an interrupted run cannot double-send.
-  for (const s of subs) store.markReminded(s.endpoint);
-  const subList = subs.map((r) => ({ endpoint: r.endpoint, keys: { p256dh: r.p256dh, auth: r.auth } }));
-  const payload = {
-    title: 'A quick Cantonese review?',
-    body: 'A few minutes a day keeps the words in your head. Open CantoBuddy and practise a few cards.',
-    url: '/',
-    tag: 'reminder',
-  };
-  push.broadcast(subList, payload)
-    .then((res) => {
-      if (res.expired > 0) for (const e of res.results) if (e.expired) store.removeSubscription(e.endpoint);
-    })
-    .catch((e) => console.error('practice reminder send failed:', e.message));
-  return { queued: subList.length };
-}
+/**
+ * One pass of the reminder ladder.
+ *
+ * Replaces the old flat "if idle for 3 days, send 'A quick Cantonese review?'"
+ * job. Two things were wrong with that and both are fixed here:
+ *
+ *   1. **The message was generic.** It is now built per device by
+ *      push-reminders.js — her streak length, her distance to the next sticker,
+ *      a headline that is genuinely new today, or one phrase for her kitchen,
+ *      in the language she reads.
+ *   2. **It fired at the wrong time.** A 3-day-idle trigger is already too late:
+ *      by the time it arrives the streak is dead, which is the only moment a
+ *      reminder was worth anything. The sweep now runs every few minutes and
+ *      acts inside one evening window (19:20–19:59 HKT), so the streak message
+ *      lands while the streak can still be saved.
+ *
+ * The send itself — and the claim that makes a second send in the same evening
+ * impossible — lives in push-sweep.js, where it can be tested against a fake
+ * sender instead of only in production.
+ */
+const runPushSweep = createSweeper({ store, push, reminders, sundayTable });
 
-const PUSH_REMINDER_DAYS = Number(process.env.PUSH_REMINDER_DAYS) || 3;
-// Daily practice-reminder sweep. On a free-tier host this only fires while the
-// process is awake; the admin "Send reminders now" button covers the rest.
-setInterval(() => runPracticeReminders(PUSH_REMINDER_DAYS), 24 * 60 * 60 * 1000).unref?.();
+// How often to look. The ladder sends at most once a day, but it must be *asked*
+// far more often than that: the window is 40 minutes wide and a free-tier host
+// sleeps, so a daily interval would routinely miss the evening entirely.
+const PUSH_SWEEP_MINUTES = Math.max(1, Number(process.env.PUSH_SWEEP_MINUTES) || 10);
+setInterval(() => {
+  runPushSweep().catch((e) => console.error('push sweep failed:', e.message));
+}, PUSH_SWEEP_MINUTES * 60 * 1000).unref?.();
+
+// A process that has just woken up should not wait ten minutes to notice that
+// the evening window is open.
+setTimeout(() => {
+  runPushSweep().catch(() => {});
+}, 45 * 1000).unref?.();
 
 // --- public endpoints: the opt-in invite calls these from the browser ---
 app.get('/api/push/config', (req, res) => {
   res.json({ enabled: push.isEnabled(), publicKey: push.getPublicKey() });
 });
+
+/**
+ * Resolve the device that is subscribing/pinging to a learner row.
+ *
+ * The browser sends the same `cb_device` id it already uses for every other
+ * API call (`public_id`), and the server resolves it — a client-supplied
+ * learner id is never trusted anywhere in this app, and this is no exception.
+ * The old `learnerId` body field is still accepted for compatibility but is
+ * only ever used as a fallback when no public id arrives.
+ */
+function learnerIdFromRequest(body) {
+  const publicId = body && (body.publicId || body.public_id);
+  if (publicId) {
+    const learner = store.getLearnerByPublicId(String(publicId).slice(0, 80));
+    if (learner) return learner.id;
+  }
+  const raw = body && body.learnerId;
+  return raw && Number.isFinite(Number(raw)) ? Number(raw) : null;
+}
 
 app.post('/api/push/subscribe', (req, res) => {
   const sub = req.body && req.body.subscription;
@@ -1657,7 +1804,8 @@ app.post('/api/push/subscribe', (req, res) => {
     endpoint: sub.endpoint,
     p256dh: sub.keys.p256dh,
     auth: sub.keys.auth,
-    learnerId: req.body && req.body.learnerId ? Number(req.body.learnerId) : null,
+    learnerId: learnerIdFromRequest(req.body),
+    lang: req.body && req.body.lang,
     source: 'web',
   });
   if (!saved) return res.status(500).json({ error: 'Could not save subscription.' });
@@ -1673,9 +1821,19 @@ app.post('/api/push/unsubscribe', (req, res) => {
 
 // Called by the app on each page load so last_active_at stays fresh and the
 // reminder job knows who has gone quiet. No auth — the endpoint is the token.
+//
+// It also backfills the learner link and the language. Every device that
+// subscribed before the ladder existed has `learner_id = NULL`, which would
+// make her streak unknowable; because this runs on every load, those devices
+// repair themselves without anyone being asked to opt in again.
 app.post('/api/push/ping', (req, res) => {
   const { endpoint } = req.body || {};
-  if (endpoint) store.updateLastActive(endpoint);
+  if (endpoint) {
+    store.updateLastActive(endpoint);
+    const learnerId = learnerIdFromRequest(req.body);
+    if (learnerId) store.linkSubscriptionLearner(endpoint, learnerId);
+    if (req.body && req.body.lang) store.setSubscriptionLang(endpoint, req.body.lang);
+  }
   res.json({ ok: true });
 });
 
@@ -1693,9 +1851,22 @@ app.post('/api/admin/push/send', requireAdmin, async (req, res) => {
   res.json(result);
 });
 
-app.post('/api/admin/push/reminders', requireAdmin, (req, res) => {
-  const days = Number(req.body && req.body.days) || PUSH_REMINDER_DAYS;
-  res.json(runPracticeReminders(days));
+/**
+ * Run the reminder ladder now.
+ *
+ * `{ dryRun: true }` returns the plan and sends nothing — the only way to see
+ * what the ladder would say without waiting for 19:20 and without touching a
+ * real phone. Combined with `{ now }` (a millisecond timestamp) it answers
+ * "what would this device get on day 7?" for any day and hour, which is how the
+ * window and the rungs are checked in practice.
+ */
+app.post('/api/admin/push/reminders', requireAdmin, async (req, res) => {
+  const body = req.body || {};
+  const dryRun = !!body.dryRun;
+  // A real send always uses the real clock: the send log is keyed on the HKT
+  // date, and a caller-supplied one could file a send under the wrong day.
+  const nowMs = dryRun && Number(body.now) ? Number(body.now) : Date.now();
+  res.json(await runPushSweep({ dryRun, nowMs }));
 });
 
 // Subscriber totals for the admin Push tab. No PII — just how many devices are
@@ -1720,6 +1891,20 @@ app.get('/api/admin/push/stats', requireAdmin, (req, res) => {
  */
 app.get('/api/admin/report', requireAdmin, (req, res) => {
   res.json(store.getReport(req.query.days));
+});
+
+/**
+ * GET /api/admin/report/games — who plays, alone or together, and how often.
+ *
+ * Separate from /api/admin/report because it answers a different question and
+ * reads a different table. The visitor report can see a learner who studied and
+ * never quizzed; this one can see a player who played and never quizzed, which
+ * is most of them.
+ *
+ * `days` is the same 7 / 30 / 90 window, defaulting to 30.
+ */
+app.get('/api/admin/report/games', requireAdmin, (req, res) => {
+  res.json(store.getGameReport(req.query.days));
 });
 
 /**
@@ -1798,10 +1983,48 @@ const CSV_EXPORTS = {
       p.days_active, p.first_day, p.last_day, p.last_seen_at,
     ]),
   },
+  /* Games. Two files rather than one because the per-game table and the
+     per-player distribution answer different questions and do not share a row
+     shape — flattening them into one CSV would need a column that is sometimes
+     a game name and sometimes a device count. */
+  games: {
+    header: ['game', 'games', 'player_results', 'wins', 'win_rate_pct', 'players',
+      'solo_games', 'group_games', 'solo_players', 'group_players', 'biggest_table'],
+    rows: () => store.getGameReport(90).byGame.map((g) => [
+      g.game, g.played, g.results, g.wins, g.winRate === null ? '' : g.winRate, g.players,
+      g.soloGames, g.groupGames, g.soloPlayers, g.groupPlayers, g.biggestTable,
+    ]),
+  },
+  games_players: {
+    header: ['metric', 'value'],
+    rows: () => {
+      const g = store.getGameReport(90);
+      return [
+        ['players_all_time', g.playersAllTime],
+        ['games_all_time', g.gamesAllTime],
+        ['players_this_period', g.playersThisPeriod],
+        ['solo_games', g.soloGames],
+        ['group_games', g.groupGames],
+        ['solo_share_pct', g.soloShare === null ? '' : g.soloShare],
+        ['games_per_player_median', g.gamesPerPlayer.median === null ? '' : g.gamesPerPlayer.median],
+        ['games_per_player_mean', g.gamesPerPlayer.mean === null ? '' : g.gamesPerPlayer.mean],
+        ['played_exactly_once', g.gamesPerPlayer.playedOnce],
+        ['came_back', g.gamesPerPlayer.cameBack],
+        ['most_games_one_player', g.gamesPerPlayer.most],
+        ['active_days_per_player_median', g.activeDaysPerPlayer.median === null ? '' : g.activeDaysPerPlayer.median],
+        ['session_span_median_minutes_app_wide', g.sessionSpan.medianMinutes === null ? '' : g.sessionSpan.medianMinutes],
+        ['session_span_mean_minutes_app_wide', g.sessionSpan.meanMinutes === null ? '' : g.sessionSpan.meanMinutes],
+        ['credit_devices_with_any', g.credits.devicesWithAny],
+        ['credit_device_days_at_ceiling', g.credits.deviceDaysAtCeiling],
+        ['credit_daily_ceiling', g.credits.dailyCeiling],
+      ];
+    },
+  },
 };
 
 /**
- * GET /api/admin/report.csv?type=employers|helpers|daily|summary
+ * GET /api/admin/report.csv?type=employers|helpers|daily|summary|visitors|
+ *     practice_only|games|games_players
  *
  * Built on the server rather than in the browser so the file arrives with a
  * filename and the right encoding, and so the numbers in the export are the
@@ -1842,8 +2065,24 @@ app.get('/portal', (req, res) => res.type('html').send(seo.portalPage()));
 app.get('/reset', (req, res) => res.sendFile(path.join(__dirname, 'public', 'portal.html')));
 app.get('/join/:code', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 // A shared Living passage deep-link (from WhatsApp / a picture) lands here and
-// opens in the learner app, which then opens the passage by slug.
-app.get('/living/:slug', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+// opens in the learner app, which then opens the passage by slug. The shell is
+// server-rendered with a per-passage <head> (title/meta/OG/JSON-LD) so each
+// article has a distinct, crawlable identity instead of the generic app title.
+app.get('/living/:slug', (req, res) => {
+  const html = seo.livingPostShell(req.params.slug);
+  if (html) { res.type('html').send(html); }
+  else { res.status(404); res.sendFile(path.join(__dirname, 'public', 'index.html')); }
+});
+
+// The Living hub: a standalone, crawlable directory of every passage, so the
+// set has a real entry point and the sitemap's /living/<slug> links resolve to
+// a page with internal links rather than an orphan.
+app.get('/living', (req, res) => {
+  res.status(200);
+  res.type('html');
+  res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=3600');
+  res.send(seo.renderLivingHub());
+});
 
 // ---------------------------------------------------------------------------
 // SEO

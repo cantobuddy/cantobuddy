@@ -84,6 +84,8 @@
   .join-row .field::placeholder{text-transform:none;letter-spacing:0;font-weight:600;font-size:15.5px;color:#8a909d}
   .join-row .btn{flex:0 0 auto;width:auto;padding:0 24px;background:var(--ink);color:#fff;white-space:nowrap;min-height:58px}
   .err{color:var(--red);font-size:15.5px;margin:10px 0 0;min-height:20px;text-align:center}
+  /* Her lifetime record. Muted on purpose: it is a fact, not a challenge. */
+  .recline{font-size:15px;color:var(--muted);text-align:center;margin:14px 0 0}
   .tips{margin:22px 0 0;padding:0;list-style:none;color:var(--muted);font-size:15px;line-height:1.85;text-align:center;max-width:min(360px,100%)}
 
   /* ---------------------------------------------------------- room shell */
@@ -201,10 +203,54 @@
   }
   .pop{animation:pop .28s cubic-bezier(.3,1.6,.5,1)}
   @keyframes pop{from{transform:scale(.7) rotate(-8deg);opacity:.4}to{transform:scale(1) rotate(0);opacity:1}}
-  .metaline{display:flex;align-items:center;justify-content:center;gap:14px;font-size:14px;color:var(--muted);padding-bottom:6px}
+  /* ---- the status line under the table ----
+     This was a 13px grey strip — the quietest thing on the screen — and it
+     carries the two facts a player needs most: the colour to match, and
+     whose turn it is. The operator's complaint (sent from a phone, with the
+     line circled) was that it was "very small, difficult to notice", and
+     that an elderly player could not comfortably play with her grandson.
+
+     Two changes, both measured rather than guessed (tools/uno-elder-measure.js):
+
+     1. HIERARCHY. The turn is the fact a player acts on, so it gets its own
+        row in its own pill, at a larger size, in ink rather than grey. The
+        colour and the direction are context, so they share a quieter row
+        above it. The row is now TWO rows on purpose and always two rows —
+        the alternative, one row that wraps only when the turn belongs to
+        someone else, would change the height of the table from turn to turn
+        and move the cards under the player's thumb.
+
+     2. SIZE. 13px -> 14.5px for the context row, 16.5px for the turn pill.
+        The colour swatch grows from an 11px dot to an 18px one with a white
+        ring, because "which colour" was being answered by a dot that read
+        as punctuation next to a word.
+
+     The pill is a separate element from the row above it, so the two never
+     compete for the same line — that is what keeps the height fixed. Its
+     text is allowed to WRAP rather than being clipped: a name the server
+     allows to be twelve characters long must still be readable, and a
+     half-printed name is worse than a taller pill. */
+  .metaline{
+    display:flex;flex-direction:column;align-items:center;gap:4px;
+    font-size:14.5px;color:var(--muted);padding:0 4px 5px;
+  }
+  .metaline-row{display:flex;align-items:center;justify-content:center;gap:12px;min-width:0;max-width:100%;line-height:1.2}
   .metaline b{color:var(--ink)}
-  .swatch{width:11px;height:11px;border-radius:50%;display:inline-block;vertical-align:-1px;margin-right:4px}
-  .dirbadge{font-size:13px}
+  #colorMeta{font-weight:700;color:var(--ink)}
+  .swatch{
+    width:18px;height:18px;border-radius:50%;display:inline-block;vertical-align:-3px;margin-right:6px;
+    box-shadow:0 0 0 2px rgba(255,255,255,.95),0 1px 3px rgba(0,0,0,.18);
+  }
+  .dirbadge{font-size:14px}
+  #turnMeta{
+    font-size:16.5px;font-weight:800;color:var(--ink);max-width:100%;
+    background:#fff;border:1.5px solid var(--line);border-radius:999px;
+    padding:3px 15px;box-shadow:0 4px 12px rgba(23,26,35,.07);text-align:center;
+  }
+  /* "Your turn" is the one line on the screen that says the game is waiting
+     for YOU, so it is the one line that gets the accent colour. The wording
+     still says it in words, so the meaning does not depend on the colour. */
+  #turnMeta.mine{background:#e9f0ff;border-color:#c9dcff;color:#1a4fd0}
   .roundchip{font-size:13.5px;color:var(--muted);background:#fff;border:1px solid var(--line);border-radius:11px;padding:8px 12px;white-space:nowrap;box-shadow:0 4px 12px rgba(23,26,35,.05)}
 
   /* hand */
@@ -348,6 +394,39 @@
   }
   .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 
+  /* On-table speech.
+     The chat panel is opt-in, so a message sent while it happened to be closed
+     was invisible to everyone: the sender got no confirmation, and the others
+     only found out by opening a panel they had no reason to open. These
+     bubbles float the newest messages over the table itself for a few seconds,
+     then leave. `pointer-events:none` throughout, because a message must never
+     steal a tap aimed at a card. */
+  .tablesay{
+    position:fixed;left:50%;transform:translateX(-50%);top:62px;
+    z-index:35;pointer-events:none;
+    display:flex;flex-direction:column;align-items:center;gap:6px;
+    width:min(92vw,360px);
+  }
+  .ts-item{
+    display:flex;align-items:flex-start;gap:8px;max-width:100%;
+    background:#fff;border:1px solid var(--line);border-radius:16px;
+    padding:7px 12px;box-shadow:0 10px 26px rgba(23,26,35,.15);
+    animation:tsIn .22s ease-out;
+  }
+  @keyframes tsIn{from{opacity:0;transform:translateY(-7px) scale(.95)}to{opacity:1;transform:none}}
+  .ts-item.out{animation:tsOut .3s ease-in forwards}
+  @keyframes tsOut{to{opacity:0;transform:translateY(-7px)}}
+  .ts-av{font-size:19px;line-height:1.25;flex:0 0 auto}
+  .ts-body{min-width:0}
+  .ts-who{font-size:13px;font-weight:700;color:var(--muted);letter-spacing:.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ts-tx{font-size:15px;line-height:1.45;word-break:break-word;overflow-wrap:anywhere}
+  .ts-item.shout{background:linear-gradient(135deg,#fff3d6,#ffe6b8);border-color:#f3d49a;padding:9px 14px}
+  .ts-item.shout .ts-tx{font-size:25px;line-height:1.3;font-weight:800;color:#a56a00}
+  @media(max-width:560px){ .tablesay{top:54px;width:min(94vw,320px)} }
+  @media(prefers-reduced-motion:reduce){
+    .ts-item{animation:none} .ts-item.out{animation:none;opacity:0}
+  }
+
   @media(min-width:900px){
     .hand .card{--w:86px;margin-left:-16px}
     .hand .card.ok:hover{transform:translateY(-20px)}
@@ -363,7 +442,7 @@
   }
   @media(max-width:560px){
     #room{padding:8px 10px 0}
-    .topbar{gap:6px;padding:4px 0 8px}
+    .topbar{gap:6px;padding:4px 0 5px}
     .codechip{padding:6px 10px;border-radius:11px;gap:6px}
     .codechip b{font-size:18px;letter-spacing:2px}
     .codechip small{font-size:13px}
@@ -380,11 +459,21 @@
     .card{--w:76px}
     .stack{width:76px;height:110px}
     #room{justify-content:space-between}
-    .table{flex:1 1 auto;height:auto;min-height:132px;gap:18px}
+    .table{flex:1 1 auto;height:auto;min-height:128px;gap:18px}
     .table::before{width:94%;height:100%;box-shadow:0 18px 34px -30px rgba(23,26,35,.2)}
-    .metaline{gap:10px;font-size:13px;flex-wrap:wrap;padding-bottom:4px}
+    /* The status line keeps the two-row shape it has everywhere else, at the
+       same sizes. It used to shrink to 13px here — the one place the type was
+       SMALLEST was the phone, which is backwards: that is where an elderly
+       player's face is closest to the screen. */
+    .metaline{gap:4px;font-size:15px;padding:0 4px 3px}
+    #turnMeta{font-size:16.5px;padding:4px 12px}
     .me-bar{padding:6px 10px;gap:8px;border-radius:15px}
     .me-bar .av{font-size:24px}
+    .me-bar .nm{font-size:18px}
+    .me-bar .cnt{font-size:15px}
+    .opp .nm{font-size:15.5px;max-width:92px}
+    .opp .cnt{font-size:14.5px}
+    .pile .lbl{font-size:15.5px}
     /* The turn tag duplicates the metaline directly above it, which names the
        player in full on its own line at the same 13px. On a 320px phone the tag
        got 99px of room for 168px of text and rendered "Waiting fo…", while the
@@ -392,7 +481,7 @@
        conveyed less. Absent beats truncated; the card's blue edge and the
        metaline both still say whose turn it is. */
     .me-bar .tag{display:none}
-    .hand .card{--w:70px;margin-left:-22px}
+    .hand .card{--w:66px;margin-left:-22px}
     .hand-scroll{padding:12px 4px 6px}
     .actions{gap:6px;padding:2px 2px calc(8px + env(safe-area-inset-bottom))}
     .act{padding:12px 14px;font-size:16px;border-radius:15px;min-height:52px}
@@ -431,6 +520,10 @@
     </div>
     <p id="lobbyErr" class="err"></p>
   </div>
+
+  <!-- Her record across every game. Empty and hidden until she has finished
+       one, so a stranger's first screen is unchanged. -->
+  <p id="myRecord" class="recline hidden"></p>
 
   <ul class="tips">
     <li data-k="tip1"></li>
@@ -471,8 +564,10 @@
   </div>
 
   <div class="metaline">
-    <span id="colorMeta"></span>
-    <span id="dirMeta"></span>
+    <div class="metaline-row">
+      <span id="colorMeta"></span>
+      <span id="dirMeta"></span>
+    </div>
     <span id="turnMeta"></span>
   </div>
 
@@ -524,6 +619,9 @@
 </aside>
 
 <div class="toast" id="toast"></div>
+<!-- Transient on-table speech. aria-live so a screen-reader user hears the
+     message too, rather than having to go and open the panel. -->
+<div class="tablesay" id="tableSay" aria-live="polite" aria-atomic="false"></div>
 <div id="modalRoot"></div>
 
 <script>
@@ -536,10 +634,15 @@
    the same four the app ships (en / fil / zh / id); an unknown or missing
    key falls back to English rather than rendering "undefined".
    ============================================================ */
+/* The page title and its one-line description carry an emoji, the same way
+   every culture heading does: it is the first thing on the screen and the
+   only part of a game page a player who has never opened it will read. The
+   emoji is language-neutral, so it is prefixed once per language block
+   rather than stored separately. */
 const STR = {
   en: {
-    backToApp: 'CantoBuddy', title: 'Family UNO',
-    sub: 'Make a room and send the 4-letter code to your family. Phone, tablet or laptop — chat while you play.',
+    backToApp: 'CantoBuddy', title: '🌈 Family UNO',
+    sub: '🎴 Make a room and send the 4-letter code to your family. Phone, tablet or laptop — chat while you play.',
     nameLabel: 'Your name', namePlaceholder: 'e.g. Maria / Mum / Lola',
     avatarLabel: 'Pick an avatar', createBtn: 'Create a room',
     divider: 'I already have a code', joinBtn: 'Join', codePlaceholder: 'Enter code',
@@ -560,6 +663,9 @@ const STR = {
     drawBtn: 'Draw a card', startBtn: 'Start game', againBtn: 'Play again', waitPlayers: 'Waiting for players…',
     colorTitle: 'Pick a colour', colorBody: 'The next card must match this colour', cancel: 'Cancel',
     winSelf: 'You win!', winOther: '{name} wins', winBody: 'Round {r} over · total 🏆 {w}',
+    // Lifetime record, not this room's tally. Hidden entirely at 0 played, so a
+    // first-time player never meets a "0 wins" badge that reads like a verdict.
+    recordLine: '🏆 {wins} won · {played} played',
     hostNext: 'Waiting for the host to start the next round…', viewTable: 'Back to the table',
     toastNotYourTurn: 'It is not your turn yet', toastCantPlay: 'Colour and number both differ — you cannot play that',
     toastCopied: 'Invite copied — send it to your family', promptCopy: 'Copy this link and send it to your family:',
@@ -607,8 +713,8 @@ const STR = {
     errNet: 'The connection slipped — please try again',
   },
   fil: {
-    backToApp: 'CantoBuddy', title: 'UNO ng Pamilya',
-    sub: 'Gumawa ng kuwarto at ipadala ang 4-letrang code sa pamilya mo. Telepono, tablet o laptop — mag-chat habang naglalaro.',
+    backToApp: 'CantoBuddy', title: '🌈 UNO ng Pamilya',
+    sub: '🎴 Gumawa ng kuwarto at ipadala ang 4-letrang code sa pamilya mo. Telepono, tablet o laptop — mag-chat habang naglalaro.',
     nameLabel: 'Pangalan mo', namePlaceholder: 'hal. Maria / Nanay / Lola',
     avatarLabel: 'Pumili ng avatar', createBtn: 'Gumawa ng kuwarto',
     divider: 'May code na ako', joinBtn: 'Sumali', codePlaceholder: 'Ilagay ang code',
@@ -629,6 +735,7 @@ const STR = {
     drawBtn: 'Bumunot', startBtn: 'Simulan', againBtn: 'Maglaro ulit', waitPlayers: 'Naghihintay ng manlalaro…',
     colorTitle: 'Pumili ng kulay', colorBody: 'Dapat pareho ang kulay ng susunod na baraha', cancel: 'Kanselahin',
     winSelf: 'Nanalo ka!', winOther: 'Nanalo si {name}', winBody: 'Tapos ang ika-{r} laro · kabuuan 🏆 {w}',
+    recordLine: '🏆 {wins} panalo · {played} laro',
     hostNext: 'Hinihintay na simulan ng host ang susunod na laro…', viewTable: 'Bumalik sa mesa',
     toastNotYourTurn: 'Hindi pa turno mo', toastCantPlay: 'Iba ang kulay at numero — hindi mo puwedeng ilagay',
     toastCopied: 'Nakopya ang imbitasyon — ipadala sa pamilya mo', promptCopy: 'Kopyahin ang link at ipadala sa pamilya mo:',
@@ -676,8 +783,8 @@ const STR = {
     errNet: 'Naputol ang koneksyon — subukan ulit',
   },
   zh: {
-    backToApp: 'CantoBuddy', title: '家庭 UNO',
-    sub: '开个房间，把 4 位配对码发给家人。手机、平板、电脑都能进，边聊边打。',
+    backToApp: 'CantoBuddy', title: '🌈 家庭 UNO',
+    sub: '🎴 开个房间，把 4 位配对码发给家人。手机、平板、电脑都能进，边聊边打。',
     nameLabel: '你的昵称', namePlaceholder: '比如：爸爸 / 小雨 / 外婆',
     avatarLabel: '挑个头像', createBtn: '创建房间',
     divider: '已经有配对码', joinBtn: '加入', codePlaceholder: '输入配对码',
@@ -698,6 +805,7 @@ const STR = {
     drawBtn: '摸一张', startBtn: '开始游戏', againBtn: '再来一局', waitPlayers: '等家人进来…',
     colorTitle: '指定颜色', colorBody: '下一张牌必须接这个颜色', cancel: '取消',
     winSelf: '你赢啦！', winOther: '{name} 赢了', winBody: '第 {r} 局结束 · 累计 🏆 {w}',
+    recordLine: '🏆 贏了 {wins} 場 · 共 {played} 場',
     hostNext: '等房主开下一局…', viewTable: '看看牌桌',
     toastNotYourTurn: '还没轮到你', toastCantPlay: '颜色和数字都对不上，换一张吧',
     toastCopied: '邀请已复制，发给家人吧', promptCopy: '复制这个链接发给家人：',
@@ -745,8 +853,8 @@ const STR = {
     errNet: '网络开小差了，再试一次',
   },
   id: {
-    backToApp: 'CantoBuddy', title: 'UNO Keluarga',
-    sub: 'Buat ruang dan kirim kode 4 huruf ke keluarga. Ponsel, tablet, atau laptop — ngobrol sambil main.',
+    backToApp: 'CantoBuddy', title: '🌈 UNO Keluarga',
+    sub: '🎴 Buat ruang dan kirim kode 4 huruf ke keluarga. Ponsel, tablet, atau laptop — ngobrol sambil main.',
     nameLabel: 'Nama kamu', namePlaceholder: 'mis. Maria / Ibu / Nenek',
     avatarLabel: 'Pilih avatar', createBtn: 'Buat ruang',
     divider: 'Saya sudah punya kode', joinBtn: 'Gabung', codePlaceholder: 'Masukkan kode',
@@ -767,6 +875,7 @@ const STR = {
     drawBtn: 'Ambil kartu', startBtn: 'Mulai main', againBtn: 'Main lagi', waitPlayers: 'Menunggu pemain…',
     colorTitle: 'Pilih warna', colorBody: 'Kartu berikutnya harus warna ini', cancel: 'Batal',
     winSelf: 'Kamu menang!', winOther: '{name} menang', winBody: 'Ronde {r} selesai · total 🏆 {w}',
+    recordLine: '🏆 {wins} menang · {played} main',
     hostNext: 'Menunggu tuan rumah memulai ronde berikutnya…', viewTable: 'Kembali ke meja',
     toastNotYourTurn: 'Belum giliranmu', toastCantPlay: 'Warna dan angkanya beda — kartu ini tidak bisa dipakai',
     toastCopied: 'Undangan tersalin — kirim ke keluargamu', promptCopy: 'Salin tautan ini dan kirim ke keluargamu:',
@@ -1054,6 +1163,41 @@ function myName() {
   return ($('#nameInput').value || '').trim() || 'Player' + Math.floor(Math.random() * 90 + 10);
 }
 
+/**
+ * The same device identity the rest of the app uses (DEVICE_KEY in app.js).
+ *
+ * It is what lets a win here and a quiz there belong to one person, and it is
+ * why the record survives closing the tab. Created here if the app has never
+ * been opened on this device — the format matches, so the two agree whichever
+ * gets there first.
+ */
+function deviceId() {
+  try {
+    let id = localStorage.getItem('cb_device');
+    if (!id) {
+      const b = new Uint8Array(16);
+      crypto.getRandomValues(b);
+      id = 'dev_' + Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
+      localStorage.setItem('cb_device', id);
+    }
+    return id;
+  } catch (e) { return null; }
+}
+
+/** Her record at this game, for the lobby. Nothing at all if she has never played. */
+async function loadMyRecord() {
+  const el = $('#myRecord');
+  if (!el) return;
+  try {
+    const r = await fetch('/api/games/record?public_id=' + encodeURIComponent(deviceId() || ''));
+    const d = await r.json();
+    const rec = d && d.games && d.games.uno;
+    if (!rec || !rec.played) { el.classList.add('hidden'); return; }
+    el.textContent = t('recordLine', { wins: rec.wins, played: rec.played });
+    el.classList.remove('hidden');
+  } catch (e) { /* a record is not worth an error message */ }
+}
+
 async function doCreate() {
   const btn = $('#createBtn');
   btn.disabled = true;
@@ -1061,7 +1205,7 @@ async function doCreate() {
   try {
     const name = myName();
     localStorage.setItem('uno.name', name);
-    const d = await api('api/create', { name, avatar: myAvatar });
+    const d = await api('api/create', { name, avatar: myAvatar, deviceId: deviceId() });
     session = { code: d.code, token: d.token, name: d.name, avatar: d.avatar };
     saveSession();
     enterRoom();
@@ -1079,7 +1223,7 @@ async function doJoin() {
   try {
     const name = myName();
     localStorage.setItem('uno.name', name);
-    const d = await api('api/join', { code, name, avatar: myAvatar });
+    const d = await api('api/join', { code, name, avatar: myAvatar, deviceId: deviceId() });
     session = { code: d.code, token: d.token, name: d.name, avatar: d.avatar };
     saveSession();
     enterRoom();
@@ -1095,6 +1239,13 @@ function enterRoom() {
   $('#codeText').textContent = session.code;
   $('#myAv').textContent = session.avatar || '🙂';
   $('#myName').textContent = session.name;
+  /* Joining a room is a fresh feed. Without this, the trackers still held the
+     previous room's key, so the first state here looked like news and flashed
+     that room's last message onto the table before the player had sat down. */
+  chatPrimed = false;
+  lastChatKey = null;
+  const say = $('#tableSay');
+  if (say) say.innerHTML = '';
   history.replaceState(null, '', BASE + session.code);
   connect();
 }
@@ -1138,7 +1289,8 @@ function applyState(st) {
   if (st.state === 'playing' && st.turn === st.you.id && st.turnStart !== lastTurnStart) sfx.turn();
   lastTurnStart = st.turnStart;
 
-  /* A message from someone else gets the funny sound.
+  /* A message from someone else gets the funny sound, and every new message
+     gets an on-table bubble.
      Keyed on `t:author` and not on `id`, because a chat item's `id` is the
      AUTHOR — the same player's second message carries the same id, so it would
      dedupe to silence.
@@ -1149,12 +1301,24 @@ function applyState(st) {
      exists for. Prime once, on the first state, whether or not there is chat. */
   const chat = st.chat || [];
   const newest = chat.length ? chat[chat.length - 1] : null;
-  const key = newest ? newest.t + ':' + newest.id : null;
+  const key = chatKey(newest);
   if (!chatPrimed) {
     chatPrimed = true;
     lastChatKey = key;
   } else if (key && key !== lastChatKey) {
-    if (newest.id !== st.you.id && newest.kind !== 'shout') sfx.msg();
+    /* Walk back to the last message we already handled and replay what is
+       after it, so two messages that arrive inside one broadcast both show.
+       The walk is capped at 4: if `lastChatKey` has aged out of the 60-item
+       cap, "not found" must not mean "replay the whole log onto the table". */
+    const fresh = [];
+    for (let i = chat.length - 1; i >= 0 && fresh.length < 4; i--) {
+      if (chatKey(chat[i]) === lastChatKey) break;
+      fresh.unshift(chat[i]);
+    }
+    for (const it of fresh) {
+      if (it.id !== st.you.id && it.kind !== 'shout') sfx.msg();
+      showTableSay(it);
+    }
     lastChatKey = key;
   }
 
@@ -1183,6 +1347,10 @@ function renderTop() {
   $('#turnMeta').innerHTML = S.state === 'playing'
     ? (S.you.isTurn ? '👉 <b>' + t('turnMine') + '</b>' : t('turnTheirs', { name: '<b>' + esc(S.turnName) + '</b>' }))
     : (S.state === 'lobby' ? t('waitingStart') : t('roundOver'));
+  /* "Your turn" is the only state that means the game is waiting on YOU, so
+     it is the only one that gets the accent pill. The wording carries the
+     meaning; the colour only makes it findable. */
+  $('#turnMeta').classList.toggle('mine', S.state === 'playing' && !!S.you.isTurn);
 
   $('#roundChip').textContent = S.state === 'lobby'
     ? t('roundWaiting', { n: S.players.length })
@@ -1421,6 +1589,49 @@ function askColor(cardId) {
 }
 function closeModal() { $('#modalRoot').innerHTML = ''; pendingWild = null; }
 
+/** The identity of one chat line, for "have I shown this already?".
+ *  `t` alone is not enough — two players can speak in the same millisecond. */
+function chatKey(it) { return it ? it.t + ':' + it.id : null; }
+
+/* How long an on-table bubble stays, and how many may be on screen at once.
+   Three is the ceiling: a fourth means the table is being covered by chat,
+   and at that point the panel is the better place to read it. */
+const TS_MS = 4600;
+const TS_MAX = 3;
+
+/** Float one chat line or emoji shout over the table, then let it go. */
+function showTableSay(it) {
+  const box = $('#tableSay');
+  if (!box || !it) return;
+  while (box.children.length >= TS_MAX) box.removeChild(box.firstChild);
+
+  const el = document.createElement('div');
+  el.className = 'ts-item' + (it.kind === 'shout' ? ' shout' : '');
+  /* textContent everywhere — a chat message is user input and must never be
+     parsed as markup. The name is the only thing that gets a structure. */
+  const av = document.createElement('span');
+  av.className = 'ts-av';
+  av.textContent = it.avatar || '🙂';
+  const body = document.createElement('div');
+  body.className = 'ts-body';
+  const who = document.createElement('div');
+  who.className = 'ts-who';
+  who.textContent = it.name || '';
+  const tx = document.createElement('div');
+  tx.className = 'ts-tx';
+  tx.textContent = it.text || '';
+  body.appendChild(who);
+  body.appendChild(tx);
+  el.appendChild(av);
+  el.appendChild(body);
+  box.appendChild(el);
+
+  setTimeout(() => {
+    el.classList.add('out');
+    setTimeout(() => el.remove(), 320);
+  }, TS_MS);
+}
+
 function renderFeed() {
   const body = $('#feedBody');
   const items = [];
@@ -1461,6 +1672,14 @@ function confetti() {
   setTimeout(() => root.remove(), 3600);
 }
 
+/** Her lifetime record as one line, or nothing when there is no record yet. */
+function recordHtml() {
+  const rec = S && S.you && S.you.record;
+  if (!rec || !rec.played) return '';
+  return '<p class="recline" style="margin:2px 0 10px">' +
+    esc(t('recordLine', { wins: rec.wins, played: rec.played })) + '</p>';
+}
+
 function renderOverlay() {
   if (S.state !== 'ended' || !S.winner) { if ($('#winOv')) $('#winOv').remove(); return; }
   if ($('#winOv')) return;
@@ -1476,6 +1695,7 @@ function renderOverlay() {
     '<div class="big-av">' + w.avatar + '</div>' +
     '<h2>' + (iWon ? esc(t('winSelf')) : esc(t('winOther', { name: w.name }))) + '</h2>' +
     '<p>' + esc(t('winBody', { r: S.round, w: w.wins || 1 })) + '</p>' +
+    recordHtml() +
     (S.hostId === S.you.id
       ? '<button class="btn primary" id="againBtn">🔁 ' + esc(t('againBtn')) + '</button>'
       : '<p style="margin:0">' + esc(t('hostNext')) + '</p>') +
@@ -1514,6 +1734,7 @@ async function doDraw() {
 
 /* ============================================================ wiring */
 paintStatic();
+loadMyRecord();
 $('#createBtn').onclick = doCreate;
 $('#joinBtn').onclick = doJoin;
 $('#nameInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') doCreate(); });

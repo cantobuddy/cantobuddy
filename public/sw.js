@@ -7,7 +7,7 @@
 // Bump this whenever index.html / app.js / i18n.js / styles.css / the icons
 // change. The app shell is cached cache-first, so without a version bump
 // installed PWAs would keep serving the previous build from cache.
-const CACHE = 'cantobuddy-v99';
+const CACHE = 'cantobuddy-v114';
 
 // Which paths are server-rendered SEO documents rather than app-shell assets.
 // Kept as one matcher so it can be asserted against `LANG_PREFIX` in seo.js —
@@ -20,6 +20,11 @@ const APP_SHELL = [
   '/styles.css',
   '/app.js',
   '/i18n.js',
+  // Outings: the place data and the photograph credits. Both are local and
+  // small, and a place page that cannot credit its photographer offline is a
+  // licence problem, not a cosmetic one.
+  '/places.js',
+  '/places/credits.js',
   '/manifest.json',
   '/icons/icon-192.png',
   '/icons/icon-512.png',

@@ -32,6 +32,10 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
+// Wins used to live only on the in-memory room object, so a restart erased them
+// and there was nothing to come back to tomorrow. This writes them down.
+const records = require('./game-records');
+
 const PUBLIC = path.join(__dirname, 'public', 'uno');
 
 const COLORS = ['red', 'yellow', 'green', 'blue'];
@@ -104,9 +108,9 @@ function buildDeck() {
 const cardRef = (c) => ({ color: c.color, value: c.value });
 
 /* ------------------------------------------------------------------ state */
-function createRoom(hostName, hostAvatar) {
+function createRoom(hostName, hostAvatar, hostDeviceId) {
   const code = makeCode();
-  const host = newPlayer(hostName, hostAvatar);
+  const host = newPlayer(hostName, hostAvatar, hostDeviceId);
   const room = {
     code,
     hostId: host.id,
@@ -125,16 +129,21 @@ function createRoom(hostName, hostAvatar) {
     createdAt: now(),
   };
   rooms.set(code, room);
+  records.attachRecords(room.players, 'uno');
   pushLog(room, { k: 'roomCreated', code });
   return room;
 }
 
-function newPlayer(name, avatar) {
+function newPlayer(name, avatar, deviceId) {
   return {
     id: uid(),
     token: uid(),
     name: String(name || '').slice(0, 12).trim() || 'Player',
     avatar: avatar || '🙂',
+    // Her identity across sessions. Null is legitimate: a player who has not
+    // been identified still plays, she just has no record to show yet.
+    deviceId: deviceId || null,
+    record: null,
     hand: [],
     conns: 0,
     disconnectedAt: 0,
@@ -240,6 +249,9 @@ function finishRound(room, winner) {
   room.state = 'ended';
   room.winner = winner.id;
   winner.wins += 1;
+  // Written down before anything else: the room's own tally dies with the
+  // process, and this is the only part of the result that outlives it.
+  records.recordFinish({ game: 'uno', room, winnerId: winner.id });
   pushLog(room, { k: 'win', name: winner.name, round: room.round });
 }
 
@@ -351,6 +363,7 @@ function stateFor(room, viewer) {
       id: viewer.id,
       name: viewer.name,
       avatar: viewer.avatar,
+      record: viewer.record || null,
       isTurn: !!(turnPlayer && turnPlayer.id === viewer.id),
       hand: viewer.hand.map((c) => ({
         id: c.id, color: c.color, value: c.value, playable: isPlayable(c, room),
@@ -360,6 +373,9 @@ function stateFor(room, viewer) {
     players: room.players.map((p) => ({
       id: p.id, name: p.name, avatar: p.avatar, count: p.hand.length,
       connected: p.conns > 0, wins: p.wins,
+      // Lifetime record, not this room's tally: `wins` above resets with the
+      // room, `record` is the reason to come back tomorrow.
+      record: p.record || null,
       isTurn: !!(turnPlayer && turnPlayer.id === p.id),
       isHost: p.id === room.hostId,
     })),
@@ -471,11 +487,11 @@ async function handle(req, res) {
     const ip = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
     if (!allowCreate(ip)) return json(res, 429, { error: 'tooManyRooms' });
     const body = await readBody(req);
-    const room = createRoom(body.name, body.avatar);
+    const room = createRoom(body.name, body.avatar, records.deviceIdFrom(body));
     const host = room.players[0];
     return json(res, 200, {
       code: room.code, token: host.token, playerId: host.id,
-      name: host.name, avatar: host.avatar,
+      name: host.name, avatar: host.avatar, record: host.record,
     });
   }
 
@@ -490,13 +506,14 @@ async function handle(req, res) {
     if (room.players.some((x) => x.name === name && room.state === 'lobby')) {
       return json(res, 409, { error: 'nameTaken' });
     }
-    const player = newPlayer(name, body.avatar);
+    const player = newPlayer(name, body.avatar, records.deviceIdFrom(body));
     room.players.push(player);
+    records.attachRecords(room.players, 'uno');
     pushLog(room, { k: 'join', name: player.name });
     broadcast(room, { type: 'join', name: player.name });
     return json(res, 200, {
       code: room.code, token: player.token, playerId: player.id,
-      name: player.name, avatar: player.avatar,
+      name: player.name, avatar: player.avatar, record: player.record,
     });
   }
 

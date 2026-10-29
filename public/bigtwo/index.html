@@ -88,7 +88,10 @@
      (uppercase, wide spacing, bold) or "Enter code" itself reads as a code. */
   .join-row .field::placeholder{text-transform:none;letter-spacing:0;font-weight:600;font-size:13px;color:#a7aeba}
   .join-row .btn{width:auto;padding:13px 20px}
-  .err{margin:12px 0 0;color:var(--red);font-size:12.5px;min-height:16px;text-align:center}
+  .err{
+  /* Her lifetime record. Muted on purpose: it is a fact, not a challenge. */
+  .recline{font-size:12.5px;color:var(--muted);text-align:center;margin:14px 0 0}
+margin:12px 0 0;color:var(--red);font-size:12.5px;min-height:16px;text-align:center}
   .tips{list-style:none;padding:0;margin:22px 0 0;max-width:360px;font-size:12px;color:var(--muted);line-height:1.7}
   .tips li{padding-left:16px;position:relative}
   .tips li::before{content:"•";position:absolute;left:2px;color:var(--green)}
@@ -111,6 +114,15 @@
     width:36px;height:36px;border-radius:11px;background:#fff;border:1px solid var(--line);
     display:grid;place-items:center;font-size:15px;box-shadow:0 4px 12px rgba(23,26,35,.05);
   }
+  /* The WhatsApp invite, the same green + white-circle treatment as UNO. Sized
+     to the 36px topbar buttons so it reads as one of them, not a foreign widget. */
+  .wa-btn{
+    flex:0 0 auto;width:36px;height:36px;border-radius:11px;background:#fff;
+    border:1px solid var(--line);color:#25d366;display:grid;place-items:center;
+    box-shadow:0 4px 12px rgba(23,26,35,.05);transition:.15s;
+  }
+  .wa-btn:active{transform:scale(.93)}
+  .wa-btn svg{width:20px;height:20px;display:block}
 
   /* opponents */
   .seats{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;padding:2px 0 10px}
@@ -284,6 +296,36 @@
   }
   .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 
+  /* On-table speech. Same reasoning as the UNO table: the chat panel is
+     opt-in, so a message sent while it was closed reached nobody. These
+     bubbles float the newest lines over the table for a few seconds and are
+     `pointer-events:none` so they can never eat a tap meant for a card. */
+  .tablesay{
+    position:fixed;left:50%;transform:translateX(-50%);top:58px;
+    z-index:35;pointer-events:none;
+    display:flex;flex-direction:column;align-items:center;gap:6px;
+    width:min(92vw,340px);
+  }
+  .ts-item{
+    display:flex;align-items:flex-start;gap:8px;max-width:100%;
+    background:#fff;border:1px solid var(--line);border-radius:15px;
+    padding:7px 11px;box-shadow:0 10px 26px rgba(23,26,35,.15);
+    animation:tsIn .22s ease-out;
+  }
+  @keyframes tsIn{from{opacity:0;transform:translateY(-7px) scale(.95)}to{opacity:1;transform:none}}
+  .ts-item.out{animation:tsOut .3s ease-in forwards}
+  @keyframes tsOut{to{opacity:0;transform:translateY(-7px)}}
+  .ts-av{font-size:18px;line-height:1.25;flex:0 0 auto}
+  .ts-body{min-width:0}
+  .ts-who{font-size:13px;font-weight:700;color:var(--muted);letter-spacing:.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ts-tx{font-size:14px;line-height:1.45;word-break:break-word;overflow-wrap:anywhere}
+  .ts-item.shout{background:linear-gradient(135deg,#fff3d6,#ffe6b8);border-color:#f3d49a;padding:9px 13px}
+  .ts-item.shout .ts-tx{font-size:24px;line-height:1.3;font-weight:800;color:#a56a00}
+  @media(max-width:560px){ .tablesay{top:50px;width:min(94vw,300px)} }
+  @media(prefers-reduced-motion:reduce){
+    .ts-item{animation:none} .ts-item.out{animation:none;opacity:0}
+  }
+
   @media(min-width:900px){
     :root{--cw:76px}
     .hand .card + .card{margin-left:calc(var(--cw) * -0.42)}
@@ -352,6 +394,9 @@
     </div>
     <p id="lobbyErr" class="err"></p>
   </div>
+  <!-- Her record across every game. Empty and hidden until she has finished
+       one, so a stranger's first screen is unchanged. -->
+  <p id="myRecord" class="recline hidden"></p>
 
   <ul class="tips">
     <li data-k="tip1"></li>
@@ -369,6 +414,7 @@
       </div>
       <span style="font-size:15px">🔗</span>
     </div>
+    <button class="wa-btn" id="waBtn" type="button" aria-hidden="false"></button>
     <div class="roundchip" id="roundChip"></div>
     <div class="spacer"></div>
     <div class="status"><span class="dot" id="liveDot"></span><span id="liveText"></span></div>
@@ -431,6 +477,8 @@
 </aside>
 
 <div class="toast" id="toast"></div>
+<!-- Transient on-table speech, announced to screen readers as well. -->
+<div class="tablesay" id="tableSay" aria-live="polite" aria-atomic="false"></div>
 <div id="modalRoot"></div>
 
 <script>
@@ -447,15 +495,20 @@
    not translated. Only the COMBINATIONS get words, because "full house"
    genuinely differs between the four.
    ============================================================ */
+/* The page title and its one-line description carry an emoji, the same way
+   every culture heading does: it is the first thing on the screen and the
+   only part of a game page a player who has never opened it will read. The
+   emoji is language-neutral, so it is prefixed once per language block
+   rather than stored separately. */
 const STR = {
   en: {
-    backToApp: 'CantoBuddy', title: 'Big Two',
-    sub: 'The Hong Kong card game — 2 is the highest card and spades are the strongest suit. Make a room and send the code to your family.',
+    backToApp: 'CantoBuddy', title: '🃏 Big Two',
+    sub: '🇭🇰 The Hong Kong card game — 2 is the highest card and spades are the strongest suit. Make a room and send the code to your family.',
     nameLabel: 'Your name', avatarLabel: 'Pick an avatar', createBtn: 'Create a room',
     divider: 'I already have a code', joinBtn: 'Join', codePlaceholder: 'Enter code',
     tip1: '2–4 players · 13 cards each · the 2 is the biggest card',
     tip2: 'You can pass, but whoever played last leads the next hand',
-    codeChipLabel: 'Room code · tap to share',
+    codeChipLabel: 'Room code · tap to share', waInvite: 'Invite on WhatsApp', inviteText: 'Come play Big Two! Room code {code} → {url}',
     soundTitle: 'Sound', feedTitle: 'Table log', leaveTitle: 'Leave the room',
     liveOnline: 'Live', liveReconnecting: 'Reconnecting',
     feedHead: 'Table chat & log',
@@ -489,6 +542,7 @@ const STR = {
     typeStraight: 'straight', typeFlush: 'flush', typeFullhouse: 'full house',
     typeQuads: 'four of a kind', typeStraightflush: 'straight flush',
     winTitle: 'You win!', winSub: 'You got rid of all your cards first.',
+    recordLine: '🏆 {wins} won · {played} played',
     loseTitle: '{name} wins', loseSub: 'Better luck in the next round.',
     againBtn: 'Play again', backToHub: 'Back to the games',
     errNotStarted: 'The game has not started yet.',
@@ -513,13 +567,13 @@ const STR = {
     errUnknown: 'Something went wrong — try again.',
   },
   fil: {
-    backToApp: 'CantoBuddy', title: 'Big Two',
-    sub: 'Ang larong baraha ng Hong Kong — ang 2 ang pinakamalakas na baraha at spades ang pinakamalakas na suit. Gumawa ng kuwarto at ipadala ang code sa pamilya.',
+    backToApp: 'CantoBuddy', title: '🃏 Big Two',
+    sub: '🇭🇰 Ang larong baraha ng Hong Kong — ang 2 ang pinakamalakas na baraha at spades ang pinakamalakas na suit. Gumawa ng kuwarto at ipadala ang code sa pamilya.',
     nameLabel: 'Pangalan mo', avatarLabel: 'Pumili ng avatar', createBtn: 'Gumawa ng kuwarto',
     divider: 'May code na ako', joinBtn: 'Sumali', codePlaceholder: 'Ilagay ang code',
     tip1: '2–4 na manlalaro · 13 baraha bawat isa · ang 2 ang pinakamalaki',
     tip2: 'Puwedeng mag-pass, pero ang huling naglaro ang mangunguna sa susunod',
-    codeChipLabel: 'Code ng kuwarto · i-tap para i-share',
+    codeChipLabel: 'Code ng kuwarto · i-tap para i-share', waInvite: 'Anyayahan sa WhatsApp', inviteText: 'Halina, mag-Big Two tayo! Code {code} → {url}',
     soundTitle: 'Tunog', feedTitle: 'Talaan ng laro', leaveTitle: 'Umalis sa kuwarto',
     liveOnline: 'Live', liveReconnecting: 'Kumokonekta ulit',
     feedHead: 'Chat at talaan',
@@ -553,6 +607,7 @@ const STR = {
     typeStraight: 'straight', typeFlush: 'flush', typeFullhouse: 'full house',
     typeQuads: 'apat na magkapareho', typeStraightflush: 'straight flush',
     winTitle: 'Nanalo ka!', winSub: 'Naubos mo ang baraha mo bago pa ang iba.',
+    recordLine: '🏆 {wins} panalo · {played} laro',
     loseTitle: 'Nanalo si {name}', loseSub: 'Bawi na lang sa susunod.',
     againBtn: 'Maglaro ulit', backToHub: 'Bumalik sa mga laro',
     errNotStarted: 'Hindi pa nagsisimula ang laro.',
@@ -577,13 +632,13 @@ const STR = {
     errUnknown: 'May naging mali — subukan ulit.',
   },
   zh: {
-    backToApp: 'CantoBuddy', title: '鋤大D',
-    sub: '香港经典纸牌游戏——2 最大，黑桃最大。开一个房间，把房间码发给家人。',
+    backToApp: 'CantoBuddy', title: '🃏 鋤大D',
+    sub: '🇭🇰 香港经典纸牌游戏——2 最大，黑桃最大。开一个房间，把房间码发给家人。',
     nameLabel: '你的名字', avatarLabel: '选一个头像', createBtn: '开一个房间',
     divider: '我已经有房间码', joinBtn: '加入', codePlaceholder: '输入房间码',
     tip1: '2–4 人 · 每人 13 张 · 2 是最大的牌',
     tip2: '可以过牌，但最后出牌的人带下一手',
-    codeChipLabel: '房间码 · 点按分享',
+    codeChipLabel: '房间码 · 点按分享', waInvite: '用 WhatsApp 邀请家人', inviteText: '来打牌！房间配对码 {code} → {url}',
     soundTitle: '音效', feedTitle: '牌局记录', leaveTitle: '离开房间',
     liveOnline: '连线中', liveReconnecting: '重新连线',
     feedHead: '牌桌动态',
@@ -617,6 +672,7 @@ const STR = {
     typeStraight: '顺子', typeFlush: '同花', typeFullhouse: '葫芦',
     typeQuads: '四条', typeStraightflush: '同花顺',
     winTitle: '你赢了！', winSub: '你比别人先出完所有的牌。',
+    recordLine: '🏆 贏了 {wins} 場 · 共 {played} 場',
     loseTitle: '{name} 赢了', loseSub: '下一局再来。',
     againBtn: '再来一局', backToHub: '回到游戏',
     errNotStarted: '游戏还没开始。',
@@ -641,13 +697,13 @@ const STR = {
     errUnknown: '出了点问题——请再试一次。',
   },
   id: {
-    backToApp: 'CantoBuddy', title: 'Big Two',
-    sub: 'Permainan kartu Hong Kong — kartu 2 paling besar dan sekop suit terkuat. Buat ruangan dan kirim kodenya ke keluarga.',
+    backToApp: 'CantoBuddy', title: '🃏 Big Two',
+    sub: '🇭🇰 Permainan kartu Hong Kong — kartu 2 paling besar dan sekop suit terkuat. Buat ruangan dan kirim kodenya ke keluarga.',
     nameLabel: 'Nama kamu', avatarLabel: 'Pilih avatar', createBtn: 'Buat ruangan',
     divider: 'Saya sudah punya kode', joinBtn: 'Gabung', codePlaceholder: 'Masukkan kode',
     tip1: '2–4 pemain · 13 kartu masing-masing · kartu 2 paling besar',
     tip2: 'Boleh lewat, tapi yang terakhir main memimpin putaran berikutnya',
-    codeChipLabel: 'Kode ruangan · ketuk untuk bagikan',
+    codeChipLabel: 'Kode ruangan · ketuk untuk bagikan', waInvite: 'Undang lewat WhatsApp', inviteText: 'Ayo main Big Two! Kode ruang {code} → {url}',
     soundTitle: 'Suara', feedTitle: 'Catatan permainan', leaveTitle: 'Keluar dari ruang',
     liveOnline: 'Langsung', liveReconnecting: 'Menyambung ulang',
     feedHead: 'Obrolan & catatan',
@@ -681,6 +737,7 @@ const STR = {
     typeStraight: 'straight', typeFlush: 'flush', typeFullhouse: 'full house',
     typeQuads: 'empat kartu sama', typeStraightflush: 'straight flush',
     winTitle: 'Kamu menang!', winSub: 'Kamu menghabiskan kartumu lebih dulu.',
+    recordLine: '🏆 {wins} menang · {played} main',
     loseTitle: '{name} menang', loseSub: 'Coba lagi di ronde berikutnya.',
     againBtn: 'Main lagi', backToHub: 'Kembali ke permainan',
     errNotStarted: 'Permainan belum dimulai.',
@@ -754,6 +811,8 @@ let es = null;
 let picked = new Set();    // card ids the player has tapped
 let sound = localStorage.getItem(SOUND_KEY) !== 'off';
 let lastLogLen = 0;
+let lastChatKey = null;    // "t:author" of the newest chat line already shown
+let chatPrimed = false;    // the first state is history, not news
 
 /* The topbar icons are stroked SVGs, not emoji — same set as the UNO table, so
    the two games read as one app. Emoji were also a portability risk: this bar
@@ -762,6 +821,14 @@ let lastLogLen = 0;
    fall back to anything. */
 const ICON_SOUND_ON = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.2l4.3 3.5V6L7.2 9.5H4z"/><path d="M15.4 9a4.2 4.2 0 0 1 0 6"/><path d="M18 6.6a7.6 7.6 0 0 1 0 10.8"/></svg>';
 const ICON_SOUND_OFF = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.2l4.3 3.5V6L7.2 9.5H4z"/><path d="M16 9.8l4.4 4.4M20.4 9.8 16 14.2"/></svg>';
+
+/* The WhatsApp mark — a speech bubble with a handset, in currentColor so the
+   button decides the green. Copied from the UNO table's WA_ICON rather than
+   shared, because each game client is a standalone file with no app.js. */
+const WA_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
+  '<path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Z" fill="none" stroke="currentColor" stroke-width="2"/>' +
+  '<path d="M8.6 7.6c.3-.1.6 0 .8.3l.8 1.3c.1.3.1.6-.1.8l-.5.5c-.2.2-.2.4-.1.6.5.9 1.3 1.7 2.2 2.2.2.1.4.1.6-.1l.5-.5c.2-.2.5-.3.8-.1l1.3.8c.3.2.4.5.3.8-.3 1-1.3 1.7-2.4 1.6-2.8-.3-5.2-2.7-5.5-5.5-.1-1.1.6-2.1 1.6-2.4Z" fill="currentColor"/>' +
+  '</svg>';
 
 function renderSoundIcon() {
   const el = $('#soundIcon');
@@ -812,6 +879,28 @@ function errorText(code) {
   return d[key] || STR.en[key] || t('errUnknown');
 }
 
+/* ============================================================ invite */
+/**
+ * The link a family member taps to land in THIS room — the same /games/bigtwo/
+ * ABCD URL the code chip copies, read out of `code`. Built in one place so the
+ * chip and the WhatsApp button can never drift.
+ */
+function inviteUrl() {
+  return location.origin + BASE + code;
+}
+
+/**
+ * Hand the invitation to WhatsApp instead of the clipboard. `wa.me/?text=` is
+ * the one form that works on the app and on Web with no SDK; the message carries
+ * the room link, not just the four-letter code, so the recipient taps once and
+ * is in the room.
+ */
+function shareOnWhatsApp() {
+  const url = inviteUrl();
+  const msg = t('inviteText', { code: code, url });
+  window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank', 'noopener');
+}
+
 /* --------------------------------------------------------------- lobby */
 const AVATARS = ['🙂', '😄', '😎', '🥳', '🐯', '🐼', '🐨', '🦊', '🌸', '⭐', '🍜', '🎧'];
 let myAvatar = AVATARS[0];
@@ -844,11 +933,59 @@ function paintStatic() {
     $(sel).title = t(key);
     $(sel).setAttribute('aria-label', t(key));
   }
+  // The WhatsApp invite button mirrors UNO: same icon, same label, same tooltip.
+  $('#waBtn').innerHTML = WA_ICON;
+  $('#waBtn').title = t('waInvite');
+  $('#waBtn').setAttribute('aria-label', t('waInvite'));
   renderSoundIcon();
 }
 
 function myName() {
   return ($('#nameInput').value || '').trim().slice(0, 12);
+}
+
+/**
+ * The same device identity the rest of the app uses (DEVICE_KEY in app.js).
+ *
+ * It is what lets a win here and a quiz there belong to one person, and it is
+ * why the record survives closing the tab. Created here if the app has never
+ * been opened on this device — the format matches, so the two agree whichever
+ * gets there first.
+ *
+ * DECLARED AT TOP LEVEL, and that is not a style preference. A previous edit
+ * inserted this function — and `loadMyRecord` below — INSIDE `myName`'s body,
+ * between its opening brace and its `return`. The file still parsed, the page
+ * still painted, and the lobby still looked perfectly normal; every call from
+ * outside `myName` simply threw `ReferenceError: deviceId is not defined`.
+ * Create and Join both call it, so the game could not be started at all, and
+ * the failure was silent because the throw happened inside an `async` handler
+ * that had already returned. If this ever moves again, it moves to top level.
+ */
+function deviceId() {
+  try {
+    let id = localStorage.getItem('cb_device');
+    if (!id) {
+      const b = new Uint8Array(16);
+      crypto.getRandomValues(b);
+      id = 'dev_' + Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
+      localStorage.setItem('cb_device', id);
+    }
+    return id;
+  } catch (e) { return null; }
+}
+
+/** Her record at this game, for the lobby. Nothing at all if she has never played. */
+async function loadMyRecord() {
+  const el = document.getElementById('myRecord');
+  if (!el) return;
+  try {
+    const r = await fetch('/api/games/record?public_id=' + encodeURIComponent(deviceId() || ''));
+    const d = await r.json();
+    const rec = d && d.games && d.games.bigtwo;
+    if (!rec || !rec.played) { el.classList.add('hidden'); return; }
+    el.textContent = t('recordLine', { wins: rec.wins, played: rec.played });
+    el.classList.remove('hidden');
+  } catch (e) { /* a record is not worth an error message */ }
 }
 
 function saveSession() {
@@ -880,7 +1017,7 @@ function showLobbyError(msg) {
 async function createRoom() {
   const name = myName();
   if (!name) { showLobbyError(t('errNameRequired')); $('#nameInput').focus(); return; }
-  const r = await post('/api/create', { name, avatar: myAvatar });
+  const r = await post('/api/create', { name, avatar: myAvatar, deviceId: deviceId() });
   if (r.status !== 200) { showLobbyError(errorText(r.body.error)); return; }
   enterRoom(r.body);
 }
@@ -890,7 +1027,7 @@ async function joinRoom() {
   const c = ($('#codeInput').value || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
   if (!name) { showLobbyError(t('errNameRequired')); $('#nameInput').focus(); return; }
   if (c.length !== 4) { showLobbyError(errorText('roomNotFound')); return; }
-  const r = await post('/api/join', { code: c, name, avatar: myAvatar });
+  const r = await post('/api/join', { code: c, name, avatar: myAvatar, deviceId: deviceId() });
   if (r.status !== 200) { showLobbyError(errorText(r.body.error)); return; }
   enterRoom(r.body);
 }
@@ -903,6 +1040,13 @@ function enterRoom(res) {
   $('#lobby').classList.add('hidden');
   $('#room').classList.remove('hidden');
   $('#codeText').textContent = code;
+  /* A new room is a fresh feed. Without this the trackers still held the old
+     room's key, so this room's last message would flash onto the table before
+     the player had even sat down. */
+  chatPrimed = false;
+  lastChatKey = null;
+  const say = $('#tableSay');
+  if (say) say.innerHTML = '';
   saveSession();
   connect();
 }
@@ -946,6 +1090,42 @@ function applyState(st) {
     if (last && last.k === 'win') beep(880, 0.25, 'sine', 0.06);
   }
   lastLogLen = st.log.length;
+
+  /* Chat and shouts used to reach only the feed panel, which is closed by
+     default — so a message typed at the table arrived nowhere. Sound the cue
+     and float the line over the table instead.
+     Keyed on `t:author` because a chat item's `id` is the AUTHOR, so the same
+     player's second message would otherwise dedupe to silence.
+     `chatPrimed` is deliberately separate: priming on "the key was null" would
+     treat the first message ever sent in an empty room as backlog and skip it —
+     the one message the feature exists for. */
+  const chat = st.chat || [];
+  const newest = chat.length ? chat[chat.length - 1] : null;
+  const key = chatKey(newest);
+  if (!chatPrimed) {
+    chatPrimed = true;
+    lastChatKey = key;
+  } else if (key && key !== lastChatKey) {
+    /* Replay everything after the line we last handled, so two messages inside
+       one broadcast both appear. Capped at 4: when `lastChatKey` has aged out
+       of the 60-item cap, "not found" must not mean "replay the whole log". */
+    const fresh = [];
+    for (let i = chat.length - 1; i >= 0 && fresh.length < 4; i--) {
+      if (chatKey(chat[i]) === lastChatKey) break;
+      fresh.unshift(chat[i]);
+    }
+    for (const it of fresh) {
+      if (it.id !== st.you.id) {
+        /* A shout is the loud emoji reaction, so it gets two bright pings and
+           plain chat gets one soft blip. Your own message stays silent —
+           you already know you sent it. */
+        if (it.kind === 'shout') { beep(1046, 0.06, 'square', 0.045); beep(1568, 0.09, 'square', 0.04); }
+        else beep(880, 0.05, 'sine', 0.05);
+      }
+      showTableSay(it);
+    }
+    lastChatKey = key;
+  }
 }
 
 /* -------------------------------------------------------------- render */
@@ -1127,6 +1307,49 @@ function clock(ts) {
   return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
 }
 
+/** Identity of one chat line, for "have I shown this already?".
+ *  `t` alone is not enough — two players can speak in the same millisecond. */
+function chatKey(it) { return it ? it.t + ':' + it.id : null; }
+
+/* How long an on-table bubble lives, and how many may stack. Three is the
+   ceiling: beyond that the chat is covering the table, and the panel is the
+   better place to read it. */
+const TS_MS = 4600;
+const TS_MAX = 3;
+
+/** Float one chat line or emoji shout over the table, then let it go. */
+function showTableSay(it) {
+  const box = $('#tableSay');
+  if (!box || !it) return;
+  while (box.children.length >= TS_MAX) box.removeChild(box.firstChild);
+
+  const el = document.createElement('div');
+  el.className = 'ts-item' + (it.kind === 'shout' ? ' shout' : '');
+  /* textContent, never innerHTML — a chat message is user input and must not
+     be parsed as markup. */
+  const av = document.createElement('span');
+  av.className = 'ts-av';
+  av.textContent = it.avatar || '🙂';
+  const body = document.createElement('div');
+  body.className = 'ts-body';
+  const who = document.createElement('div');
+  who.className = 'ts-who';
+  who.textContent = it.name || '';
+  const tx = document.createElement('div');
+  tx.className = 'ts-tx';
+  tx.textContent = it.text || '';
+  body.appendChild(who);
+  body.appendChild(tx);
+  el.appendChild(av);
+  el.appendChild(body);
+  box.appendChild(el);
+
+  setTimeout(() => {
+    el.classList.add('out');
+    setTimeout(() => el.remove(), 320);
+  }, TS_MS);
+}
+
 function renderFeed() {
   const box = $('#feedBody');
   // Log and chat are merged and sorted by time, so a message appears where it
@@ -1300,6 +1523,14 @@ function confetti() {
   setTimeout(() => box.remove(), 3600);
 }
 
+/** Her lifetime record as one line, or nothing when there is no record yet. */
+function recordHtml() {
+  const rec = S && S.you && S.you.record;
+  if (!rec || !rec.played) return '';
+  return '<p class="recline" style="margin:2px 0 10px">' +
+    esc(t('recordLine', { wins: rec.wins, played: rec.played })) + '</p>';
+}
+
 function renderOverlay() {
   const root = $('#modalRoot');
   if (S.state !== 'ended' || !S.winner) {
@@ -1316,6 +1547,7 @@ function renderOverlay() {
         <div class="big-av">${iWon ? '🏆' : (win ? win.avatar : '🙂')}</div>
         <h2>${esc(iWon ? t('winTitle') : t('loseTitle', { name: win ? win.name : '' }))}</h2>
         <p>${esc(iWon ? t('winSub') : t('loseSub'))}</p>
+        ${recordHtml()}
         ${S.you.canStart ? `<button class="btn primary" id="againBtn">${esc(t('againBtn'))}</button>` : ''}
         <button class="btn" id="hubBtn" style="margin-top:8px">${esc(t('backToHub'))}</button>
       </div>
@@ -1329,6 +1561,7 @@ function renderOverlay() {
 /* ----------------------------------------------------------------- boot */
 function initLobby() {
   paintStatic();
+loadMyRecord();
   renderAvatars();
   const sess = loadSession();
   if (sess && sess.name) $('#nameInput').value = sess.name;
@@ -1363,6 +1596,7 @@ function initLobby() {
   $('#chatSend').onclick = sendChat;
   $('#chatInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendChat(); });
   $('#emojiBtn').onclick = () => toggleEmojiPop();
+  $('#waBtn').onclick = shareOnWhatsApp;
   $('#codeChip').onclick = async () => {
     const url = location.origin + BASE + code;
     try { await navigator.clipboard.writeText(url); toast(url); }

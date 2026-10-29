@@ -133,9 +133,13 @@
       <div id="admin-people-summary" class="stats-grid"></div>
       <div id="admin-employers" class="admin-list"></div>
 
-      <h3 class="admin-subhead">Learners with no employer</h3>
-      <p class="admin-hint">Helpers using the app on their own — not connected to anyone.</p>
-      <div id="admin-unconnected" class="admin-list"></div>
+      <!-- The "Learners with no employer" list that used to sit here is gone,
+           removed at the operator's request: a wall of "Unnamed learner" cards
+           with no way to act on any of them. Its summary card went with it, for
+           the same reason — a count of rows nobody can open is not a number
+           worth a card. /api/admin/people still returns the data, so this is a
+           presentation change only and the list can come back if it is ever
+           wanted. -->
     </div>
 
     <!-- ---- reports tab ---- -->
@@ -196,6 +200,26 @@
       </p>
       <div id="admin-practice-only" hidden></div>
 
+      <h4 class="admin-subhead">Games</h4>
+      <p class="admin-hint">
+        Who plays, alone or at a table, and how often they come back. Counts are
+        keyed on the device identity — two helpers who share a name are two
+        people. Every number here comes from <em>game_results</em>, which is
+        written once per player per finished game.
+      </p>
+      <div id="admin-games-totals" class="stats-grid"></div>
+      <div id="admin-games-chart" class="report-chart"></div>
+      <div id="admin-games-notes" class="report-notes"></div>
+      <div id="admin-games-table" class="admin-list"></div>
+      <p class="admin-hint">
+        <strong>One thing this cannot tell you:</strong> how many minutes a game
+        takes. There is no rooms table — rooms live in memory and die with the
+        process — so there is no "room opened" instant to subtract from "result
+        written". The session span below is the whole app, from the first thing
+        she did that day to the last, and it is labelled that way everywhere it
+        appears. It is the closest honest measure available, not a game timer.
+      </p>
+
       <h4 class="admin-subhead">Top landing pages</h4>
       <p class="admin-hint">
         Where visitors arrive from search. Page views are counted anonymously —
@@ -212,6 +236,8 @@
         <a class="btn btn-outline btn-sm" href="/api/admin/report.csv?type=daily">Daily activity</a>
         <a class="btn btn-outline btn-sm" href="/api/admin/report.csv?type=visitors">Visitors</a>
         <a class="btn btn-outline btn-sm" href="/api/admin/report.csv?type=practice_only">Practice only</a>
+        <a class="btn btn-outline btn-sm" href="/api/admin/report.csv?type=games">Games by game</a>
+        <a class="btn btn-outline btn-sm" href="/api/admin/report.csv?type=games_players">Games summary</a>
       </div>
     </div>
 
@@ -348,17 +374,19 @@
       <div class="admin-card">
         <h4 class="admin-subhead">Practice reminders</h4>
         <p class="admin-hint">
-          Nudges quiet learners to practise. The server runs this daily, but only
-          while it is awake — fire it by hand to cover the gaps.
+          One message per evening, inside a single 19:20–19:59 Hong Kong window, and
+          only when there is something specific to say: her streak about to break, a
+          headline that is new today, the answers left to her next sticker, or one
+          phrase. Nothing is sent to a device that has practised today, and nothing at
+          all after 21 quiet days. The server sweeps every ten minutes; this button
+          covers a host that was asleep.
         </p>
         <div class="form-row" style="align-items:end">
-          <div class="form-field">
-            <label for="push-remind-days">Quiet for (days)</label>
-            <input type="number" id="push-remind-days" min="1" max="60" value="3" />
-          </div>
+          <button class="btn" id="push-preview-btn" onclick="adminPreviewReminders()">Preview this evening</button>
           <button class="btn btn-primary" id="push-remind-btn" onclick="adminSendReminders()">Send reminders now</button>
           <span id="push-remind-result" class="admin-result"></span>
         </div>
+        <pre id="push-remind-plan" class="admin-hint" style="white-space:pre-wrap;margin:10px 0 0;display:none"></pre>
       </div>
     </div>
 

@@ -5918,3 +5918,86 @@ a.game-tile:active { transform: scale(0.96); background: var(--c-primary-tint); 
   .place-card-title { font-size: 0.92rem; }
   .place-card-sum { -webkit-line-clamp: 2; font-size: 0.76rem; }
 }
+
+/* ============================================================================
+   Desktop shell  (>= 1024px)
+   ----------------------------------------------------------------------------
+   Below this width the app is a phone layout: a centred 640-720px column plus
+   a fixed bottom tab bar. On a wide viewport that leaves the column floating in
+   the middle of the page with a mobile tab bar hovering mid-screen. Here the
+   bottom nav becomes a left sidebar and the content uses the freed width,
+   capped at a readable measure. Pure CSS: the same .nav-btn elements keep their
+   data-view handlers and .active toggling, so navigation is unchanged.
+   ========================================================================== */
+@media (min-width: 1024px) {
+  :root {
+    --sidebar-w: 248px;
+    --header-h: 65px;
+  }
+
+  /* Header spans the full width: brand far left, controls far right. The
+     sidebar sits below it, so there is no empty top-left corner. */
+  .header-inner {
+    max-width: none;
+    margin: 0;
+    padding: 12px 40px;
+  }
+
+  /* Bottom tab bar -> left sidebar. */
+  .bottom-nav {
+    top: var(--header-h);
+    bottom: 0;
+    left: 0;
+    right: auto;
+    width: var(--sidebar-w);
+    max-width: none;
+    margin: 0;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
+    gap: 6px;
+    padding: 20px 14px;
+    border-top: none;
+    border-right: 1px solid var(--c-border);
+    box-shadow: 2px 0 12px var(--c-shadow);
+    background: var(--c-surface);
+    z-index: 95;
+  }
+  .nav-btn {
+    /* Was flex:1 (mobile) — in a column that would stretch each row to ~1/5 of
+       the viewport height. Size to content instead. */
+    flex: 0 0 auto;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 46px;
+    padding: 11px 14px;
+    border-radius: 12px;
+    font-size: 0.95rem;
+  }
+  .nav-btn .nav-icon { font-size: 1.3rem; line-height: 1; background: none; }
+  /* On mobile the active state tints just the icon tile; in a row that reads as
+     a stray swatch, so highlight the whole row. */
+  .nav-btn.active { background: var(--c-primary-light); color: var(--c-primary); }
+  .nav-btn.active .nav-icon { background: transparent; }
+  .nav-btn:hover { background: var(--c-bg); }
+  .nav-btn.active:hover { background: var(--c-primary-light); }
+
+  /* Content shifts right of the sidebar and is capped for readability. */
+  .app-main {
+    max-width: none;
+    margin-left: var(--sidebar-w);
+    margin-right: 0;
+    padding: 28px 40px 56px;
+  }
+  .app-main > .view { max-width: 1080px; margin: 0 auto; }
+
+  .site-footer { margin-left: var(--sidebar-w); }
+  .site-footer-inner { max-width: 1080px; }
+
+  /* The 72px bottom clearance was for the fixed bottom nav; no longer needed. */
+  body { padding-bottom: 24px; }
+}
+

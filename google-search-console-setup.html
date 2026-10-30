@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Google Search Console — verify cantobuddy.com and submit the sitemap</title>
+<style>
+  :root{
+    --c-primary:#e63946; --c-ink:#1d2430; --c-ink-soft:#5a6577; --c-line:#e4e7ec;
+    --c-bg:#f7f8fa; --c-card:#ffffff; --c-ok:#1a7f4b; --c-warn:#a35b00;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--c-bg);color:var(--c-ink);
+    font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    -webkit-text-size-adjust:100%}
+  .wrap{max-width:720px;margin:0 auto;padding:28px 20px 72px}
+  header{border-bottom:3px solid var(--c-primary);padding-bottom:18px;margin-bottom:26px}
+  h1{font-size:1.5rem;line-height:1.3;margin:0 0 10px}
+  .sub{color:var(--c-ink-soft);margin:0;font-size:.94rem}
+  h2{font-size:1.06rem;margin:34px 0 12px;padding-top:20px;border-top:1px solid var(--c-line)}
+  h2:first-of-type{border-top:0;padding-top:0}
+  p{margin:0 0 14px}
+  .lede{background:#fff4f4;border-left:4px solid var(--c-primary);
+    padding:14px 16px;border-radius:0 8px 8px 0;margin:0 0 24px}
+  .lede strong{color:var(--c-primary)}
+  ol{counter-reset:s;list-style:none;padding:0;margin:0}
+  ol li{counter-increment:s;position:relative;background:var(--c-card);border:1px solid var(--c-line);
+    border-radius:10px;padding:16px 18px 16px 58px;margin:0 0 12px}
+  ol li::before{content:counter(s);position:absolute;left:16px;top:16px;width:28px;height:28px;
+    border-radius:50%;background:var(--c-primary);color:#fff;font-size:.86rem;font-weight:700;
+    display:flex;align-items:center;justify-content:center}
+  ol li b{display:block;margin-bottom:4px}
+  ol li .hint{color:var(--c-ink-soft);font-size:.9rem}
+  code{background:#eef1f5;padding:2px 6px;border-radius:4px;font-size:.86em;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;word-break:break-all}
+  .box{background:var(--c-card);border:1px solid var(--c-line);border-radius:10px;padding:16px 18px;margin:0 0 16px}
+  .box.ok{border-left:4px solid var(--c-ok)}
+  .box.warn{border-left:4px solid var(--c-warn)}
+  .box h3{margin:0 0 8px;font-size:.95rem}
+  .box.ok h3{color:var(--c-ok)} .box.warn h3{color:var(--c-warn)}
+  table{width:100%;border-collapse:collapse;margin:0 0 16px;font-size:.92rem}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--c-line);vertical-align:top}
+  th{color:var(--c-ink-soft);font-weight:600;font-size:.82rem;text-transform:uppercase;letter-spacing:.03em}
+  td:first-child{white-space:nowrap;font-weight:600}
+  .muted{color:var(--c-ink-soft);font-size:.88rem}
+  footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--c-line);
+    color:var(--c-ink-soft);font-size:.85rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Get cantobuddy.com into Google Search Console</h1>
+  <p class="sub">Verify the domain, then submit the sitemap. About two minutes, done once.</p>
+</header>
+
+<div class="lede">
+  <strong>Both verification methods are already live. There is nothing to upload.</strong>
+  The homepage carries the meta tag with the token
+  <code>qrG0jeGcYgQqTjw6GqxSkJZ_u7RdvliFJmacydYG90Y</code>, and both
+  <code>google2d4390410b35314f.html</code> and <code>google5851b3aeb7bd5d4e.html</code> are real files
+  on the site, byte-identical to the ones Google hands you. Whichever method Search Console showed
+  you, go straight to clicking <em>Verify</em>.
+</div>
+
+<h2>The steps</h2>
+<ol>
+  <li>
+    <b>Open Search Console</b>
+    <span class="hint">Go to <code>search.google.com/search-console</code> and sign in with the
+    Google account that should own this site. This is the only part nobody else can do for you.</span>
+  </li>
+  <li>
+    <b>Add a property</b>
+    <span class="hint">Click <em>Add property</em>. Pick the <em>right-hand</em> box —
+    <strong>URL prefix</strong>, not the Domain box on the left — and enter exactly:<br>
+    <code>https://cantobuddy.com/</code></span>
+  </li>
+  <li>
+    <b>Whichever method it offers, it is already done</b>
+    <span class="hint">Both routes are live, so there is nothing to fill in on this screen:<br>
+    <strong>Meta tag</strong> — the tag is in the homepage right now. If Search Console shows you a tag
+    to paste, don't paste it anywhere. It is already there.<br>
+    <strong>HTML file</strong> — the file is deployed and serving. Ignore the download.</span>
+  </li>
+  <li>
+    <b>Click Verify</b>
+    <span class="hint">Google checks by fetching <code>https://cantobuddy.com/</code> for the meta tag,
+    or <code>https://cantobuddy.com/google2d4390410b35314f.html</code> for the file. Both answer
+    correctly, so there is nothing to upload and no redeploy.</span>
+  </li>
+  <li>
+    <b>Submit the sitemap</b>
+    <span class="hint">Once verified, open <em>Sitemaps</em> in the left menu, type
+    <code>sitemap.xml</code> into the box, and click <em>Submit</em>. It should read
+    <em>"Success — 1,300+ discovered URLs"</em> within a few minutes.</span>
+  </li>
+</ol>
+
+<h2>What success looks like</h2>
+<table>
+  <tr><th>Where</th><th>You should see</th></tr>
+  <tr><td>Property</td><td>Verified, next to <code>https://cantobuddy.com/</code></td></tr>
+  <tr><td>Sitemaps</td><td>Success · 1,300+ discovered URLs</td></tr>
+  <tr><td>Pages</td><td>Counts appear over the next few days (they start empty)</td></tr>
+</table>
+
+<div class="box ok">
+  <h3>Why 1,300+</h3>
+  <p class="muted" style="margin:0">Four language trees — English 180, Filipino 180, Chinese 180,
+  Indonesian 180 — plus the four guides in every language, plus word pages and category pages. The
+  number comes straight from the live sitemap, so if it differs slightly, the sitemap changed rather
+  than the submission failing.</p>
+</div>
+
+<h2>If something goes wrong</h2>
+
+<div class="box warn">
+  <h3>"…indicates that your site might have been hacked"</h3>
+  <p class="muted" style="margin:0 0 10px">This is the message you saw first, and it was a real bug
+  in the site — not a wrong token. The server used to answer the verification content for
+  <em>any</em> filename, and a site that does that is indistinguishable from one rigged to claim
+  properties, so Google refused it on principle.</p>
+  <p class="muted" style="margin:0">It is fixed: the file is now a single real file, and every other
+  <code>google*.html</code> correctly returns 404. Press <em>Verify</em> again. If Google holds the
+  suspicion for a while, use the DNS fallback below instead.</p>
+</div>
+
+<div class="box warn">
+  <h3>Check by hand, any time</h3>
+  <p class="muted" style="margin:0 0 10px">Both routes are visible in an ordinary browser. The homepage
+  should contain this line — view source, or search the page for <code>google-site-verification</code>:</p>
+  <p class="muted" style="margin:0"><code>&lt;meta name="google-site-verification" content="qrG0jeGcYgQqTjw6GqxSkJZ_u7RdvliFJmacydYG90Y" /&gt;</code></p>
+  <p class="muted" style="margin:10px 0">And
+  <code>https://cantobuddy.com/google2d4390410b35314f.html</code> should show exactly one line:</p>
+  <p class="muted" style="margin:0"><code>google-site-verification: google2d4390410b35314f.html</code></p>
+  <p class="muted" style="margin:10px 0 0">A 404, or a missing tag, means the deploy has not landed yet —
+  wait a minute and reload.</p>
+</div>
+
+<div class="box warn">
+  <h3>Fallback: the DNS record (most robust)</h3>
+  <p class="muted" style="margin:0">In Search Console, choose the <strong>Domain</strong> property
+  instead and verify with a <strong>TXT record</strong> added in Cloudflare. It needs no file and no
+  deploy, it covers the whole domain including subdomains, and it does not depend on the app being up
+  at the moment Google looks — which is the one thing that has already gone wrong once here.</p>
+</div>
+
+<div class="box warn">
+  <h3>The meta tag works only because it is written into the homepage by hand</h3>
+  <p class="muted" style="margin:0">The site generator <em>can</em> emit a verification tag from an
+  environment variable, but only on the pages it renders itself — and the homepage is a static file
+  that shadows them, so that route can never verify <code>https://cantobuddy.com/</code>. The tag was
+  therefore added directly to that file. If the homepage is ever rebuilt from a template, check the tag
+  survived; <code>seo-pillar-test</code> asserts it is there, so a regression fails loudly rather than
+  verification lapsing quietly.</p>
+</div>
+
+<h2>What this does and doesn't do</h2>
+<p>Submitting does <strong>not</strong> push your pages into Google, and it does not improve ranking.
+Google already knows the sitemap exists — <code>robots.txt</code> points at it, which is Google's own
+documented discovery path. What Search Console gives you is <strong>visibility</strong>: which pages
+Google has indexed, which it has not, and any crawl errors.</p>
+<p>Bing and Yandex were already notified directly through IndexNow, so they did not need any of this.</p>
+
+<footer>
+  CantoBuddy · operational note · the only step that needs a human is signing into Google.
+</footer>
+
+</div>
+</body>
+</html>

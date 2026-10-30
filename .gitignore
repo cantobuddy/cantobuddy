@@ -53,3 +53,6 @@ Thumbs.db
 # to the NUL device), and it makes `git add -A` abort with "short read". Ignore
 # it rather than leaving the whole tree un-committable.
 nul
+
+# Chrome user-data-dir leaked by banner generation (not a real asset)
+promo/banners/_prof/

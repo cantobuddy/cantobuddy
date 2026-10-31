@@ -21,21 +21,32 @@
   .stat small { display:block; font-size:.72rem; color:var(--muted); font-weight:700; }
   .hud .btn { min-height:48px; padding:0 16px; }
 
-  .board-scroll { overflow:auto; -webkit-overflow-scrolling:touch; margin: 10px 0; text-align:center; }
+  .board-scroll { overflow:auto; -webkit-overflow-scrolling:touch; margin: 10px 0; text-align:center; max-height: calc(100vh - 230px); }
   .board { position:relative; margin:0 auto; }
   .tile {
     position:absolute; width:46px; height:58px; border-radius:8px;
-    background: linear-gradient(160deg,#fdfdff,#e9eef7); border:1px solid #c9d3e0;
-    box-shadow: 0 3px 0 #c2cad8, 0 5px 8px rgba(23,26,35,.18);
+    background: linear-gradient(160deg,#ffffff,#eef2f8); border:1px solid #c2cddd;
+    /* 3D thickness: a solid bottom "lip" + soft drop shadow */
+    box-shadow: 0 4px 0 #c2cad8, 0 6px 9px rgba(23,26,35,.22);
     display:flex; align-items:center; justify-content:center; font-size:1.7rem; cursor:pointer; user-select:none;
-    transition: transform .12s ease, box-shadow .12s ease;
+    transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
   }
-  .tile.free { border-color: var(--primary); box-shadow: 0 3px 0 #9fb6e6, 0 6px 10px rgba(43,108,240,.3); }
-  .tile.free:active { transform: translateY(2px); box-shadow: 0 1px 0 #9fb6e6; }
-  .tile.locked { filter: saturate(.6) brightness(.97); cursor:default; }
-  .tile.sel { outline:3px solid var(--gold); transform: translateY(-2px); }
-  .tile.hint { animation: hintp .7s ease infinite alternate; }
-  @keyframes hintp { from { box-shadow:0 3px 0 #9fb6e6,0 0 0 0 rgba(246,183,60,.0);} to { box-shadow:0 3px 0 #9fb6e6,0 0 0 6px rgba(246,183,60,.5);} }
+  /* Higher layers get a deeper shadow so stacked tiles clearly look taller. */
+  .tile.layer-1 { box-shadow: 0 5px 0 #aab4c6, 0 8px 12px rgba(23,26,35,.26); }
+  .tile.layer-2 { box-shadow: 0 6px 0 #94a0b4, 0 10px 15px rgba(23,26,35,.30); }
+  .tile.layer-3 { box-shadow: 0 7px 0 #808da3, 0 12px 18px rgba(23,26,35,.34); }
+  /* Locked (covered) tiles are dimmed so the free ones stand out. */
+  .tile.locked { filter: saturate(.55) brightness(.95); }
+  .tile.locked:active { transform: translateY(2px); }
+  /* Free tiles: bright, blue outline, gentle gold glow so they're unmistakable. */
+  .tile.free {
+    border-color: var(--primary); background: linear-gradient(160deg,#ffffff,#e8f0ff);
+    box-shadow: 0 4px 0 #9fb6e6, 0 6px 12px rgba(43,108,240,.35), 0 0 0 2px rgba(43,108,240,.25);
+  }
+  .tile.free:active { transform: translateY(2px); }
+  .tile.sel { outline:3px solid var(--gold); transform: translateY(-3px); z-index: 50 !important; }
+  .tile.hint { animation: hintp .7s ease infinite alternate; z-index: 40 !important; }
+  @keyframes hintp { from { box-shadow:0 4px 0 #9fb6e6,0 0 0 0 rgba(246,183,60,0);} to { box-shadow:0 4px 0 #9fb6e6,0 0 0 7px rgba(246,183,60,.55);} }
   .tile.gone { display:none; }
 
   .controls { display:flex; gap:10px; margin: 10px 0; flex-wrap:wrap; }
@@ -300,11 +311,13 @@
     var L = LEVELS[level];
     var maxX = 0, maxY = 0;
     slots.forEach(function (s) { maxX = Math.max(maxX, s.x); maxY = Math.max(maxY, s.y); });
-    var w = (maxX + 2) * HU + 4, h = (maxY + 2) * HU + 4;
+    // +46 tile width / +58 tile height, plus a little breathing room, so tiles
+    // never spill past the board box onto the controls below.
+    var w = maxX * HU + 54, h = maxY * HU + 66;
     var board = $('#board'); board.style.width = w + 'px'; board.style.height = h + 'px'; board.innerHTML = '';
     slots.forEach(function (s, i) {
       var d = document.createElement('div');
-      d.className = 'tile'; d.dataset.i = i;
+      d.className = 'tile layer-' + s.layer; d.dataset.i = i;
       d.style.left = (s.x * HU) + 'px';
       d.style.top = (s.y * HU) + 'px';
       d.style.zIndex = s.layer + 1;
@@ -324,7 +337,7 @@
       left++;
       d.textContent = s.sym;
       var free = !!freeSet[i];
-      d.className = 'tile' + (free ? ' free' : ' locked') + (selected === i ? ' sel' : '');
+      d.className = 'tile layer-' + s.layer + (free ? ' free' : ' locked') + (selected === i ? ' sel' : '');
     });
     $('#tilesStat').textContent = left;
     $('#pairsStat').textContent = matched;

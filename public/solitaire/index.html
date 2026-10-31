@@ -37,16 +37,21 @@
 
   /* stock / waste / foundations */
   .pile { width:46px; height:64px; border-radius:8px; border:2px dashed #cdd5df; background:#eef2f7; position:relative; }
-  .pile.foundation { display:flex; align-items:center; justify-content:center; font-size:1.6rem; color:#b6c0cf; }
-  .pile.target { border-color: var(--primary); background: var(--primary-tint); }
+  .pile.tcol-empty { display:flex; align-items:center; justify-content:center; flex-direction:column; cursor:pointer; }
+  .pile.tcol-empty .hint { font-size:.8rem; font-weight:800; color:#9aa6b6; line-height:1; text-align:center; }
+  .pile.tcol-empty .hint small { display:block; font-size:.6rem; color:#b3bdca; font-weight:700; }
+  .pile.foundation { display:flex; align-items:center; justify-content:center; font-size:1.6rem; color:#b6c0cf; flex-direction:column; }
+  .pile.foundation .cue { font-size:.7rem; font-weight:800; color:#aab4c2; }
+  .pile.target { border-color: var(--primary); background: var(--primary-tint); box-shadow:0 0 0 3px rgba(43,108,240,.18); }
   .pile .count { position:absolute; right:2px; bottom:2px; font-size:.7rem; color:#6b7280; font-weight:700; }
 
-  .tableau { display:flex; gap:6px; margin-top:12px; justify-content:center; }
-  .tcol { width:46px; display:flex; flex-direction:column; }
+  .tableau { display:flex; gap:6px; margin-top:12px; justify-content:center; overflow-x:auto; padding-bottom:4px; }
+  .tcol { width:48px; flex:0 0 auto; display:flex; flex-direction:column; }
   .tcol .slot { min-height:64px; }
   .tcol .stack { position:relative; }
-  .card.in-col { margin-top:-30px; }      /* overlap upwards */
+  .card.in-col { margin-top:-22px; }      /* overlap upwards (less, so more of each card shows) */
   .card.first { margin-top:0; }
+  .card.play:hover { outline:2px solid var(--primary-tint); }
 
   .controls { display:flex; gap:10px; margin:14px 0; flex-wrap:wrap; }
   .controls .btn { flex:1; min-width:120px; }
@@ -153,25 +158,29 @@
       levelLabel:'Draw', lvEasy:'Draw 1', lvHard:'Draw 3', startBtn:'New game', backToApp:'CantoBuddy',
       timeLabel:'Time', movesLabel:'Moves', collectBtn:'Collect', restartBtn:'Restart', quitBtn:'Quit',
       wonTitle:'You won Solitaire!', wonTime:'Time', againBtn:'Play again', backMenu:'Back to menu',
-      justNow:'New best time!', notMovable:'That card cannot go there', emptyStock:'Tap to recycle the waste'
+      justNow:'New best time!', notMovable:'That card cannot go there', emptyStock:'Tap to recycle the waste',
+      needAce:'Foundations start with an Ace (A)', emptyKing:'Only a King (K) can start an empty column'
     },
     fil: {
       title:'Solitaire', sub:'Buuin ang apat na suit hanggang Hari', yourName:'Pangalan mo', namePlaceholder:'Ilagay ang pangalan',
       levelLabel:'Draw', lvEasy:'Draw 1', lvHard:'Draw 3', startBtn:'Bagong laro',
       timeLabel:'Oras', movesLabel:'Galaw', collectBtn:'Ipunin', restartBtn:'Ulitin', quitBtn:'Umalis',
-      wonTitle:'Nanalo ka sa Solitaire!', wonTime:'Oras', againBtn:'Laro ulit', backMenu:'Bumalik sa menu', justNow:'Bagong rekord!', notMovable:'Hindi pwede doon', emptyStock:'Tap para i-recycle'
+      wonTitle:'Nanalo ka sa Solitaire!', wonTime:'Oras', againBtn:'Laro ulit', backMenu:'Bumalik sa menu', justNow:'Bagong rekord!', notMovable:'Hindi pwede doon', emptyStock:'Tap para i-recycle',
+      needAce:'Ang foundation ay nagsisimula sa Ace (A)', emptyKing:'Ang King (K) lang ang pwedeng magsimula sa walang laman na column'
     },
     zh: {
       title:'纸牌', sub:'把四花色从 A 叠到 K', yourName:'你的名字', namePlaceholder:'输入你的名字',
       levelLabel:'发牌', lvEasy:'发1张', lvHard:'发3张', startBtn:'新游戏',
       timeLabel:'时间', movesLabel:'步数', collectBtn:'收牌', restartBtn:'重玩', quitBtn:'退出',
-      wonTitle:'你赢了纸牌!', wonTime:'时间', againBtn:'再玩一次', backMenu:'返回菜单', justNow:'新纪录!', notMovable:'这张牌不能放那里', emptyStock:'点此回收废牌'
+      wonTitle:'你赢了纸牌!', wonTime:'时间', againBtn:'再玩一次', backMenu:'返回菜单', justNow:'新纪录!', notMovable:'这张牌不能放那里', emptyStock:'点此回收废牌',
+      needAce:'收牌区从 A 开始', emptyKing:'只有 K 能放在空列'
     },
     id: {
       title:'Solitaire', sub:'Susun empat suit sampai King', yourName:'Nama kamu', namePlaceholder:'Ketik nama',
       levelLabel:'Draw', lvEasy:'Draw 1', lvHard:'Draw 3', startBtn:'Main baru',
       timeLabel:'Masa', movesLabel:'Gerak', collectBtn:'Kumpul', restartBtn:'Ulang', quitBtn:'Keluar',
-      wonTitle:'Kamu menang Solitaire!', wonTime:'Masa', againBtn:'Main lagi', backMenu:'Ke menu', justNow:'Rekod baru!', notMovable:'Tak boleh ke situ', emptyStock:'Tap untuk kitar semula'
+      wonTitle:'Kamu menang Solitaire!', wonTime:'Masa', againBtn:'Main lagi', backMenu:'Ke menu', justNow:'Rekod baru!', notMovable:'Tak boleh ke situ', emptyStock:'Tap untuk kitar semula',
+      needAce:'Foundation mula dari Ace (A)', emptyKing:'Hanya King (K) boleh mula tiang kosong'
     }
   };
   var RULES = {
@@ -312,7 +321,7 @@
         ce.onclick = function () { selectDest('foundation', f); };
         el.appendChild(ce);
       } else {
-        el.textContent = SUIT_GLYPH[SUITS[f]];
+        el.innerHTML = SUIT_GLYPH[SUITS[f]] + '<span class="cue">A</span>';
       }
       if (selection && selection.type === 'foundation' && selection.index === f) el.classList.add('target');
       else el.classList.remove('target');
@@ -326,8 +335,9 @@
       var slot = document.createElement('div'); slot.className = 'slot'; col.appendChild(slot);
       var pile = tableau[i];
       if (!pile.length) {
-        var empty = document.createElement('div'); empty.className = 'pile';
+        var empty = document.createElement('div'); empty.className = 'pile tcol-empty';
         if (selection && selection.type === 'tableau' && selection.index === i) empty.classList.add('target');
+        empty.innerHTML = '<span class="hint">K<small>King only</small></span>';
         empty.onclick = function () { selectDest('tableau', i); };
         col.appendChild(empty);
       } else {
@@ -377,13 +387,21 @@
   function selectDest(type, idx) {
     if (!selection) return;
     if (type === 'foundation') {
+      var fcard = selection.type === 'waste' ? waste[waste.length - 1] : tableau[selection.index][selection.from];
+      if (fcard && foundations[idx].length === 0 && fcard.rank !== 1) {
+        CBSound.bad(); CBGame.toast(t('needAce'), 'bad'); return;
+      }
       if (selection.type === 'waste') { tryFoundation(foundations[idx], [waste[waste.length - 1]], function () { waste.pop(); }); }
       else { var run = tableau[selection.index].slice(selection.from); if (run.length !== 1) { CBSound.bad(); CBGame.toast(t('notMovable'), 'bad'); return; } tryFoundation(foundations[idx], run, function () { tableau[selection.index].splice(selection.from, 1); afterTableauMove(selection.index); }); }
     } else if (type === 'tableau') {
       var moving;
       if (selection.type === 'waste') { moving = [waste[waste.length - 1]]; }
       else { moving = tableau[selection.index].slice(selection.from); }
-      if (!canStackTableau(moving[0], idx)) { CBSound.bad(); CBGame.toast(t('notMovable'), 'bad'); return; }
+      if (!canStackTableau(moving[0], idx)) {
+        if (tableau[idx].length === 0 && moving[0].rank !== 13) CBGame.toast(t('emptyKing'), 'bad');
+        else CBGame.toast(t('notMovable'), 'bad');
+        CBSound.bad(); return;
+      }
       if (selection.type === 'waste') {
         tableau[idx].push(waste.pop());
       } else {

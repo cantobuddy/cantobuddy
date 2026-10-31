@@ -56,9 +56,14 @@
   .cell.just { animation: pop2 .5s ease; }
   @keyframes pop2 { 0%{transform:scale(.8)} 50%{transform:scale(1.12)} 100%{transform:scale(1)} }
 
-  .bingo-actions { text-align:center; margin: 14px 0; }
+  .bingo-actions {
+    position: sticky; bottom: 8px; z-index: 30;
+    background: #fff; border-top: 1px solid var(--line);
+    box-shadow: 0 -6px 16px rgba(23,26,35,.08);
+    padding: 12px 8px; margin: 12px 0 0; text-align: center; border-radius: 16px 16px 0 0;
+  }
   .bingo-btn {
-    font-size:1.6rem; font-weight:900; letter-spacing:.05em; padding:0 40px; min-height:70px;
+    width: 100%; max-width: 440px; font-size:1.6rem; font-weight:900; letter-spacing:.05em; padding:0 24px; min-height:72px;
     background: linear-gradient(135deg,#f6b73c,#f3922b); color:#5a3d00; border:none; border-radius:18px;
     box-shadow:0 12px 26px rgba(243,146,43,.4); cursor:pointer;
   }

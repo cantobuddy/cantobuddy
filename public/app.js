@@ -1396,6 +1396,45 @@ const GAMES_CATALOG = [
     </svg>`,
     nameKey: 'games.checkersName',
   },
+  {
+    href: '/games/bingo',
+    artClass: 'game-art--bingo',
+    art: `<svg viewBox="0 0 48 48" aria-hidden="true">
+      <circle cx="24" cy="24" r="17" fill="#ffffff" stroke="#cdd5df" stroke-width="1.6"/>
+      <text x="24" y="30" font-size="16" font-weight="900" fill="#2b6cf0" text-anchor="middle">B</text>
+      <circle cx="24" cy="24" r="17" fill="none" stroke="#f0b429" stroke-width="2" stroke-dasharray="3 4"/>
+    </svg>`,
+    nameKey: 'games.bingoName',
+  },
+  {
+    href: '/games/memorymatch',
+    artClass: 'game-art--memory',
+    art: `<svg viewBox="0 0 48 48" aria-hidden="true">
+      <rect x="9" y="11" width="15" height="20" rx="3" fill="#2b6cf0" transform="rotate(-12 16 21)"/>
+      <rect x="24" y="15" width="15" height="20" rx="3" fill="#ffffff" stroke="#cdd5df" stroke-width="1.4" transform="rotate(12 31 25)"/>
+      <text x="31.5" y="31" font-size="12" text-anchor="middle" fill="#e8503a">★</text>
+    </svg>`,
+    nameKey: 'games.memoryName',
+  },
+  {
+    href: '/games/mahjong',
+    artClass: 'game-art--mahjong',
+    art: `<svg viewBox="0 0 48 48" aria-hidden="true">
+      <rect x="11" y="13" width="26" height="22" rx="4" fill="#ffffff" stroke="#cdd5df" stroke-width="1.6"/>
+      <text x="24" y="30" font-size="15" font-weight="800" fill="#2b6cf0" text-anchor="middle">中</text>
+    </svg>`,
+    nameKey: 'games.mahjongName',
+  },
+  {
+    href: '/games/solitaire',
+    artClass: 'game-art--solitaire',
+    art: `<svg viewBox="0 0 48 48" aria-hidden="true">
+      <rect x="12" y="11" width="17" height="24" rx="3" fill="#ffffff" stroke="#cdd5df" stroke-width="1.6"/>
+      <text x="20.5" y="23" font-size="10" font-weight="800" fill="#d22" text-anchor="middle">A</text>
+      <text x="20.5" y="33" font-size="10" fill="#d22" text-anchor="middle">♠</text>
+    </svg>`,
+    nameKey: 'games.solitaireName',
+  },
 ];
 
 function gameTile(g) {

@@ -1,0 +1,175 @@
+/* Canto Buddy — shared game shell
+ * One set of styles for the four new games (Bingo, Memory Match, Mahjong
+ * Solitaire, Solitaire) so they read as one family: the same blue, the same
+ * big tap-targets, the same top bar with the "← CantoBuddy" back link, sound and
+ * music buttons, the same overlay/modal and toast. Loaded by each game as
+ * /games-common.css — served by express.static, NOT in the service-worker app
+ * shell, so an edit here reaches old installs without a cache bump.
+ *
+ * The aim is an ELDER-FRIENDLY board: large text, generous spacing, high
+ * contrast, and controls that are hard to miss.
+ */
+:root {
+  --primary: #2b6cf0;
+  --primary-2: #4a86ff;
+  --primary-tint: #e6efff;
+  --ink: #1f2937;
+  --muted: #6b7280;
+  --bg: #f5f7fb;
+  --surface: #ffffff;
+  --line: #e3e8ef;
+  --radius: 16px;
+  --good: #15a05a;
+  --good-tint: #e4f7ec;
+  --bad: #e63946;
+  --bad-tint: #fdeaea;
+  --warn: #e0a91b;
+  --gold: #f6b73c;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+          Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  font-size: 18px;
+}
+.wrap { max-width: 760px; margin: 0 auto; padding: 14px 14px 48px; }
+
+/* ----- top bar: back link (UNO-style), title, action buttons ----- */
+.topbar {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 14px;
+}
+.backlink {
+  display: inline-flex; align-items: center; gap: 6px;
+  color: var(--muted); font-size: 14px; font-weight: 700; text-decoration: none;
+  padding: 9px 13px; border-radius: 12px; background: #fff;
+  border: 1px solid var(--line);
+  box-shadow: 0 4px 12px rgba(23, 26, 35, .05);
+  flex: 0 0 auto;
+}
+.backlink:active { transform: scale(.97); }
+.title { flex: 1 1 auto; font-size: 1.4rem; margin: 0; font-weight: 800; }
+.topbar-actions { display: flex; gap: 8px; flex: 0 0 auto; }
+.iconbtn {
+  width: 46px; height: 46px; border-radius: 14px; border: 1px solid var(--line);
+  background: #fff; color: var(--ink); font-size: 20px; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 12px rgba(23, 26, 35, .05);
+  transition: transform .06s ease, background .15s ease;
+}
+.iconbtn:active { transform: scale(.94); }
+.iconbtn.off { opacity: .5; }
+.iconbtn.is-on { background: var(--primary-tint); border-color: var(--primary); }
+
+/* ----- buttons ----- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 8px; min-height: 56px; padding: 0 22px; border-radius: 14px;
+  border: 1px solid var(--line); background: #fff; color: var(--ink);
+  font: inherit; font-weight: 700; font-size: 1.05rem; cursor: pointer;
+  transition: transform .06s ease, box-shadow .15s ease;
+}
+.btn:active { transform: scale(.98); }
+.btn.primary {
+  background: linear-gradient(135deg, var(--primary), var(--primary-2));
+  color: #fff; border: none; box-shadow: 0 10px 22px rgba(43, 108, 240, .3);
+}
+.btn.good { background: var(--good); color: #fff; border: none; box-shadow: 0 10px 22px rgba(21,160,90,.3); }
+.btn.ghost { background: #fff; border-color: var(--line); }
+.btn.danger { background: #fff; color: var(--bad); border: 1px solid var(--bad); }
+.btn:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; }
+.btn.block { width: 100%; }
+.btn-row { display: flex; gap: 12px; flex-wrap: wrap; margin: 14px 0; }
+.btn-row .btn { flex: 1 1 auto; }
+
+/* ----- menu / panels ----- */
+.panel {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 18px; margin: 14px 0; box-shadow: 0 6px 18px rgba(23, 26, 35, .05);
+}
+.panel h2 { margin: 0 0 12px; font-size: 1.2rem; }
+.field { margin: 12px 0; }
+.field label { display: block; font-weight: 700; font-size: .95rem; margin-bottom: 6px; color: var(--muted); }
+input[type="text"], select {
+  width: 100%; min-height: 56px; padding: 0 16px; font-size: 1.1rem;
+  border: 1px solid var(--line); border-radius: 14px; background: #fff; color: var(--ink);
+  font-family: inherit;
+}
+input[type="text"]:focus, select:focus { outline: 3px solid var(--primary-tint); border-color: var(--primary); }
+
+/* ----- segmented level picker ----- */
+.seg { display: flex; gap: 8px; flex-wrap: wrap; }
+.seg button {
+  flex: 1 1 0; min-height: 54px; border-radius: 14px; border: 1px solid var(--line);
+  background: #fff; font: inherit; font-weight: 700; font-size: 1.05rem; cursor: pointer; color: var(--ink);
+}
+.seg button.on { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+/* ----- code chip / share ----- */
+.codechip {
+  display: inline-flex; align-items: center; gap: 10px;
+  background: var(--primary-tint); color: var(--primary); font-weight: 800;
+  font-size: 1.6rem; letter-spacing: .12em; padding: 10px 18px; border-radius: 14px;
+}
+.codechip .copy { font-size: .8rem; letter-spacing: 0; font-weight: 700; }
+
+/* ----- player chips ----- */
+.players { display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0; }
+.pchip {
+  display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px;
+  background: #fff; border: 1px solid var(--line); font-weight: 700;
+}
+.pchip.you { border-color: var(--primary); background: var(--primary-tint); }
+.pchip .av { font-size: 1.3rem; }
+.pchip small { color: var(--muted); font-weight: 600; }
+
+/* ----- toast ----- */
+.toast {
+  position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%) translateY(20px);
+  background: #1f2937; color: #fff; padding: 12px 20px; border-radius: 14px;
+  font-weight: 700; font-size: 1rem; opacity: 0; pointer-events: none; transition: all .25s ease;
+  z-index: 60; max-width: 90vw; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,.25);
+}
+.toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.good { background: var(--good); }
+.toast.bad { background: var(--bad); }
+
+/* ----- overlay / modal (results) ----- */
+.overlay {
+  position: fixed; inset: 0; background: rgba(15, 23, 42, .55);
+  display: none; align-items: center; justify-content: center; padding: 18px; z-index: 80;
+}
+.overlay.on { display: flex; }
+.modal {
+  background: #fff; border-radius: 22px; padding: 26px 22px; max-width: 440px; width: 100%;
+  text-align: center; box-shadow: 0 24px 60px rgba(0,0,0,.3); animation: pop .25s ease;
+}
+@keyframes pop { from { transform: scale(.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.modal h2 { margin: 0 0 6px; font-size: 1.7rem; }
+.modal .big-emoji { font-size: 64px; line-height: 1; margin: 6px 0 10px; }
+.modal .stat-line { font-size: 1.15rem; margin: 6px 0; }
+.modal .stat-line b { font-size: 1.35rem; }
+.modal .muted { color: var(--muted); font-size: .95rem; }
+
+/* ----- score history (uses games-common.js styles too) ----- */
+.sh-title { font-weight: 800; margin-bottom: 6px; }
+.hidden { display: none !important; }
+
+/* ----- generic helpers ----- */
+.center { text-align: center; }
+.muted { color: var(--muted); }
+.small { font-size: .9rem; }
+.row { display: flex; align-items: center; gap: 10px; }
+.spread { justify-content: space-between; }
+.pill {
+  display: inline-block; padding: 4px 12px; border-radius: 999px; font-weight: 700; font-size: .85rem;
+  background: var(--primary-tint); color: var(--primary);
+}
+.pill.good { background: var(--good-tint); color: var(--good); }
+.pill.warn { background: #fdf3da; color: #9a6b00; }

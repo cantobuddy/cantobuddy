@@ -69,6 +69,16 @@ app.use('/games/wordmatch', require('./wordmatch').handle);
 app.use('/games/sudoku', require('./sudoku').handle);
 app.use('/games/chinesechecker', require('./chinesechecker').handle);
 
+// The four new elder-friendly games (2026-10-31). Bingo is a live multiplayer
+// table like UNO — its own module, mounted before express.json() so it can read
+// the raw body itself (same reason as the other tables). The other three are
+// entirely client-side, so they share one tiny static-file factory.
+app.use('/games/bingo', require('./bingo').handle);
+const makeStaticGame = require('./game-static');
+app.use('/games/memorymatch', makeStaticGame('memorymatch').handle);
+app.use('/games/mahjong', makeStaticGame('mahjong').handle);
+app.use('/games/solitaire', makeStaticGame('solitaire').handle);
+
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true }));
 

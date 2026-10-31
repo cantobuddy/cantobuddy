@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Mahjong Solitaire · CantoBuddy</title>
+<script src="/games-common.js"></script>
+<link rel="stylesheet" href="/games-common.css" />
+<script src="/game-sound.js"></script>
+<script src="/game-core.js"></script>
+<style>
+  .menu-hero { text-align:center; margin: 8px 0 4px; }
+  .menu-hero .big { font-size: 3.2rem; }
+  .menu-hero .sub { color: var(--muted); font-size: 1.05rem; }
+  .levels { display:flex; gap:10px; margin: 6px 0; }
+  .levels button { flex:1; min-height:58px; border-radius:14px; border:1px solid var(--line); background:#fff; font:inherit; font-weight:800; font-size:1.1rem; cursor:pointer; }
+  .levels button.on { background: var(--primary); color:#fff; border-color:var(--primary); }
+
+  .hud { display:flex; gap:10px; align-items:center; justify-content:space-between; margin: 8px 0; flex-wrap:wrap; }
+  .stat { background:#fff; border:1px solid var(--line); border-radius:14px; padding:8px 14px; font-weight:800; font-size:1.05rem; }
+  .stat small { display:block; font-size:.72rem; color:var(--muted); font-weight:700; }
+  .hud .btn { min-height:48px; padding:0 16px; }
+
+  .board-scroll { overflow:auto; -webkit-overflow-scrolling:touch; margin: 10px 0; text-align:center; }
+  .board { position:relative; margin:0 auto; }
+  .tile {
+    position:absolute; width:46px; height:58px; border-radius:8px;
+    background: linear-gradient(160deg,#fdfdff,#e9eef7); border:1px solid #c9d3e0;
+    box-shadow: 0 3px 0 #c2cad8, 0 5px 8px rgba(23,26,35,.18);
+    display:flex; align-items:center; justify-content:center; font-size:1.7rem; cursor:pointer; user-select:none;
+    transition: transform .12s ease, box-shadow .12s ease;
+  }
+  .tile.free { border-color: var(--primary); box-shadow: 0 3px 0 #9fb6e6, 0 6px 10px rgba(43,108,240,.3); }
+  .tile.free:active { transform: translateY(2px); box-shadow: 0 1px 0 #9fb6e6; }
+  .tile.locked { filter: saturate(.6) brightness(.97); cursor:default; }
+  .tile.sel { outline:3px solid var(--gold); transform: translateY(-2px); }
+  .tile.hint { animation: hintp .7s ease infinite alternate; }
+  @keyframes hintp { from { box-shadow:0 3px 0 #9fb6e6,0 0 0 0 rgba(246,183,60,.0);} to { box-shadow:0 3px 0 #9fb6e6,0 0 0 6px rgba(246,183,60,.5);} }
+  .tile.gone { display:none; }
+
+  .controls { display:flex; gap:10px; margin: 10px 0; flex-wrap:wrap; }
+  .controls .btn { flex:1; min-width:120px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a class="backlink" href="/?view=games">← CantoBuddy</a>
+    <h1 class="title" data-k="title">Mahjong Solitaire</h1>
+    <div class="topbar-actions">
+      <button class="iconbtn" id="musicBtn" title="Music">🎶</button>
+      <button class="iconbtn" id="soundBtn" title="Sound">🔊</button>
+    </div>
+  </div>
+
+  <div id="menuView">
+    <div class="menu-hero">
+      <div class="big">🀄</div>
+      <div class="sub" data-k="sub">Match the free tiles in pairs</div>
+    </div>
+    <div class="panel">
+      <div class="field">
+        <label data-k="yourName">Your name</label>
+        <input type="text" id="nameInput" maxlength="12" data-k="namePlaceholder" placeholder="Your name" />
+      </div>
+      <div class="field">
+        <label data-k="levelLabel">Level</label>
+        <div class="levels" id="levels">
+          <button data-level="easy" class="on" data-k="lvEasy">Easy</button>
+          <button data-level="medium" data-k="lvMedium">Medium</button>
+          <button data-level="hard" data-k="lvHard">Hard</button>
+        </div>
+      </div>
+      <button class="btn primary block" id="startBtn" data-k="startBtn">Start game</button>
+      <div id="cbScoreHistory" class="cb-score-history hidden"></div>
+    </div>
+  </div>
+
+  <div id="gameView" class="hidden">
+    <div class="hud">
+      <div class="stat"><small data-k="timeLabel">Time</small><span id="timeStat">0:00</span></div>
+      <div class="stat"><small data-k="tilesLabel">Tiles left</small><span id="tilesStat">0</span></div>
+      <div class="stat"><small data-k="pairsLabel">Matched</small><span id="pairsStat">0</span></div>
+    </div>
+    <div class="board-scroll">
+      <div class="board" id="board"></div>
+    </div>
+    <div class="controls">
+      <button class="btn ghost" id="hintBtn" data-k="hintBtn">Hint</button>
+      <button class="btn ghost" id="shuffleBtn" data-k="shuffleBtn">Shuffle</button>
+      <button class="btn ghost" id="restartBtn" data-k="restartBtn">Restart</button>
+      <button class="btn danger" id="quitBtn" data-k="quitBtn">Quit</button>
+    </div>
+  </div>
+
+  <div class="overlay" id="overlay">
+    <div class="modal">
+      <div class="big-emoji">🎉</div>
+      <h2 data-k="wonTitle">Board cleared!</h2>
+      <div class="stat-line" data-k="wonTime">Time: <b id="ovTime">0:00</b></div>
+      <div class="stat-line muted" id="ovBest"></div>
+      <div class="btn-row" style="margin-top:18px">
+        <button class="btn primary block" id="againBtn" data-k="againBtn">Play again</button>
+        <button class="btn ghost block" id="ovMenuBtn" data-k="backMenu">Back to menu</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var STR = {
+    en: {
+      title:'Mahjong Solitaire', sub:'Match the free tiles in pairs', yourName:'Your name', namePlaceholder:'Your name',
+      levelLabel:'Level', lvEasy:'Easy', lvMedium:'Medium', lvHard:'Hard', startBtn:'Start game', backToApp:'CantoBuddy',
+      timeLabel:'Time', tilesLabel:'Tiles left', pairsLabel:'Matched', hintBtn:'Hint', shuffleBtn:'Shuffle', restartBtn:'Restart', quitBtn:'Quit',
+      wonTitle:'Board cleared!', wonTime:'Time', againBtn:'Play again', backMenu:'Back to menu',
+      bestLabel:'Best time', justNow:'New best time!', noMove:'No moves — tap Shuffle', pickTile:'Pick a free tile'
+    },
+    fil: {
+      title:'Mahjong Solitaire', sub:'Tugmain ang malayang mga tile', yourName:'Pangalan mo', namePlaceholder:'Ilagay ang pangalan',
+      levelLabel:'Antas', lvEasy:'Madali', lvMedium:'Katamtaman', lvHard:'Mahirap', startBtn:'Simulan',
+      timeLabel:'Oras', tilesLabel:'Natitirang tile', pairsLabel:'Tugma', hintBtn:'Tulong', shuffleBtn:'Haluin', restartBtn:'Ulitin', quitBtn:'Umalis',
+      wonTitle:'Na-clear ang board!', wonTime:'Oras', againBtn:'Laro ulit', backMenu:'Bumalik sa menu', noMove:'Walang galaw — haluin', pickTile:'Piliin ang malayang tile'
+    },
+    zh: {
+      title:'麻将接龙', sub:'配对消除可点击的麻将牌', yourName:'你的名字', namePlaceholder:'输入你的名字',
+      levelLabel:'难度', lvEasy:'简单', lvMedium:'中等', lvHard:'困难', startBtn:'开始游戏',
+      timeLabel:'时间', tilesLabel:'剩余牌', pairsLabel:'已消', hintBtn:'提示', shuffleBtn:'洗牌', restartBtn:'重玩', quitBtn:'退出',
+      wonTitle:'通关啦!', wonTime:'时间', againBtn:'再玩一次', backMenu:'返回菜单', noMove:'无可消除 — 点洗牌', pickTile:'选择可点的牌'
+    },
+    id: {
+      title:'Mahjong Solitaire', sub:'Padankan jubin yang bebas', yourName:'Nama kamu', namePlaceholder:'Ketik nama',
+      levelLabel:'Tahap', lvEasy:'Senang', lvMedium:'Sederhana', lvHard:'Susah', startBtn:'Mula',
+      timeLabel:'Masa', tilesLabel:'Jubin lagi', pairsLabel:'Padan', hintBtn:'Petunjuk', shuffleBtn:'Kacau', restartBtn:'Ulang', quitBtn:'Keluar',
+      wonTitle:'Papan selesai!', wonTime:'Masa', againBtn:'Main lagi', backMenu:'Ke menu', noMove:'Tiada gerak — kacau', pickTile:'Pilih jubin bebas'
+    }
+  };
+  var t = function (k, v) { return CBGame.t(STR, k, v); };
+  CBGame.wireSound();
+  var $ = function (s) { return document.querySelector(s); };
+
+  var SYMS = ['🍎','🍌','🍇','🍓','🍒','🍑','🍍','🥝','🥥','🍉','🍊','🍋','🍐','🥭','🍅','🌽','🍄','🌹','🌻','🌼','🌷','🐶','🐱','🐭','🐰','🐻','🐼','🐯','🦁','🐮','🐷','🐸','🐵','🐔','🐧','🦊','🌟','⚽','🚀','🍔','🎈','🎁','💡','🔔','🌈','⭐','💎','🏀','🌸','🍩'];
+  var LEVELS = {
+    easy:   { w:6, h:4, layers:2, label:'Easy' },
+    medium: { w:8, h:4, layers:3, label:'Medium' },
+    hard:   { w:8, h:6, layers:3, label:'Hard' },
+  };
+  var level = 'easy';
+  var slots = [], selected = null, matched = 0, totalPairs = 0, startTime = 0, timer = null;
+  var HU = 23; // half-tile unit in px (tile is 2 units wide/tall)
+
+  if (CB.name && CB.name.get && CB.name.get()) $('#nameInput').value = CB.name.get();
+  Array.prototype.forEach.call($('#levels').children, function (b) {
+    b.onclick = function () {
+      level = b.dataset.level; CBSound.click();
+      Array.prototype.forEach.call($('#levels').children, function (c) { c.classList.remove('on'); });
+      b.classList.add('on'); refreshHistory();
+    };
+  });
+
+  function fmt(sec) { sec = Math.max(0, Math.round(sec)); var m = Math.floor(sec / 60), s = sec % 60; return m + ':' + (s < 10 ? '0' + s : s); }
+  function refreshHistory() { if (CB.scores && CB.scores.refresh) CB.scores.refresh('mahjong', $('#nameInput').value.trim()); }
+  $('#nameInput').addEventListener('input', refreshHistory);
+  function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var x = a[i]; a[i] = a[j]; a[j] = x; } return a; }
+
+  function buildLayout(L) {
+    var out = [];
+    for (var ly = 0; ly < L.layers; ly++) {
+      var w = L.w - 2 * ly, h = L.h - 2 * ly;
+      if (w <= 0 || h <= 0) break;
+      var offX = ly * 2, offY = ly * 2;
+      for (var r = 0; r < h; r++) for (var c = 0; c < w; c++) {
+        out.push({ x: offX + c * 2, y: offY + r * 2, layer: ly, removed: false, sym: null });
+      }
+    }
+    if (out.length % 2 === 1) out.pop(); // keep even for clean pairing
+    return out;
+  }
+
+  // A slot is free if nothing overlaps it from the layer above AND at least one
+  // horizontal side is open (no same-layer neighbour on that side).
+  function isFree(s, list) {
+    for (var i = 0; i < list.length; i++) {
+      var o = list[i]; if (o === s || o.removed) continue;
+      if (o.layer === s.layer + 1 && Math.abs(o.x - s.x) < 2 && Math.abs(o.y - s.y) < 2) return false; // covered above
+    }
+    var left = false, right = false;
+    for (var j = 0; j < list.length; j++) {
+      var n = list[j]; if (n === s || n.removed || n.layer !== s.layer) continue;
+      if (n.y === s.y && n.x === s.x - 2) left = true;
+      if (n.y === s.y && n.x === s.x + 2) right = true;
+    }
+    return !left || !right;
+  }
+
+  // Assign symbols by simulating a valid removal order, so the board is always
+  // solvable: at each step pick any two currently-free tiles and give them a
+  // shared symbol, then remove them from the working set. Replaying that order
+  // clears the board.
+  function solveAssign() {
+    var live = slots.filter(function (s) { return !s.removed; });
+    var pool = SYMS.slice();
+    var pi = 0;
+    while (live.length) {
+      var free = live.filter(function (s) { return isFree(s, live); });
+      if (free.length < 2) {
+        // Safety net (should not happen on a centred pyramid): pair up whatever
+        // remains so no tile is left truly unmatched.
+        shuffle(live);
+        for (var k = 0; k + 1 < live.length; k += 2) { var sy = pool[pi++ % pool.length]; live[k].sym = sy; live[k + 1].sym = sy; }
+        break;
+      }
+      shuffle(free);
+      var a = free[0], b = free[1];
+      var sym = pool[pi++ % pool.length];
+      a.sym = sym; b.sym = sym;
+      live = live.filter(function (s) { return s !== a && s !== b; });
+    }
+  }
+
+  function start() {
+    var name = $('#nameInput').value.trim() || 'You';
+    if (CB.name && CB.name.set) CB.name.set(name);
+    var L = LEVELS[level];
+    slots = buildLayout(L);
+    totalPairs = slots.length / 2; matched = 0; selected = null;
+    solveAssign();
+    startTime = Date.now();
+    $('#menuView').classList.add('hidden');
+    $('#gameView').classList.remove('hidden');
+    $('#overlay').classList.remove('on');
+    layoutBoard();
+    render();
+    if (timer) clearInterval(timer);
+    timer = setInterval(updateHud, 250);
+    CBSound.deal();
+  }
+
+  function layoutBoard() {
+    var L = LEVELS[level];
+    var maxX = 0, maxY = 0;
+    slots.forEach(function (s) { maxX = Math.max(maxX, s.x); maxY = Math.max(maxY, s.y); });
+    var w = (maxX + 2) * HU + 4, h = (maxY + 2) * HU + 4;
+    var board = $('#board'); board.style.width = w + 'px'; board.style.height = h + 'px'; board.innerHTML = '';
+    slots.forEach(function (s, i) {
+      var d = document.createElement('div');
+      d.className = 'tile'; d.dataset.i = i;
+      d.style.left = (s.x * HU) + 'px';
+      d.style.top = (s.y * HU) + 'px';
+      d.style.zIndex = s.layer + 1;
+      d.onclick = function () { onTile(i); };
+      board.appendChild(d);
+    });
+  }
+
+  function render() {
+    var live = slots.filter(function (s) { return !s.removed; });
+    var freeSet = {};
+    live.forEach(function (s) { if (isFree(s, live)) freeSet[slots.indexOf(s)] = true; });
+    var left = 0;
+    slots.forEach(function (s, i) {
+      var d = $('#board').children[i];
+      if (s.removed) { d.className = 'tile gone'; return; }
+      left++;
+      d.textContent = s.sym;
+      var free = !!freeSet[i];
+      d.className = 'tile' + (free ? ' free' : ' locked') + (selected === i ? ' sel' : '');
+    });
+    $('#tilesStat').textContent = left;
+    $('#pairsStat').textContent = matched;
+    if (left === 0) { win(); return; }
+    if (!anyMove()) CBGame.toast(t('noMove'), 'bad');
+  }
+
+  function anyMove() {
+    var live = slots.filter(function (s) { return !s.removed; });
+    var free = live.filter(function (s) { return isFree(s, live); });
+    var bySym = {};
+    for (var i = 0; i < free.length; i++) {
+      var sy = free[i].sym;
+      if (bySym[sy] !== undefined) return true; // two free tiles share a symbol
+      bySym[sy] = true;
+    }
+    return false;
+  }
+
+  function onTile(i) {
+    var s = slots[i]; if (s.removed) return;
+    var live = slots.filter(function (x) { return !x.removed; });
+    if (!isFree(s, live)) { CBSound.bad(); CBGame.toast(t('pickTile'), 'bad'); return; }
+    if (selected === i) { selected = null; render(); return; }
+    if (selected === null) { selected = i; CBSound.click(); render(); return; }
+    var prev = slots[selected];
+    if (prev.sym === s.sym) {
+      prev.removed = true; s.removed = true; matched++;
+      selected = null; CBSound.match(); render();
+    } else {
+      selected = i; CBSound.flip(); render();
+    }
+  }
+
+  function updateHud() { $('#timeStat').textContent = fmt((Date.now() - startTime) / 1000); }
+
+  function hint() {
+    var live = slots.filter(function (x) { return !x.removed; });
+    var free = live.filter(function (x) { return isFree(x, live); });
+    var seen = {};
+    for (var i = 0; i < free.length; i++) {
+      var sy = free[i].sym;
+      if (seen[sy] !== undefined) {
+        var a = slots.indexOf(free[seen[sy]]), b = slots.indexOf(free[i]);
+        [a, b].forEach(function (idx) { $('#board').children[idx].classList.add('hint'); });
+        setTimeout(function () { [a, b].forEach(function (idx) { var el = $('#board').children[idx]; if (el) el.classList.remove('hint'); }); }, 1600);
+        CBSound.tick(); return;
+      }
+      seen[sy] = i;
+    }
+    CBGame.toast(t('noMove'), 'bad');
+  }
+
+  function shuffleBoard() {
+    slots.forEach(function (s) { s.removed = s.removed; }); // keep removed state
+    solveAssign();
+    selected = null; CBSound.flip(); render();
+  }
+
+  function win() {
+    if (timer) clearInterval(timer);
+    var secs = (Date.now() - startTime) / 1000;
+    var name = $('#nameInput').value.trim() || 'You';
+    var best = null;
+    if (CB.scores && CB.scores.record) {
+      var before = CB.scores.summary('mahjong', name);
+      CB.scores.record('mahjong', name, secs, { won: true, level: level, levelLabel: LEVELS[level].label });
+      var after = CB.scores.summary('mahjong', name);
+      var lv = (after.levels || []).filter(function (x) { return x.key === level; })[0];
+      if (lv && lv.best != null) {
+        var prevBest = null;
+        (before.levels || []).forEach(function (x) { if (x.key === level) prevBest = x.best; });
+        best = (prevBest == null || secs < prevBest) ? secs : null;
+      }
+    }
+    $('#ovTime').textContent = fmt(secs);
+    $('#ovBest').textContent = best != null ? '🌟 ' + t('justNow') + ' (' + fmt(best) + ')' : '';
+    CBSound.win();
+    $('#overlay').classList.add('on');
+  }
+
+  $('#startBtn').onclick = function () { CBSound.click(); start(); };
+  $('#restartBtn').onclick = function () { CBSound.click(); start(); };
+  $('#hintBtn').onclick = function () { CBSound.click(); hint(); };
+  $('#shuffleBtn').onclick = function () { CBSound.click(); shuffleBoard(); };
+  $('#quitBtn').onclick = function () { if (timer) clearInterval(timer); $('#gameView').classList.add('hidden'); $('#menuView').classList.remove('hidden'); refreshHistory(); };
+  $('#againBtn').onclick = function () { CBSound.click(); start(); };
+  $('#ovMenuBtn').onclick = function () { $('#overlay').classList.remove('on'); $('#gameView').classList.add('hidden'); $('#menuView').classList.remove('hidden'); refreshHistory(); };
+
+  refreshHistory();
+})();
+</script>
+</body>
+</html>

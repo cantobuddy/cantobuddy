@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Memory Match · CantoBuddy</title>
+<script src="/games-common.js"></script>
+<link rel="stylesheet" href="/games-common.css" />
+<script src="/game-sound.js"></script>
+<script src="/game-core.js"></script>
+<style>
+  .menu-hero { text-align:center; margin: 8px 0 4px; }
+  .menu-hero .big { font-size: 3.2rem; }
+  .menu-hero .sub { color: var(--muted); font-size: 1.05rem; }
+  .levels { display:flex; gap:10px; margin: 6px 0; }
+  .levels button { flex:1; min-height:58px; border-radius:14px; border:1px solid var(--line); background:#fff; font:inherit; font-weight:800; font-size:1.1rem; cursor:pointer; }
+  .levels button.on { background: var(--primary); color:#fff; border-color:var(--primary); }
+
+  .hud { display:flex; gap:12px; align-items:center; justify-content:space-between; margin: 10px 0; flex-wrap:wrap; }
+  .stat { background:#fff; border:1px solid var(--line); border-radius:14px; padding:8px 16px; font-weight:800; font-size:1.1rem; }
+  .stat small { display:block; font-size:.75rem; color:var(--muted); font-weight:700; }
+
+  .board { display:grid; gap:10px; margin: 14px auto; max-width: 560px; }
+  .tile {
+    aspect-ratio: 1/1; border-radius:16px; display:flex; align-items:center; justify-content:center;
+    font-size: 2.4rem; cursor:pointer; user-select:none; border:2px solid transparent;
+    background: linear-gradient(135deg, #5b8def, #2b6cf0); color:#fff; box-shadow:0 6px 14px rgba(43,108,240,.25);
+    transition: transform .15s ease, background .15s ease;
+  }
+  .tile:active { transform: scale(.96); }
+  .tile .face { display:none; }
+  .tile.flipped, .tile.matched { background:#fff; border-color:var(--line); box-shadow:0 4px 10px rgba(23,26,35,.06); color: var(--ink); }
+  .tile.flipped .back, .tile.matched .back { display:none; }
+  .tile.flipped .face, .tile.matched .face { display:flex; }
+  .tile.matched { background: var(--good-tint); border-color: var(--good); }
+  .tile.matched .face { color: var(--good); }
+  .tile .back { font-size:1.6rem; opacity:.85; }
+  .board.easy { grid-template-columns: repeat(4, 1fr); }
+  .board.medium { grid-template-columns: repeat(4, 1fr); }
+  .board.hard { grid-template-columns: repeat(5, 1fr); }
+
+  .controls { display:flex; gap:12px; margin: 14px 0; }
+  .controls .btn { flex:1; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a class="backlink" href="/?view=games">← CantoBuddy</a>
+    <h1 class="title" data-k="title">Memory Match</h1>
+    <div class="topbar-actions">
+      <button class="iconbtn" id="musicBtn" title="Music">🎶</button>
+      <button class="iconbtn" id="soundBtn" title="Sound">🔊</button>
+    </div>
+  </div>
+
+  <div id="menuView">
+    <div class="menu-hero">
+      <div class="big">🃏</div>
+      <div class="sub" data-k="sub">Find the matching pairs</div>
+    </div>
+    <div class="panel">
+      <div class="field">
+        <label data-k="yourName">Your name</label>
+        <input type="text" id="nameInput" maxlength="12" data-k="namePlaceholder" placeholder="Your name" />
+      </div>
+      <div class="field">
+        <label data-k="levelLabel">Level</label>
+        <div class="levels" id="levels">
+          <button data-level="easy" class="on" data-k="lvEasy">Easy</button>
+          <button data-level="medium" data-k="lvMedium">Medium</button>
+          <button data-level="hard" data-k="lvHard">Hard</button>
+        </div>
+      </div>
+      <button class="btn primary block" id="startBtn" data-k="startBtn">Start game</button>
+      <div id="cbScoreHistory" class="cb-score-history hidden"></div>
+    </div>
+  </div>
+
+  <div id="gameView" class="hidden">
+    <div class="hud">
+      <div class="stat"><small data-k="timeLabel">Time</small><span id="timeStat">0:00</span></div>
+      <div class="stat"><small data-k="movesLabel">Moves</small><span id="movesStat">0</span></div>
+      <div class="stat"><small data-k="pairsLabel">Pairs</small><span id="pairsStat">0/0</span></div>
+    </div>
+    <div class="board" id="board"></div>
+    <div class="controls">
+      <button class="btn ghost" id="restartBtn" data-k="restartBtn">Restart</button>
+      <button class="btn danger" id="quitBtn" data-k="quitBtn">Quit</button>
+    </div>
+  </div>
+
+  <div class="overlay" id="overlay">
+    <div class="modal">
+      <div class="big-emoji">🎉</div>
+      <h2 data-k="wonTitle">You matched them all!</h2>
+      <div class="stat-line" data-k="wonTime">Time: <b id="ovTime">0:00</b></div>
+      <div class="stat-line" data-k="wonMoves">Moves: <b id="ovMoves">0</b></div>
+      <div class="stat-line muted" id="ovBest"></div>
+      <div class="btn-row" style="margin-top:18px">
+        <button class="btn primary block" id="againBtn" data-k="againBtn">Play again</button>
+        <button class="btn ghost block" id="ovMenuBtn" data-k="backMenu">Back to menu</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var STR = {
+    en: {
+      title:'Memory Match', sub:'Find the matching pairs', yourName:'Your name', namePlaceholder:'Your name',
+      levelLabel:'Level', lvEasy:'Easy', lvMedium:'Medium', lvHard:'Hard', startBtn:'Start game', backToApp:'CantoBuddy',
+      restartBtn:'Restart', quitBtn:'Quit', timeLabel:'Time', movesLabel:'Moves', pairsLabel:'Pairs',
+      wonTitle:'You matched them all!', wonTime:'Time', wonMoves:'Moves', againBtn:'Play again', backMenu:'Back to menu',
+      bestLabel:'Best time', justNow:'New best time!'
+    },
+    fil: {
+      title:'Memory Match', sub:'Hanapin ang magkaparehong pares', yourName:'Pangalan mo', namePlaceholder:'Ilagay ang pangalan',
+      levelLabel:'Antas', lvEasy:'Madali', lvMedium:'Katamtaman', lvHard:'Mahirap', startBtn:'Simulan',
+      restartBtn:'Ulitin', quitBtn:'Umalis', timeLabel:'Oras', movesLabel:'Galaw', pairsLabel:'Pares',
+      wonTitle:'Nahanap mo lahat!', wonTime:'Oras', wonMoves:'Galaw', againBtn:'Laro ulit', backMenu:'Bumalik sa menu',
+      bestLabel:'Pinakamabilis', justNow:'Bagong rekord!'
+    },
+    zh: {
+      title:'记忆翻牌', sub:'找出相同的配对', yourName:'你的名字', namePlaceholder:'输入你的名字',
+      levelLabel:'难度', lvEasy:'简单', lvMedium:'中等', lvHard:'困难', startBtn:'开始游戏',
+      restartBtn:'重玩', quitBtn:'退出', timeLabel:'时间', movesLabel:'步数', pairsLabel:'配对',
+      wonTitle:'全部配对成功!', wonTime:'时间', wonMoves:'步数', againBtn:'再玩一次', backMenu:'返回菜单',
+      bestLabel:'最佳时间', justNow:'新纪录!'
+    },
+    id: {
+      title:'Memory Match', sub:'Cari pasangan yang sama', yourName:'Nama kamu', namePlaceholder:'Ketik nama',
+      levelLabel:'Tahap', lvEasy:'Senang', lvMedium:'Sederhana', lvHard:'Susah', startBtn:'Mula',
+      restartBtn:'Ulang', quitBtn:'Keluar', timeLabel:'Masa', movesLabel:'Gerak', pairsLabel:'Pasangan',
+      wonTitle:'Semua sepadan!', wonTime:'Masa', wonMoves:'Gerak', againBtn:'Main lagi', backMenu:'Ke menu',
+      bestLabel:'Masa terbaik', justNow:'Rekod baru!'
+    }
+  };
+  var t = function (k, v) { return CBGame.t(STR, k, v); };
+  CBGame.wireSound();
+  var $ = function (s) { return document.querySelector(s); };
+
+  var SYMS = ['🍎','🍌','🍇','🍓','🍒','🍑','🍍','🥝','🥥','🍉','🍊','🍋','🍐','🥭','🍅','🌽','🍄','🌹','🌻','🌼','🌷','🐶','🐱','🐭','🐰','🐻','🐼','🐯','🦁','🐮','🐷','🐸','🐵','🐔','🐧','🦊'];
+  var LEVELS = {
+    easy:   { pairs: 6,  cls: 'easy',   label: 'Easy' },
+    medium: { pairs: 8,  cls: 'medium', label: 'Medium' },
+    hard:   { pairs: 10, cls: 'hard',   label: 'Hard' },
+  };
+  var level = 'easy';
+  var cards = [], first = null, lock = false, moves = 0, matched = 0, total = 0, startTime = 0, timer = null;
+
+  // name + level UI
+  if (CB.name && CB.name.get && CB.name.get()) $('#nameInput').value = CB.name.get();
+  Array.prototype.forEach.call($('#levels').children, function (b) {
+    b.onclick = function () {
+      level = b.dataset.level; CBSound.click();
+      Array.prototype.forEach.call($('#levels').children, function (c) { c.classList.remove('on'); });
+      b.classList.add('on');
+      refreshHistory();
+    };
+  });
+
+  function fmt(sec) {
+    sec = Math.max(0, Math.round(sec)); var m = Math.floor(sec / 60), s = sec % 60;
+    return m + ':' + (s < 10 ? '0' + s : s);
+  }
+  function refreshHistory() {
+    if (CB.scores && CB.scores.refresh) CB.scores.refresh('memorymatch', $('#nameInput').value.trim());
+  }
+  $('#nameInput').addEventListener('input', refreshHistory);
+
+  function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t2 = a[i]; a[i] = a[j]; a[j] = t2; } return a; }
+
+  function start() {
+    var name = $('#nameInput').value.trim() || 'You';
+    if (CB.name && CB.name.set) CB.name.set(name);
+    var L = LEVELS[level];
+    var chosen = shuffle(SYMS.slice()).slice(0, L.pairs);
+    var deck = shuffle(chosen.concat(chosen).map(function (s, i) { return { sym: s, id: i }; }));
+    cards = deck; first = null; lock = false; moves = 0; matched = 0; total = L.pairs; startTime = Date.now();
+    $('#menuView').classList.add('hidden');
+    $('#gameView').classList.remove('hidden');
+    $('#overlay').classList.remove('on');
+    var board = $('#board'); board.className = 'board ' + L.cls; board.innerHTML = '';
+    deck.forEach(function (c, i) {
+      var d = document.createElement('div'); d.className = 'tile'; d.dataset.i = i;
+      d.innerHTML = '<div class="back">？</div><div class="face">' + c.sym + '</div>';
+      d.onclick = function () { flip(i); };
+      board.appendChild(d);
+    });
+    updateHud();
+    if (timer) clearInterval(timer);
+    timer = setInterval(updateHud, 250);
+    CBSound.deal();
+  }
+
+  function updateHud() {
+    $('#movesStat').textContent = moves;
+    $('#pairsStat').textContent = matched + '/' + total;
+    $('#timeStat').textContent = fmt((Date.now() - startTime) / 1000);
+  }
+
+  function flip(i) {
+    if (lock) return;
+    var c = cards[i]; if (c.matched) return;
+    var el = $('#board').children[i];
+    if (el.classList.contains('flipped')) return;
+    CBSound.flip();
+    el.classList.add('flipped');
+    if (first === null) { first = i; return; }
+    if (first === i) return;
+    moves++;
+    var a = cards[first], b = cards[i];
+    if (a.sym === b.sym) {
+      a.matched = b.matched = true; matched++;
+      setTimeout(function () {
+        $('#board').children[first].classList.add('matched');
+        el.classList.add('matched');
+        CBSound.match();
+        first = null; updateHud();
+        if (matched === total) win();
+      }, 260);
+    } else {
+      lock = true;
+      setTimeout(function () {
+        $('#board').children[first].classList.remove('flipped');
+        el.classList.remove('flipped');
+        CBSound.bad(); first = null; lock = false; updateHud();
+      }, 750);
+    }
+  }
+
+  function win() {
+    if (timer) clearInterval(timer);
+    var secs = (Date.now() - startTime) / 1000;
+    var name = $('#nameInput').value.trim() || 'You';
+    var best = null;
+    if (CB.scores && CB.scores.record) {
+      var before = CB.scores.summary('memorymatch', name);
+      CB.scores.record('memorymatch', name, secs, { won: true, level: level, levelLabel: LEVELS[level].label });
+      var after = CB.scores.summary('memorymatch', name);
+      // "best this level" check for a new record
+      var lv = (after.levels || []).filter(function (x) { return x.key === level; })[0];
+      if (lv && lv.best != null) {
+        var prevBest = null;
+        (before.levels || []).forEach(function (x) { if (x.key === level) prevBest = x.best; });
+        best = (prevBest == null || secs < prevBest) ? secs : null;
+      }
+    }
+    $('#ovTime').textContent = fmt(secs);
+    $('#ovMoves').textContent = moves;
+    $('#ovBest').textContent = best != null ? '🌟 ' + t('justNow') + ' (' + fmt(best) + ')' : '';
+    CBSound.win();
+    setTimeout(function () { $('#overlay').classList.add('on'); }, 450);
+  }
+
+  $('#startBtn').onclick = function () { CBSound.click(); start(); };
+  $('#restartBtn').onclick = function () { CBSound.click(); start(); };
+  $('#quitBtn').onclick = function () { if (timer) clearInterval(timer); $('#gameView').classList.add('hidden'); $('#menuView').classList.remove('hidden'); refreshHistory(); };
+  $('#againBtn').onclick = function () { CBSound.click(); start(); };
+  $('#ovMenuBtn').onclick = function () { $('#overlay').classList.remove('on'); $('#gameView').classList.add('hidden'); $('#menuView').classList.remove('hidden'); refreshHistory(); };
+
+  refreshHistory();
+})();
+</script>
+</body>
+</html>

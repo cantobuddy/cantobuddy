@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Bingo · CantoBuddy</title>
+<script src="/games-common.js"></script>
+<link rel="stylesheet" href="/games-common.css" />
+<script src="/game-sound.js"></script>
+<script src="/game-core.js"></script>
+<style>
+  .menu-hero { text-align:center; margin: 8px 0 4px; }
+  .menu-hero .big { font-size: 3.2rem; }
+  .menu-hero .sub { color: var(--muted); font-size: 1.05rem; }
+  .or { text-align:center; color: var(--muted); margin: 6px 0; font-weight:700; }
+  .code-row { display:flex; gap:10px; align-items:stretch; }
+  .code-row input { text-transform: uppercase; letter-spacing:.18em; font-weight:800; font-size:1.4rem; text-align:center; }
+  .avatar-row { display:flex; gap:8px; flex-wrap:wrap; }
+  .avatar-row button { font-size:1.6rem; width:52px; height:52px; border-radius:14px; border:1px solid var(--line); background:#fff; cursor:pointer; }
+  .avatar-row button.on { border-color: var(--primary); background: var(--primary-tint); }
+
+  /* lobby */
+  .codebox { text-align:center; margin: 10px 0; }
+  .players { justify-content:center; }
+  .waiting { text-align:center; color: var(--muted); font-size:1.1rem; margin: 14px 0; }
+
+  /* playing */
+  .hud { display:flex; gap:12px; align-items:stretch; flex-wrap:wrap; }
+  .last-called {
+    flex:0 0 auto; background: linear-gradient(135deg,var(--primary),var(--primary-2)); color:#fff;
+    border-radius:18px; min-width:120px; padding:12px; text-align:center; box-shadow:0 10px 22px rgba(43,108,240,.3);
+  }
+  .last-called .lc-letter { font-size:1.1rem; font-weight:800; opacity:.9; }
+  .last-called .lc-num { font-size:2.8rem; font-weight:900; line-height:1; }
+  .last-called.empty { background:#fff; color:var(--muted); box-shadow:none; border:1px solid var(--line); }
+  .called-cols { flex:1 1 220px; display:flex; gap:8px; }
+  .called-col { flex:1; text-align:center; }
+  .called-col .h { font-weight:900; color:var(--primary); font-size:1.3rem; }
+  .called-col .chips { display:flex; flex-wrap:wrap; gap:3px; justify-content:center; margin-top:4px; }
+  .cc { width:22px; height:22px; border-radius:6px; font-size:.7rem; display:flex; align-items:center; justify-content:center; background:#eef2f7; color:var(--muted); }
+  .cc.on { background: var(--primary); color:#fff; font-weight:800; }
+
+  .card-wrap { margin: 16px 0; }
+  .card {
+    display:grid; grid-template-columns: repeat(5, 1fr); gap:8px; max-width:440px; margin:0 auto;
+    background:#fff; border:1px solid var(--line); border-radius:18px; padding:10px; box-shadow:0 8px 22px rgba(23,26,35,.06);
+  }
+  .card .chead { text-align:center; font-weight:900; color:var(--primary); font-size:1.5rem; padding:4px 0; }
+  .cell {
+    aspect-ratio: 1 / 1; border-radius:14px; display:flex; align-items:center; justify-content:center;
+    font-size:1.7rem; font-weight:800; background:#f3f6fb; color:var(--ink); cursor:default; user-select:none;
+    border:2px solid transparent; transition: all .18s ease;
+  }
+  .cell.free { background: var(--gold); color:#5a3d00; }
+  .cell.called { background: var(--good-tint); color: var(--good); border-color: var(--good); }
+  .cell.just { animation: pop2 .5s ease; }
+  @keyframes pop2 { 0%{transform:scale(.8)} 50%{transform:scale(1.12)} 100%{transform:scale(1)} }
+
+  .bingo-actions { text-align:center; margin: 14px 0; }
+  .bingo-btn {
+    font-size:1.6rem; font-weight:900; letter-spacing:.05em; padding:0 40px; min-height:70px;
+    background: linear-gradient(135deg,#f6b73c,#f3922b); color:#5a3d00; border:none; border-radius:18px;
+    box-shadow:0 12px 26px rgba(243,146,43,.4); cursor:pointer;
+  }
+  .bingo-btn:active { transform:scale(.97); }
+  .progress-list { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin:8px 0; }
+
+  /* chat */
+  .chatbox { margin-top:16px; border-top:1px solid var(--line); padding-top:10px; }
+  .chatlog { max-height:150px; overflow:auto; display:flex; flex-direction:column; gap:6px; margin:8px 0; }
+  .chatline { font-size:.95rem; } .chatline b { color:var(--primary); }
+  .chat-input-row { display:flex; gap:8px; }
+  .chat-input-row input { flex:1; }
+
+  /* overlay big */
+  .modal .winner-emoji { font-size:60px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a class="backlink" href="/?view=games">← CantoBuddy</a>
+    <h1 class="title" data-k="menuTitle">Online Bingo</h1>
+    <div class="topbar-actions">
+      <button class="iconbtn" id="musicBtn" title="Music">🎶</button>
+      <button class="iconbtn" id="soundBtn" title="Sound">🔊</button>
+    </div>
+  </div>
+
+  <!-- MENU -->
+  <div id="menuView">
+    <div class="menu-hero">
+      <div class="big">🎱</div>
+      <div class="sub" data-k="menuSub">Play Bingo with family and friends</div>
+    </div>
+    <div class="panel">
+      <div class="field">
+        <label data-k="yourName">Your name</label>
+        <input type="text" id="nameInput" maxlength="12" data-k="namePlaceholder" placeholder="Your name" />
+      </div>
+      <div class="field">
+        <label data-k="pickAvatar">Pick a face</label>
+        <div class="avatar-row" id="avatarRow"></div>
+      </div>
+      <button class="btn primary block" id="createBtn" data-k="createBtn">Create a room</button>
+      <div class="or" data-k="orText">or</div>
+      <div class="field">
+        <label data-k="joinCode">Room code</label>
+        <div class="code-row">
+          <input type="text" id="codeInput" maxlength="4" data-k="codePlaceholder" placeholder="ABCD" />
+          <button class="btn" id="joinBtn" data-k="joinBtn">Join</button>
+        </div>
+      </div>
+      <div id="recordBox"></div>
+    </div>
+  </div>
+
+  <!-- LOBBY / PLAYING -->
+  <div id="gameView" class="hidden">
+    <div class="codebox">
+      <span class="codechip" id="codeChip">ABCD</span>
+      <button class="btn ghost" id="copyBtn" style="min-height:46px;padding:0 16px" data-k="copyBtn">Copy</button>
+    </div>
+    <div id="lobbyArea">
+      <div class="waiting" id="waitText" data-k="waitingHost">Waiting for host to start…</div>
+      <div class="btn-row" id="startRow" style="display:none">
+        <button class="btn primary block" id="startBtn" data-k="startBtn">Start game</button>
+      </div>
+    </div>
+    <div id="playArea" class="hidden">
+      <div class="hud">
+        <div class="last-called empty" id="lastCalled"><div class="lc-letter" data-k="lastCalled">Last</div><div class="lc-num">–</div></div>
+        <div class="called-cols" id="calledCols"></div>
+      </div>
+      <div class="card-wrap">
+        <div class="card" id="card"></div>
+      </div>
+      <div class="progress-list" id="progressList"></div>
+      <div class="bingo-actions">
+        <button class="bingo-btn" id="bingoBtn" data-k="bingoBtn">BINGO!</button>
+      </div>
+      <div class="chatbox">
+        <div class="chatlog" id="chatLog"></div>
+        <div class="chat-input-row">
+          <input type="text" id="chatInput" maxlength="140" data-k="chatPlaceholder" placeholder="Say something…" />
+          <button class="btn" id="chatBtn" data-k="sendBtn">Send</button>
+        </div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn danger block" id="leaveBtn" data-k="leaveBtn">Leave</button>
+    </div>
+  </div>
+
+  <!-- RESULT OVERLAY -->
+  <div class="overlay" id="overlay">
+    <div class="modal">
+      <div class="winner-emoji" id="ovEmoji">🎉</div>
+      <h2 id="ovTitle">Bingo!</h2>
+      <div class="stat-line" id="ovSub"></div>
+      <div class="btn-row" style="margin-top:18px">
+        <button class="btn primary block" id="againBtn" data-k="playAgain">Play again</button>
+      </div>
+      <button class="btn ghost block" id="ovMenuBtn" data-k="backMenu">Back to menu</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var STR = {
+    en: {
+      title:'Bingo · CantoBuddy', menuTitle:'Online Bingo', menuSub:'Play Bingo with family and friends',
+      yourName:'Your name', namePlaceholder:'Your name', pickAvatar:'Pick a face', createBtn:'Create a room',
+      orText:'or', joinCode:'Room code', codePlaceholder:'ABCD', joinBtn:'Join', backToApp:'CantoBuddy',
+      copyBtn:'Copy', waitingHost:'Waiting for host to start…', startBtn:'Start game', leaveBtn:'Leave',
+      lastCalled:'Last called', yourCard:'Your card', bingoBtn:'BINGO!', calledNums:'Called numbers',
+      playAgain:'Play again', backMenu:'Back to menu', chatPlaceholder:'Say something…', sendBtn:'Send',
+      copied:'Copied!', notYet:'Not a bingo yet!', inviteText:'Share this code with family:',
+      winYou:'Bingo! You won! 🎉', winOther:'{name} won!', youLabel:'You', hostLabel:'Host',
+      errNameRequired:'Please type your name', errRoomNotFound:'Room not found', errNameTaken:'That name is taken here',
+      errRoomFull:'Room is full', errSessionExpired:'Session ended — rejoin', errNoBingo:'Not a bingo yet!',
+      errOnlyHost:'Only the host can do that', errAlreadyPlaying:'Game already started', errNet:'Connection problem — try again',
+      errUnknownAction:'Something went wrong', errTooManyRooms:'Too many games right now — try later'
+    },
+    fil: {
+      menuTitle:'Online Bingo', menuSub:'Mag-Bingo kasama ang pamilya at kaibigan', yourName:'Pangalan mo',
+      namePlaceholder:'Ilagay ang pangalan', createBtn:'Gumawa ng kuwarto', orText:'o', joinCode:'Kodigo ng kuwarto',
+      joinBtn:'Sumali', copyBtn:'Kopyahin', waitingHost:'Hintay ang host para magsimula…', startBtn:'Simulan',
+      leaveBtn:'Umalis', bingoBtn:'BINGO!', playAgain:'Laro ulit', backMenu:'Bumalik sa menu',
+      chatPlaceholder:'Magsabi ng something…', sendBtn:'Send', copied:'Nakopya!', notYet:'Hindi pa bingo!',
+      winYou:'Bingo! Nanalo ka! 🎉', winOther:'{name} ang nanalo!', lastCalled:'Huling tawag',
+      errNameRequired:'Ilagay ang pangalan', errRoomNotFound:'Hindi mahanap ang kuwarto', errNameTaken:'May gumagamit na ng pangalang iyan',
+      errRoomFull:'Puno na ang kuwarto', errSessionExpired:'Tapos na ang session — sumali ulit', errNoBingo:'Hindi pa bingo!',
+      errNet:'May problema sa koneksyon'
+    },
+    zh: {
+      menuTitle:'在线宾果', menuSub:'和亲友一起玩宾果', yourName:'你的名字', namePlaceholder:'输入你的名字',
+      createBtn:'创建房间', orText:'或', joinCode:'房间号', joinBtn:'加入', copyBtn:'复制',
+      waitingHost:'等待房主开始…', startBtn:'开始游戏', leaveBtn:'离开', bingoBtn:'宾果!',
+      playAgain:'再玩一次', backMenu:'返回菜单', chatPlaceholder:'说点什么…', sendBtn:'发送',
+      copied:'已复制!', notYet:'还没连成宾果!', winYou:'宾果! 你赢了! 🎉', winOther:'{name} 赢了!',
+      lastCalled:'刚喊出', errNameRequired:'请输入名字', errRoomNotFound:'找不到房间', errNameTaken:'名字已被使用',
+      errRoomFull:'房间已满', errSessionExpired:'会话结束 — 请重新加入', errNoBingo:'还没连成宾果!',
+      errNet:'连接出问题 — 请重试'
+    },
+    id: {
+      menuTitle:'Bingo Online', menuSub:'Main Bingo bersama keluarga', yourName:'Nama kamu', namePlaceholder:'Ketik nama',
+      createBtn:'Buat ruangan', orText:'atau', joinCode:'Kode ruangan', joinBtn:'Gabung', copyBtn:'Salin',
+      waitingHost:'Menunggu tuan rumah mulai…', startBtn:'Mulai', leaveBtn:'Keluar', bingoBtn:'BINGO!',
+      playAgain:'Main lagi', backMenu:'Ke menu', chatPlaceholder:'Bilang sesuatu…', sendBtn:'Kirim',
+      copied:'Tersalin!', notYet:'Belum bingo!', winYou:'Bingo! Kamu menang! 🎉', winOther:'{name} menang!',
+      lastCalled:'Terakhir', errNameRequired:'Isi nama dulu', errRoomNotFound:'Ruangan tak jumpa', errNameTaken:'Nama itu sudah dipakai',
+      errRoomFull:'Ruangan penuh', errSessionExpired:'Sesi tamat — gabung lagi', errNoBingo:'Belum bingo!',
+      errNet:'Masalah sambungan — cuba lagi'
+    }
+  };
+  var t = function (k, v) { return CBGame.t(STR, k, v); };
+  CBGame.wireSound();
+
+  var $ = function (s) { return document.querySelector(s); };
+  var session = null, S = null, es = null, myAvatar = CBGame.AVATARS[0];
+
+  /* ---- avatar picker ---- */
+  var ar = $('#avatarRow');
+  CBGame.AVATARS.forEach(function (a, i) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.textContent = a; if (i === 0) b.classList.add('on');
+    b.onclick = function () { myAvatar = a; Array.prototype.forEach.call(ar.children, function (c) { c.classList.remove('on'); }); b.classList.add('on'); };
+    ar.appendChild(b);
+  });
+
+  /* ---- restore name ---- */
+  var nameInput = $('#nameInput');
+  if (CB.name && CB.name.get && CB.name.get()) nameInput.value = CB.name.get();
+  else { var sv = localStorage.getItem('bingo.name'); if (sv) nameInput.value = sv; }
+
+  function saveSession() { if (session) localStorage.setItem('bingo.session', JSON.stringify(session)); else localStorage.removeItem('bingo.session'); }
+  function loadSession() { try { return JSON.parse(localStorage.getItem('bingo.session') || 'null'); } catch (e) { return null; } }
+
+  function errText(code) {
+    var key = 'err' + (code || '').charAt(0).toUpperCase() + (code || '').slice(1);
+    var s = (STR[CBGame.LANG] || STR.en)[key] || STR.en[key];
+    return s || t('errNet');
+  }
+
+  /* ---- API helpers ---- */
+  function create() {
+    var name = nameInput.value.trim(); if (!name) { CBGame.toast(t('errNameRequired'), 'bad'); return; }
+    CB.name && CB.name.set && CB.name.set(name); localStorage.setItem('bingo.name', name);
+    CBGame.api('api/create', { name: name, avatar: myAvatar, deviceId: CBGame.deviceId() })
+      .then(function (r) { session = { code: r.code, token: r.token, name: r.name, avatar: r.avatar }; saveSession(); connect(); })
+      .catch(function (e) { CBGame.toast(errText(e.message), 'bad'); });
+  }
+  function join() {
+    var name = nameInput.value.trim(); if (!name) { CBGame.toast(t('errNameRequired'), 'bad'); return; }
+    var code = $('#codeInput').value.trim().toUpperCase();
+    if (!code) { CBGame.toast(t('errRoomNotFound'), 'bad'); return; }
+    CB.name && CB.name.set && CB.name.set(name); localStorage.setItem('bingo.name', name);
+    CBGame.api('api/join', { code: code, name: name, avatar: myAvatar, deviceId: CBGame.deviceId() })
+      .then(function (r) { session = { code: r.code, token: r.token, name: r.name, avatar: r.avatar }; saveSession(); connect(); })
+      .catch(function (e) { CBGame.toast(errText(e.message), 'bad'); });
+  }
+
+  function connect() {
+    if (es) es.close();
+    es = new EventSource(CBGame.base() + 'api/events?token=' + encodeURIComponent(session.token));
+    es.onmessage = function (ev) {
+      var st; try { st = JSON.parse(ev.data); } catch (e) { return; }
+      if (st.fatal) { disconnect(); session = null; saveSession(); showMenu(); CBGame.toast(t('errSessionExpired'), 'bad'); return; }
+      S = st; render();
+    };
+    es.onerror = function () { /* will retry via EventSource */ };
+  }
+  function disconnect() { if (es) { es.close(); es = null; } }
+
+  function action(type, extra) {
+    var body = Object.assign({ token: session.token, type: type }, extra || {});
+    return CBGame.api('api/action', body);
+  }
+
+  /* ---- views ---- */
+  function showMenu() {
+    $('#menuView').classList.remove('hidden');
+    $('#gameView').classList.add('hidden');
+    $('#overlay').classList.remove('on');
+    loadMyRecord();
+  }
+  function showGame() {
+    $('#menuView').classList.add('hidden');
+    $('#gameView').classList.remove('hidden');
+  }
+
+  var LETTERS = ['B', 'I', 'N', 'G', 'O'];
+  function render() {
+    if (!S) return;
+    showGame();
+    $('#codeChip').textContent = S.code;
+
+    if (S.state === 'lobby') {
+      $('#lobbyArea').classList.remove('hidden');
+      $('#playArea').classList.add('hidden');
+      $('#startRow').style.display = S.you.isHost ? 'flex' : 'none';
+      $('#waitText').style.display = S.you.isHost ? 'none' : 'block';
+      renderPlayers();
+      return;
+    }
+    if (S.state === 'playing') {
+      $('#lobbyArea').classList.add('hidden');
+      $('#playArea').classList.remove('hidden');
+      renderCalled();
+      renderCard();
+      renderPlayers();
+      renderChat();
+      return;
+    }
+    if (S.state === 'ended') {
+      $('#lobbyArea').classList.add('hidden');
+      $('#playArea').classList.remove('hidden');
+      renderCalled(); renderCard(); renderPlayers(); renderChat();
+      showResult();
+      return;
+    }
+  }
+
+  function renderPlayers() {
+    var html = S.players.map(function (p) {
+      var you = p.id === S.you.id;
+      var label = (you ? t('youLabel') + ' · ' : '') + (p.isHost ? t('hostLabel') : '');
+      return '<div class="pchip' + (you ? ' you' : '') + '"><span class="av">' + (p.avatar || '🙂') + '</span>' +
+        escapeHtml(p.name) + (label ? ' <small>' + label + '</small>' : '') + '</div>';
+    }).join('');
+    // progress list (only meaningful while playing/ended)
+    var prog = '';
+    if (S.state === 'playing' || S.state === 'ended') {
+      prog = S.players.map(function (p) {
+        return '<div class="pchip"><span class="av">' + (p.avatar || '🙂') + '</span>' + escapeHtml(p.name) +
+          ' <small>' + p.progress + '/24</small></div>';
+      }).join('');
+    }
+    $('#progressList').innerHTML = prog;
+  }
+
+  function renderCalled() {
+    var lc = $('#lastCalled');
+    if (S.lastCalled == null) { lc.className = 'last-called empty'; lc.innerHTML = '<div class="lc-letter">' + t('lastCalled') + '</div><div class="lc-num">–</div>'; }
+    else {
+      var col = Math.floor((S.lastCalled - 1) / 15);
+      lc.className = 'last-called';
+      lc.innerHTML = '<div class="lc-letter">' + LETTERS[col] + '</div><div class="lc-num">' + S.lastCalled + '</div>';
+    }
+    // 5 columns of called chips
+    var cols = [[], [], [], [], []];
+    S.called.forEach(function (n) { cols[Math.floor((n - 1) / 15)].push(n); });
+    var html = LETTERS.map(function (L, i) {
+      var chips = '';
+      for (var n = i * 15 + 1; n <= i * 15 + 15; n++) {
+        var on = cols[i].indexOf(n) >= 0;
+        chips += '<span class="cc' + (on ? ' on' : '') + '">' + n + '</span>';
+      }
+      return '<div class="called-col"><div class="h">' + L + '</div><div class="chips">' + chips + '</div></div>';
+    }).join('');
+    $('#calledCols').innerHTML = html;
+  }
+
+  function renderCard() {
+    var card = S.you.card; if (!card) return;
+    var el = $('#card');
+    if (el.childElementCount !== 25 + 5) {
+      el.innerHTML = '';
+      LETTERS.forEach(function (L) { var h = document.createElement('div'); h.className = 'chead'; h.textContent = L; el.appendChild(h); });
+      card.forEach(function (c, i) {
+        var d = document.createElement('div'); d.className = 'cell'; d.dataset.i = i; el.appendChild(d);
+      });
+    }
+    var called = {};
+    S.called.forEach(function (n) { called[n] = true; });
+    var prev = el._called || {};
+    Array.prototype.forEach.call(el.children, function (d) {
+      if (!d.dataset || d.dataset.i === undefined) return;
+      var c = card[+d.dataset.i];
+      if (c.free) { d.className = 'cell free'; d.textContent = '★'; return; }
+      var on = !!called[c.value];
+      var just = on && !prev[c.value];
+      d.className = 'cell' + (on ? ' called' : '') + (just ? ' just' : '');
+      d.textContent = c.value;
+    });
+    el._called = called;
+  }
+
+  function renderChat() {
+    var log = $('#chatLog');
+    log.innerHTML = (S.chat || []).map(function (m) {
+      return '<div class="chatline"><b>' + escapeHtml(m.name) + ':</b> ' + escapeHtml(m.text) + '</div>';
+    }).join('');
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function showResult() {
+    var ov = $('#overlay');
+    var won = S.winner === S.you.id;
+    if (won) { $('#ovEmoji').textContent = '🎉'; $('#ovTitle').textContent = t('winYou'); CBSound.win(); }
+    else {
+      var w = S.players.find(function (p) { return p.id === S.winner; });
+      $('#ovEmoji').textContent = w ? w.avatar || '🙂' : '👏';
+      $('#ovTitle').textContent = t('winOther', { name: w ? w.name : '' });
+    }
+    $('#ovSub').textContent = won ? (S.you.record ? (S.you.record.wins + ' ' + t('winsLabel', {})) : '') : '';
+    $('#againBtn').style.display = S.you.isHost ? 'block' : 'none';
+    ov.classList.add('on');
+  }
+
+  /* ---- buttons ---- */
+  $('#createBtn').onclick = function () { CBSound.click(); create(); };
+  $('#joinBtn').onclick = function () { CBSound.click(); join(); };
+  $('#startBtn').onclick = function () { CBSound.click(); action('start').catch(function (e) { CBGame.toast(errText(e.message), 'bad'); }); };
+  $('#bingoBtn').onclick = function () {
+    CBSound.bingo();
+    action('bingo').catch(function (e) {
+      CBGame.toast(errText(e.message), 'bad');
+    });
+  };
+  $('#leaveBtn').onclick = function () {
+    if (session) action('leave').catch(function () {});
+    disconnect(); session = null; saveSession(); showMenu();
+  };
+  $('#copyBtn').onclick = function () {
+    var code = S ? S.code : (session ? session.code : '');
+    if (navigator.clipboard) navigator.clipboard.writeText(code).then(function () { CBGame.toast(t('copied'), 'good'); }, function () {});
+    else CBGame.toast(t('copied'), 'good');
+  };
+  $('#chatBtn').onclick = sendChat;
+  $('#chatInput').addEventListener('keydown', function (e) { if (e.key === 'Enter') sendChat(); });
+  function sendChat() {
+    var v = $('#chatInput').value.trim(); if (!v) return;
+    $('#chatInput').value = '';
+    action('chat', { text: v }).catch(function () {});
+  }
+  $('#againBtn').onclick = function () { CBSound.click(); action('start').catch(function () {}); $('#overlay').classList.remove('on'); };
+  $('#ovMenuBtn').onclick = function () { disconnect(); session = null; saveSession(); showMenu(); };
+
+  /* ---- my server record ---- */
+  function loadMyRecord() {
+    var box = $('#recordBox'); if (!box) return;
+    var id = CBGame.deviceId();
+    if (!id) { box.innerHTML = ''; return; }
+    fetch('/api/games/record?public_id=' + encodeURIComponent(id))
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        var g = d && d.games && d.games.bingo;
+        if (!g || (!g.wins && !g.played)) { box.innerHTML = ''; return; }
+        box.innerHTML = '<div class="panel"><div class="sh-title">' + t('menuTitle') + ' — ' + (g.wins || 0) + ' ' + t('winsLabel', {}) + ' · ' + (g.played || 0) + ' ' + t('playedLabel', {}) + '</div></div>';
+      })
+      .catch(function () { box.innerHTML = ''; });
+  }
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; });
+  }
+
+  // Make sure label keys exist (added to STR after the fact for brevity)
+  STR.en.winsLabel = 'wins'; STR.en.playedLabel = 'played';
+  STR.fil.winsLabel = 'panalo'; STR.fil.playedLabel = 'laro';
+  STR.zh.winsLabel = '胜'; STR.zh.playedLabel = '局';
+  STR.id.winsLabel = 'menang'; STR.id.playedLabel = 'main';
+
+  /* ---- boot ---- */
+  var saved = loadSession();
+  if (saved && saved.token) { session = saved; connect(); }
+  else showMenu();
+})();
+</script>
+</body>
+</html>

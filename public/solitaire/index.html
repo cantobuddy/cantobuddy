@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Solitaire · CantoBuddy</title>
+<script src="/games-common.js"></script>
+<link rel="stylesheet" href="/games-common.css" />
+<script src="/game-sound.js"></script>
+<script src="/game-core.js"></script>
+<style>
+  .menu-hero { text-align:center; margin: 8px 0 4px; }
+  .menu-hero .big { font-size: 3.2rem; }
+  .menu-hero .sub { color: var(--muted); font-size: 1.05rem; }
+  .levels { display:flex; gap:10px; margin: 6px 0; }
+  .levels button { flex:1; min-height:58px; border-radius:14px; border:1px solid var(--line); background:#fff; font:inherit; font-weight:800; font-size:1.05rem; cursor:pointer; }
+  .levels button.on { background: var(--primary); color:#fff; border-color:var(--primary); }
+
+  .top-row { display:flex; gap:8px; justify-content:space-between; margin: 6px 0; }
+  .top-row .left, .top-row .right { display:flex; gap:8px; }
+  .stat { background:#fff; border:1px solid var(--line); border-radius:12px; padding:6px 12px; font-weight:800; font-size:1rem; }
+  .stat small { display:block; font-size:.7rem; color:var(--muted); font-weight:700; }
+
+  .card {
+    width:46px; height:64px; border-radius:8px; background:#fff; border:1px solid #c9d3e0;
+    box-shadow:0 2px 5px rgba(23,26,35,.18); position:relative; font-weight:800; user-select:none;
+    display:flex; align-items:flex-start; justify-content:flex-start; padding:3px 4px; box-sizing:border-box;
+    color:#1f2937;
+  }
+  .card.red { color:#d22; }
+  .card .big { font-size:1.15rem; line-height:1; }
+  .card .suit-b { position:absolute; right:4px; bottom:2px; font-size:1.0rem; }
+  .card.back { background: repeating-linear-gradient(45deg,#3a6fd8,#3a6fd8 6px,#4a86ff 6px,#4a86ff 12px); border-color:#2b6cf0; color:transparent; }
+  .card.back .big, .card.back .suit-b { visibility:hidden; }
+  .card.sel { outline:3px solid var(--gold); outline-offset:1px; }
+  .card.play { cursor:pointer; }
+
+  /* stock / waste / foundations */
+  .pile { width:46px; height:64px; border-radius:8px; border:2px dashed #cdd5df; background:#eef2f7; position:relative; }
+  .pile.foundation { display:flex; align-items:center; justify-content:center; font-size:1.6rem; color:#b6c0cf; }
+  .pile.target { border-color: var(--primary); background: var(--primary-tint); }
+  .pile .count { position:absolute; right:2px; bottom:2px; font-size:.7rem; color:#6b7280; font-weight:700; }
+
+  .tableau { display:flex; gap:6px; margin-top:12px; justify-content:center; }
+  .tcol { width:46px; display:flex; flex-direction:column; }
+  .tcol .slot { min-height:64px; }
+  .tcol .stack { position:relative; }
+  .card.in-col { margin-top:-30px; }      /* overlap upwards */
+  .card.first { margin-top:0; }
+
+  .controls { display:flex; gap:10px; margin:14px 0; flex-wrap:wrap; }
+  .controls .btn { flex:1; min-width:120px; }
+
+  @media (max-width: 380px) { .card,.pile,.tcol { width:40px; } .card{height:56px;} .tcol .slot{min-height:56px;} .card.in-col{margin-top:-26px;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a class="backlink" href="/?view=games">← CantoBuddy</a>
+    <h1 class="title" data-k="title">Solitaire</h1>
+    <div class="topbar-actions">
+      <button class="iconbtn" id="musicBtn" title="Music">🎶</button>
+      <button class="iconbtn" id="soundBtn" title="Sound">🔊</button>
+    </div>
+  </div>
+
+  <div id="menuView">
+    <div class="menu-hero">
+      <div class="big">🂡</div>
+      <div class="sub" data-k="sub">Build the four suits up to King</div>
+    </div>
+    <div class="panel">
+      <div class="field">
+        <label data-k="yourName">Your name</label>
+        <input type="text" id="nameInput" maxlength="12" data-k="namePlaceholder" placeholder="Your name" />
+      </div>
+      <div class="field">
+        <label data-k="levelLabel">Draw</label>
+        <div class="levels" id="levels">
+          <button data-level="easy" class="on" data-k="lvEasy">Draw 1</button>
+          <button data-level="hard" data-k="lvHard">Draw 3</button>
+        </div>
+      </div>
+      <button class="btn primary block" id="startBtn" data-k="startBtn">New game</button>
+      <div id="cbScoreHistory" class="cb-score-history hidden"></div>
+    </div>
+  </div>
+
+  <div id="gameView" class="hidden">
+    <div class="top-row">
+      <div class="left">
+        <div class="pile" id="stock" title="Draw"></div>
+        <div class="pile" id="waste"></div>
+      </div>
+      <div class="right">
+        <div class="stat"><small data-k="timeLabel">Time</small><span id="timeStat">0:00</span></div>
+        <div class="stat"><small data-k="movesLabel">Moves</small><span id="movesStat">0</span></div>
+        <div class="foundations" style="display:flex;gap:6px">
+          <div class="pile foundation" data-f="0">♠</div>
+          <div class="pile foundation" data-f="1">♥</div>
+          <div class="pile foundation" data-f="2">♦</div>
+          <div class="pile foundation" data-f="3">♣</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tableau" id="tableau"></div>
+
+    <div class="controls">
+      <button class="btn ghost" id="collectBtn" data-k="collectBtn">Collect</button>
+      <button class="btn ghost" id="restartBtn" data-k="restartBtn">Restart</button>
+      <button class="btn danger" id="quitBtn" data-k="quitBtn">Quit</button>
+    </div>
+  </div>
+
+  <div class="overlay" id="overlay">
+    <div class="modal">
+      <div class="big-emoji">🏆</div>
+      <h2 data-k="wonTitle">You won Solitaire!</h2>
+      <div class="stat-line" data-k="wonTime">Time: <b id="ovTime">0:00</b></div>
+      <div class="stat-line muted" id="ovBest"></div>
+      <div class="btn-row" style="margin-top:18px">
+        <button class="btn primary block" id="againBtn" data-k="againBtn">Play again</button>
+        <button class="btn ghost block" id="ovMenuBtn" data-k="backMenu">Back to menu</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var STR = {
+    en: {
+      title:'Solitaire', sub:'Build the four suits up to King', yourName:'Your name', namePlaceholder:'Your name',
+      levelLabel:'Draw', lvEasy:'Draw 1', lvHard:'Draw 3', startBtn:'New game', backToApp:'CantoBuddy',
+      timeLabel:'Time', movesLabel:'Moves', collectBtn:'Collect', restartBtn:'Restart', quitBtn:'Quit',
+      wonTitle:'You won Solitaire!', wonTime:'Time', againBtn:'Play again', backMenu:'Back to menu',
+      justNow:'New best time!', notMovable:'That card cannot go there', emptyStock:'Tap to recycle the waste'
+    },
+    fil: {
+      title:'Solitaire', sub:'Buuin ang apat na suit hanggang Hari', yourName:'Pangalan mo', namePlaceholder:'Ilagay ang pangalan',
+      levelLabel:'Draw', lvEasy:'Draw 1', lvHard:'Draw 3', startBtn:'Bagong laro',
+      timeLabel:'Oras', movesLabel:'Galaw', collectBtn:'Ipunin', restartBtn:'Ulitin', quitBtn:'Umalis',
+      wonTitle:'Nanalo ka sa Solitaire!', wonTime:'Oras', againBtn:'Laro ulit', backMenu:'Bumalik sa menu', justNow:'Bagong rekord!', notMovable:'Hindi pwede doon', emptyStock:'Tap para i-recycle'
+    },
+    zh: {
+      title:'纸牌', sub:'把四花色从 A 叠到 K', yourName:'你的名字', namePlaceholder:'输入你的名字',
+      levelLabel:'发牌', lvEasy:'发1张', lvHard:'发3张', startBtn:'新游戏',
+      timeLabel:'时间', movesLabel:'步数', collectBtn:'收牌', restartBtn:'重玩', quitBtn:'退出',
+      wonTitle:'你赢了纸牌!', wonTime:'时间', againBtn:'再玩一次', backMenu:'返回菜单', justNow:'新纪录!', notMovable:'这张牌不能放那里', emptyStock:'点此回收废牌'
+    },
+    id: {
+      title:'Solitaire', sub:'Susun empat suit sampai King', yourName:'Nama kamu', namePlaceholder:'Ketik nama',
+      levelLabel:'Draw', lvEasy:'Draw 1', lvHard:'Draw 3', startBtn:'Main baru',
+      timeLabel:'Masa', movesLabel:'Gerak', collectBtn:'Kumpul', restartBtn:'Ulang', quitBtn:'Keluar',
+      wonTitle:'Kamu menang Solitaire!', wonTime:'Masa', againBtn:'Main lagi', backMenu:'Ke menu', justNow:'Rekod baru!', notMovable:'Tak boleh ke situ', emptyStock:'Tap untuk kitar semula'
+    }
+  };
+  var t = function (k, v) { return CBGame.t(STR, k, v); };
+  CBGame.wireSound();
+  var $ = function (s) { return document.querySelector(s); };
+
+  var SUITS = ['S', 'H', 'D', 'C'];
+  var SUIT_GLYPH = { S: '♠', H: '♥', D: '♦', C: '♣' };
+  var RANK_TXT = { 1: 'A', 11: 'J', 12: 'Q', 13: 'K' };
+  function rankTxt(r) { return RANK_TXT[r] || String(r); }
+  function isRed(suit) { return suit === 'H' || suit === 'D'; }
+
+  var level = 'easy'; // 'easy' => draw 1, 'hard' => draw 3
+  var stock, waste, foundations, tableau, moves, startTime, timer, selection;
+
+  if (CB.name && CB.name.get && CB.name.get()) $('#nameInput').value = CB.name.get();
+  Array.prototype.forEach.call($('#levels').children, function (b) {
+    b.onclick = function () {
+      level = b.dataset.level; CBSound.click();
+      Array.prototype.forEach.call($('#levels').children, function (c) { c.classList.remove('on'); });
+      b.classList.add('on'); refreshHistory();
+    };
+  });
+
+  function fmt(sec) { sec = Math.max(0, Math.round(sec)); var m = Math.floor(sec / 60), s = sec % 60; return m + ':' + (s < 10 ? '0' + s : s); }
+  function refreshHistory() { if (CB.scores && CB.scores.refresh) CB.scores.refresh('solitaire', $('#nameInput').value.trim()); }
+  $('#nameInput').addEventListener('input', refreshHistory);
+  function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var x = a[i]; a[i] = a[j]; a[j] = x; } return a; }
+
+  function newDeck() {
+    var d = [];
+    for (var s = 0; s < 4; s++) for (var r = 1; r <= 13; r++) d.push({ rank: r, suit: SUITS[s], up: false });
+    return shuffle(d);
+  }
+
+  function start() {
+    var name = $('#nameInput').value.trim() || 'You';
+    if (CB.name && CB.name.set) CB.name.set(name);
+    var deck = newDeck();
+    tableau = [[], [], [], [], [], [], []];
+    for (var i = 0; i < 7; i++) {
+      for (var k = 0; k <= i; k++) {
+        var c = deck.pop();
+        c.up = (k === i); // only the top card of each pile starts face up
+        tableau[i].push(c);
+      }
+    }
+    stock = deck; // remaining 24, all face down
+    waste = [];
+    foundations = [[], [], [], []];
+    moves = 0; selection = null; startTime = Date.now();
+    $('#menuView').classList.add('hidden');
+    $('#gameView').classList.remove('hidden');
+    $('#overlay').classList.remove('on');
+    render();
+    if (timer) clearInterval(timer);
+    timer = setInterval(updateHud, 250);
+    CBSound.deal();
+  }
+
+  function updateHud() { $('#timeStat').textContent = fmt((Date.now() - startTime) / 1000); $('#movesStat').textContent = moves; }
+
+  function cardEl(card, opts) {
+    opts = opts || {};
+    var d = document.createElement('div');
+    d.className = 'card' + (isRed(card.suit) ? ' red' : '') + (card.up ? '' : ' back') + (opts.play ? ' play' : '') + (opts.sel ? ' sel' : '');
+    d.innerHTML = '<span class="big">' + rankTxt(card.rank) + '</span><span class="suit-b">' + SUIT_GLYPH[card.suit] + '</span>';
+    return d;
+  }
+  function emptyPileEl(label) { var d = document.createElement('div'); d.className = 'pile'; if (label) d.textContent = label; return d; }
+
+  function render() {
+    // stock
+    var st = $('#stock'); st.innerHTML = '';
+    if (stock.length) { var b = document.createElement('div'); b.className = 'card back'; st.appendChild(b); }
+    else { st.textContent = '↻'; st.style.fontSize = '1.6rem'; st.style.color = '#9aa6b6'; }
+    st.onclick = draw;
+
+    // waste
+    var w = $('#waste'); w.innerHTML = '';
+    if (waste.length) {
+      var top = waste[waste.length - 1];
+      var wc = cardEl(top, { play: true });
+      wc.onclick = function () { selectSource('waste', waste.length - 1); };
+      if (selection && selection.type === 'waste') wc.classList.add('sel');
+      w.appendChild(wc);
+      if (waste.length > 1) { var cnt = document.createElement('span'); cnt.className = 'count'; cnt.textContent = waste.length; w.appendChild(cnt); }
+    }
+
+    // foundations
+    Array.prototype.forEach.call(document.querySelectorAll('.foundation'), function (el) {
+      var f = +el.dataset.f; el.innerHTML = '';
+      if (foundations[f].length) {
+        var c = foundations[f][foundations[f].length - 1];
+        var ce = cardEl(c, { play: true });
+        ce.onclick = function () { selectDest('foundation', f); };
+        el.appendChild(ce);
+      } else {
+        el.textContent = SUIT_GLYPH[SUITS[f]];
+      }
+      if (selection && selection.type === 'foundation' && selection.index === f) el.classList.add('target');
+      else el.classList.remove('target');
+      el.onclick = function (e) { if (e.target === el || e.target.classList.contains('foundation')) selectDest('foundation', f); };
+    });
+
+    // tableau
+    var tb = $('#tableau'); tb.innerHTML = '';
+    for (var i = 0; i < 7; i++) {
+      var col = document.createElement('div'); col.className = 'tcol';
+      var slot = document.createElement('div'); slot.className = 'slot'; col.appendChild(slot);
+      var pile = tableau[i];
+      if (!pile.length) {
+        var empty = document.createElement('div'); empty.className = 'pile';
+        if (selection && selection.type === 'tableau' && selection.index === i) empty.classList.add('target');
+        empty.onclick = function () { selectDest('tableau', i); };
+        col.appendChild(empty);
+      } else {
+        var stack = document.createElement('div'); stack.className = 'stack';
+        for (var j = 0; j < pile.length; j++) {
+          var card = pile[j];
+          var ce2 = cardEl(card, { play: card.up });
+          ce2.classList.add(j === 0 ? 'first' : 'in-col');
+          if (card.up) {
+            (function (pi, ci) {
+              ce2.onclick = function () { selectSource('tableau', pi, ci); };
+            })(i, j);
+          }
+          if (selection && selection.type === 'tableau' && selection.index === i && j >= selection.from) ce2.classList.add('sel');
+          stack.appendChild(ce2);
+        }
+        col.appendChild(stack);
+      }
+      tb.appendChild(col);
+    }
+    updateHud();
+    checkWin();
+  }
+
+  /* ---- selection model ----
+   * A source click sets `selection`:
+   *   { type:'waste', index }                      -> single card (top of waste)
+   *   { type:'tableau', index:pile, from:cardIdx } -> the run pile[from..end]
+   * A destination click (foundation or tableau) attempts to move the selection.
+   */
+  function selectSource(type, a, b) {
+    if (type === 'waste') {
+      if (selection && selection.type === 'waste') { selection = null; render(); return; }
+      selection = { type: 'waste', index: a };
+      CBSound.click(); render(); return;
+    }
+    // tableau: a = pile index, b = card index within pile
+    var pile = tableau[a];
+    if (!pile[b].up) return;
+    // The movable run is pile[b..end]. It must be a valid descending alternating run.
+    if (!validRun(pile, b)) { CBSound.bad(); return; }
+    if (selection && selection.type === 'tableau' && selection.index === a && selection.from === b) { selection = null; render(); return; }
+    selection = { type: 'tableau', index: a, from: b };
+    CBSound.click(); render();
+  }
+
+  function selectDest(type, idx) {
+    if (!selection) return;
+    if (type === 'foundation') {
+      if (selection.type === 'waste') { tryFoundation(foundations[idx], [waste[waste.length - 1]], function () { waste.pop(); }); }
+      else { var run = tableau[selection.index].slice(selection.from); if (run.length !== 1) { CBSound.bad(); CBGame.toast(t('notMovable'), 'bad'); return; } tryFoundation(foundations[idx], run, function () { tableau[selection.index].splice(selection.from, 1); afterTableauMove(selection.index); }); }
+    } else if (type === 'tableau') {
+      var moving;
+      if (selection.type === 'waste') { moving = [waste[waste.length - 1]]; }
+      else { moving = tableau[selection.index].slice(selection.from); }
+      if (!canStackTableau(moving[0], idx)) { CBSound.bad(); CBGame.toast(t('notMovable'), 'bad'); return; }
+      if (selection.type === 'waste') {
+        tableau[idx].push(waste.pop());
+      } else {
+        var src = tableau[selection.index];
+        var run2 = src.splice(selection.from);
+        for (var k = 0; k < run2.length; k++) tableau[idx].push(run2[k]);
+        afterTableauMove(selection.index);
+      }
+      afterTableauMove(idx);
+      moves++; CBSound.deal(); selection = null; render();
+    }
+  }
+
+  function tryFoundation(found, card, removeFn) {
+    var c = card[0];
+    if (!c) return false;
+    var top = found[found.length - 1];
+    if (top) { if (top.suit !== c.suit || top.rank !== c.rank - 1) { CBSound.bad(); CBGame.toast(t('notMovable'), 'bad'); return false; } }
+    else { if (c.rank !== 1) { CBSound.bad(); CBGame.toast(t('notMovable'), 'bad'); return false; } }
+    found.push(c); removeFn(); afterTableauMove(-1); moves++; CBSound.good(); selection = null; render(); return true;
+  }
+
+  function canStackTableau(bottom, destPileIdx) {
+    var dest = tableau[destPileIdx];
+    if (dest === tableau[selection.index] && selection.type === 'tableau') return false; // can't drop on itself
+    var top = dest[dest.length - 1];
+    if (!top) return bottom.rank === 13;
+    return top.rank === bottom.rank + 1 && isRed(top.suit) !== isRed(bottom.suit);
+  }
+
+  function validRun(pile, from) {
+    for (var i = from; i < pile.length - 1; i++) {
+      var up = pile[i], down = pile[i + 1];
+      if (!up.up || !down.up) return false;
+      if (down.rank !== up.rank + 1) return false;
+      if (isRed(up.suit) === isRed(down.suit)) return false;
+    }
+    return true;
+  }
+
+  function afterTableauMove(pileIdx) {
+    if (pileIdx < 0) return;
+    var p = tableau[pileIdx];
+    if (p.length && !p[p.length - 1].up) p[p.length - 1].up = true;
+  }
+
+  function draw() {
+    var n = level === 'hard' ? 3 : 1;
+    if (!stock.length) {
+      if (!waste.length) return;
+      stock = waste.reverse().map(function (c) { c.up = false; return c; });
+      waste = []; CBSound.flip(); render(); return;
+    }
+    for (var i = 0; i < n && stock.length; i++) {
+      var c = stock.pop(); c.up = true; waste.push(c);
+    }
+    moves++; CBSound.deal(); selection = null; render();
+  }
+
+  // Collect: send every possible single card to a foundation, repeat until stable.
+  function collect() {
+    var moved = true, any = false;
+    while (moved) {
+      moved = false;
+      // waste top
+      if (waste.length) {
+        var c = waste[waste.length - 1];
+        if (tryFoundationToAny([c], function () { waste.pop(); })) { moved = true; any = true; continue; }
+      }
+      for (var i = 0; i < 7; i++) {
+        var p = tableau[i];
+        if (p.length && p[p.length - 1].up) {
+          var top = p[p.length - 1];
+          if (tryFoundationToAny([top], function () { p.pop(); afterTableauMove(i); })) { moved = true; any = true; break; }
+        }
+      }
+    }
+    if (any) { moves++; CBSound.good(); selection = null; render(); }
+    else CBGame.toast(t('notMovable'), 'bad');
+  }
+  function tryFoundationToAny(card, removeFn) {
+    for (var f = 0; f < 4; f++) {
+      var ok = false;
+      var top = foundations[f][foundations[f].length - 1];
+      var c = card[0];
+      if (top) ok = (top.suit === c.suit && top.rank === c.rank - 1);
+      else ok = (c.rank === 1);
+      if (ok) { foundations[f].push(c); removeFn(); return true; }
+    }
+    return false;
+  }
+
+  function checkWin() {
+    var total = foundations.reduce(function (a, f) { return a + f.length; }, 0);
+    if (total === 52) {
+      if (timer) clearInterval(timer);
+      var secs = (Date.now() - startTime) / 1000;
+      var name = $('#nameInput').value.trim() || 'You';
+      var best = null;
+      if (CB.scores && CB.scores.record) {
+        var before = CB.scores.summary('solitaire', name);
+        CB.scores.record('solitaire', name, secs, { won: true, level: level, levelLabel: level === 'easy' ? 'Draw 1' : 'Draw 3' });
+        var after = CB.scores.summary('solitaire', name);
+        var lv = (after.levels || []).filter(function (x) { return x.key === level; })[0];
+        if (lv && lv.best != null) {
+          var pb = null; (before.levels || []).forEach(function (x) { if (x.key === level) pb = x.best; });
+          best = (pb == null || secs < pb) ? secs : null;
+        }
+      }
+      $('#ovTime').textContent = fmt(secs);
+      $('#ovBest').textContent = best != null ? '🌟 ' + t('justNow') + ' (' + fmt(best) + ')' : '';
+      CBSound.win();
+      $('#overlay').classList.add('on');
+    }
+  }
+
+  $('#startBtn').onclick = function () { CBSound.click(); start(); };
+  $('#restartBtn').onclick = function () { CBSound.click(); start(); };
+  $('#collectBtn').onclick = function () { CBSound.click(); collect(); };
+  $('#quitBtn').onclick = function () { if (timer) clearInterval(timer); $('#gameView').classList.add('hidden'); $('#menuView').classList.remove('hidden'); refreshHistory(); };
+  $('#againBtn').onclick = function () { CBSound.click(); start(); };
+  $('#ovMenuBtn').onclick = function () { $('#overlay').classList.remove('on'); $('#gameView').classList.add('hidden'); $('#menuView').classList.remove('hidden'); refreshHistory(); };
+
+  refreshHistory();
+})();
+</script>
+</body>
+</html>

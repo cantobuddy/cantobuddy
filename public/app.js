@@ -1417,15 +1417,6 @@ const GAMES_CATALOG = [
     nameKey: 'games.memoryName',
   },
   {
-    href: '/games/mahjong',
-    artClass: 'game-art--mahjong',
-    art: `<svg viewBox="0 0 48 48" aria-hidden="true">
-      <rect x="11" y="13" width="26" height="22" rx="4" fill="#ffffff" stroke="#cdd5df" stroke-width="1.6"/>
-      <text x="24" y="30" font-size="15" font-weight="800" fill="#2b6cf0" text-anchor="middle">中</text>
-    </svg>`,
-    nameKey: 'games.mahjongName',
-  },
-  {
     href: '/games/solitaire',
     artClass: 'game-art--solitaire',
     art: `<svg viewBox="0 0 48 48" aria-hidden="true">

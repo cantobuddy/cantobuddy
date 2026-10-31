@@ -76,7 +76,13 @@ app.use('/games/chinesechecker', require('./chinesechecker').handle);
 app.use('/games/bingo', require('./bingo').handle);
 const makeStaticGame = require('./game-static');
 app.use('/games/memorymatch', makeStaticGame('memorymatch').handle);
-app.use('/games/mahjong', makeStaticGame('mahjong').handle);
+// Mahjong Solitaire is WITHDRAWN (2026-10-31, operator request): its tile faces
+// had no CSS, so dot/bamboo tiles rendered as blank squares and the board was
+// unplayable. The page is no longer linked from the hub; anyone following an old
+// link is sent back to the games list rather than to a broken board.
+// To restore: put back `app.use('/games/mahjong', makeStaticGame('mahjong').handle)`
+// and re-add its entry in public/app.js (search for 'games.mahjongName').
+app.use('/games/mahjong', (req, res) => res.redirect(302, '/?view=games'));
 app.use('/games/solitaire', makeStaticGame('solitaire').handle);
 
 app.use(express.json({ limit: '5mb' }));

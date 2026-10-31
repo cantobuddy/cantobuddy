@@ -500,6 +500,23 @@
     <button class="btn btn-primary btn-block story-write-cta" id="story-write-cta"
             onclick="navigate('story-new')" data-i18n="story.shareYours" hidden>Share your story</button>
 
+    <!-- The guides shelf, shown on the Culture channel only.
+         Guides are the long-form articles (yum cha, the holidays guide, the
+         checkers rules) and they are separate server-rendered pages at
+         /guide/<slug> — NOT rows in the posts table, so the feed can never list
+         them. Without this block the app has no link to them at all, which is
+         how a published culture article ends up looking "missing". Filled by
+         renderGuides() in app.js; the links are real hrefs because the target is
+         a different document, not an SPA view.
+         It sits ABOVE the feed on purpose: a shelf under a long feed is a shelf
+         nobody scrolls to. -->
+    <section class="guides-shelf" id="guides-shelf" hidden>
+      <h3 class="guides-shelf-title" data-i18n="discover.guidesTitle">Guides</h3>
+      <div class="guides-shelf-list" id="guides-shelf-list"></div>
+      <a class="guides-shelf-all" id="guides-shelf-all" href="/guide"
+         data-i18n="discover.guidesAll">All guides →</a>
+    </section>
+
     <div id="discover-feed" class="discover-feed"></div>
 
     <!-- The pager. A sibling of the feed rather than its last card, so the
@@ -781,6 +798,11 @@
            link above: the app renders every view into `/`, so without this a
            crawler has no path to a story page at all. -->
       <a href="/stories" data-i18n="discover.tabStories">Stories</a>
+      <!-- The guides hub. Crawlable for the same reason as Discover and
+           Stories above, but it also fixes a real dead end: guides are
+           server-rendered pages the app itself never linked to, so a reader
+           who wanted one had to know its URL. -->
+      <a href="/guide" data-i18n="footer.guides">Guides</a>
       <a href="/guide/learn-cantonese" data-i18n="footer.guide">Learn Cantonese: the beginner's guide</a>
       <!-- Statutory holidays for domestic helpers — the one page here that answers
            "when am I off?", so it gets a footer link beside the guide rather than

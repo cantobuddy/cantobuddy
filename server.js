@@ -14,6 +14,7 @@ const crypto = require('crypto');
 const store = require('./db');
 const SqliteSessionStore = require('./session-store');
 const seo = require('./seo');
+const { GUIDES } = require('./content');
 const news = require('./news');
 const push = require('./push');
 const reminders = require('./push-reminders');
@@ -675,6 +676,28 @@ app.get('/api/posts', (req, res) => {
  */
 app.get('/api/posts/categories', (req, res) => {
   res.json(store.getNewsCategoryCounts());
+});
+
+/**
+ * The long-form guides that live in content.js and render at /guide/<slug>.
+ *
+ * These are full server-rendered pages, and the app had no path to them at all:
+ * the Discover feed is `posts` (news and culture from the database), so a guide
+ * was reachable only by typing its URL or arriving from a search engine. That
+ * is exactly how a published culture article ended up "missing" from the app.
+ * This endpoint is what lets the Culture tab list them.
+ *
+ * Titles and descriptions come back in all four languages and are picked on the
+ * client, so switching language does not need another request.
+ */
+app.get('/api/guides', (req, res) => {
+  res.json(GUIDES.map((g) => ({
+    slug: g.slug,
+    icon: g.icon,
+    updated: g.updated,
+    title: g.title,
+    description: g.description,
+  })));
 });
 
 /**

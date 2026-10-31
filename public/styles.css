@@ -3232,6 +3232,44 @@ a.game-tile:active { transform: scale(0.96); background: var(--c-primary-tint); 
   line-height: 1;
 }
 
+/* ---- the guides shelf ------------------------------------------------------
+   Sits above the Culture feed. Guides are separate server-rendered pages, not
+   posts, so this shelf is the app's only in-product link to them — it has to
+   read as a deliberate section rather than a stray card, hence the heading and
+   the "all guides" line. */
+.guides-shelf {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 4px 0 18px;
+}
+
+.guides-shelf-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--c-text-soft);
+  text-transform: uppercase;
+}
+
+.guides-shelf-list { display: flex; flex-direction: column; gap: 10px; }
+
+/* The cards reuse .post-card; an <a> needs the two things a <button> gets for
+   free, or the link renders underlined in the browser's link blue. */
+.guide-card { text-decoration: none; }
+
+.guides-shelf-all {
+  align-self: flex-start;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--c-primary);
+  text-decoration: none;
+  padding: 2px 0;
+}
+
+.guides-shelf-all:hover { text-decoration: underline; }
+
 /* ---- "You have opened this" ------------------------------------------------
    Two signals, because one is not enough. A worded chip carries the meaning in
    every language and does not depend on colour, and the muted card is what lets

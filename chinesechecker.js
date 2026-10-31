@@ -106,6 +106,7 @@ function createRoom(opts) {
   const room = {
     code: code,
     createdAt: now(),
+    startedAt: 0,
     solo: !!opts.solo,
     seats: seats,
     level: opts.level || 'normal',
@@ -183,6 +184,7 @@ function startGame(room) {
   if (room.players.length < room.seats) fillBots(room);
 
   room.state = 'playing';
+  room.startedAt = now();
   room.occ = Core.initialBoard(room.seats);
   room.turn = 0;
   room.ply = 0;
@@ -372,6 +374,8 @@ function stateFor(room, viewer) {
     seats: room.seats,
     level: room.level,
     state: room.state,
+    serverNow: now(),
+    startedAt: room.startedAt,
     hostId: room.hostId,
     turn: room.turn,
     ply: room.ply,

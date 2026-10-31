@@ -4,6 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Sudoku · CantoBuddy</title>
+<script src="/games-common.js"></script>
 <script src="/games/sudoku/core.js"></script>
 <style>
   :root {
@@ -206,6 +207,7 @@
     <label class="av-label" id="avatarLbl"></label>
     <div class="avatars" id="avatarPicker"></div>
     <div class="levels" id="levels"></div>
+    <div id="cbScoreHistory" class="cb-score-history hidden"></div>
     <button class="btn btn-primary" id="aloneBtn"></button>
     <button class="btn btn-ghost" id="createBtn" style="margin-top:10px"></button>
     <div class="divider" id="divider"></div>
@@ -831,6 +833,8 @@ var DICT = {
     }
     $('ovAgain').textContent = S.solo ? t('newPuzzle') : t('rematch');
     $('ovHome').textContent = t('backHome');
+    var elapsed = S.startedAt ? Math.max(0, Math.floor((S.serverNow - S.startedAt) / 1000)) : 0;
+    CB.scores.record(CB.gameId(), ($('nameInput').value || '').trim(), elapsed, { solo: !!S.solo, time: elapsed, mistakes: (S.you && S.you.mistakes) || 0 });
     $('ovAgain').onclick = function () {
       if (S.solo) startAlone();
       else api('/games/sudoku/api/action', { token: session.token, type: 'start' });

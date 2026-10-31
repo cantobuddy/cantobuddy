@@ -269,6 +269,9 @@
     <button class="iconbtn" id="rulesBtn" type="button">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.4"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.3c-.7.3-1 .9-1 1.6v.4"/><path d="M12 17.1h.01"/></svg>
     </button>
+    <button class="iconbtn" id="homeBtn" type="button" aria-label="Exit to games">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M5.5 10v9.5a1 1 0 0 0 1 1H17.5a1 1 0 0 0 1-1V10"/><path d="M10 20.5v-5h4v5"/></svg>
+    </button>
     <button class="iconbtn hidden" id="leaveBtn" type="button">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4.5h3.5A1.5 1.5 0 0 1 19 6v12a1.5 1.5 0 0 1-1.5 1.5H14"/><path d="M9.5 8 5.5 12l4 4"/><path d="M5.5 12H15"/></svg>
     </button>
@@ -281,6 +284,8 @@
       <input type="text" id="nameInput" maxlength="12" autocomplete="off" data-k-ph="namePlaceholder" placeholder="Your name">
       <div class="avatars" id="avatars"></div>
     </div>
+
+    <div id="cbScoreHistory" class="cb-score-history hidden"></div>
 
     <div class="card">
       <h2 data-k="soloHead">Play with the computer</h2>
@@ -364,6 +369,7 @@
   </div>
 </div>
 
+<script src="/games-common.js"></script>
 <script src="/games/chinesechecker/core.js"></script>
 <script src="/games/chinesechecker/rules.js"></script>
 <script>
@@ -400,6 +406,7 @@ const STR = {
     onlineHint: 'You will get a 4-letter code to share.',
     joinBtn: 'Join',
     backLobby: 'Lobby',
+    exitHome: 'Exit to games',
     waiting: 'Waiting for players…',
     waitingHost: 'Share the code, then start when everyone is in.',
     startBtn: 'Start game',
@@ -459,6 +466,7 @@ const STR = {
     onlineHint: 'Bibigyan ka ng 4-letrang code na ipapamahagi.',
     joinBtn: 'Sumali',
     backLobby: 'Lobby',
+    exitHome: 'Bumalik sa games',
     waiting: 'Naghihintay ng manlalaro…',
     waitingHost: 'Ibahagi ang code, tapos simulan kapag kumpleto na.',
     startBtn: 'Simulan ang laro',
@@ -518,6 +526,7 @@ const STR = {
     onlineHint: '会给你一个 4 位字母的房间号，发给家人。',
     joinBtn: '加入',
     backLobby: '大厅',
+    exitHome: '返回游戏主页',
     waiting: '等待其他玩家…',
     waitingHost: '把房间号发出去，人齐了就开始。',
     startBtn: '开始游戏',
@@ -577,6 +586,7 @@ const STR = {
     onlineHint: 'Kamu akan dapat kode 4 huruf untuk dibagikan.',
     joinBtn: 'Gabung',
     backLobby: 'Lobi',
+    exitHome: 'Keluar ke games',
     waiting: 'Menunggu pemain…',
     waitingHost: 'Bagikan kodenya, lalu mulai kalau semua sudah masuk.',
     startBtn: 'Mulai permainan',
@@ -822,6 +832,7 @@ function buildLobby() {
   $('#joinBtn').onclick = () => joinRoom();
   $('#codeInput').onkeydown = (e) => { if (e.key === 'Enter') joinRoom(); };
   $('#leaveBtn').onclick = () => leaveTable();
+  $('#homeBtn').onclick = () => { location.href = '/?view=games'; };
   $('#chatBtn').onclick = () => toggleFeed(true);
   $('#feedClose').onclick = () => toggleFeed(false);
   $('#chatSend').onclick = () => sendChat();
@@ -929,6 +940,7 @@ function syncLabels() {
   put('chatBtn', 'chatHead');
   put('rulesBtn', 'howTo');
   put('leaveBtn', 'backLobby');
+  put('homeBtn', 'exitHome');
 }
 
 function choiceValue(host, def) {
@@ -1692,6 +1704,8 @@ function renderOverlay() {
   if (!S || S.state !== 'ended') { ov.classList.add('hidden'); return; }
   ov.classList.remove('hidden');
   const won = S.winner === S.you.id;
+  var sec = (S.startedAt && S.serverNow) ? Math.max(0, Math.round((S.serverNow - S.startedAt) / 1000)) : 0;
+  CB.scores.record(CB.gameId(), myName(), sec, { won: won });
   $('#ovIcon').textContent = S.winner ? (won ? '🏆' : '🎉') : '🤝';
   $('#ovTitle').textContent = S.winner
     ? (won ? t('youWin') : t('winner', { name: S.winnerName }))

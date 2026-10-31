@@ -265,6 +265,7 @@ function createRoom(hostName, hostAvatar, hostDeviceId) {
     winner: null,
     round: 0,
     createdAt: now(),
+    startedAt: 0,
   };
   rooms.set(code, room);
   records.attachRecords(room.players, 'bigtwo');
@@ -295,6 +296,7 @@ function roomByToken(token) {
 function startGame(room) {
   const deck = buildDeck();
   room.state = 'playing';
+  room.startedAt = now();
   room.winner = null;
   room.round += 1;
   room.trick = null;
@@ -429,6 +431,8 @@ function stateFor(room, viewer) {
   return {
     code: room.code,
     state: room.state,
+    serverNow: now(),
+    startedAt: room.startedAt,
     turn: turnPlayer ? turnPlayer.id : null,
     turnName: turnPlayer ? turnPlayer.name : '',
     turnStart: room.turnStart,

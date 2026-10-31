@@ -504,6 +504,8 @@
   <h1 data-k="title"></h1>
   <p class="sub" data-k="sub"></p>
 
+  <div id="cbScoreHistory" class="cb-score-history hidden"></div>
+
   <div class="panel">
     <label data-k="nameLabel"></label>
     <input id="nameInput" class="field" maxlength="12" autocomplete="off">
@@ -624,6 +626,7 @@
 <div class="tablesay" id="tableSay" aria-live="polite" aria-atomic="false"></div>
 <div id="modalRoot"></div>
 
+<script src="/games-common.js"></script>
 <script>
 /* ============================================================
    Language.
@@ -1685,6 +1688,8 @@ function renderOverlay() {
   if ($('#winOv')) return;
   const w = S.players.find((p) => p.id === S.winner) || { name: '?', avatar: '🏆' };
   const iWon = S.winner === S.you.id;
+  var sec = (S.startedAt && S.serverNow) ? Math.max(0, Math.round((S.serverNow - S.startedAt) / 1000)) : 0;
+  CB.scores.record(CB.gameId(), myName(), sec, { won: iWon, round: S.round });
   confetti();
   const root = $('#modalRoot');
   const div = document.createElement('div');

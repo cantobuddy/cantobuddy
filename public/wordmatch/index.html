@@ -379,6 +379,8 @@ margin:12px 0 0;color:var(--red);font-size:12.5px;min-height:16px;text-align:cen
   <h1 data-k="title"></h1>
   <p class="sub" data-k="sub"></p>
 
+  <div id="cbScoreHistory" class="cb-score-history hidden"></div>
+
   <div class="panel">
     <label data-k="nameLabel"></label>
     <input id="nameInput" class="field" maxlength="12" autocomplete="off">
@@ -490,6 +492,7 @@ margin:12px 0 0;color:var(--red);font-size:12.5px;min-height:16px;text-align:cen
 <div class="tablesay" id="tableSay" aria-live="polite" aria-atomic="false"></div>
 <div id="modalRoot"></div>
 
+<script src="/games-common.js"></script>
 <script>
 /* ============================================================
    Language.
@@ -1571,6 +1574,8 @@ function renderOverlay() {
   }
 
   const iWon = r.winnerId === S.you.id;
+  var sec = (S.startedAt || S.createdAt) && S.serverNow ? Math.max(0, Math.round((S.serverNow - (S.startedAt || S.createdAt)) / 1000)) : 0;
+  CB.scores.record(CB.gameId(), ($('nameInput').value || '').trim(), sec, { won: iWon, tie: !!r.tie });
   const tie = !!r.tie;
   const title = tie ? t('tieTitle') : (iWon ? t('winTitle') : t('loseTitle', { name: r.winnerName || '' }));
   const sub = tie ? t('tieSub') : (iWon ? t('winSub') : t('loseSub'));

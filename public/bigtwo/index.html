@@ -378,6 +378,8 @@ margin:12px 0 0;color:var(--red);font-size:12.5px;min-height:16px;text-align:cen
   <h1 data-k="title"></h1>
   <p class="sub" data-k="sub"></p>
 
+  <div id="cbScoreHistory" class="cb-score-history hidden"></div>
+
   <div class="panel">
     <label data-k="nameLabel"></label>
     <input id="nameInput" class="field" maxlength="12" autocomplete="off">
@@ -481,6 +483,7 @@ margin:12px 0 0;color:var(--red);font-size:12.5px;min-height:16px;text-align:cen
 <div class="tablesay" id="tableSay" aria-live="polite" aria-atomic="false"></div>
 <div id="modalRoot"></div>
 
+<script src="/games-common.js"></script>
 <script>
 /* ============================================================
    Language.
@@ -1540,6 +1543,8 @@ function renderOverlay() {
   if (root.dataset.kind === 'end') return; // already shown for this state
   const win = S.players.find((p) => p.id === S.winner);
   const iWon = S.winner === S.you.id;
+  var sec = (S.startedAt && S.serverNow) ? Math.max(0, Math.round((S.serverNow - S.startedAt) / 1000)) : 0;
+  CB.scores.record(CB.gameId(), myName(), sec, { won: iWon });
   root.dataset.kind = 'end';
   root.innerHTML = `
     <div class="overlay">

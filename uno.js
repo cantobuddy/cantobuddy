@@ -127,6 +127,7 @@ function createRoom(hostName, hostAvatar, hostDeviceId) {
     winner: null,
     round: 0,
     createdAt: now(),
+    startedAt: 0,
   };
   rooms.set(code, room);
   records.attachRecords(room.players, 'uno');
@@ -208,6 +209,7 @@ function startGame(room) {
   room.deck = buildDeck();
   room.discard = [];
   room.state = 'playing';
+  room.startedAt = now();
   room.dir = 1;
   room.turn = 0;
   room.winner = null;
@@ -348,6 +350,8 @@ function stateFor(room, viewer) {
   return {
     code: room.code,
     state: room.state,
+    serverNow: now(),
+    startedAt: room.startedAt,
     color: room.color,
     dir: room.dir,
     turn: turnPlayer ? turnPlayer.id : null,

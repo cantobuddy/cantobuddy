@@ -42,7 +42,7 @@ body {
 
 /* ----- top bar: back link (UNO-style), title, action buttons ----- */
 .topbar {
-  display: flex; align-items: center; gap: 10px;
+  display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap;
   margin-bottom: 14px;
 }
 .backlink {
@@ -54,15 +54,19 @@ body {
   flex: 0 0 auto;
 }
 .backlink:active { transform: scale(.97); }
-.title { flex: 1 1 auto; font-size: 1.4rem; margin: 0; font-weight: 800; }
-.topbar-actions { display: flex; gap: 8px; flex: 0 0 auto; }
+.title { flex: 1 1 auto; min-width: 0; font-size: 1.4rem; margin: 0; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.topbar-actions { display: flex; gap: 8px; flex: 0 0 auto; margin-left: auto; flex-wrap: wrap; }
 .iconbtn {
   width: 46px; height: 46px; border-radius: 14px; border: 1px solid var(--line);
   background: #fff; color: var(--ink); font-size: 20px; cursor: pointer;
-  display: inline-flex; align-items: center; justify-content: center;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 12px;
   box-shadow: 0 4px 12px rgba(23, 26, 35, .05);
   transition: transform .06s ease, background .15s ease;
 }
+.iconbtn svg { width: 20px; height: 20px; }
+.iconbtn .lbl { display: none; }
+.iconbtn.has-lbl { width: auto; }
+.iconbtn.has-lbl .lbl { display: inline; font-size: .85rem; font-weight: 700; }
 .iconbtn:active { transform: scale(.94); }
 .iconbtn.off { opacity: .5; }
 .iconbtn.is-on { background: var(--primary-tint); border-color: var(--primary); }

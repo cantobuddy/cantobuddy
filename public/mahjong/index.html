@@ -21,7 +21,7 @@
   .stat small { display:block; font-size:.72rem; color:var(--muted); font-weight:700; }
   .hud .btn { min-height:48px; padding:0 16px; }
 
-  .board-scroll { overflow:auto; -webkit-overflow-scrolling:touch; margin: 10px 0; text-align:center; max-height: calc(100vh - 230px); }
+  .board-scroll { overflow:auto; -webkit-overflow-scrolling:touch; margin: 10px 0; text-align:center; max-height: calc(100vh - 250px); background: radial-gradient(circle at 50% 28%, #2f7d4f, #16512f); border-radius:18px; padding:12px; box-shadow: inset 0 0 30px rgba(0,0,0,.25); }
   .board { position:relative; margin:0 auto; }
   .tile {
     position:absolute; width:46px; height:58px; border-radius:8px;
@@ -51,6 +51,10 @@
 
   .controls { display:flex; gap:10px; margin: 10px 0; flex-wrap:wrap; }
   .controls .btn { flex:1; min-width:120px; }
+  .zoom-bar { display:flex; align-items:center; justify-content:center; gap:16px; margin: 2px 0 6px; }
+  .zbtn { width:50px; height:50px; border-radius:14px; border:1px solid var(--line); background:#fff; font-size:1.8rem; font-weight:900; cursor:pointer; color:var(--ink); box-shadow:0 4px 12px rgba(23,26,35,.05); line-height:1; }
+  .zbtn:active { transform: scale(.94); }
+  .zoom-label { font-weight:800; font-size:1.1rem; min-width:58px; text-align:center; }
 </style>
 </head>
 <body>
@@ -59,10 +63,11 @@
     <a class="backlink" href="/?view=games">← CantoBuddy</a>
     <h1 class="title" data-k="title">Mahjong Solitaire</h1>
     <div class="topbar-actions">
-      <button class="iconbtn" id="musicBtn" title="Music">🎶</button>
-      <button class="iconbtn" id="soundBtn" title="Sound">🔊</button>
-      <button class="iconbtn" id="rulesBtn" type="button" title="How to play" aria-label="How to play">
+      <button class="iconbtn has-lbl" id="musicBtn" title="Music" aria-label="Music">🎶<span class="lbl">Music</span></button>
+      <button class="iconbtn has-lbl" id="soundBtn" title="Sound" aria-label="Sound">🔊<span class="lbl">Sound</span></button>
+      <button class="iconbtn has-lbl" id="rulesBtn" type="button" title="How to play" aria-label="How to play">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.4"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.3c-.7.3-1 .9-1 1.6v.4"/><path d="M12 17.1h.01"/></svg>
+        <span class="lbl">Rules</span>
       </button>
     </div>
   </div>
@@ -95,6 +100,11 @@
       <div class="stat"><small data-k="timeLabel">Time</small><span id="timeStat">0:00</span></div>
       <div class="stat"><small data-k="tilesLabel">Tiles left</small><span id="tilesStat">0</span></div>
       <div class="stat"><small data-k="pairsLabel">Matched</small><span id="pairsStat">0</span></div>
+    </div>
+    <div class="zoom-bar">
+      <button class="zbtn" id="zoomOutBtn" type="button" aria-label="Zoom out">−</button>
+      <span class="zoom-label" id="zoomLabel">100%</span>
+      <button class="zbtn" id="zoomInBtn" type="button" aria-label="Zoom in">＋</button>
     </div>
     <div class="board-scroll">
       <div class="board" id="board"></div>
@@ -270,7 +280,32 @@
   CBGame.wireSound();
   var $ = function (s) { return document.querySelector(s); };
 
-  var SYMS = ['🍎','🍌','🍇','🍓','🍒','🍑','🍍','🥝','🥥','🍉','🍊','🍋','🍐','🥭','🍅','🌽','🍄','🌹','🌻','🌼','🌷','🐶','🐱','🐭','🐰','🐻','🐼','🐯','🦁','🐮','🐷','🐸','🐵','🐔','🐧','🦊','🌟','⚽','🚀','🍔','🎈','🎁','💡','🔔','🌈','⭐','💎','🏀','🌸','🍩'];
+  // Real mahjong faces: dots (筒), bamboo (条), characters (萬), winds, dragons.
+  // Two tiles match when their face is identical (classic Mahjong Solitaire rules).
+  var FACES = [];
+  for (var n = 1; n <= 9; n++) { FACES.push('dot-' + n, 'bam-' + n, 'cha-' + n); }
+  ['E', 'S', 'W', 'N'].forEach(function (w) { FACES.push('wind-' + w); });
+  ['R', 'G', 'W'].forEach(function (d) { FACES.push('drgn-' + d); });
+  var CN_NUM = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
+  function drawFace(key) {
+    if (key.indexOf('dot-') === 0) return pips(+key.slice(4));
+    if (key.indexOf('bam-') === 0) return pips(+key.slice(4), 'bam');
+    if (key.indexOf('cha-') === 0) return '<div class="face-cha"><span class="cha-num">' + CN_NUM[+key.slice(4)] + '</span><span class="cha-wan">萬</span></div>';
+    if (key.indexOf('wind-') === 0) return '<div class="face-wind">' + ({ E: '東', S: '南', W: '西', N: '北' })[key.slice(5)] + '</div>';
+    if (key.indexOf('drgn-') === 0) {
+      var d = key.slice(5);
+      if (d === 'R') return '<div class="face-drgn red">中</div>';
+      if (d === 'G') return '<div class="face-drgn green">發</div>';
+      return '<div class="face-drgn white"></div>';
+    }
+    return '';
+  }
+  function pips(n, type) {
+    var cls = type === 'bam' ? 'pip bam' : 'pip';
+    var html = '<div class="face-pips">';
+    for (var i = 0; i < n; i++) html += '<span class="' + cls + '"></span>';
+    return html + '</div>';
+  }
   var LEVELS = {
     easy:   { w:6, h:4, layers:2, label:'Easy' },
     medium: { w:8, h:4, layers:3, label:'Medium' },
@@ -279,6 +314,7 @@
   var level = 'easy';
   var slots = [], selected = null, matched = 0, totalPairs = 0, startTime = 0, timer = null;
   var HU = 23; // half-tile unit in px (tile is 2 units wide/tall)
+  var SCALE = 1; var SCALE_STEPS = [0.8, 1, 1.25, 1.5, 1.75, 2]; var scaleIdx = 1;
 
   if (CB.name && CB.name.get && CB.name.get()) $('#nameInput').value = CB.name.get();
   Array.prototype.forEach.call($('#levels').children, function (b) {
@@ -330,7 +366,7 @@
   // clears the board.
   function solveAssign() {
     var live = slots.filter(function (s) { return !s.removed; });
-    var pool = SYMS.slice();
+    var pool = FACES.slice();
     var pi = 0;
     while (live.length) {
       var free = live.filter(function (s) { return isFree(s, live); });
@@ -368,18 +404,20 @@
   }
 
   function layoutBoard() {
-    var L = LEVELS[level];
     var maxX = 0, maxY = 0;
     slots.forEach(function (s) { maxX = Math.max(maxX, s.x); maxY = Math.max(maxY, s.y); });
-    // +46 tile width / +58 tile height, plus a little breathing room, so tiles
-    // never spill past the board box onto the controls below.
-    var w = maxX * HU + 54, h = maxY * HU + 66;
+    // Tile pixel size and half-unit scale with SCALE so the board can be zoomed
+    // in for easier tapping (real layout, so the scroll area grows too).
+    var tw = Math.round(46 * SCALE), th = Math.round(58 * SCALE), hu = Math.round(23 * SCALE);
+    var w = maxX * hu + tw + 8, h = maxY * hu + th + 8;
     var board = $('#board'); board.style.width = w + 'px'; board.style.height = h + 'px'; board.innerHTML = '';
     slots.forEach(function (s, i) {
       var d = document.createElement('div');
       d.className = 'tile layer-' + s.layer; d.dataset.i = i;
-      d.style.left = (s.x * HU) + 'px';
-      d.style.top = (s.y * HU) + 'px';
+      d.style.width = tw + 'px'; d.style.height = th + 'px';
+      d.style.fontSize = (1.7 * SCALE).toFixed(2) + 'rem';
+      d.style.left = (s.x * hu) + 'px';
+      d.style.top = (s.y * hu) + 'px';
       d.style.zIndex = s.layer + 1;
       d.onclick = function () { onTile(i); };
       board.appendChild(d);
@@ -395,7 +433,7 @@
       var d = $('#board').children[i];
       if (s.removed) { d.className = 'tile gone'; return; }
       left++;
-      d.textContent = s.sym;
+      d.innerHTML = drawFace(s.sym);
       var free = !!freeSet[i];
       d.className = 'tile layer-' + s.layer + (free ? ' free' : ' locked') + (selected === i ? ' sel' : '');
     });
@@ -486,6 +524,16 @@
   $('#quitBtn').onclick = function () { if (timer) clearInterval(timer); $('#gameView').classList.add('hidden'); $('#menuView').classList.remove('hidden'); refreshHistory(); };
   $('#againBtn').onclick = function () { CBSound.click(); start(); };
   $('#ovMenuBtn').onclick = function () { $('#overlay').classList.remove('on'); $('#gameView').classList.add('hidden'); $('#menuView').classList.remove('hidden'); refreshHistory(); };
+
+  /* ---- zoom controls (enlarge the board for easier tapping) ---- */
+  function applyZoom() {
+    SCALE = SCALE_STEPS[scaleIdx];
+    $('#zoomLabel').textContent = Math.round(SCALE * 100) + '%';
+    layoutBoard();
+    render();
+  }
+  $('#zoomInBtn').onclick = function () { if (scaleIdx < SCALE_STEPS.length - 1) { scaleIdx++; CBSound.click(); applyZoom(); } };
+  $('#zoomOutBtn').onclick = function () { if (scaleIdx > 0) { scaleIdx--; CBSound.click(); applyZoom(); } };
 
   /* ---- how-to-play sheet (same pattern as Chinese Checkers) ---- */
   (function () {

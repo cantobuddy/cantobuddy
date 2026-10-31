@@ -167,6 +167,13 @@
   }
   .codechip small{color:var(--muted);font-size:12px;font-weight:600}
   .codechip b{letter-spacing:2.5px;font-size:16px;font-family:ui-monospace,Menlo,monospace}
+  .wa-btn{
+    flex:0 0 auto;width:38px;height:38px;border-radius:11px;background:#fff;
+    border:1.5px solid var(--line);color:#25d366;display:grid;place-items:center;padding:0;
+    box-shadow:0 4px 12px rgba(23,26,35,.05);transition:.15s;cursor:pointer;
+  }
+  .wa-btn:active{transform:scale(.93)}
+  .wa-btn svg{width:22px;height:22px;display:block}
 
   /* ---------- bottom bar ---------- */
   .bar{flex:0 0 auto;display:flex;gap:7px;align-items:center}
@@ -323,6 +330,7 @@
         <small data-k="codeIs">Room code</small>
         <b id="codeText">----</b>
       </button>
+      <button class="wa-btn" id="waBtn" type="button"></button>
       <span class="grow"></span>
       <button class="btn" id="startBtn" data-k="startBtn">Start game</button>
       <span class="hint" id="startHint"></span>
@@ -424,6 +432,8 @@ const STR = {
     sendBtn: 'Send',
     copyLink: 'Copy link',
     copied: 'Link copied',
+    waInvite: 'Invite on WhatsApp',
+    waText: 'Come play Chinese Checkers! Room code {code} → {url}',
     codeIs: 'Room code',
     winner: '{name} wins!',
     youWin: 'You win!',
@@ -484,6 +494,8 @@ const STR = {
     sendBtn: 'Ipadala',
     copyLink: 'Kopyahin ang link',
     copied: 'Nakopya ang link',
+    waInvite: 'Anyayahan sa WhatsApp',
+    waText: 'Halina, mag-Chinese Checkers tayo! Code {code} → {url}',
     codeIs: 'Code ng kuwarto',
     winner: 'Panalo si {name}!',
     youWin: 'Ikaw ang panalo!',
@@ -544,6 +556,8 @@ const STR = {
     sendBtn: '发送',
     copyLink: '复制链接',
     copied: '链接已复制',
+    waInvite: '用 WhatsApp 邀请家人',
+    waText: '来玩跳棋！房间配对码 {code} → {url}',
     codeIs: '房间号',
     winner: '{name} 赢了！',
     youWin: '你赢了！',
@@ -604,6 +618,8 @@ const STR = {
     sendBtn: 'Kirim',
     copyLink: 'Salin tautan',
     copied: 'Tautan disalin',
+    waInvite: 'Undang lewat WhatsApp',
+    waText: 'Ayo main Chinese Checkers! Kode ruang {code} → {url}',
     codeIs: 'Kode ruangan',
     winner: '{name} menang!',
     youWin: 'Kamu menang!',
@@ -646,6 +662,18 @@ function t(key, vars) {
   if (s === undefined) return key;
   if (vars) Object.keys(vars).forEach((k) => { s = s.split('{' + k + '}').join(String(vars[k])); });
   return s;
+}
+
+const WA_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
+  '<path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Z" fill="none" stroke="currentColor" stroke-width="2"/>' +
+  '<path d="M8.6 7.6c.3-.1.6 0 .8.3l.8 1.3c.1.3.1.6-.1.8l-.5.5c-.2.2-.2.4-.1.6.5.9 1.3 1.7 2.2 2.2.2.1.4.1.6-.1l.5-.5c.2-.2.5-.3.8-.1l1.3.8c.3.2.4.5.3.8-.3 1-1.3 1.7-2.4 1.6-2.8-.3-5.2-2.7-5.5-5.5-.1-1.1.6-2.1 1.6-2.4Z" fill="currentColor"/>' +
+  '</svg>';
+
+function shareOnWhatsApp() {
+  const code = (session && session.code) || (S && S.code) || '';
+  const url = location.origin + '/games/chinesechecker/' + code;
+  const msg = t('waText', { code: code, url: url });
+  window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank', 'noopener');
 }
 
 /* ================================================================ helpers */
@@ -839,6 +867,8 @@ function buildLobby() {
   $('#ovAgain').onclick = () => act('again');
   $('#startBtn').onclick = () => startNow();
   $('#codeChip').onclick = () => copyInvite();
+  const waBtn = $('#waBtn');
+  if (waBtn) { waBtn.innerHTML = WA_ICON; waBtn.title = t('waInvite'); waBtn.setAttribute('aria-label', t('waInvite')); waBtn.onclick = shareOnWhatsApp; }
 
   $('#rulesBtn').onclick = () => openRules(true);
   $('#rulesClose').onclick = () => openRules(false);

@@ -21,6 +21,14 @@
 
   /* lobby */
   .codebox { text-align:center; margin: 10px 0; }
+  .wa-btn {
+    display:inline-grid; place-items:center; vertical-align:middle;
+    width:46px; height:46px; border-radius:12px; background:#fff;
+    border:1px solid var(--line); color:#25d366; cursor:pointer; padding:0; margin-left:8px;
+    box-shadow:0 4px 12px rgba(23,26,35,.05); transition:.15s;
+  }
+  .wa-btn:active { transform:scale(.93); }
+  .wa-btn svg { width:24px; height:24px; display:block; }
   .players { justify-content:center; }
   .waiting { text-align:center; color: var(--muted); font-size:1.1rem; margin: 14px 0; }
 
@@ -129,6 +137,7 @@
     <div class="codebox">
       <span class="codechip" id="codeChip">ABCD</span>
       <button class="btn ghost" id="copyBtn" style="min-height:46px;padding:0 16px" data-k="copyBtn">Copy</button>
+      <button class="wa-btn" id="waBtn" type="button" aria-label="Invite on WhatsApp"></button>
     </div>
     <div id="lobbyArea">
       <div class="waiting" id="waitText" data-k="waitingHost">Waiting for host to start…</div>
@@ -199,7 +208,7 @@
       copyBtn:'Copy', waitingHost:'Waiting for host to start…', startBtn:'Start game', leaveBtn:'Leave',
       lastCalled:'Last called', yourCard:'Your card', bingoBtn:'BINGO!', calledNums:'Called numbers',
       playAgain:'Play again', backMenu:'Back to menu', chatPlaceholder:'Say something…', sendBtn:'Send',
-      copied:'Copied!', notYet:'Not a bingo yet!', inviteText:'Share this code with family:',
+      copied:'Copied!', notYet:'Not a bingo yet!', inviteText:'Share this code with family:', waInvite:'Invite on WhatsApp', waText:'Come play Online Bingo! Room code {code} → {url}',
       winYou:'Bingo! You won! 🎉', winOther:'{name} won!', youLabel:'You', hostLabel:'Host',
       errNameRequired:'Please type your name', errRoomNotFound:'Room not found', errNameTaken:'That name is taken here',
       errRoomFull:'Room is full', errSessionExpired:'Session ended — rejoin', errNoBingo:'Not a bingo yet!',
@@ -211,7 +220,7 @@
       namePlaceholder:'Ilagay ang pangalan', createBtn:'Gumawa ng kuwarto', orText:'o', joinCode:'Kodigo ng kuwarto',
       joinBtn:'Sumali', copyBtn:'Kopyahin', waitingHost:'Hintay ang host para magsimula…', startBtn:'Simulan',
       leaveBtn:'Umalis', bingoBtn:'BINGO!', playAgain:'Laro ulit', backMenu:'Bumalik sa menu',
-      chatPlaceholder:'Magsabi ng something…', sendBtn:'Send', copied:'Nakopya!', notYet:'Hindi pa bingo!',
+      chatPlaceholder:'Magsabi ng something…', sendBtn:'Send', copied:'Nakopya!', notYet:'Hindi pa bingo!', waInvite:'Anyayahan sa WhatsApp', waText:'Halina, mag-Bingo tayo! Code {code} → {url}',
       winYou:'Bingo! Nanalo ka! 🎉', winOther:'{name} ang nanalo!', lastCalled:'Huling tawag',
       errNameRequired:'Ilagay ang pangalan', errRoomNotFound:'Hindi mahanap ang kuwarto', errNameTaken:'May gumagamit na ng pangalang iyan',
       errRoomFull:'Puno na ang kuwarto', errSessionExpired:'Tapos na ang session — sumali ulit', errNoBingo:'Hindi pa bingo!',
@@ -222,7 +231,7 @@
       createBtn:'创建房间', orText:'或', joinCode:'房间号', joinBtn:'加入', copyBtn:'复制',
       waitingHost:'等待房主开始…', startBtn:'开始游戏', leaveBtn:'离开', bingoBtn:'宾果!',
       playAgain:'再玩一次', backMenu:'返回菜单', chatPlaceholder:'说点什么…', sendBtn:'发送',
-      copied:'已复制!', notYet:'还没连成宾果!', winYou:'宾果! 你赢了! 🎉', winOther:'{name} 赢了!',
+      copied:'已复制!', notYet:'还没连成宾果!', waInvite:'用 WhatsApp 邀请家人', waText:'来玩在线宾果！房间号 {code} → {url}', winYou:'宾果! 你赢了! 🎉', winOther:'{name} 赢了!',
       lastCalled:'刚喊出', errNameRequired:'请输入名字', errRoomNotFound:'找不到房间', errNameTaken:'名字已被使用',
       errRoomFull:'房间已满', errSessionExpired:'会话结束 — 请重新加入', errNoBingo:'还没连成宾果!',
       errNet:'连接出问题 — 请重试'
@@ -232,7 +241,7 @@
       createBtn:'Buat ruangan', orText:'atau', joinCode:'Kode ruangan', joinBtn:'Gabung', copyBtn:'Salin',
       waitingHost:'Menunggu tuan rumah mulai…', startBtn:'Mulai', leaveBtn:'Keluar', bingoBtn:'BINGO!',
       playAgain:'Main lagi', backMenu:'Ke menu', chatPlaceholder:'Bilang sesuatu…', sendBtn:'Kirim',
-      copied:'Tersalin!', notYet:'Belum bingo!', winYou:'Bingo! Kamu menang! 🎉', winOther:'{name} menang!',
+      copied:'Tersalin!', notYet:'Belum bingo!', waInvite:'Undang lewat WhatsApp', waText:'Ayo main Bingo Online! Kode ruang {code} → {url}', winYou:'Bingo! Kamu menang! 🎉', winOther:'{name} menang!',
       lastCalled:'Terakhir', errNameRequired:'Isi nama dulu', errRoomNotFound:'Ruangan tak jumpa', errNameTaken:'Nama itu sudah dipakai',
       errRoomFull:'Ruangan penuh', errSessionExpired:'Sesi tamat — gabung lagi', errNoBingo:'Belum bingo!',
       errNet:'Masalah sambungan — cuba lagi'
@@ -338,6 +347,17 @@
   };
   var t = function (k, v) { return CBGame.t(STR, k, v); };
   CBGame.wireSound();
+
+  var WA_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
+    '<path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Z" fill="none" stroke="currentColor" stroke-width="2"/>' +
+    '<path d="M8.6 7.6c.3-.1.6 0 .8.3l.8 1.3c.1.3.1.6-.1.8l-.5.5c-.2.2-.2.4-.1.6.5.9 1.3 1.7 2.2 2.2.2.1.4.1.6-.1l.5-.5c.2-.2.5-.3.8-.1l1.3.8c.3.2.4.5.3.8-.3 1-1.3 1.7-2.4 1.6-2.8-.3-5.2-2.7-5.5-5.5-.1-1.1.6-2.1 1.6-2.4Z" fill="currentColor"/>' +
+    '</svg>';
+  function shareOnWhatsApp() {
+    var code = S ? S.code : (session ? session.code : '');
+    var url = location.origin + CBGame.base();
+    var msg = t('waText', { code: code, url: url });
+    window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank', 'noopener');
+  }
 
   var $ = function (s) { return document.querySelector(s); };
   var session = null, S = null, es = null, myAvatar = CBGame.AVATARS[0];
@@ -550,6 +570,13 @@
     if (navigator.clipboard) navigator.clipboard.writeText(code).then(function () { CBGame.toast(t('copied'), 'good'); }, function () {});
     else CBGame.toast(t('copied'), 'good');
   };
+  var waBtn = $('#waBtn');
+  if (waBtn) {
+    waBtn.innerHTML = WA_ICON;
+    waBtn.title = t('waInvite');
+    waBtn.setAttribute('aria-label', t('waInvite'));
+    waBtn.onclick = shareOnWhatsApp;
+  }
   $('#chatBtn').onclick = sendChat;
   $('#chatInput').addEventListener('keydown', function (e) { if (e.key === 'Enter') sendChat(); });
   function sendChat() {

@@ -32,6 +32,7 @@
   .wrap { max-width: 480px; margin: 0 auto; padding: 16px 16px 40px; }
   .topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
   .back { color: var(--primary); text-decoration: none; font-weight: 700; font-size: 0.95rem; }
+  .backlink{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:13px;font-weight:600;text-decoration:none;padding:8px 12px;border-radius:12px;background:#fff;border:1px solid var(--line);box-shadow:0 4px 12px rgba(23,26,35,.05);flex:0 0 auto}
   h1 { font-size: 1.35rem; margin: 0; }
   .badge { background: var(--primary); color: #fff; font-size: 0.6rem; font-weight: 800; padding: 3px 8px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.04em; }
   .hidden { display: none !important; }
@@ -193,7 +194,7 @@
 <body>
 <div class="wrap">
   <div class="topbar">
-    <a class="back" href="/?view=games">← Games</a>
+    <a class="backlink" href="/?view=games">← CantoBuddy</a>
     <h1 id="title">Sudoku</h1>
   </div>
 
@@ -834,7 +835,7 @@ var DICT = {
     $('ovAgain').textContent = S.solo ? t('newPuzzle') : t('rematch');
     $('ovHome').textContent = t('backHome');
     var elapsed = S.startedAt ? Math.max(0, Math.floor((S.serverNow - S.startedAt) / 1000)) : 0;
-    CB.scores.record(CB.gameId(), ($('nameInput').value || '').trim(), elapsed, { solo: !!S.solo, time: elapsed, mistakes: (S.you && S.you.mistakes) || 0 });
+    CB.scores.record(CB.gameId(), ($('nameInput').value || '').trim(), elapsed, { solo: !!S.solo, time: elapsed, mistakes: (S.you && S.you.mistakes) || 0, level: level, levelLabel: t(level) });
     $('ovAgain').onclick = function () {
       if (S.solo) startAlone();
       else api('/games/sudoku/api/action', { token: session.token, type: 'start' });

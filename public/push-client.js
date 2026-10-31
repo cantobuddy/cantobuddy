@@ -9,12 +9,15 @@
    1. Registers /sw.js (idempotent — the SPA may have done it already).
    2. Asks /api/push/config whether push is enabled server-side and for the
       VAPID public key.
-   3. If there is no subscription yet and the user has not dismissed the invite,
-      shows a small opt-in banner. Accepting it asks for permission, subscribes,
-      and POSTs the subscription to /api/push/subscribe.
-   4. If a subscription already exists, it silently "pings" /api/push/ping so the
-      reminder job knows the device is still alive, and offers a "turn off" link.
-   5. No library, no build step. Pure browser APIs.
+   3. Exposes window.CBPush so the app's OWN header control (the bell button
+      next to Language in index.html) can turn notifications on/off and reflect
+      the current state. This is the single source of truth for the SPA.
+   4. On SEO landing pages there is no header control, so a small opt-in banner
+      is still shown after the visitor has engaged — that is the only opt-in
+      path those pages have.
+
+   The header button calls CBPush.toggle(); CBPush.sync() paints the button to
+   match the real state (on / off / blocked / unsupported).
    ============================================================================= */
 (function () {
   'use strict';
@@ -36,7 +39,9 @@
       thanks: 'Thanks — we will keep you posted!',
       deniedTitle: 'Notifications are blocked',
       deniedBody: 'Your browser is blocking notifications. Turn them on in your browser site settings if you want reminders.',
-      error: 'We could not turn on notifications just now. Please try again later.'
+      error: 'We could not turn on notifications just now. Please try again later.',
+      offTitle: 'Turn on notifications',
+      unsupported: 'Notifications are not supported on this device.'
     },
     fil: {
       title: 'Makakuha ng banayad na paalala',
@@ -48,7 +53,9 @@
       thanks: 'Salamat — susubaybayan ka namin!',
       deniedTitle: 'Hinaharang ang mga notification',
       deniedBody: 'Hinaharang ng iyong browser ang mga notification. I-on ito sa settings ng site ng browser kung gusto mo ng paalala.',
-      error: 'Hindi namin na-turn on ang mga notification ngayon. Subukan muli sa ibang pagkakataon.'
+      error: 'Hindi namin na-turn on ang mga notification ngayon. Subukan muli sa ibang pagkakataon.',
+      offTitle: 'I-on ang mga notification',
+      unsupported: 'Hindi suportado ang mga notification sa device na ito.'
     },
     zh: {
       title: '开启温和的提醒',
@@ -60,7 +67,9 @@
       thanks: '谢谢——我们会与你保持联系！',
       deniedTitle: '通知已被阻止',
       deniedBody: '你的浏览器阻止了通知。如果你想要提醒，请在浏览器的网站设置中开启。',
-      error: '我们暂时无法开启通知。请稍后再试。'
+      error: '我们暂时无法开启通知。请稍后再试。',
+      offTitle: '开启通知',
+      unsupported: '此设备不支持通知'
     },
     id: {
       title: 'Dapatkan pengingat lembut',
@@ -72,7 +81,9 @@
       thanks: 'Terima kasih — kami akan memberi kabar!',
       deniedTitle: 'Notifikasi diblokir',
       deniedBody: 'Peramban Anda memblokir notifikasi. Nyalakan di pengaturan situs peramban jika Anda ingin pengingat.',
-      error: 'Kami tidak dapat mengaktifkan notifikasi sekarang. Coba lagi nanti.'
+      error: 'Kami tidak dapat mengaktifkan notifikasi sekarang. Coba lagi nanti.',
+      offTitle: 'Aktifkan notifikasi',
+      unsupported: 'Notifikasi tidak didukung di perangkat ini.'
     }
   };
 
@@ -109,6 +120,8 @@
   // It now waits for either a played word (app.js sets cb_engaged in
   // markEngaged() and dispatches cb:engaged) or a second visit, whichever
   // comes first. A learner who only browses still gets asked eventually.
+  // (Only used to surface the banner on SEO pages — the SPA uses the header
+  // button instead, which she taps when she is ready.)
   var ENGAGED_KEY = 'cb_engaged';
   var VISIT_KEY = 'cb_visits';
 
@@ -174,7 +187,7 @@
   }
 
   // SEO landing pages have no .bottom-nav; the SPA does. Used to scope the
-  // subscription source and to lift the banner above the SPA's bottom nav.
+  // subscription source and to lift any legacy banner above the SPA's bottom nav.
   function isSpa() { return !!document.querySelector('.bottom-nav'); }
   function source() { return isSpa() ? 'spa' : 'seo'; }
 
@@ -193,9 +206,8 @@
     return { publicId: deviceId(), lang: lang() };
   }
 
-  // ---- banner UI -----------------------------------------------------------
+  // ---- banner UI (SEO fallback only) ---------------------------------------
   function bannerEl() { return document.getElementById('cb-push-banner'); }
-  function pillEl() { return document.getElementById('cb-push-pill'); }
 
   var INVITE_CSS = [
     'position:fixed', 'left:0', 'right:0', 'bottom:0', 'z-index:99999',
@@ -279,26 +291,11 @@
     else done(Notification.permission);
   }
 
+  // On the SPA the header button IS the control, so a "blocked" state is shown
+  // as a toast + the button glyph — not a second banner.
   function showDenied() {
     removeBanner();
-    var existing = document.querySelector('#cb-push-banner');
-    var b = document.createElement('div');
-    b.id = 'cb-push-banner';
-    b.style.cssText = INVITE_CSS + (isSpa() ? ';bottom:64px' : '');
-    var text = document.createElement('div');
-    text.style.cssText = 'flex:1 1 240px';
-    var h = document.createElement('div'); h.textContent = t('deniedTitle');
-    h.style.cssText = 'font-weight:700;font-size:14px';
-    var p = document.createElement('div'); p.textContent = t('deniedBody');
-    p.style.cssText = 'font-size:12.5px;color:#5b6b7c';
-    text.appendChild(h); text.appendChild(p);
-    var ok = document.createElement('button');
-    ok.textContent = 'OK';
-    ok.style.cssText = 'background:#fff;color:#5b6b7c;border:1px solid #d7dee6;' +
-      'border-radius:999px;padding:8px 16px;font-size:14px;cursor:pointer;flex:none';
-    ok.addEventListener('click', function () { removeBanner(); });
-    b.appendChild(text); b.appendChild(ok);
-    document.body.appendChild(b);
+    showToast(t('deniedTitle'));
   }
 
   function doSubscribe() {
@@ -320,8 +317,10 @@
           // Remember which VAPID key this subscription belongs to, so a later
           // key rotation can be detected and fixed on the next load.
           try { localStorage.setItem(VAPID_KEY, cfg.publicKey); } catch (e) {}
+          currentSub = sub;
           removeBanner();
           showToast(t('thanks'));
+          sync();
           ping(sub.endpoint);
         }).catch(function () {
           removeBanner();
@@ -331,57 +330,77 @@
     }).catch(function () { removeBanner(); showToast(t('error')); });
   }
 
-  // ---- "on" pill (subscription exists) --------------------------------------
-  var PILL_SEEN_KEY = 'cb_push_on_seen';
-  function pillSeen() {
-    try { return sessionStorage.getItem(PILL_SEEN_KEY) === '1'; } catch (e) { return false; }
-  }
-  function markPillSeen() {
-    try { sessionStorage.setItem(PILL_SEEN_KEY, '1'); } catch (e) {}
-  }
-
-  function showPill() {
-    if (pillEl() || pillSeen()) return;
-    var p = document.createElement('div');
-    p.id = 'cb-push-pill';
-    p.style.cssText = 'position:fixed;right:12px;' + (isSpa() ? 'bottom:74px' : 'bottom:12px') +
-      ';z-index:99998;background:#fff;border:1px solid #e3e8ee;border-radius:999px;' +
-      'box-shadow:0 4px 16px rgba(29,39,51,.14);padding:6px 8px 6px 12px;display:flex;' +
-      'align-items:center;gap:8px;font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;' +
-      'color:#1d2733;max-width:90vw';
-    var label = document.createElement('span');
-    label.textContent = t('on');
-    var off = document.createElement('button');
-    off.textContent = t('turnoff');
-    off.style.cssText = 'background:#f4f7f9;color:#5b6b7c;border:0;border-radius:999px;' +
-      'padding:5px 10px;font-size:12px;cursor:pointer';
-    off.addEventListener('click', function () { unsubscribe(); });
-    var close = document.createElement('button');
-    close.textContent = '✕';
-    close.setAttribute('aria-label', 'Dismiss');
-    close.style.cssText = 'background:transparent;border:0;color:#9aa7b4;cursor:pointer;font-size:13px;padding:2px 4px';
-    close.addEventListener('click', function () { if (p.parentNode) p.parentNode.removeChild(p); markPillSeen(); });
-    p.appendChild(label); p.appendChild(off); p.appendChild(close);
-    document.body.appendChild(p);
-    // Auto-hide after a while so it is not permanent chrome.
-    setTimeout(function () { if (p.parentNode) { p.parentNode.removeChild(p); markPillSeen(); } }, 12000);
-  }
-
+  // ---- unsubscribe (used by the header button "off") -----------------------
   function unsubscribe() {
     getRegistration().then(function (reg) {
-      if (!reg || !reg.pushManager) return;
+      if (!reg || !reg.pushManager) { sync(); return; }
       reg.pushManager.getSubscription().then(function (sub) {
-        if (!sub) { removePill(); return; }
+        if (!sub) { currentSub = null; sync(); return; }
         var endpoint = sub.endpoint;
         postJSON('/api/push/unsubscribe', { endpoint: endpoint }).catch(function () {});
-        sub.unsubscribe().then(function () { removePill(); showToast('🔕'); }).catch(function () { removePill(); });
+        sub.unsubscribe().then(function () {
+          currentSub = null; sync(); showToast('🔕');
+        }).catch(function () { sync(); });
       });
     });
   }
-  function removePill() {
-    var p = pillEl();
-    if (p && p.parentNode) p.parentNode.removeChild(p);
+
+  // ---- header control (the SPA's single source of truth) -------------------
+  var currentSub = null;
+
+  // Resolve the live subscription once (used by boot + sync).
+  function resolveSub() {
+    if (!supported()) return Promise.resolve(null);
+    return getRegistration().then(function (reg) { return getCurrentSub(reg); })
+      .then(function (sub) { currentSub = sub; return sub; });
   }
+
+  // Paint the header button to match a state: 'on' | 'off' | 'denied' | 'unsupported'.
+  function paint(btn, state) {
+    if (!btn) return;
+    var on = state === 'on';
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    btn.classList.toggle('notif-on', on);
+    btn.classList.toggle('notif-denied', state === 'denied');
+    btn.disabled = (state === 'unsupported');
+    var g = btn.querySelector('#notif-glyph');
+    if (g) g.textContent = (state === 'denied') ? '🔕' : '🔔';
+    btn.title = state === 'on' ? t('on')
+      : state === 'denied' ? t('deniedTitle')
+      : state === 'unsupported' ? t('unsupported')
+      : t('offTitle');
+  }
+
+  // Reflect the real state on the header button. No-op on SEO pages (no button).
+  function sync() {
+    var btn = document.getElementById('notif-btn');
+    if (!btn) return;
+    if (!supported()) { paint(btn, 'unsupported'); return; }
+    if (Notification.permission === 'denied') { paint(btn, 'denied'); return; }
+    resolveSub().then(function (sub) { paint(btn, sub ? 'on' : 'off'); });
+  }
+
+  // Toggle from the header button: on -> unsubscribe, off -> subscribe.
+  function toggle() {
+    if (!supported()) { showToast(t('unsupported')); return; }
+    if (Notification.permission === 'denied') { showToast(t('deniedTitle')); return; }
+    if (currentSub) { unsubscribe(); return; }
+    var btn = document.getElementById('notif-btn');
+    if (btn) { onAllow(); return; }
+    // No header button (SEO page): fall back to the legacy invite banner.
+    if (Notification.permission === 'default') showInvite();
+  }
+
+  // Public API for the app's header control.
+  window.CBPush = {
+    toggle: toggle,
+    sync: sync,
+    state: function () {
+      return !supported() ? 'unsupported'
+        : Notification.permission === 'denied' ? 'denied'
+        : currentSub ? 'on' : 'off';
+    }
+  };
 
   // ---- ping (keep last_active_at fresh) -------------------------------------
   // Also carries the device id and language, so a subscription that predates
@@ -394,43 +413,45 @@
 
   // ---- boot -----------------------------------------------------------------
   function boot() {
-    if (!supported()) return;
+    if (!supported()) { sync(); return; }
     fetch('/api/push/config')
       .then(function (r) { return r.json(); })
       .then(function (cfg) {
-        if (!cfg || !cfg.enabled || !cfg.publicKey) return;
-        return getRegistration().then(function (reg) {
-          return getCurrentSub(reg).then(function (sub) {
-            if (sub) {
-              // If the server's VAPID key changed since this device subscribed,
-              // the old subscription will be rejected (403) on every send. Drop
-              // it and re-subscribe with the current key.
-              var stored = null;
-              try { stored = localStorage.getItem(VAPID_KEY); } catch (e) {}
-              if (stored && stored !== cfg.publicKey) {
-                try { localStorage.setItem(VAPID_KEY, cfg.publicKey); } catch (e) {}
-                return sub.unsubscribe().then(function () {
-                  if (Notification.permission === 'granted') doSubscribe();
-                  else showInvite();
-                });
-              }
-              // Already subscribed: refresh active timestamp and offer "turn off".
-              ping(sub.endpoint);
-              showPill();
-              return;
-            }
-            // Not subscribed: maybe show the invite — but only once she has
-            // actually used the app. See the engagement gate above.
-            if (Notification.permission === 'default') {
-              whenEngaged(function () {
-                // Short beat so it does not land mid-transition.
-                setTimeout(showInvite, 1200);
+        if (!cfg || !cfg.enabled || !cfg.publicKey) { sync(); return; }
+        return resolveSub().then(function (sub) {
+          if (sub) {
+            // If the server's VAPID key changed since this device subscribed,
+            // the old subscription will be rejected (403) on every send. Drop
+            // it and re-subscribe with the current key.
+            var stored = null;
+            try { stored = localStorage.getItem(VAPID_KEY); } catch (e) {}
+            if (stored && stored !== cfg.publicKey) {
+              try { localStorage.setItem(VAPID_KEY, cfg.publicKey); } catch (e) {}
+              return sub.unsubscribe().then(function () {
+                if (Notification.permission === 'granted') return doSubscribe();
+                else showInviteMaybe();
               });
             }
-          });
+            // Already subscribed: refresh active timestamp; the header button
+            // (on the SPA) shows the state. No floating pill anymore.
+            ping(sub.endpoint);
+            sync();
+            return;
+          }
+          // Not subscribed. The SPA uses its header button; only SEO pages (no
+          // button) get the invite banner, and only once she has engaged.
+          var hasBtn = !!document.getElementById('notif-btn');
+          if (!hasBtn && Notification.permission === 'default') {
+            whenEngaged(function () { setTimeout(showInvite, 1200); });
+          }
+          sync();
         });
       })
-      .catch(function () {});
+      .catch(function () { sync(); });
+  }
+
+  function showInviteMaybe() {
+    if (Notification.permission === 'default') showInvite();
   }
 
   if (document.readyState === 'loading') {

@@ -69,8 +69,12 @@
       if (!name) return;                            // cannot attribute without a name
       seconds = Number(seconds);
       if (!isFinite(seconds) || seconds <= 0) return; // no valid finish time -> skip
+      meta = meta || {};
+      // A level (e.g. sudoku easy/medium/hard/expert, checkers easy/normal) lets
+      // the history break down "best / last 5" PER DIFFICULTY, not just overall.
+      var lvl = meta.level != null ? String(meta.level) : '';
       var key = gid + '|' + name + '|' + Math.round(seconds) + '|' +
-        (meta && meta.won ? 1 : 0) + '|' + (meta && meta.tie ? 1 : 0);
+        (meta.won ? 1 : 0) + '|' + (meta.tie ? 1 : 0) + '|' + lvl;
       var now = Date.now();
       if (key === lastKey && (now - lastTs) < 60000) return;
       lastKey = key; lastTs = now;
@@ -78,19 +82,37 @@
       var store = loadStore();
       store[gid] = store[gid] || {};
       var list = store[gid][name] = store[gid][name] || [];
-      list.push({ score: seconds, ts: now, meta: meta || {} });
+      // Capture level at the top level (not only inside meta) so the "by level"
+      // view can group without re-parsing meta on every render.
+      list.push({
+        score: seconds, ts: now, meta: meta,
+        level: lvl || null,
+        levelLabel: meta.levelLabel != null ? String(meta.levelLabel) : null
+      });
       if (list.length > 50) store[gid][name] = list.slice(-50);
       saveStore(store);
       this.refresh(gid, name);
     },
     summary: function (gid, name) {
       name = String(name == null ? '' : name).trim();
-      if (!name) return { best: null, latest: [], played: 0 };
+      if (!name) return { best: null, latest: [], played: 0, levels: [] };
       var list = (loadStore()[gid] || {})[name] || [];
       // LOWER is better: the best time is the MINIMUM.
       var best = null;
       list.forEach(function (e) { if (best === null || e.score < best) best = e.score; });
-      return { best: best, latest: list.slice(-5).reverse(), played: list.length };
+      // Group by level for the "by level" breakdown. Entries with no level
+      // (group games that have no difficulty) stay in the overall numbers only.
+      var groups = {};
+      list.forEach(function (e) {
+        if (!e.level) return;
+        (groups[e.level] = groups[e.level] || []).push(e);
+      });
+      var levels = Object.keys(groups).map(function (k) {
+        var g = groups[k], b = null;
+        g.forEach(function (e) { if (b === null || e.score < b) b = e.score; });
+        return { key: k, label: (g[0] && g[0].levelLabel) || k, best: b, latest: g.slice(-5).reverse(), played: g.length };
+      });
+      return { best: best, latest: list.slice(-5).reverse(), played: list.length, levels: levels };
     },
     refresh: function (gid, name) {
       var el = document.getElementById('cbScoreHistory');
@@ -110,16 +132,31 @@
       // LOWER is better, so "Best" = the FASTEST (least) time.
       var html = '<div class="cb-sh-title">' + esc(name) + "'s history</div>";
       html += row('Best time', '<b>' + fmtTime(s.best) + '</b> <span class="cb-sh-note">(lower is better)</span>');
-      html += '<div class="cb-sh-row"><span class="cb-sh-k">Last 5</span>' +
-        '<span class="cb-sh-v cb-sh-nums">' +
-        s.latest.map(function (e) { return '<i class="cb-num">' + fmtTime(e.score) + '</i>'; }).join('') +
-        '</span></div>';
+      html += last5(s.latest);
+      // Only show the "by level" section when this game actually recorded levels.
+      if (s.levels && s.levels.length) {
+        html += '<div class="cb-sh-sub">By level</div>';
+        s.levels.forEach(function (lv) {
+          html += '<div class="cb-sh-level">';
+          html += '<div class="cb-sh-lvl-head">' + esc(lv.label) + ' <span class="cb-sh-note">(' + lv.played + ')</span></div>';
+          html += row('Best', '<b>' + fmtTime(lv.best) + '</b>');
+          html += last5(lv.latest);
+          html += '</div>';
+        });
+      }
       el.innerHTML = html;
       el.classList.remove('hidden');
     }
   };
   function row(k, v) {
     return '<div class="cb-sh-row"><span class="cb-sh-k">' + k + '</span><span class="cb-sh-v">' + v + '</span></div>';
+  }
+  function last5(list) {
+    if (!list || !list.length) return '';
+    return '<div class="cb-sh-row"><span class="cb-sh-k">Last 5</span>' +
+      '<span class="cb-sh-v cb-sh-nums">' +
+      list.map(function (e) { return '<i class="cb-num">' + fmtTime(e.score) + '</i>'; }).join('') +
+      '</span></div>';
   }
 
   function esc(s) {
@@ -168,7 +205,10 @@
       '.cb-sh-note{color:#6b7785;font-weight:400;font-size:11px}' +
       '.cb-sh-nums{display:flex;gap:6px;flex-wrap:wrap}' +
       '.cb-num{font-style:normal;min-width:34px;padding:2px 6px;border-radius:7px;' +
-      'background:#eef3f8;color:#1f3a5f;text-align:center;font-weight:700}';
+      'background:#eef3f8;color:#1f3a5f;text-align:center;font-weight:700}' +
+      '.cb-sh-sub{font-weight:700;font-size:12px;margin:8px 0 2px;color:#12212f}' +
+      '.cb-sh-level{margin:2px 0 8px;padding-left:8px;border-left:2px solid #eef3f8}' +
+      '.cb-sh-lvl-head{font-size:12px;font-weight:700;color:#33506f;margin:2px 0 1px}';
     (document.head || document.documentElement).appendChild(st);
   }
 })();

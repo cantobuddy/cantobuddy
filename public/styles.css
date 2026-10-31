@@ -412,6 +412,15 @@ body {
 .site-btn:hover { border-color: var(--c-primary); }
 .site-btn:active { transform: scale(0.92); }
 .site-btn:focus-visible { outline: 2px solid var(--c-primary); outline-offset: 2px; }
+/* Notification toggle in the header: mirrors the language picker's spot. The bell
+   reflects live state — filled/active when subscribed, muted when blocked. */
+#notif-btn[aria-pressed="true"] {
+  border-color: var(--c-primary);
+  background: var(--c-primary-tint, #eaf2ff);
+  color: var(--c-primary);
+}
+#notif-btn.notif-denied { opacity: .6; }
+#notif-btn:disabled { opacity: .45; cursor: default; }
 
 /* ---- Hit areas -----------------------------------------------------------
    The circles stay 38px so the header keeps its rhythm, but the tappable

@@ -40,6 +40,7 @@
   .top{display:flex;align-items:center;gap:4px;flex:0 0 auto;padding:2px 0 6px}
   .top h1{font-size:15px;margin:0;letter-spacing:0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .top .spacer{flex:1}
+  .backlink{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:13px;font-weight:600;text-decoration:none;padding:8px 12px;border-radius:12px;background:#fff;border:1px solid var(--line);box-shadow:0 4px 12px rgba(23,26,35,.05);flex:0 0 auto}
   /* The table controls, the same cluster the other three games carry: a live
      indicator and three icon buttons. Icon-only on purpose — four words in four
      languages do not fit beside a title, and the icon is the one thing that
@@ -255,6 +256,7 @@
 <body>
 <div class="wrap">
   <div class="top">
+    <a class="backlink" href="/?view=games">← CantoBuddy</a>
     <h1 data-k="appTitle">Chinese Checkers</h1>
     <span class="spacer"></span>
     <!-- The table controls, matching the other games. Everything here is
@@ -268,9 +270,6 @@
     </button>
     <button class="iconbtn" id="rulesBtn" type="button">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.4"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.3c-.7.3-1 .9-1 1.6v.4"/><path d="M12 17.1h.01"/></svg>
-    </button>
-    <button class="iconbtn" id="homeBtn" type="button" aria-label="Exit to games">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M5.5 10v9.5a1 1 0 0 0 1 1H17.5a1 1 0 0 0 1-1V10"/><path d="M10 20.5v-5h4v5"/></svg>
     </button>
     <button class="iconbtn hidden" id="leaveBtn" type="button">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4.5h3.5A1.5 1.5 0 0 1 19 6v12a1.5 1.5 0 0 1-1.5 1.5H14"/><path d="M9.5 8 5.5 12l4 4"/><path d="M5.5 12H15"/></svg>
@@ -832,7 +831,6 @@ function buildLobby() {
   $('#joinBtn').onclick = () => joinRoom();
   $('#codeInput').onkeydown = (e) => { if (e.key === 'Enter') joinRoom(); };
   $('#leaveBtn').onclick = () => leaveTable();
-  $('#homeBtn').onclick = () => { location.href = '/?view=games'; };
   $('#chatBtn').onclick = () => toggleFeed(true);
   $('#feedClose').onclick = () => toggleFeed(false);
   $('#chatSend').onclick = () => sendChat();
@@ -940,7 +938,6 @@ function syncLabels() {
   put('chatBtn', 'chatHead');
   put('rulesBtn', 'howTo');
   put('leaveBtn', 'backLobby');
-  put('homeBtn', 'exitHome');
 }
 
 function choiceValue(host, def) {
@@ -1705,7 +1702,8 @@ function renderOverlay() {
   ov.classList.remove('hidden');
   const won = S.winner === S.you.id;
   var sec = (S.startedAt && S.serverNow) ? Math.max(0, Math.round((S.serverNow - S.startedAt) / 1000)) : 0;
-  CB.scores.record(CB.gameId(), myName(), sec, { won: won });
+  var cl = choiceValue($('#soloLevel'), 'normal');
+  CB.scores.record(CB.gameId(), myName(), sec, { won: won, level: cl, levelLabel: t('level' + cl.charAt(0).toUpperCase() + cl.slice(1)) });
   $('#ovIcon').textContent = S.winner ? (won ? '🏆' : '🎉') : '🤝';
   $('#ovTitle').textContent = S.winner
     ? (won ? t('youWin') : t('winner', { name: S.winnerName }))

@@ -156,6 +156,11 @@
              .lang-cur when it exists, and falls back to the button itself
              otherwise — the fallback is why the span has to be optional. -->
         <button id="lang-btn" class="lang-btn" onclick="openLangModal()" title="Change language" aria-label="Change language" aria-haspopup="dialog"><span class="lang-cur">EN</span><span class="he-label" data-i18n="header.langTitle">Change language</span></button>
+        <!-- Notification on/off, sitting right beside the language picker so it is
+             configured in the same place. Driven by window.CBPush (push-client.js):
+             tap to toggle; the bell glyph + aria-pressed show the live state. The
+             .he-label is the word shown inside the More sheet on small screens. -->
+        <button id="notif-btn" class="site-btn" type="button" onclick="CBPush.toggle()" title="Notifications" aria-label="Notifications" aria-pressed="false" data-i18n="header.notif" data-i18n-attr="title" data-i18n-aria="1"><span id="notif-glyph">🔔</span><span class="he-label" data-i18n="header.notif">Notifications</span></button>
         <button id="voice-btn" class="voice-btn" onclick="openVoiceModal()" title="Choose practice voice" aria-label="Choose practice voice"
                 data-i18n="header.voiceTitle" data-i18n-attr="title" data-i18n-aria="1"><span class="voice-cur">👩</span><span class="he-label" data-i18n="header.voiceTitle">Choose voice</span></button>
         <!-- "Add to home screen".

@@ -295,6 +295,7 @@ const I18N = {
     'header.shareSite': 'Share CantoBuddy',
     'header.install': 'Add to home screen',
     'header.more': 'More options',
+    'header.notif': 'Notifications',
 
     // home
     'home.title': 'Learn Cantonese',
@@ -895,6 +896,7 @@ const I18N = {
     'header.shareSite': 'Ibahagi ang CantoBuddy',
     'header.install': 'Idagdag sa home screen',
     'header.more': 'Higit pang opsyon',
+    'header.notif': 'Mga notification',
 
     // home
     'home.title': 'Mag-aral ng Cantonese',
@@ -1488,6 +1490,7 @@ const I18N = {
     'header.shareSite': '分享 CantoBuddy',
     'header.install': '添加到主屏幕',
     'header.more': '更多选项',
+    'header.notif': '通知',
 
     // home
     'home.title': '学粤语',
@@ -2078,6 +2081,7 @@ const I18N = {
     'header.shareSite': 'Bagikan CantoBuddy',
     'header.install': 'Tambahkan ke layar utama',
     'header.more': 'Opsi lainnya',
+    'header.notif': 'Notifikasi',
 
     // home
     'home.title': 'Belajar bahasa Kanton',
@@ -2479,6 +2483,8 @@ function applyTranslations() {
     // aria-label — otherwise screen readers announce a bare emoji.
     if (el.dataset.i18nAria) el.setAttribute('aria-label', t(key));
   });
+  // Keep the header notification toggle's state label in the active language.
+  if (window.CBPush) { try { window.CBPush.sync(); } catch (e) {} }
   document.documentElement.lang = currentHtmlLang();
   updateLangButton();
 }

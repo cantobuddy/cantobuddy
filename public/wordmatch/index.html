@@ -1186,6 +1186,7 @@ function renderStage() {
   if (!playing) { renderWait(); return; }
 
   const q = S.prompt || {};
+  S.level = q.level || S.level;   // remember difficulty so the end-screen score can group by level
   $('#qEmoji').textContent = q.emoji || '';
   $('#qWord').textContent = q.cantonese || '';
   $('#qJyut').textContent = q.jyutping || '';
@@ -1575,7 +1576,7 @@ function renderOverlay() {
 
   const iWon = r.winnerId === S.you.id;
   var sec = (S.startedAt || S.createdAt) && S.serverNow ? Math.max(0, Math.round((S.serverNow - (S.startedAt || S.createdAt)) / 1000)) : 0;
-  CB.scores.record(CB.gameId(), ($('nameInput').value || '').trim(), sec, { won: iWon, tie: !!r.tie });
+  CB.scores.record(CB.gameId(), ($('nameInput').value || '').trim(), sec, { won: iWon, tie: !!r.tie, level: S.level, levelLabel: (S.level ? 'Lv ' + S.level : undefined) });
   const tie = !!r.tie;
   const title = tie ? t('tieTitle') : (iWon ? t('winTitle') : t('loseTitle', { name: r.winnerName || '' }));
   const sub = tie ? t('tieSub') : (iWon ? t('winSub') : t('loseSub'));

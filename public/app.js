@@ -124,10 +124,6 @@ const STATE = {
     // vocabularies and must not be read by each other's renderer.
     placeKind: null,
     place: null,
-    // The long-form guides from /api/guides, cached once per session. They are
-    // not posts (no database row), so they need their own slot; null means "not
-    // fetched yet", an empty array means "fetched, none published".
-    guides: null,
   },
   // Stories — a helper's own life story, read from the Stories channel inside
   // Discover. `list` caches the shelf so a tab switch is instant; `current` is
@@ -4856,94 +4852,6 @@ function storyCardHtml(story) {
     </button>`;
 }
 
-/* ------------------------------------------------------------------- guides
-   The Culture tab's shelf of long-form guides.
-
-   Guides are server-rendered pages at /guide/<slug> (content.js -> seo.js).
-   They are NOT posts: there is no row in the database, so /api/posts can never
-   return one, and the feed alone leaves them unreachable from inside the app —
-   which is exactly how a published culture article can look "missing" to a
-   reader who only browses the app.
-
-   Three details worth keeping:
-   1. The cards are real <a href>, not navigate() calls. The target is a
-      separate document; pushing it through the SPA router would swap the view
-      and leave the server-rendered page unloaded.
-   2. The href carries the language prefix, so a reader on 中文 lands on
-      /zh/guide/... instead of the English page.
-   3. A failed fetch hides the shelf rather than showing an error: it is a
-      secondary shelf above the real feed, and an error box there would push
-      the actual content down for no benefit.
-   ------------------------------------------------------------------------- */
-
-/** One guide card. Same skeleton as postCardHtml, so it inherits its styling. */
-function guideCardHtml(g, prefix) {
-  const lang = currentLang();
-  const title = (g.title && (g.title[lang] || g.title.en)) || g.slug;
-  const desc = (g.description && (g.description[lang] || g.description.en)) || '';
-  return `
-    <a class="post-card guide-card" href="${prefix}/guide/${encodeURIComponent(g.slug)}">
-      <span class="post-card-icon">${escapeHtml(g.icon || '📖')}</span>
-      <span class="post-card-main">
-        <span class="post-card-title">${escapeHtml(title)}</span>
-        ${desc ? `<span class="post-card-summary">${escapeHtml(desc)}</span>` : ''}
-      </span>
-      <span class="post-card-arrow" aria-hidden="true">›</span>
-    </a>`;
-}
-
-/** How many guides the shelf shows. It sits ABOVE the culture feed, so an
-    uncapped shelf (there are eight guides and growing) would bury the posts it
-    is supposed to sit beside. Three is the newest three; the rest are one tap
-    away on the hub. */
-const GUIDE_SHELF_MAX = 3;
-
-/** Newest first, capped. Sorted by `updated` so a new article surfaces itself
-    without anyone editing this file. */
-function guideShelf(list) {
-  return (list || [])
-    .slice()
-    .sort((a, b) => String(b.updated || '').localeCompare(String(a.updated || '')))
-    .slice(0, GUIDE_SHELF_MAX);
-}
-
-async function renderGuides(show) {
-  const shelf = document.getElementById('guides-shelf');
-  if (!shelf) return;
-  shelf.hidden = !show;
-  if (!show) return;
-
-  const list = document.getElementById('guides-shelf-list');
-  const all = document.getElementById('guides-shelf-all');
-  const prefix = currentLang() === 'en' ? '' : '/' + currentLang();
-  // The "all guides" link is language-aware too, or a 中文 reader would be sent
-  // from a Chinese shelf into the English hub.
-  if (all) all.href = prefix + '/guide';
-  if (!list) return;
-
-  const paint = () => {
-    const shown = guideShelf(STATE.discover.guides);
-    list.innerHTML = shown.map((g) => guideCardHtml(g, prefix)).join('');
-    // No guides published means no shelf at all — a heading over nothing is
-    // worse than the feed simply starting.
-    shelf.hidden = !shown.length;
-  };
-
-  // Already fetched: repaint from cache so a tab or language switch is instant.
-  if (STATE.discover.guides) return paint();
-
-  list.innerHTML = `<div class="discover-loading">…</div>`;
-  try {
-    STATE.discover.guides = await apiGet('/api/guides');
-  } catch (err) {
-    console.warn('Could not load guides:', err);
-    STATE.discover.guides = null;   // let a later visit retry
-    shelf.hidden = true;
-    return;
-  }
-  paint();
-}
-
 async function renderDiscover() {
   const feed = document.getElementById('discover-feed');
   if (!feed) return;
@@ -4963,11 +4871,6 @@ async function renderDiscover() {
               : 'discover.cultureLead'
     );
   }
-  // Guides belong to the Culture channel only. The other three are feeds (news,
-  // living passages, outings) where a shelf of long-form articles above the
-  // list would be a non-sequitur.
-  renderGuides(channel === 'culture');
-
   // The "share your story" button belongs to one channel only. It is a
   // destination of its own (its own view), so it is a real button rather than
   // something the feed renderer draws.

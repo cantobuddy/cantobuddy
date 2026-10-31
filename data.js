@@ -2597,6 +2597,275 @@ const SEED_POSTS = [
 <p>There is now a whole section of the app for this: <strong>Discover → Outings</strong> has the routes, the fares and the way to get to each trailhead, including three of the walks mentioned above.</p>
 `,
   },
+  {
+    slug: 'yum-cha-dim-sum-culture-hong-kong',
+    channel: 'culture',
+    icon: '🍵',
+    status: 'published',
+    // Dated the day the article was written. Culture is ordered by this field,
+    // so it lands at the top of the channel without anyone re-sorting the feed.
+    published_at: '2026-10-31T10:00:00.000Z',
+    title_en: "Yum Cha in Hong Kong: The Culture Behind Dim Sum",
+    title_fil: "Yum Cha sa Hong Kong: Ang Kultura sa Likod ng Dim Sum",
+    title_zh: "香港饮茶文化：点心背后的一整套规矩",
+    title_id: "Yum Cha di Hong Kong: Budaya di Balik Dim Sum",
+    summary_en: "What yum cha really means, the small rituals nobody explains, the dim sum names worth knowing, and how to order them in Cantonese.",
+    summary_fil: "Ano talaga ang ibig sabihin ng yum cha, ang maliliit na ritwal na walang nagpapaliwanag, ang mga pangalan ng dim sum, at paano umorder sa Cantonese.",
+    summary_zh: "饮茶到底在饮什么？没人会跟你解释的那些小规矩、值得记住的点心名字，以及用粤语点单的几句实用话。",
+    summary_id: "Apa arti yum cha sebenarnya, ritual kecil yang tidak pernah dijelaskan, nama-nama dim sum yang perlu diketahui, dan cara memesannya dalam bahasa Kanton.",
+    body_en: `<p>In Hong Kong, "let's yum cha" is not an invitation to drink tea. It is an invitation to sit down for two hours, eat a dozen small plates, argue about who pours, and leave slightly too full. Here is what is actually happening at that table — and the words you need to join it.</p>
+
+<h2>Yum cha is the meal. Dim sum is the food.</h2>
+<p>English speakers use the two words interchangeably. Cantonese does not. <strong>飲茶</strong> <em>jam2 caa4</em> means "drink tea", and it names the whole occasion — the sitting, the talking, the endless refills. <strong>點心</strong> <em>dim2 sam1</em> is what arrives on the table: literally "touch the heart", a phrase older than any restaurant, meaning a small thing that pleases you.</p>
+<p>So you do not "go for dim sum". You go to yum cha, and you eat dim sum.</p>
+<p>The classic way to describe the meal is <strong>一盅兩件</strong> <em>jat1 zung1 loeng5 gin6</em> — "one pot, two pieces". One pot of tea, a couple of dishes, nothing more. The phrase comes from the cheap teahouses of Qing-era Guangzhou, where labourers paid two cash for a pot of coarse tea and a snack, and it survives as the name for the whole ritual even though nobody orders two pieces any more.</p>
+
+<h2>The tea is not a side order</h2>
+<p>The tea is the reason people sit down. It cuts through the fat of fried and steamed food, and it gives the table something to do with its hands between dishes. Most tables share one pot, which means somebody has to pour — and that is where the etiquette starts.</p>
+<p>The usual choices: <strong>普洱</strong> <em>pou2 nei2</em> (pu'er, dark and fermented, the default for a heavy meal), <strong>鐵觀音</strong> <em>tit3 gun1 jam1</em> (a roasted oolong), <strong>香片</strong> <em>hoeng1 pin2</em> (jasmine), <strong>菊花</strong> <em>guk1 faa1</em> (chrysanthemum, ordered when the table believes it needs "cooling"), and <strong>壽眉</strong> <em>sau6 mei4</em>, a light white tea that older drinkers often ask for by name.</p>
+
+<h2>The finger tap</h2>
+<p>When someone fills your cup, you do not say thank you. You tap the table twice with your index and middle finger. It is called <strong>叩指</strong> <em>kau3 zi2</em>, and it is the one piece of yum cha etiquette everybody notices and almost nobody can explain.</p>
+<p>The story behind it is a legend, and usually told as one. The Qianlong Emperor was travelling in disguise and, to keep the disguise, poured tea for his companions himself. They could not kowtow without revealing who he was, so they tapped two fingers on the table instead — one finger for the bowed head, two for the prostrate arms. Whether or not it happened, the gesture stuck.</p>
+<p>The practical reason is simpler: a teahouse is loud and your mouth is often full. The tap says thank you without interrupting anything.</p>
+<p>The rest of the tea rules: the youngest at the table pours for the elders. You never fill your own cup while someone else's is empty. And you fill a cup to about eighty percent, not to the brim — the cup has to be liftable.</p>
+
+<h2>The things nobody explains to you</h2>
+<ul>
+  <li><strong>You will be given a bowl of hot water.</strong> It is not soup. Diners rinse the cups, bowls and chopsticks with the first pot of tea and tip the water into that bowl. It is a habit from the days when teahouses were roadside stalls, not a comment on the kitchen.</li>
+  <li><strong>Leave the teapot lid open to ask for more water.</strong> Lifting the lid, or resting it askew, is the signal — no shouting, no waving. In Hong Kong a fast refill is the standard by which service is judged. One old story explains the custom with a customer who kept a pet bird in his teapot, which flew away when a waiter opened it; every teahouse after that waited to be asked.</li>
+  <li><strong>Use the public chopsticks</strong> (<strong>公筷</strong> <em>gung1 faai3</em>) for the shared dishes, not your own.</li>
+  <li><strong>Do not stand your chopsticks upright in rice.</strong> It looks like incense at a funeral. Do not drum on your bowl either — it is the gesture of a beggar.</li>
+  <li><strong>You may be seated with strangers.</strong> At busy hours the staff will put you at a table that already has people at it. It is called <strong>搭枱</strong> <em>daap3 toi2</em>, it is completely normal, and nobody will think it is strange.</li>
+</ul>
+
+<h2>The dim sum worth knowing</h2>
+<p>Four dishes carry the reputation of the whole meal — the <strong>四大天王</strong> <em>sei3 daai6 tin1 wong4</em>, the "four heavenly kings": shrimp dumpling, siu mai, char siu bun and egg tart. If a kitchen gets those four right, it gets everything else right.</p>
+<ul>
+  <li><strong>蝦餃</strong> <em>haa1 gaau2</em> — Shrimp dumpling. Translucent skin, seven to ten pleats, whole shrimp inside. The test of a kitchen.</li>
+  <li><strong>燒賣</strong> <em>siu1 maai2</em> — Pork and shrimp dumpling. Open at the top, usually finished with crab roe or a slice of carrot.</li>
+  <li><strong>叉燒包</strong> <em>caa1 siu1 baau1</em> — Barbecue pork bun. Sweet glazed pork in a bun that splits open at the top as it steams. The crack is meant to be there.</li>
+  <li><strong>蛋撻</strong> <em>daan6 taat1</em> — Egg tart. Set custard in pastry. The flaky puff version is the Hong Kong one.</li>
+  <li><strong>鳳爪</strong> <em>fung6 zaau2</em> — Chicken feet. Deep-fried, braised, then steamed in black bean sauce. Soft enough to eat with the lips.</li>
+  <li><strong>腸粉</strong> <em>coeng4 fan2</em> — Rice noodle roll. Steamed rice sheet rolled around shrimp or beef, then drowned in sweet soy.</li>
+  <li><strong>蘿蔔糕</strong> <em>lo4 baak6 gou1</em> — Radish cake. Grated white radish and rice flour, pan-fried in slabs. Also a New Year food.</li>
+  <li><strong>糯米雞</strong> <em>no6 mai5 gai1</em> — Sticky rice in lotus leaf. Glutinous rice, chicken and mushroom wrapped and steamed in a leaf. Unwrap it, do not eat the leaf.</li>
+  <li><strong>流沙包</strong> <em>lau4 saa1 baau1</em> — Custard bun. "Flowing sand" — salted egg yolk custard that runs out when you break it. Hot enough to burn you. Wait.</li>
+  <li><strong>馬拉糕</strong> <em>maa1 laai1 gou1</em> — Malay sponge cake. Brown sugar sponge, steamed, and it wobbles when the table is bumped.</li>
+</ul>
+<p>A pronunciation warning: <em>dim2 sam1</em> is not the English word "dim". It is a short, clipped "deem" that rises at the end, and the second word is flat and high. Getting the tone wrong is the difference between 點心 and something you did not mean.</p>
+
+<h2>How the bill works</h2>
+<p>In an old teahouse the price depends on the size of the dish, and the staff stamp a card on your table as each one arrives: <strong>小點</strong> <em>siu2 dim2</em> small, <strong>中點</strong> <em>zung1 dim2</em> medium, <strong>大點</strong> <em>daai6 dim2</em> large, <strong>特點</strong> <em>dak6 dim2</em> special. At the end they count the stamps. It is why nobody minds a big table: the card does the remembering.</p>
+<p>You will also see <strong>茶芥</strong> <em>caa4 gaai3</em> on the bill — a small per-head charge for tea and condiments. It is not a trick. It is how the tea gets paid for.</p>
+<p>To leave, you say <strong>唔該，埋單</strong> <em>m4 goi1, maai4 daan1</em> — "the bill, please". Tipping is not expected in most teahouses, though rounding up is normal.</p>
+
+<h2>Why it matters more than the food</h2>
+<p>Sunday yum cha is a family institution. Older people arrive around seven in the morning, straight from <strong>晨運</strong> <em>san4 wan6</em>, the morning exercise in the park; by eleven the big tables are full of three generations and the noise is the point.</p>
+<p>For domestic helpers, Sunday is the day off, and yum cha with friends is one of the standard ways to spend it. It is also one of the cheapest ways to sit somewhere for two hours without being asked to move on — which, on a day off in Hong Kong, is worth a great deal.</p>
+<p>Business gets done at these tables too. A teahouse is neutral ground, and a lot of things have been agreed over a pot of pu'er that would never have survived a meeting room.</p>
+<p>Two places worth knowing: <strong>陸羽茶室</strong> <em>Luk Yu Tea House</em> in Central has been pouring since 1933, with waiters in white jackets and no interest at all in hurrying you. <strong>添好運</strong> <em>Tim Ho Wan</em> opened in Sham Shui Po in 2009 with about twenty seats and won a Michelin star within a year, which briefly made it the cheapest Michelin-starred restaurant in the world.</p>
+
+<h2>Six phrases that do the work</h2>
+<ul>
+  <li><strong>唔該，兩位</strong> <em>m4 goi1, loeng5 wai2</em> — two people, please.</li>
+  <li><strong>有冇位？</strong> <em>jau5 mou5 wai2</em> — any seats?</li>
+  <li><strong>一壺普洱</strong> <em>jat1 wu4 pou2 nei2</em> — one pot of pu'er.</li>
+  <li><strong>唔該，加水</strong> <em>m4 goi1, gaa1 seoi2</em> — some hot water, please.</li>
+  <li><strong>唔該，埋單</strong> <em>m4 goi1, maai4 daan1</em> — the bill, please.</li>
+  <li><strong>好食！</strong> <em>hou2 sik6</em> — delicious! The one compliment every kitchen hears.</li>
+</ul>
+<p>And if there is food left over, <strong>打包</strong> <em>daa2 baau1</em> — "pack it up" — gets it wrapped to take home. Nobody will think you are being stingy. Waste is the thing that would be rude.</p>`,
+    body_fil: `<p>Sa Hong Kong, ang "tara, yum cha" ay hindi imbitasyon para uminom ng tsaa. Imbitasyon ito para umupo nang dalawang oras, kumain ng dose-dosenang maliliit na plato, magtalo kung sino ang magbubuhos, at umalis na medyo busog na busog. Ito ang tunay na nangyayari sa hapag na iyon — at ang mga salitang kailangan mo para makasali.</p>
+
+<h2>Ang yum cha ay ang kainan. Ang dim sum ay ang pagkain.</h2>
+<p>Sa Ingles, pinagpapalit ang dalawang salita. Sa Cantonese, hindi. Ang <strong>飲茶</strong> <em>jam2 caa4</em> ay "uminom ng tsaa", at ito ang pangalan ng buong okasyon — ang pag-upo, ang kwentuhan, ang walang katapusang refill. Ang <strong>點心</strong> <em>dim2 sam1</em> naman ang dumarating sa mesa: literal na "humipo sa puso", pariralang mas matanda pa sa kahit anong restawran, at ang ibig sabihin ay maliit na bagay na nagpapasaya sa iyo.</p>
+<p>Kaya hindi ka "pumupunta para sa dim sum". Pumupunta ka sa yum cha, at kumakain ka ng dim sum.</p>
+<p>Ang klasikong paglalarawan sa kainan ay <strong>一盅兩件</strong> <em>jat1 zung1 loeng5 gin6</em> — "isang tsarera, dalawang piraso". Isang pot ng tsaa, dalawa o tatlong pinggan, wala nang iba. Galing ang parirala sa murang tea house ng Guangzhou noong panahon ng Qing, kung saan dalawang pera lang ang bayad ng mga manggagawa para sa isang pot ng murang tsaa at meryenda.</p>
+
+<h2>Hindi side order ang tsaa</h2>
+<p>Ang tsaa ang dahilan kung bakit umuupo ang mga tao. Pinapatanggal nito ang langis ng pritong pagkain, at may nagagawa ang mga kamay mo habang naghihintay ng susunod na basket. Karaniwang isang pot ang pinagsasaluhan ng buong mesa — kaya may kailangang magbuhos, at doon nagsisimula ang mga tuntunin.</p>
+<p>Ang madalas na inorder: <strong>普洱</strong> <em>pou2 nei2</em> (pu'er, maitim at fermented, default kapag mabigat ang pagkain), <strong>鐵觀音</strong> <em>tit3 gun1 jam1</em> (roasted oolong), <strong>香片</strong> <em>hoeng1 pin2</em> (jasmine), at <strong>菊花</strong> <em>guk1 faa1</em> (chrysanthemum, iniorder kapag "mainit" ang katawan sa paniwala ng mesa).</p>
+
+<h2>Ang pagtapik ng daliri</h2>
+<p>Kapag may nagbuhos ng tsaa sa tasa mo, hindi ka nagsasabi ng "salamat". Tinatapik mo ang mesa nang dalawang beses gamit ang hintuturo at gitnang daliri. Tinatawag itong <strong>叩指</strong> <em>kau3 zi2</em>, at ito ang tanging kagandahang-asal sa yum cha na napapansin ng lahat pero halos walang makapagpaliwanag.</p>
+<p>Alamat ang kuwento sa likod nito, at ganoon din ang pagsasalaysay. Naglalakbay noon ang Emperador Qianlong nang nagkukunwari, at para hindi mabuking ay siya mismo ang nagbuhos ng tsaa sa kanyang mga kasama. Hindi sila makapagkowtow nang hindi isinusuko ang pagkakakilanlan niya, kaya tinapik na lang nila ang mesa ng dalawang daliri — isa para sa nakayukong ulo, dalawa para sa nakasubsob na braso. Totoo man o hindi, nanatili ang galaw.</p>
+<p>Mas simple ang praktikal na dahilan: maingay sa tea house at madalas puno ang bibig mo. Ang tapik ay "salamat" na hindi humihinto sa kwentuhan.</p>
+<p>Ilan pang tuntunin: ang pinakabata ang nagbubuhos para sa matatanda. Hindi mo binubuhusan ang sarili mong tasa habang may bakante sa iba. At mga walumpung porsyento lang ang laman ng tasa, hindi sagad — kailangan itong maiangat.</p>
+
+<h2>Ang mga bagay na walang nagpapaliwanag sa iyo</h2>
+<ul>
+  <li><strong>May ibibigay na mangkok ng mainit na tubig.</strong> Hindi ito sabaw. Doon ibinubuhos ang tubig na pinanghugas ng tasa, mangkok at chopsticks gamit ang unang pot ng tsaa. Nakaugalian ito noong kalsada pa lang ang mga tea house, hindi ito puna sa kusina.</li>
+  <li><strong>Iwanang bukas ang takip ng tsarera para humingi ng tubig.</strong> Iyon ang senyales — walang sisigaw, walang kakaway. Sa Hong Kong, ang bilis ng refill ang sukatan ng magandang serbisyo.</li>
+  <li><strong>Gamitin ang public chopsticks</strong> (<strong>公筷</strong> <em>gung1 faai3</em>) sa mga pinggang pinagsasaluhan.</li>
+  <li><strong>Huwag itayong patayo ang chopsticks sa kanin.</strong> Mukha itong insenso sa lamay. Huwag ding kalampagin ang mangkok — galaw iyon ng pulubi.</li>
+  <li><strong>Maaaring may kasabay kang estranghero sa mesa.</strong> Kapag abala, doon ka ilalagay ng staff sa mesang may tao na. Tinatawag itong <strong>搭枱</strong> <em>daap3 toi2</em>, normal lang ito, at walang mag-iisip na kakaiba ka.</li>
+</ul>
+
+<h2>Ang dim sum na dapat mong kilalanin</h2>
+<p>Apat na putahe ang nagdadala ng reputasyon ng buong kainan — ang <strong>四大天王</strong> <em>sei3 daai6 tin1 wong4</em>, ang "apat na haring makalangit": shrimp dumpling, siu mai, char siu bun at egg tart. Kapag tama ang apat na ito, tama ang lahat.</p>
+<ul>
+  <li><strong>蝦餃</strong> <em>haa1 gaau2</em> — Shrimp dumpling. Malinaw ang balat, pito hanggang sampung tiklop, buong hipon sa loob. Ito ang test ng kusina.</li>
+  <li><strong>燒賣</strong> <em>siu1 maai2</em> — Siu mai. Bukas ang tuktok, kadalasan may crab roe o hiwa ng carrot.</li>
+  <li><strong>叉燒包</strong> <em>caa1 siu1 baau1</em> — Char siu bao. Matamis na barbecue pork sa loob ng tinapay na bumabuka sa tuktok habang nagsi-steam.</li>
+  <li><strong>蛋撻</strong> <em>daan6 taat1</em> — Egg tart. Custard sa pastry. Ang malutong na puff version ang bersyong Hong Kong.</li>
+  <li><strong>鳳爪</strong> <em>fung6 zaau2</em> — Chicken feet. Pinirito, nilaga, tapos ini-steam sa black bean sauce. Malambot kaya kayang kainin.</li>
+  <li><strong>腸粉</strong> <em>coeng4 fan2</em> — Rice noodle roll. Manipis na rice sheet na binalot sa hipon o baka, tinatabunan ng matamis na toyo.</li>
+  <li><strong>蘿蔔糕</strong> <em>lo4 baak6 gou1</em> — Radish cake. Gadgad na puting labanos at rice flour, prinitong hiwa-hiwa. Pagkain din tuwing Bagong Taon.</li>
+  <li><strong>糯米雞</strong> <em>no6 mai5 gai1</em> — Sticky rice sa dahon. Malagkit na bigas, manok at mushroom na binalot sa dahon ng lotus. Alisin ang dahon, huwag kainin.</li>
+  <li><strong>流沙包</strong> <em>lau4 saa1 baau1</em> — Custard bun. "Umaagos na buhangin" — salted egg yolk na tumatagas kapag pinunit. Mainit — maghintay muna.</li>
+  <li><strong>馬拉糕</strong> <em>maa1 laai1 gou1</em> — Malay sponge cake. Brown sugar sponge na ini-steam, at nanginginig kapag natamaan ang mesa.</li>
+</ul>
+<p>Babala sa bigkas: ang <em>dim2 sam1</em> ay hindi ang Ingles na "dim". Maikli at pino itong "deem" na pataas sa dulo, at ang ikalawang salita ay patag at mataas. Iba ang kahulugan kapag mali ang tono.</p>
+
+<h2>Paano binibilang ang bayad</h2>
+<p>Sa lumang tea house, nakadepende ang presyo sa laki ng pinggan, at may nagsestamp na card sa mesa mo sa bawat dating ng putahe: <strong>小點</strong> <em>siu2 dim2</em> maliit, <strong>中點</strong> <em>zung1 dim2</em> katamtaman, <strong>大點</strong> <em>daai6 dim2</em> malaki, <strong>特點</strong> <em>dak6 dim2</em> special. Sa dulo, bibilangin ang mga stamp. Kaya walang nag-aalala sa malaking grupo: ang card ang tumatanda ng bilang.</p>
+<p>May makikita ka ring <strong>茶芥</strong> <em>caa4 gaai3</em> sa bill — maliit na bayad kada tao para sa tsaa at condiments. Hindi ito panloloko. Iyon ang bayad sa tsaa.</p>
+<p>Para umalis: <strong>唔該，埋單</strong> <em>m4 goi1, maai4 daan1</em> — "bayad na po". Hindi inaasahan ang tip sa karamihan ng tea house, pero normal ang mag-round up.</p>
+
+<h2>Bakit mas mahalaga ito kaysa sa pagkain</h2>
+<p>Institusyon ng pamilya ang yum cha tuwing Linggo. Mga alas-siyete ng umaga dumarating ang matatanda, galing sa <strong>晨運</strong> <em>san4 wan6</em>, ang ehersisyo sa parke; pagdating ng alas-onse, puno na ang malalaking mesa ng tatlong henerasyon, at bahagi ng karanasan ang ingay.</p>
+<p>Para sa mga domestic helper, Linggo ang day off, at ang yum cha kasama ng mga kaibigan ay isa sa karaniwang paraan para gastusin ito. Isa rin ito sa pinakamurang paraan para makaupo ng dalawang oras nang walang magpapalayas sa iyo — at sa isang day off sa Hong Kong, malaki ang halaga niyon.</p>
+<p>May negosyong natatapos din sa mga mesang ito. Neutral na lugar ang tea house, at maraming bagay ang napagkasunduan sa harap ng isang pot ng pu'er na hindi sana natapos sa meeting room.</p>
+<p>Dalawang lugar na dapat mong kilala: ang <strong>陸羽茶室</strong> <em>Luk Yu Tea House</em> sa Central, nagbubuhos na mula 1933, puti ang jacket ng mga waiter at walang balak magmadali sa iyo. Ang <strong>添好運</strong> <em>Tim Ho Wan</em> ay nagbukas sa Sham Shui Po noong 2009 na may mga dalawampung upuan lang, at nakakuha ng Michelin star sa loob ng isang taon — panandaliang naging pinakamurang Michelin-starred restaurant sa mundo.</p>
+
+<h2>Anim na pariralang sapat na</h2>
+<ul>
+  <li><strong>唔該，兩位</strong> <em>m4 goi1, loeng5 wai2</em> — dalawa kami.</li>
+  <li><strong>有冇位？</strong> <em>jau5 mou5 wai2</em> — may bakante ba?</li>
+  <li><strong>一壺普洱</strong> <em>jat1 wu4 pou2 nei2</em> — isang pot na pu'er.</li>
+  <li><strong>唔該，加水</strong> <em>m4 goi1, gaa1 seoi2</em> — dagdagan ng mainit na tubig.</li>
+  <li><strong>唔該，埋單</strong> <em>m4 goi1, maai4 daan1</em> — bayad na po.</li>
+  <li><strong>好食！</strong> <em>hou2 sik6</em> — masarap! Ang papuring naririnig ng bawat kusina.</li>
+</ul>
+<p>At kapag may tira, <strong>打包</strong> <em>daa2 baau1</em> — "ipabalot" — para maiuwi. Walang mag-iisip na kuripot ka. Ang pagtatapon ang masama.</p>`,
+    body_zh: `<p>在香港，「去饮茶」不是请你喝茶。它是请你坐下来两个小时，吃十几小碟东西，为谁该倒茶争两句，然后撑着肚子离开。这篇文章讲的就是那张桌子上到底在发生什么——以及你要坐下，需要会说的那几句话。</p>
+
+<h2>饮茶是一顿饭，点心是菜</h2>
+<p>英文里这两个词经常混着用，粤语里不行。<strong>飲茶</strong> <em>jam2 caa4</em> 是「喝茶」，它指的是整件事——坐下来、聊天、一直加水。而<strong>點心</strong> <em>dim2 sam1</em> 是端上桌的东西，字面意思是「点中你的心」，这个说法比任何一家茶楼都老，指的是小份的、让你高兴的东西。</p>
+<p>所以不是「去吃点心」，是去饮茶，然后吃点心。</p>
+<p>形容这顿饭最经典的一句话是<strong>一盅兩件</strong> <em>jat1 zung1 loeng5 gin6</em>——「一盅茶，两件点心」。这句话来自清代广州的「二厘馆」，劳工花两厘钱就能有一盅粗茶和一点吃的。今天没人真的只点两件了，但这个说法留了下来。</p>
+
+<h2>茶不是配角</h2>
+<p>茶才是人们坐下来的理由。它解炸物和蒸点的油，也让两只手在等下一笼的时候有事可做。通常一桌人共用一壶，那就得有人倒——规矩就是从这里开始的。</p>
+<p>常点的几种：<strong>普洱</strong> <em>pou2 nei2</em>（黑茶、发酵，吃油腻东西时的默认选择）、<strong>鐵觀音</strong> <em>tit3 gun1 jam1</em>（焙火乌龙）、<strong>香片</strong> <em>hoeng1 pin2</em>（茉莉花茶）、<strong>菊花</strong> <em>guk1 faa1</em>（觉得「热气」的时候点），还有<strong>壽眉</strong> <em>sau6 mei4</em>，老一辈常直接点名字。</p>
+
+<h2>叩指：不用开口的那声谢谢</h2>
+<p>别人给你倒茶，你不说谢谢，而是用食指和中指在桌上轻敲两下。这叫<strong>叩指</strong> <em>kau3 zi2</em>，是饮茶礼仪里最出名、也最少有人能讲清楚来历的一个。</p>
+<p>来历是个传说，大家也都当传说讲。乾隆下江南，微服出行，为了不露身份亲自给随从倒茶。随从不能跪下磕头，只好用手指敲桌代替——一根手指是低下的头，两根是伏下的手臂。真假不论，动作是留下来了。</p>
+<p>更实际的原因很简单：茶楼吵，而且你嘴里常常有东西。敲两下，谢谢说完了，话也没断。</p>
+<p>其余的茶规矩：桌上最年轻的给长辈倒茶；别人的杯子空着，你不给自己倒；一杯只倒八分满，不倒到杯口——杯子是要端起来的。</p>
+
+<h2>没人会跟你解释的几件事</h2>
+<ul>
+  <li><strong>会给你一只碗，里面是热水。</strong>那不是汤。茶客用第一壶茶把杯子、碗、筷子烫一遍，水倒进那只碗里。这习惯来自茶楼还是路边摊的年代，不是在嫌厨房不干净。</li>
+  <li><strong>要加水，把壶盖打开。</strong>揭盖，或者把盖斜搭在壶口，就是信号——不用喊，也不用招手。在香港，加水快不快，就是评一家茶楼服务好坏的标准。还有一个老说法：从前有客人把鸟养在茶壶里，伙计一揭盖鸟飞了，从此茶楼都要等客人自己开盖。</li>
+  <li><strong>公筷</strong> <em>gung1 faai3</em>——夹桌上的菜，用公筷，不用自己的。</li>
+  <li><strong>不要把筷子插在饭里</strong>，那像丧事上的香。也不要敲碗，那是乞丐的动作。</li>
+  <li><strong>可能会跟陌生人拼桌。</strong>人多的时候，伙计会把你带到已经坐了人的桌子。<strong>搭枱</strong> <em>daap3 toi2</em>，很正常，没人会觉得奇怪。</li>
+</ul>
+
+<h2>值得记住的点心</h2>
+<p>有四样东西撑起了整顿饭的名声，叫<strong>四大天王</strong> <em>sei3 daai6 tin1 wong4</em>：虾饺、烧卖、叉烧包、蛋挞。这四样做得对，别的就都错不了。</p>
+<ul>
+  <li><strong>蝦餃</strong> <em>haa1 gaau2</em> — 虾饺。皮要透，褶要七到十道，里面是整只虾。看一家厨房的本事，就看这一笼。</li>
+  <li><strong>燒賣</strong> <em>siu1 maai2</em> — 烧卖。顶上开口，通常点一点蟹子或一片胡萝卜。</li>
+  <li><strong>叉燒包</strong> <em>caa1 siu1 baau1</em> — 叉烧包。甜酱叉烧包在发面里，蒸的时候顶上会裂开——那道裂口是刻意的。</li>
+  <li><strong>蛋撻</strong> <em>daan6 taat1</em> — 蛋挞。酥皮的那种才是港式的。</li>
+  <li><strong>鳳爪</strong> <em>fung6 zaau2</em> — 凤爪。先炸、再卤、再和豆豉一起蒸，软到用嘴唇就能抿下来。</li>
+  <li><strong>腸粉</strong> <em>coeng4 fan2</em> — 肠粉。米浆蒸成薄皮，卷虾或牛肉，最后浇甜酱油。</li>
+  <li><strong>蘿蔔糕</strong> <em>lo4 baak6 gou1</em> — 萝卜糕。白萝卜丝加粘米粉，切块煎香。过年也吃。</li>
+  <li><strong>糯米雞</strong> <em>no6 mai5 gai1</em> — 糯米鸡。糯米、鸡肉、冬菇包在荷叶里蒸。拆开吃，叶子不吃。</li>
+  <li><strong>流沙包</strong> <em>lau4 saa1 baau1</em> — 流沙包。咸蛋黄做的馅，一掰就流出来，烫嘴，等一等再吃。</li>
+  <li><strong>馬拉糕</strong> <em>maa1 laai1 gou1</em> — 马拉糕。黄糖发糕，蒸出来的，桌子一碰它会晃。</li>
+</ul>
+<p>发音提醒：<em>dim2 sam1</em> 不是英文的「dim」。是一个短促的「dim」，尾音往上走，第二个字平而高。声调错了，就是另一个词。</p>
+
+<h2>账单是怎么算的</h2>
+<p>老茶楼按碟子的大小算钱，每上一碟，伙计会在你桌上的点心卡上盖一个印：<strong>小點</strong> <em>siu2 dim2</em>、<strong>中點</strong> <em>zung1 dim2</em>、<strong>大點</strong> <em>daai6 dim2</em>、<strong>特點</strong> <em>dak6 dim2</em>。结账时数印。所以人多也不怕，卡替你记着。</p>
+<p>账单上还会有<strong>茶芥</strong> <em>caa4 gaai3</em>，按人头收的一点茶钱和酱料钱。不是坑你，茶钱就是这么收的。</p>
+<p>要走的时候说<strong>唔該，埋單</strong> <em>m4 goi1, maai4 daan1</em>。多数茶楼不收小费，凑个整数就行。</p>
+
+<h2>为什么它比吃的重要</h2>
+<p>星期天的饮茶是家庭仪式。老人家早上七点就到了，刚从公园<strong>晨運</strong> <em>san4 wan6</em> 回来；到十一点，大桌坐满三代人，吵就是它的一部分。</p>
+<p>对家佣来说，星期天是休息日，和朋友去饮茶是过这天的常见方式之一。它也是最便宜的、能坐两个小时没人赶你走的地方之一——在香港的休息日，这一点很值钱。</p>
+<p>生意也是在这些桌子上谈成的。茶楼是中立地带，很多事在一壶普洱面前就定了，换成会议室反而谈不成。</p>
+<p>两个值得知道的地方：中环的<strong>陸羽茶室</strong> <em>Luk Yu Tea House</em>，1933年开到现在，伙计穿白衫，完全不打算催你走。深水埗的<strong>添好運</strong> <em>Tim Ho Wan</em> 2009年开业，只有二十来个座位，不到一年就拿到米其林一星，一度是全球最便宜的星级餐厅。</p>
+
+<h2>六句话就够用了</h2>
+<ul>
+  <li><strong>唔該，兩位</strong> <em>m4 goi1, loeng5 wai2</em>——两位。</li>
+  <li><strong>有冇位？</strong> <em>jau5 mou5 wai2</em>——有位吗？</li>
+  <li><strong>一壺普洱</strong> <em>jat1 wu4 pou2 nei2</em>——一壶普洱。</li>
+  <li><strong>唔該，加水</strong> <em>m4 goi1, gaa1 seoi2</em>——麻烦加点水。</li>
+  <li><strong>唔該，埋單</strong> <em>m4 goi1, maai4 daan1</em>——买单。</li>
+  <li><strong>好食！</strong> <em>hou2 sik6</em>——好吃！每个厨房都爱听这一句。</li>
+</ul>
+<p>吃不完就<strong>打包</strong> <em>daa2 baau1</em>，带走。没人会觉得你小气，浪费才是失礼。</p>`,
+    body_id: `<p>Di Hong Kong, "yuk, yum cha" bukan ajakan minum teh. Itu ajakan duduk dua jam, makan belasan piring kecil, berdebat siapa yang menuang, lalu pulang dengan perut terlalu penuh. Inilah yang sebenarnya terjadi di meja itu — dan kata-kata yang Anda butuhkan untuk ikut duduk.</p>
+
+<h2>Yum cha adalah acaranya. Dim sum adalah makanannya.</h2>
+<p>Dalam bahasa Inggris kedua kata ini dipakai bergantian. Dalam bahasa Kanton tidak. <strong>飲茶</strong> <em>jam2 caa4</em> berarti "minum teh", dan itu nama seluruh acaranya — duduknya, obrolannya, isi ulang teko yang tidak ada habisnya. <strong>點心</strong> <em>dim2 sam1</em> adalah yang datang ke meja: harfiahnya "menyentuh hati", ungkapan yang lebih tua dari restoran mana pun, artinya sesuatu kecil yang menyenangkan Anda.</p>
+<p>Jadi Anda tidak "pergi untuk dim sum". Anda pergi yum cha, lalu makan dim sum.</p>
+<p>Cara klasik menggambarkan santapan ini adalah <strong>一盅兩件</strong> <em>jat1 zung1 loeng5 gin6</em> — "satu teko, dua potong". Satu teko teh, dua-tiga piring, tidak lebih. Ungkapan ini berasal dari rumah teh murah di Guangzhou masa Dinasti Qing, tempat para pekerja membayar dua sen untuk satu teko teh kasar dan camilan.</p>
+
+<h2>Teh bukan pelengkap</h2>
+<p>Teh adalah alasan orang duduk. Teh memotong lemak dari gorengan dan kukusan, dan memberi tangan sesuatu untuk dilakukan di antara hidangan. Biasanya satu meja berbagi satu teko — berarti harus ada yang menuang, dan di situlah aturannya dimulai.</p>
+<p>Pilihan yang biasa: <strong>普洱</strong> <em>pou2 nei2</em> (pu'er, gelap dan terfermentasi, pilihan utama untuk makanan berat), <strong>鐵觀音</strong> <em>tit3 gun1 jam1</em> (oolong sangrai), <strong>香片</strong> <em>hoeng1 pin2</em> (melati), dan <strong>菊花</strong> <em>guk1 faa1</em> (krisan, dipesan kalau meja merasa badan "kepanasan").</p>
+
+<h2>Ketukan jari</h2>
+<p>Saat seseorang menuangkan teh ke cangkir Anda, Anda tidak bilang terima kasih. Anda mengetuk meja dua kali dengan telunjuk dan jari tengah. Namanya <strong>叩指</strong> <em>kau3 zi2</em>, dan inilah satu-satunya etiket yum cha yang semua orang perhatikan tetapi hampir tak ada yang bisa jelaskan.</p>
+<p>Kisah di baliknya adalah legenda, dan memang diceritakan sebagai legenda. Kaisar Qianlong sedang bepergian menyamar, dan agar penyamarannya tidak terbongkar ia sendiri menuangkan teh untuk para pengiringnya. Mereka tidak bisa bersujud tanpa membongkar identitasnya, jadi mereka mengetuk meja dengan dua jari — satu jari untuk kepala yang tertunduk, dua jari untuk lengan yang bersujud. Benar atau tidak, gerakannya bertahan.</p>
+<p>Alasan praktisnya lebih sederhana: rumah teh itu ramai dan mulut Anda sering penuh. Ketukan itu bilang terima kasih tanpa memutus percakapan.</p>
+<p>Aturan teh lainnya: yang termuda menuang untuk yang lebih tua. Jangan menuang cangkir sendiri sementara cangkir orang lain kosong. Dan isi cangkir sekitar delapan puluh persen, bukan sampai bibir — cangkirnya harus bisa diangkat.</p>
+
+<h2>Hal-hal yang tidak pernah dijelaskan</h2>
+<ul>
+  <li><strong>Anda akan diberi semangkuk air panas.</strong> Itu bukan sup. Para tamu membilas cangkir, mangkuk, dan sumpit dengan teko teh pertama, lalu membuang airnya ke mangkuk itu. Kebiasaan dari zaman rumah teh masih warung pinggir jalan, bukan sindiran pada dapurnya.</li>
+  <li><strong>Tinggalkan tutup teko terbuka untuk minta tambah air.</strong> Mengangkat tutup atau menyandarkannya miring adalah isyaratnya — tanpa berteriak, tanpa melambai. Di Hong Kong, cepatnya isi ulang adalah ukuran pelayanan yang baik.</li>
+  <li><strong>Pakai sumpit umum</strong> (<strong>公筷</strong> <em>gung1 faai3</em>) untuk hidangan bersama.</li>
+  <li><strong>Jangan menancapkan sumpit tegak di nasi.</strong> Mirip dupa di pemakaman. Jangan juga mengetuk mangkuk — itu gerakan pengemis.</li>
+  <li><strong>Anda mungkin duduk semeja dengan orang asing.</strong> Saat ramai, pelayan menempatkan Anda di meja yang sudah ada orangnya. Namanya <strong>搭枱</strong> <em>daap3 toi2</em>, sepenuhnya normal, dan tak ada yang menganggapnya aneh.</li>
+</ul>
+
+<h2>Dim sum yang perlu dikenal</h2>
+<p>Empat hidangan menanggung reputasi seluruh santapan — <strong>四大天王</strong> <em>sei3 daai6 tin1 wong4</em>, "empat raja surgawi": har gow, siu mai, char siu bao, dan egg tart. Kalau keempatnya benar, sisanya ikut benar.</p>
+<ul>
+  <li><strong>蝦餃</strong> <em>haa1 gaau2</em> — Har gow. Kulit bening, tujuh sampai sepuluh lipatan, udang utuh di dalam. Ini ujian sebuah dapur.</li>
+  <li><strong>燒賣</strong> <em>siu1 maai2</em> — Siu mai. Terbuka di atas, biasanya diberi telur kepiting atau irisan wortel.</li>
+  <li><strong>叉燒包</strong> <em>caa1 siu1 baau1</em> — Char siu bao. Babi panggang manis dalam roti yang merekah di atas saat dikukus. Rekahan itu memang disengaja.</li>
+  <li><strong>蛋撻</strong> <em>daan6 taat1</em> — Egg tart. Custard dalam pastry. Versi kulit berlapis yang renyah adalah gaya Hong Kong.</li>
+  <li><strong>鳳爪</strong> <em>fung6 zaau2</em> — Ceker kaki ayam. Digoreng, direbus, lalu dikukus dengan saus kacang hitam. Cukup lembut untuk dimakan.</li>
+  <li><strong>腸粉</strong> <em>coeng4 fan2</em> — Cheung fun. Lembaran beras kukus digulung dengan udang atau daging, disiram kecap manis.</li>
+  <li><strong>蘿蔔糕</strong> <em>lo4 baak6 gou1</em> — Kue lobak. Lobak putih parut dan tepung beras, dipotong lalu digoreng. Juga makanan Tahun Baru.</li>
+  <li><strong>糯米雞</strong> <em>no6 mai5 gai1</em> — Beras ketan dalam daun. Ketan, ayam, dan jamur dibungkus daun teratai lalu dikukus. Buka daunnya, jangan dimakan.</li>
+  <li><strong>流沙包</strong> <em>lau4 saa1 baau1</em> — Bakpao custard. "Pasir mengalir" — custard kuning telur asin yang meleleh saat disobek. Panas. Tunggu dulu.</li>
+  <li><strong>馬拉糕</strong> <em>maa1 laai1 gou1</em> — Kue spons Melayu. Kue spons gula merah dikukus, dan bergetar kalau meja tersenggol.</li>
+</ul>
+<p>Peringatan pelafalan: <em>dim2 sam1</em> bukan kata Inggris "dim". Bunyinya "dim" pendek dan terpotong yang naik di akhir, dan kata keduanya datar serta tinggi. Nada yang salah berarti kata yang lain.</p>
+
+<h2>Bagaimana tagihannya dihitung</h2>
+<p>Di rumah teh lama, harga tergantung ukuran piring, dan pelayan mencap kartu di meja Anda setiap kali hidangan datang: <strong>小點</strong> <em>siu2 dim2</em> kecil, <strong>中點</strong> <em>zung1 dim2</em> sedang, <strong>大點</strong> <em>daai6 dim2</em> besar, <strong>特點</strong> <em>dak6 dim2</em> istimewa. Di akhir, capnya dihitung. Itu sebabnya meja besar tidak masalah: kartunya yang mengingat.</p>
+<p>Anda juga akan melihat <strong>茶芥</strong> <em>caa4 gaai3</em> di tagihan — biaya kecil per orang untuk teh dan bumbu. Bukan jebakan. Begitulah cara teh dibayar.</p>
+<p>Untuk pulang, katakan <strong>唔該，埋單</strong> <em>m4 goi1, maai4 daan1</em> — "minta tagihan". Tip tidak diharapkan di sebagian besar rumah teh, meski membulatkan angka itu biasa.</p>
+
+<h2>Mengapa ini lebih penting dari makanannya</h2>
+<p>Yum cha hari Minggu adalah institusi keluarga. Orang tua datang sekitar pukul tujuh pagi, langsung dari <strong>晨運</strong> <em>san4 wan6</em>, olahraga pagi di taman; menjelang pukul sebelas meja-meja besar penuh tiga generasi, dan keramaiannya justru bagian dari acaranya.</p>
+<p>Bagi asisten rumah tangga, Minggu adalah hari libur, dan yum cha bersama teman adalah salah satu cara standar menghabiskannya. Ini juga salah satu cara termurah untuk duduk dua jam tanpa diminta pindah — dan di hari libur di Hong Kong, itu bernilai besar.</p>
+<p>Urusan bisnis juga selesai di meja-meja ini. Rumah teh adalah tempat netral, dan banyak hal disepakati di depan satu teko pu'er yang tidak akan pernah selesai di ruang rapat.</p>
+<p>Dua tempat yang layak dikenal: <strong>陸羽茶室</strong> <em>Luk Yu Tea House</em> di Central, menuang teh sejak 1933, pelayannya berjaket putih dan sama sekali tidak berniat membuat Anda buru-buru. <strong>添好運</strong> <em>Tim Ho Wan</em> dibuka di Sham Shui Po tahun 2009 dengan sekitar dua puluh kursi dan meraih bintang Michelin dalam setahun — sempat menjadi restoran berbintang Michelin termurah di dunia.</p>
+
+<h2>Enam kalimat yang cukup</h2>
+<ul>
+  <li><strong>唔該，兩位</strong> <em>m4 goi1, loeng5 wai2</em> — dua orang.</li>
+  <li><strong>有冇位？</strong> <em>jau5 mou5 wai2</em> — ada tempat kosong?</li>
+  <li><strong>一壺普洱</strong> <em>jat1 wu4 pou2 nei2</em> — satu teko pu'er.</li>
+  <li><strong>唔該，加水</strong> <em>m4 goi1, gaa1 seoi2</em> — tambah air panas.</li>
+  <li><strong>唔該，埋單</strong> <em>m4 goi1, maai4 daan1</em> — minta tagihan.</li>
+  <li><strong>好食！</strong> <em>hou2 sik6</em> — enak! Pujian yang didengar setiap dapur.</li>
+</ul>
+<p>Dan kalau ada sisa, <strong>打包</strong> <em>daa2 baau1</em> — "bungkus" — akan dibungkus untuk dibawa pulang. Tak ada yang menganggap Anda pelit. Membuang makanan justru yang tidak sopan.</p>`,
+  },
 ];
 
 // ---------------------------------------------------------------------------

@@ -159,10 +159,6 @@ const I18N = {
     // Culture and News, because a story is a thing to read like any other, and
     // because a seventh bottom-nav tab does not fit a 320px phone.
     'discover.tabStories': 'Stories',
-    // The guides shelf above the Culture feed. Guides are separate pages, not
-    // posts, so they need their own heading or they read as a stray card.
-    'discover.guidesTitle': 'Guides',
-    'discover.guidesAll': 'All guides →',
     'discover.storiesLead': 'Real stories written by helpers, in their own language — daily life, home, and what happened along the way.',
     'discover.storiesEmpty': 'No stories have been published yet. Yours could be the first.',
     'discover.storiesLoadFailed': 'Could not load the stories. Please try again.',
@@ -781,8 +777,6 @@ const I18N = {
     // Culture and News, because a story is a thing to read like any other, and
     // because a seventh bottom-nav tab does not fit a 320px phone.
     'discover.tabStories': 'Mga Kuwento',
-    'discover.guidesTitle': 'Mga Gabay',
-    'discover.guidesAll': 'Lahat ng gabay →',
     'discover.storiesLead': 'Totoong kuwento ng mga helper, sa sarili nilang wika — pang-araw-araw na buhay, tahanan, at mga nangyari.',
     'discover.storiesEmpty': 'Wala pang nailathalang kuwento. Baka sa iyo ang mauna.',
     'discover.storiesLoadFailed': 'Hindi ma-load ang mga kuwento. Subukan muli.',
@@ -1381,8 +1375,6 @@ const I18N = {
     // Culture and News, because a story is a thing to read like any other, and
     // because a seventh bottom-nav tab does not fit a 320px phone.
     'discover.tabStories': '家佣故事',
-    'discover.guidesTitle': '指南',
-    'discover.guidesAll': '全部指南 →',
     'discover.storiesLead': '家佣亲笔写下的真实故事，用她们自己的语言——日常、家乡，以及一路上的经历。',
     'discover.storiesEmpty': '目前还没有已发布的故事。你的故事可以是第一篇。',
     'discover.storiesLoadFailed': '故事加载失败，请重试。',
@@ -1980,8 +1972,6 @@ const I18N = {
     // Culture and News, because a story is a thing to read like any other, and
     // because a seventh bottom-nav tab does not fit a 320px phone.
     'discover.tabStories': 'Kisah',
-    'discover.guidesTitle': 'Panduan',
-    'discover.guidesAll': 'Semua panduan →',
     'discover.storiesLead': 'Kisah nyata dari para asisten rumah tangga, dalam bahasa mereka sendiri — kehidupan sehari-hari, kampung halaman, dan apa yang terjadi.',
     'discover.storiesEmpty': 'Belum ada kisah yang diterbitkan. Kisahmu bisa menjadi yang pertama.',
     'discover.storiesLoadFailed': 'Gagal memuat kisah. Coba lagi.',

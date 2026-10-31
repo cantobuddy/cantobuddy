@@ -14,7 +14,6 @@ const crypto = require('crypto');
 const store = require('./db');
 const SqliteSessionStore = require('./session-store');
 const seo = require('./seo');
-const { GUIDES } = require('./content');
 const news = require('./news');
 const push = require('./push');
 const reminders = require('./push-reminders');
@@ -676,28 +675,6 @@ app.get('/api/posts', (req, res) => {
  */
 app.get('/api/posts/categories', (req, res) => {
   res.json(store.getNewsCategoryCounts());
-});
-
-/**
- * The long-form guides that live in content.js and render at /guide/<slug>.
- *
- * These are full server-rendered pages, and the app had no path to them at all:
- * the Discover feed is `posts` (news and culture from the database), so a guide
- * was reachable only by typing its URL or arriving from a search engine. That
- * is exactly how a published culture article ended up "missing" from the app.
- * This endpoint is what lets the Culture tab list them.
- *
- * Titles and descriptions come back in all four languages and are picked on the
- * client, so switching language does not need another request.
- */
-app.get('/api/guides', (req, res) => {
-  res.json(GUIDES.map((g) => ({
-    slug: g.slug,
-    icon: g.icon,
-    updated: g.updated,
-    title: g.title,
-    description: g.description,
-  })));
 });
 
 /**
@@ -2135,6 +2112,21 @@ app.get('/living', (req, res) => {
 // Mounted after express.static so real files still win, and it deliberately
 // does not touch the SPA — `/` keeps serving public/index.html.
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// The yum cha article moved: guide -> culture post.
+//
+// It was written as a guide (content.js, /guide/<slug>) and lived there for a
+// day, long enough to be crawled and put in the sitemap. The operator wanted it
+// in the Culture feed instead, where a culture article belongs, so it is now a
+// seeded post at /discover/<slug>. Without this redirect every link Google
+// collected — and anyone's bookmark — would land on a 404. Permanent, and
+// language-aware, so a 中文 reader is not dumped into the English page.
+// ---------------------------------------------------------------------------
+app.get(/^\/(?:(fil|zh|id)\/)?guide\/yum-cha-dim-sum-culture-hong-kong\/?$/, (req, res) => {
+  const lang = req.params[0] ? '/' + req.params[0] : '';
+  res.redirect(301, `${lang}/discover/yum-cha-dim-sum-culture-hong-kong`);
+});
+
 seo.mount(app);
 
 // ---------------------------------------------------------------------------

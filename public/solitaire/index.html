@@ -16,8 +16,9 @@
   .levels button { flex:1; min-height:58px; border-radius:14px; border:1px solid var(--line); background:#fff; font:inherit; font-weight:800; font-size:1.05rem; cursor:pointer; }
   .levels button.on { background: var(--primary); color:#fff; border-color:var(--primary); }
 
-  .top-row { display:flex; gap:8px; justify-content:space-between; margin: 6px 0; }
-  .top-row .left, .top-row .right { display:flex; gap:8px; }
+  .top-row { display:flex; gap:8px; justify-content:space-between; margin: 6px 0; flex-wrap:wrap; }
+  .top-row .left, .top-row .right { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .foundations { flex-wrap:wrap; }
   .stat { background:#fff; border:1px solid var(--line); border-radius:12px; padding:6px 12px; font-weight:800; font-size:1rem; }
   .stat small { display:block; font-size:.7rem; color:var(--muted); font-weight:700; }
 
@@ -56,7 +57,13 @@
   .controls { display:flex; gap:10px; margin:14px 0; flex-wrap:wrap; }
   .controls .btn { flex:1; min-width:120px; }
 
-  @media (max-width: 380px) { .card,.pile,.tcol { width:40px; } .card{height:56px;} .tcol .slot{min-height:56px;} .card.in-col{margin-top:-26px;} }
+  @media (max-width: 460px) {
+    .top-row .stat { padding:6px 10px; font-size:.95rem; }
+    .top-row .stat small { font-size:.62rem; }
+    .foundations { gap:4px; }
+    .pile.foundation { width:40px; height:54px; font-size:1.35rem; }
+  }
+  @media (max-width: 380px) { .card,.pile:not(.foundation),.tcol { width:40px; } .card{height:56px;} .tcol .slot{min-height:56px;} .card.in-col{margin-top:-26px;} }
 </style>
 </head>
 <body>
@@ -188,40 +195,116 @@
       title: 'How to play',
       lede: 'Build four stacks from Ace to King — one for each suit. Move cards between columns to uncover new ones.',
       sections: [
-        { h: 'Move cards', p: 'Columns go from high to low, alternating red and black. Tap a card or a run to pick it up, then tap where it goes.' },
-        { h: 'Draw', p: 'Tap the deck to draw cards. Draw 1 (Easy) or Draw 3 (Hard). When the deck is empty, tap again to recycle the waste.' },
-        { h: 'Foundations', p: 'Send Aces and up to the four stacks at the top to win. Tap Collect to auto-send every card that can go.' },
-        { h: 'Win', p: 'Move all 52 cards to the four foundation stacks.' }
+        { h: 'Move cards on the board', p: 'Columns build downward.', list: [
+          'Each column goes high to low: King → Queen → ... → 2 → Ace.',
+          'Colours must alternate red and black.',
+          'Tap a card or a run to pick it up, then tap where it goes.'
+        ] },
+        { h: 'Draw new cards', list: [
+          'Tap the deck (top-left) to draw.',
+          'Draw 1 (Easy) or Draw 3 (Hard).',
+          'When the deck is empty, tap again to recycle the waste pile.'
+        ] },
+        { h: 'Build the foundations', p: 'Four stacks at the top, one per suit.', list: [
+          'Each foundation starts with an Ace (A) — a King cannot go there.',
+          'Then build up: A → 2 → ... → K, all the same suit.',
+          'Tap Collect to auto-send every card that can go.'
+        ] },
+        { h: 'Start an empty column', list: [
+          'Only a King (K) can start an empty column.',
+          'Moving a King opens new options — plan ahead!'
+        ] },
+        { h: 'Win', list: [
+          'Move all 52 cards to the four foundations.',
+          'Everything sorted by suit, Ace to King.'
+        ] }
       ]
     },
     fil: {
       title: 'Paano laruin',
       lede: 'Buuin ang apat na stack mula Ace hanggang King — isa para sa bawat suit. Ilipat ang mga card sa mga column para mabunyag ang bago.',
       sections: [
-        { h: 'Ilipat ang card', p: 'Ang mga column ay mula mataas papuntang mababa, palit-palit ang pula at itim. Pindutin ang card o run para kunin, tapos pindutin kung saan pupunta.' },
-        { h: 'Draw', p: 'Pindutin ang deck para mag-draw ng card. Draw 1 (Madali) o Draw 3 (Mahirap). Kapag ubos na, pindutin ulit para i-recycle ang waste.' },
-        { h: 'Foundations', p: 'I-send ang Ace pataas sa apat na stack sa taas para manalo. Pindutin ang Collect para awtomatikong isend ang pwede.' },
-        { h: 'Manalo', p: 'Ilipat ang lahat ng 52 card sa apat na foundation stack.' }
+        { h: 'Ilipat ang card sa board', p: 'Ang mga column ay bumababa.', list: [
+          'Ang bawat column ay mataas pababa: King → Queen → ... → 2 → Ace.',
+          'Dapat palit-palit ang kulay pula at itim.',
+          'Pindutin ang card o run para kunin, tapos pindutin kung saan pupunta.'
+        ] },
+        { h: 'Mag-draw ng bagong card', list: [
+          'Pindutin ang dek (kaliwa-itaas) para mag-draw.',
+          'Draw 1 (Madali) o Draw 3 (Mahirap).',
+          'Kapag ubos na ang dek, pindutin ulit para i-recycle ang waste.'
+        ] },
+        { h: 'Buuin ang foundations', p: 'Apat na stack sa taas, isa bawat suit.', list: [
+          'Ang bawat foundation ay nagsisimula sa Ace (A) — hindi pwedeng ang King.',
+          'Pagkatapos, itaas: A → 2 → ... → K, iisang suit.',
+          'Pindutin ang Collect para awtomatikong isend ang lahat ng pwede.'
+        ] },
+        { h: 'Magsimula ng walang laman na column', list: [
+          'Ang King (K) lang ang pwedeng magsimula sa walang laman na column.',
+          'Ang paglipat ng King ay nagbubukas ng bagong opsyon — magplano!'
+        ] },
+        { h: 'Manalo', list: [
+          'Ilipat ang lahat ng 52 card sa apat na foundation.',
+          'Lahat naka-ayos ayon sa suit, Ace hanggang King.'
+        ] }
       ]
     },
     zh: {
       title: '玩法说明',
       lede: '把四组牌从 A 叠到 K —— 每种花色一组。在列之间移动牌，翻开被压住的牌。',
       sections: [
-        { h: '移动牌', p: '每列从大到小、红黑交替。点一张牌或一段连续的牌来拿起，再点要放的位置。' },
-        { h: '发牌', p: '点击牌堆发牌。简单发 1 张，困难发 3 张。牌堆空了再点一下，可以回收废牌。' },
-        { h: '收牌区', p: '把 A 及更大的牌送到顶部的四组收牌区即可获胜。点"收牌"会自动送走所有能送的牌。' },
-        { h: '获胜', p: '把全部 52 张牌都移到四个收牌区。' }
+        { h: '在棋盘上移牌', p: '每列从上往下叠。', list: [
+          '每列从大到小：K → Q → … → 2 → A。',
+          '颜色必须红黑交替。',
+          '点一张牌或一段连续的牌拿起，再点要放的位置。'
+        ] },
+        { h: '发新牌', list: [
+          '点击左上角的牌堆发牌。',
+          '简单发 1 张，困难发 3 张。',
+          '牌堆空了再点一下，回收废牌。'
+        ] },
+        { h: '叠收牌区', p: '顶部四组，每种花色一组。', list: [
+          '每个收牌区从 A 开始——K 不能放在这里。',
+          '然后从小到大：A → 2 → … → K，同一种花色。',
+          '点"收牌"会自动送走所有能送的牌。'
+        ] },
+        { h: '开始空列', list: [
+          '只有 K 能放在空列。',
+          '移动 K 会打开新思路——提前规划！'
+        ] },
+        { h: '获胜', list: [
+          '把全部 52 张牌都移到四个收牌区。',
+          '按花色排好，从 A 到 K。'
+        ] }
       ]
     },
     id: {
       title: 'Cara bermain',
       lede: 'Bina empat timbunan dari Ace ke King — satu untuk setiap suit. Alih kad antara lajur untuk buka yang baharu.',
       sections: [
-        { h: 'Alih kad', p: 'Lajur dari tinggi ke rendah, berselang merah dan hitam. Ketik kad atau rangkaian untuk ambil, kemudian ketik destinasi.' },
-        { h: 'Draw', p: 'Ketik dek untuk ambil kad. Draw 1 (Senang) atau Draw 3 (Susah). Bila dek kosong, ketik lagi untuk kitar semula waste.' },
-        { h: 'Foundations', p: 'Hantar Ace dan ke atas ke empat timbunan di atas untuk menang. Ketik Collect untuk hantar semua kad yang boleh.' },
-        { h: 'Menang', p: 'Alih semua 52 kad ke empat timbunan foundation.' }
+        { h: 'Alih kad di papan', p: 'Lajur disusun menurun.', list: [
+          'Setiap lajur dari tinggi ke rendah: King → Queen → ... → 2 → Ace.',
+          'Warna mesti berselang merah dan hitam.',
+          'Ketik kad atau rangkaian untuk ambil, kemudian ketik destinasi.'
+        ] },
+        { h: 'Ambil kad baru', list: [
+          'Ketik dek (kiri-atas) untuk ambil.',
+          'Draw 1 (Senang) atau Draw 3 (Susah).',
+          'Bila dek kosong, ketik lagi untuk kitar semula waste.'
+        ] },
+        { h: 'Bina foundation', p: 'Empat timbunan di atas, satu setiap suit.', list: [
+          'Setiap foundation mula dari Ace (A) — King tak boleh ke sini.',
+          'Kemudian naik: A → 2 → ... → K, suit yang sama.',
+          'Ketik Collect untuk hantar semua kad yang boleh.'
+        ] },
+        { h: 'Mula tiang kosong', list: [
+          'Hanya King (K) boleh mula tiang kosong.',
+          'Alih King buka pilihan baharu — rancang awal!'
+        ] },
+        { h: 'Menang', list: [
+          'Alih semua 52 kad ke empat foundation.',
+          'Semua disusun ikut suit, Ace ke King.'
+        ] }
       ]
     }
   };
@@ -338,7 +421,7 @@
         var empty = document.createElement('div'); empty.className = 'pile tcol-empty';
         if (selection && selection.type === 'tableau' && selection.index === i) empty.classList.add('target');
         empty.innerHTML = '<span class="hint">K<small>King only</small></span>';
-        empty.onclick = function () { selectDest('tableau', i); };
+        empty.onclick = (function (ci) { return function () { selectDest('tableau', ci); }; })(i);
         col.appendChild(empty);
       } else {
         var stack = document.createElement('div'); stack.className = 'stack';
@@ -540,7 +623,14 @@
       body.appendChild(lede);
       r.sections.forEach(function (s) {
         var h = document.createElement('h3'); h.textContent = s.h; body.appendChild(h);
-        var p = document.createElement('p'); p.textContent = s.p; body.appendChild(p);
+        if (s.p) { var p = document.createElement('p'); p.textContent = s.p; body.appendChild(p); }
+        if (s.list && s.list.length) {
+          var ul = document.createElement('ul');
+          s.list.forEach(function (li) {
+            var el = document.createElement('li'); el.textContent = li; ul.appendChild(el);
+          });
+          body.appendChild(ul);
+        }
       });
       rulesBuilt = true;
     }

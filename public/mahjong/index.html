@@ -169,40 +169,100 @@
       title: 'How to play',
       lede: 'Clear the board by matching free tiles. A tile is free when nothing is on top of it and one side is open.',
       sections: [
-        { h: 'Tap matching tiles', p: 'Tap two tiles with the same picture to remove them. They must both be free.' },
-        { h: 'Free tiles', p: 'A tile is free if no tile is stacked on top and at least one side is open. Free tiles are brighter and clearly outlined.' },
-        { h: 'Need help?', p: 'Tap Hint to flash a possible pair, or Shuffle to mix the board into a new solvable order.' },
-        { h: 'Win', p: 'Clear every tile from the board to win.' }
+        { h: 'Match free tiles', p: 'Tap two tiles with the same picture to remove them.', list: [
+          'Both tiles must be "free" to play.',
+          'Free tiles are brighter and outlined in blue.',
+          'Covered or blocked tiles are dimmed — wait for them to open.'
+        ] },
+        { h: 'What makes a tile "free"?', list: [
+          'Nothing is stacked on top of it.',
+          'At least one side (left or right) is open.',
+          'A tile with a neighbour on both sides is blocked.'
+        ] },
+        { h: 'Need a hand?', list: [
+          'Tap Hint to flash a possible matching pair.',
+          'Tap Shuffle to mix the board into a new solvable order.',
+          'Use Shuffle whenever no moves are left.'
+        ] },
+        { h: 'Win', list: [
+          'Clear every tile from the board.',
+          'A faster clear gives you a better time.'
+        ] }
       ]
     },
     fil: {
       title: 'Paano laruin',
       lede: 'Linisin ang board sa pagtugma ng malayang mga tile. Ang isang tile ay malaya kung wala itong nakapatong at bukas ang isang gilid.',
       sections: [
-        { h: 'Pindutin ang magkaparehong tile', p: 'Pindutin ang dalawang tile na magkapareho ang larawan para tanggalin. Dapat parehong malaya.' },
-        { h: 'Malayang tile', p: 'Malaya ang tile kung wala itong nakapatong sa taas at bukas ang kahit isang gilid. Ang malayang tile ay mas maliwanag at may linya.' },
-        { h: 'Kailangan ng tulong?', p: 'Pindutin ang Hint para ipakita ang posibleng pares, o Shuffle para haluin ang board.' },
-        { h: 'Manalo', p: 'Tanggalin ang lahat ng tile sa board para manalo.' }
+        { h: 'Tugmain ang malayang tile', p: 'Pindutin ang dalawang tile na magkapareho ang larawan para tanggalin.', list: [
+          'Parehong tile ay dapat "malaya" para mapindot.',
+          'Ang malayang tile ay mas maliwanag at may asul na linya.',
+          'Ang tile na nakapatong o nakaharang ay madilim — hintayin lang mabuksan.'
+        ] },
+        { h: 'Ano ang gumagawa ng tile na "malaya"?', list: [
+          'Walang nakapatong sa taas nito.',
+          'Kahit isang gilid (kaliwa o kanan) ay bukas.',
+          'Ang tile na may katabi sa dalawang gilid ay naharang.'
+        ] },
+        { h: 'Kailangan ng tulong?', list: [
+          'Pindutin ang Hint para ipakita ang posibleng pares.',
+          'Pindutin ang Shuffle para haluin ang board sa bagong kaayosan.',
+          'Gamitin ang Shuffle kapag wala nang galaw.'
+        ] },
+        { h: 'Manalo', list: [
+          'Tanggalin ang lahat ng tile sa board.',
+          'Ang mas mabilis na linis ay mas magandang oras.'
+        ] }
       ]
     },
     zh: {
       title: '玩法说明',
       lede: '通过配对消除可点击的牌来清空棋盘。当一张牌上方没有牌、且至少一侧可移动时，它就是可点的。',
       sections: [
-        { h: '点击相同的牌', p: '点击两张图案相同的牌即可消除。两张都必须可点击。' },
-        { h: '可点的牌', p: '当一张牌上方没有牌、且至少一侧空着时，它就是可点的。可点的牌更亮、有明显边框。' },
-        { h: '需要帮助?', p: '点"提示"会闪出一对可消的牌；点"洗牌"会把棋盘重新排成新的可解顺序。' },
-        { h: '获胜', p: '把棋盘上所有的牌都消除即获胜。' }
+        { h: '点击相同的牌', p: '点击两张图案相同的牌即可消除。', list: [
+          '两张牌都必须"可点"才能玩。',
+          '可点的牌更亮、有蓝色边框。',
+          '被压住或挡住的牌会变暗——等它们露出来。'
+        ] },
+        { h: '什么牌"可点"?', list: [
+          '上方没有牌压着它。',
+          '至少一侧（左或右）空着。',
+          '左右都被夹住的牌无法点击。'
+        ] },
+        { h: '需要帮助?', list: [
+          '点"提示"会闪出一对可消的牌。',
+          '点"洗牌"会把棋盘重排成新的可解顺序。',
+          '没有可消的牌时，就用洗牌。'
+        ] },
+        { h: '获胜', list: [
+          '把棋盘上所有的牌都消除。',
+          '消除得越快，用时越好。'
+        ] }
       ]
     },
     id: {
       title: 'Cara bermain',
-      lede: 'Kosongkan papan dengan memadankan jubin yang bebas. Jubin bebas bila tiada yang di atasnya dan satu sisi terbuka.',
+      lede: 'Kosongkan papan dengan memadankan jubin yang bebas. Jubin bebas bila tiada di atasnya dan satu sisi terbuka.',
       sections: [
-        { h: 'Ketik jubin yang sama', p: 'Ketik dua jubin yang sama gambarnya untuk buang. Kedua-duanya mesti bebas.' },
-        { h: 'Jubin bebas', p: 'Jubin bebas bila tiada jubin di atasnya dan sekurang-kurangnya satu sisi terbuka. Jubin bebas lebih terang dan bersempadan jelas.' },
-        { h: 'Perlu bantuan?', p: 'Ketik Hint untuk kelipkan pasangan yang boleh, atau Shuffle untuk kacau papan ke susunan baharu yang selesai.' },
-        { h: 'Menang', p: 'Kosongkan semua jubin dari papan untuk menang.' }
+        { h: 'Padankan jubin bebas', p: 'Ketik dua jubin sama gambar untuk buang.', list: [
+          'Kedua-dua jubin mesti "bebas" untuk dimain.',
+          'Jubin bebas lebih terang dan bersempadan biru.',
+          'Jubin bertindih atau terhalang jadi kelam — tunggu ia buka.'
+        ] },
+        { h: 'Apa buat jubin "bebas"?', list: [
+          'Tiada apa di atasnya.',
+          'Sekurang-kurangnya satu sisi (kiri/kanan) terbuka.',
+          'Jubin dengan jiran di kedua sisi terhalang.'
+        ] },
+        { h: 'Perlu bantuan?', list: [
+          'Ketik Hint untuk kelipkan pasangan yang boleh.',
+          'Ketik Shuffle untuk kacau papan ke susunan baharu.',
+          'Guna Shuffle bila tiada gerak lagi.'
+        ] },
+        { h: 'Menang', list: [
+          'Kosongkan semua jubin dari papan.',
+          'Lebih cepat kosong, lebih bagus masa.'
+        ] }
       ]
     }
   };
@@ -442,7 +502,14 @@
       body.appendChild(lede);
       r.sections.forEach(function (s) {
         var h = document.createElement('h3'); h.textContent = s.h; body.appendChild(h);
-        var p = document.createElement('p'); p.textContent = s.p; body.appendChild(p);
+        if (s.p) { var p = document.createElement('p'); p.textContent = s.p; body.appendChild(p); }
+        if (s.list && s.list.length) {
+          var ul = document.createElement('ul');
+          s.list.forEach(function (li) {
+            var el = document.createElement('li'); el.textContent = li; ul.appendChild(el);
+          });
+          body.appendChild(ul);
+        }
       });
       rulesBuilt = true;
     }

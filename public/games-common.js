@@ -107,12 +107,15 @@
         if (!e.level) return;
         (groups[e.level] = groups[e.level] || []).push(e);
       });
-      var levels = Object.keys(groups).map(function (k) {
-        var g = groups[k], b = null;
-        g.forEach(function (e) { if (b === null || e.score < b) b = e.score; });
-        return { key: k, label: (g[0] && g[0].levelLabel) || k, best: b, latest: g.slice(-5).reverse(), played: g.length };
-      });
-      return { best: best, latest: list.slice(-5).reverse(), played: list.length, levels: levels };
+    function top3(arr) {
+      return arr.slice().sort(function (a, b) { return a.score - b.score; }).slice(0, 3);
+    }
+    var levels = Object.keys(groups).map(function (k) {
+      var g = groups[k], b = null;
+      g.forEach(function (e) { if (b === null || e.score < b) b = e.score; });
+      return { key: k, label: (g[0] && g[0].levelLabel) || k, best: b, played: g.length, top: top3(g) };
+    });
+    return { best: best, latest: list.slice(-5).reverse(), played: list.length, levels: levels, top: top3(list) };
     },
     refresh: function (gid, name) {
       var el = document.getElementById('cbScoreHistory');
@@ -124,26 +127,25 @@
       if (!name) { el.innerHTML = ''; el.classList.add('hidden'); return; }
       var s = this.summary(gid, name);
       if (!s.played) {
-        el.innerHTML = '<div class="cb-sh-title">' + esc(name) + "'s history</div>" +
+        el.innerHTML = '<div class="cb-sh-title">' + esc(name) + "'s best times</div>" +
           '<div class="cb-sh-empty">No games yet — play one!</div>';
         el.classList.remove('hidden');
         return;
       }
-      // LOWER is better, so "Best" = the FASTEST (least) time.
-      var html = '<div class="cb-sh-title">' + esc(name) + "'s history</div>";
-      html += row('Best time', '<b>' + fmtTime(s.best) + '</b> <span class="cb-sh-note">(lower is better)</span>');
-      html += last5(s.latest);
-      // Only show the "by level" section when this game actually recorded levels.
-      if (s.levels && s.levels.length) {
-        html += '<div class="cb-sh-sub">By level</div>';
-        s.levels.forEach(function (lv) {
-          html += '<div class="cb-sh-level">';
-          html += '<div class="cb-sh-lvl-head">' + esc(lv.label) + ' <span class="cb-sh-note">(' + lv.played + ')</span></div>';
-          html += row('Best', '<b>' + fmtTime(lv.best) + '</b>');
-          html += last5(lv.latest);
-          html += '</div>';
-        });
-      }
+      // One compact table: Level · Best time · Top 3 fastest finishes.
+      var rows = (s.levels && s.levels.length) ? s.levels : [{ label: 'All', best: s.best, top: s.top }];
+      var html = '<div class="cb-sh-title">' + esc(name) + "'s best times</div>";
+      html += '<table class="cb-sh-table"><thead><tr>' +
+        '<th>Level</th><th>Best</th><th>Top 3</th></tr></thead><tbody>';
+      rows.forEach(function (lv) {
+        var top = (lv.top || []).slice(0, 3).map(function (e) {
+          return '<i class="cb-num">' + fmtTime(e.score) + '</i>';
+        }).join('');
+        if (!top) top = '<span class="cb-sh-note">—</span>';
+        html += '<tr><td>' + esc(lv.label) + '</td><td><b>' + fmtTime(lv.best) + '</b></td>' +
+          '<td class="cb-sh-nums">' + top + '</td></tr>';
+      });
+      html += '</tbody></table>';
       el.innerHTML = html;
       el.classList.remove('hidden');
     }
@@ -208,7 +210,12 @@
       'background:#eef3f8;color:#1f3a5f;text-align:center;font-weight:700}' +
       '.cb-sh-sub{font-weight:700;font-size:12px;margin:8px 0 2px;color:#12212f}' +
       '.cb-sh-level{margin:2px 0 8px;padding-left:8px;border-left:2px solid #eef3f8}' +
-      '.cb-sh-lvl-head{font-size:12px;font-weight:700;color:#33506f;margin:2px 0 1px}';
+      '.cb-sh-lvl-head{font-size:12px;font-weight:700;color:#33506f;margin:2px 0 1px}' +
+      '.cb-sh-table{width:100%;border-collapse:collapse;margin-top:6px;font-size:13px}' +
+      '.cb-sh-table th{text-align:left;color:#6b7785;font-weight:700;font-size:11px;letter-spacing:.04em;padding:6px 8px;border-bottom:2px solid #eef3f8}' +
+      '.cb-sh-table td{padding:7px 8px;border-bottom:1px solid #f1f4f8;vertical-align:middle}' +
+      '.cb-sh-table td b{font-size:14px}' +
+      '.cb-sh-table tr:last-child td{border-bottom:0}';
     (document.head || document.documentElement).appendChild(st);
   }
 })();

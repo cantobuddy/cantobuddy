@@ -52,7 +52,8 @@
     border:2px solid transparent; transition: all .18s ease;
   }
   .cell.free { background: var(--gold); color:#5a3d00; }
-  .cell.called { background: var(--good-tint); color: var(--good); border-color: var(--good); }
+  .cell.called { background: var(--good); color:#fff; border-color: var(--good); position: relative; }
+  .cell.called::after { content: '✓'; position: absolute; top: 2px; right: 5px; font-size: .8rem; font-weight: 900; line-height: 1; }
   .cell.just { animation: pop2 .5s ease; }
   @keyframes pop2 { 0%{transform:scale(.8)} 50%{transform:scale(1.12)} 100%{transform:scale(1)} }
 
@@ -242,40 +243,96 @@
       title: 'How to play',
       lede: 'A number is called every few seconds. Mark it on your card. Get a full line to win!',
       sections: [
-        { h: 'Start a room', p: 'Tap "Create a room", then share the 4-letter code with family. Or join with a code someone gave you.' },
-        { h: 'Your card', p: 'Each player gets a 5×5 card. The middle square is a free star — it is already marked.' },
-        { h: 'Mark numbers', p: 'When a number is called, it lights up on your card automatically.' },
-        { h: 'Call BINGO!', p: 'When a full row, column, or diagonal is marked, tap BINGO! The fastest correct call wins.' }
+        { h: 'Set up a game', p: 'Play together with family and friends — one person hosts.', list: [
+          'Tap "Create a room" and share the 4-letter code with family.',
+          'Or tap "Join" and type the code someone gave you.',
+          'Enter your name and pick a fun face.'
+        ] },
+        { h: 'Your Bingo card', p: 'Everyone gets a 5×5 card filled with random numbers.', list: [
+          'The middle square is a free star — already marked for you.',
+          'The columns are labelled B · I · N · G · O.'
+        ] },
+        { h: 'Mark the numbers', p: 'Just watch as the numbers are called.', list: [
+          'When a number is called, it lights up on your card automatically.',
+          'You do not need to tap anything — the card marks itself.'
+        ] },
+        { h: 'Call BINGO!', p: 'Win by completing a whole line.', list: [
+          'Get a full row, column, or diagonal marked.',
+          'Tap BINGO! as soon as your line is complete.',
+          'The fastest correct call wins the round.'
+        ] }
       ]
     },
     fil: {
       title: 'Paano laruin',
       lede: 'Isang numero ang tatawagin tuwing ilang segundo. Markahan ito sa iyong card. Kumpletuhin ang isang linya para manalo!',
       sections: [
-        { h: 'Gumawa ng kuwarto', p: 'Pindutin ang "Gumawa ng kuwarto", pagkatapos ibahagi ang 4-letrang kodigo sa pamilya. O sumali gamit ang kodigong ibinigay sa iyo.' },
-        { h: 'Ang iyong card', p: 'Bawat player ay may 5×5 na card. Ang gitnang square ay libreng bituin — markado na ito.' },
-        { h: 'Markahan ang numero', p: 'Kapag may tinawag na numero, awtomatiko itong liliwanag sa iyong card.' },
-        { h: 'Sigaw ng BINGO!', p: 'Kapag kumpleto na ang isang row, column, o diagonal, pindutin ang BINGO! Ang pinakamabilis na tama ang mananalo.' }
+        { h: 'Mag-set up ng laro', p: 'Maglaro kasama ang pamilya at kaibigan — isang tao ang magho-host.', list: [
+          'Pindutin ang "Gumawa ng kuwarto" at ibahagi ang 4-letrang kodigo sa pamilya.',
+          'O pindutin ang "Sumali" at i-type ang kodigong ibinigay sa iyo.',
+          'Ilagay ang iyong pangalan at pumili ng magandang mukha.'
+        ] },
+        { h: 'Ang iyong Bingo card', p: 'Bawat isa ay may 5×5 na card na may random na numero.', list: [
+          'Ang gitnang square ay libreng bituin — awtomatikong markado.',
+          'Ang mga column ay may label na B · I · N · G · O.'
+        ] },
+        { h: 'Markahan ang numero', p: 'Bantayan lang habang tinatawag ang mga numero.', list: [
+          'Kapag may tinawag na numero, awtomatiko itong liliwanag sa iyong card.',
+          'Hindi mo kailangang pindutin ang kahit ano — ang card ay markado nang sarili.'
+        ] },
+        { h: 'Sigaw ng BINGO!', p: 'Manalo sa pagkumpleto ng buong linya.', list: [
+          'Kumpletuhin ang isang buong row, column, o diagonal.',
+          'Pindutin ang BINGO! pagkumpleto ng iyong linya.',
+          'Ang pinakamabilis na tama ang mananalo sa round.'
+        ] }
       ]
     },
     zh: {
       title: '玩法说明',
       lede: '每隔几秒会喊出一个数字。在卡片上找到并标记它。连成完整的一行就能获胜！',
       sections: [
-        { h: '创建房间', p: '点击"创建房间"，然后把四位房间号分享给家人。或用家人给的房间号加入。' },
-        { h: '你的卡片', p: '每位玩家有一张 5×5 卡片。中间是免费的星星，已经自动标记好。' },
-        { h: '标记数字', p: '数字被喊出时，你卡片上对应的格子会自动亮起。' },
-        { h: '喊宾果!', p: '当一整行、一列或一条对角线都被标记时，点击"宾果!"。最快正确喊出的人获胜。' }
+        { h: '开始一局', p: '和家人朋友一起玩——由一个人开房。', list: [
+          '点击"创建房间"，把四位房间号分享给家人。',
+          '或点击"加入"，输入家人给你的房间号。',
+          '填写你的名字，选一个可爱的头像。'
+        ] },
+        { h: '你的宾果卡', p: '每人拿到一张 5×5、填满随机数字的卡片。', list: [
+          '中间格是免费的星星——已经自动帮你标记好。',
+          '五列分别标注 B · I · N · G · O。'
+        ] },
+        { h: '标记数字', p: '数字被喊出时只需看着卡片。', list: [
+          '被喊出的数字会在你的卡片上自动亮起。',
+          '你不需要点任何东西——卡片会自己标记。'
+        ] },
+        { h: '喊宾果!', p: '连成完整的一行即可获胜。', list: [
+          '凑齐一整行、一列或一条对角线。',
+          '一旦连成，马上点击"宾果!"。',
+          '最快正确喊出的人赢得这一局。'
+        ] }
       ]
     },
     id: {
       title: 'Cara bermain',
       lede: 'Satu nombor dipanggil setiap beberapa saat. Tandakan pada kad anda. Lengkapkan satu baris untuk menang!',
       sections: [
-        { h: 'Cipta ruangan', p: 'Ketik "Cipta ruangan", kemudian kongsi kod 4-huruf dengan keluarga. Atau gabung dengan kod yang diberi.' },
-        { h: 'Kad anda', p: 'Setiap pemain dapat kad 5×5. Petak tengah ialah bintang percuma — sudah bertanda.' },
-        { h: 'Tanda nombor', p: 'Bila nombor dipanggil, ia akan terang pada kad anda secara automatik.' },
-        { h: 'Jerit BINGO!', p: 'Bila satu baris, lajur, atau pepenjuru penuh bertanda, ketik BINGO! Yang paling cepat betul menang.' }
+        { h: 'Sediakan permainan', p: 'Main bersama keluarga dan kawan — seorang menjadi hos.', list: [
+          'Ketik "Cipta ruangan" dan kongsi kod 4-huruf dengan keluarga.',
+          'Atau ketik "Gabung" dan taip kod yang diberi.',
+          'Isi nama dan pilih muka yang comel.'
+        ] },
+        { h: 'Kad Bingo anda', p: 'Setiap orang dapat kad 5×5 dengan nombor rawak.', list: [
+          'Petak tengah ialah bintang percuma — sudah bertanda.',
+          'Lajur dilabel B · I · N · G · O.'
+        ] },
+        { h: 'Tanda nombor', p: 'Cuma perhatikan bila nombor dipanggil.', list: [
+          'Bila nombor dipanggil, ia terang pada kad anda secara automatik.',
+          'Anda tak perlu ketik apa-apa — kad bertanda sendiri.'
+        ] },
+        { h: 'Jerit BINGO!', p: 'Menang dengan melengkapkan satu baris penuh.', list: [
+          'Lengkapkan satu baris, lajur, atau pepenjuru penuh.',
+          'Ketik BINGO! bila baris anda siap.',
+          'Yang paling cepat betul menang pusingan.'
+        ] }
       ]
     }
   };
@@ -518,7 +575,14 @@
       body.appendChild(lede);
       r.sections.forEach(function (s) {
         var h = document.createElement('h3'); h.textContent = s.h; body.appendChild(h);
-        var p = document.createElement('p'); p.textContent = s.p; body.appendChild(p);
+        if (s.p) { var p = document.createElement('p'); p.textContent = s.p; body.appendChild(p); }
+        if (s.list && s.list.length) {
+          var ul = document.createElement('ul');
+          s.list.forEach(function (li) {
+            var el = document.createElement('li'); el.textContent = li; ul.appendChild(el);
+          });
+          body.appendChild(ul);
+        }
       });
       rulesBuilt = true;
     }

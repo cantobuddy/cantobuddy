@@ -84,6 +84,9 @@
     <div class="topbar-actions">
       <button class="iconbtn" id="musicBtn" title="Music">🎶</button>
       <button class="iconbtn" id="soundBtn" title="Sound">🔊</button>
+      <button class="iconbtn" id="rulesBtn" type="button" title="How to play" aria-label="How to play">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.4"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.3c-.7.3-1 .9-1 1.6v.4"/><path d="M12 17.1h.01"/></svg>
+      </button>
     </div>
   </div>
 
@@ -166,6 +169,17 @@
   </div>
 
   <div class="toast" id="toast"></div>
+
+  <!-- HOW TO PLAY (same pattern as Chinese Checkers) -->
+  <div class="sheet hidden" id="rulesSheet" role="dialog" aria-modal="true" aria-labelledby="rulesTitle">
+    <div class="sheet-card">
+      <div class="sheet-head">
+        <h2 id="rulesTitle">How to play</h2>
+        <button class="sheet-x" id="rulesClose" type="button" aria-label="Close">✕</button>
+      </div>
+      <div class="sheet-body" id="rulesBody"></div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -216,6 +230,48 @@
       lastCalled:'Terakhir', errNameRequired:'Isi nama dulu', errRoomNotFound:'Ruangan tak jumpa', errNameTaken:'Nama itu sudah dipakai',
       errRoomFull:'Ruangan penuh', errSessionExpired:'Sesi tamat — gabung lagi', errNoBingo:'Belum bingo!',
       errNet:'Masalah sambungan — cuba lagi'
+    }
+  };
+  var RULES = {
+    en: {
+      title: 'How to play',
+      lede: 'A number is called every few seconds. Mark it on your card. Get a full line to win!',
+      sections: [
+        { h: 'Start a room', p: 'Tap "Create a room", then share the 4-letter code with family. Or join with a code someone gave you.' },
+        { h: 'Your card', p: 'Each player gets a 5×5 card. The middle square is a free star — it is already marked.' },
+        { h: 'Mark numbers', p: 'When a number is called, it lights up on your card automatically.' },
+        { h: 'Call BINGO!', p: 'When a full row, column, or diagonal is marked, tap BINGO! The fastest correct call wins.' }
+      ]
+    },
+    fil: {
+      title: 'Paano laruin',
+      lede: 'Isang numero ang tatawagin tuwing ilang segundo. Markahan ito sa iyong card. Kumpletuhin ang isang linya para manalo!',
+      sections: [
+        { h: 'Gumawa ng kuwarto', p: 'Pindutin ang "Gumawa ng kuwarto", pagkatapos ibahagi ang 4-letrang kodigo sa pamilya. O sumali gamit ang kodigong ibinigay sa iyo.' },
+        { h: 'Ang iyong card', p: 'Bawat player ay may 5×5 na card. Ang gitnang square ay libreng bituin — markado na ito.' },
+        { h: 'Markahan ang numero', p: 'Kapag may tinawag na numero, awtomatiko itong liliwanag sa iyong card.' },
+        { h: 'Sigaw ng BINGO!', p: 'Kapag kumpleto na ang isang row, column, o diagonal, pindutin ang BINGO! Ang pinakamabilis na tama ang mananalo.' }
+      ]
+    },
+    zh: {
+      title: '玩法说明',
+      lede: '每隔几秒会喊出一个数字。在卡片上找到并标记它。连成完整的一行就能获胜！',
+      sections: [
+        { h: '创建房间', p: '点击"创建房间"，然后把四位房间号分享给家人。或用家人给的房间号加入。' },
+        { h: '你的卡片', p: '每位玩家有一张 5×5 卡片。中间是免费的星星，已经自动标记好。' },
+        { h: '标记数字', p: '数字被喊出时，你卡片上对应的格子会自动亮起。' },
+        { h: '喊宾果!', p: '当一整行、一列或一条对角线都被标记时，点击"宾果!"。最快正确喊出的人获胜。' }
+      ]
+    },
+    id: {
+      title: 'Cara bermain',
+      lede: 'Satu nombor dipanggil setiap beberapa saat. Tandakan pada kad anda. Lengkapkan satu baris untuk menang!',
+      sections: [
+        { h: 'Cipta ruangan', p: 'Ketik "Cipta ruangan", kemudian kongsi kod 4-huruf dengan keluarga. Atau gabung dengan kod yang diberi.' },
+        { h: 'Kad anda', p: 'Setiap pemain dapat kad 5×5. Petak tengah ialah bintang percuma — sudah bertanda.' },
+        { h: 'Tanda nombor', p: 'Bila nombor dipanggil, ia akan terang pada kad anda secara automatik.' },
+        { h: 'Jerit BINGO!', p: 'Bila satu baris, lajur, atau pepenjuru penuh bertanda, ketik BINGO! Yang paling cepat betul menang.' }
+      ]
     }
   };
   var t = function (k, v) { return CBGame.t(STR, k, v); };
@@ -441,6 +497,41 @@
   }
   $('#againBtn').onclick = function () { CBSound.click(); action('start').catch(function () {}); $('#overlay').classList.remove('on'); };
   $('#ovMenuBtn').onclick = function () { disconnect(); session = null; saveSession(); showMenu(); };
+
+  /* ---- how-to-play sheet (same pattern as Chinese Checkers) ---- */
+  (function () {
+    var rulesBuilt = false;
+    function renderRules() {
+      if (rulesBuilt) return;
+      var r = RULES[CBGame.LANG] || RULES.en;
+      $('#rulesTitle').textContent = r.title;
+      var body = $('#rulesBody');
+      body.innerHTML = '';
+      var lede = document.createElement('p');
+      lede.className = 'lede';
+      lede.textContent = r.lede;
+      body.appendChild(lede);
+      r.sections.forEach(function (s) {
+        var h = document.createElement('h3'); h.textContent = s.h; body.appendChild(h);
+        var p = document.createElement('p'); p.textContent = s.p; body.appendChild(p);
+      });
+      rulesBuilt = true;
+    }
+    function openRules(on) {
+      var sheet = $('#rulesSheet');
+      if (on) { renderRules(); sheet.classList.remove('hidden'); $('#rulesClose').focus(); }
+      else { sheet.classList.add('hidden'); }
+    }
+    var rb = $('#rulesBtn');
+    rb.setAttribute('title', (RULES[CBGame.LANG] || RULES.en).title);
+    rb.setAttribute('aria-label', (RULES[CBGame.LANG] || RULES.en).title);
+    rb.onclick = function () { CBSound.click(); openRules(true); };
+    $('#rulesClose').onclick = function () { openRules(false); };
+    $('#rulesSheet').onclick = function (e) { if (e.target === $('#rulesSheet')) openRules(false); };
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !$('#rulesSheet').classList.contains('hidden')) openRules(false);
+    });
+  })();
 
   /* ---- my server record ---- */
   function loadMyRecord() {

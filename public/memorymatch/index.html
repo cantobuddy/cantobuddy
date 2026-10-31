@@ -51,6 +51,9 @@
     <div class="topbar-actions">
       <button class="iconbtn" id="musicBtn" title="Music">🎶</button>
       <button class="iconbtn" id="soundBtn" title="Sound">🔊</button>
+      <button class="iconbtn" id="rulesBtn" type="button" title="How to play" aria-label="How to play">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.4"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.3c-.7.3-1 .9-1 1.6v.4"/><path d="M12 17.1h.01"/></svg>
+      </button>
     </div>
   </div>
 
@@ -105,6 +108,17 @@
   </div>
 
   <div class="toast" id="toast"></div>
+
+  <!-- HOW TO PLAY (same pattern as Chinese Checkers) -->
+  <div class="sheet hidden" id="rulesSheet" role="dialog" aria-modal="true" aria-labelledby="rulesTitle">
+    <div class="sheet-card">
+      <div class="sheet-head">
+        <h2 id="rulesTitle">How to play</h2>
+        <button class="sheet-x" id="rulesClose" type="button" aria-label="Close">✕</button>
+      </div>
+      <div class="sheet-body" id="rulesBody"></div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -138,6 +152,48 @@
       restartBtn:'Ulang', quitBtn:'Keluar', timeLabel:'Masa', movesLabel:'Gerak', pairsLabel:'Pasangan',
       wonTitle:'Semua sepadan!', wonTime:'Masa', wonMoves:'Gerak', againBtn:'Main lagi', backMenu:'Ke menu',
       bestLabel:'Masa terbaik', justNow:'Rekod baru!'
+    }
+  };
+  var RULES = {
+    en: {
+      title: 'How to play',
+      lede: 'Find the pairs! Tap two tiles to reveal them. If they match, they stay. If not, they hide again.',
+      sections: [
+        { h: 'Pick a level', p: 'Easy has fewer pairs, Hard has more. Choose what feels comfortable.' },
+        { h: 'Tap to flip', p: 'Tap a tile to see its picture. Tap another to find its match.' },
+        { h: 'Remember', p: 'Try to remember where pictures are so you can match them on your next turn.' },
+        { h: 'Win', p: 'Match every pair. The fewer tries, the better your score!' }
+      ]
+    },
+    fil: {
+      title: 'Paano laruin',
+      lede: 'Hanapin ang magkaparehong pares! Pindutin ang dalawang tile para ipakita. Kapag magkapareho, mananatili. Kung hindi, magsasara ulit.',
+      sections: [
+        { h: 'Pumili ng antas', p: 'Ang Madali ay may kaunting pares, ang Mahirap ay mas marami. Piliin ang komportable sa iyo.' },
+        { h: 'Pindutin para i-flip', p: 'Pindutin ang tile para makita ang larawan. Pindutin ang isa pa para hanapin ang kapareho.' },
+        { h: 'Tandaan', p: 'Subukang tandaan kung saan nakalagay ang mga larawan para mas madaling imatch sa susunod.' },
+        { h: 'Manalo', p: 'I-match ang lahat ng pares. Mas kaunti ang tries, mas maganda ang score!' }
+      ]
+    },
+    zh: {
+      title: '玩法说明',
+      lede: '找出相同的配对！点击两张牌翻开它们。如果相同就保留，不同就盖回去。',
+      sections: [
+        { h: '选择难度', p: '简单配对少，困难配对多。选一个让你最舒服的。' },
+        { h: '点击翻牌', p: '点击一张牌看图案，再点另一张找相同的。' },
+        { h: '记住位置', p: '尽量记住图案的位置，下一轮就能更快配对。' },
+        { h: '获胜', p: '把所有配对都成功。尝试次数越少，得分越高！' }
+      ]
+    },
+    id: {
+      title: 'Cara bermain',
+      lede: 'Cari pasangan! Ketik dua jubin untuk lihat. Kalau sama, ia kekal. Kalau tidak, ia sembunyi balik.',
+      sections: [
+        { h: 'Pilih tahap', p: 'Senang ada sedikit pasangan, Susah lebih banyak. Pilih yang selesa.' },
+        { h: 'Ketik untuk pusing', p: 'Ketik jubin untuk lihat gambar. Ketik satu lagi untuk cari pasangannya.' },
+        { h: 'Ingat', p: 'Cuba ingat di mana gambar berada supaya senang padan pada giliran seterusnya.' },
+        { h: 'Menang', p: 'Padankan semua pasangan. Semakin sedikit cubaan, semakin bagus markah!' }
+      ]
     }
   };
   var t = function (k, v) { return CBGame.t(STR, k, v); };
@@ -263,6 +319,41 @@
   $('#quitBtn').onclick = function () { if (timer) clearInterval(timer); $('#gameView').classList.add('hidden'); $('#menuView').classList.remove('hidden'); refreshHistory(); };
   $('#againBtn').onclick = function () { CBSound.click(); start(); };
   $('#ovMenuBtn').onclick = function () { $('#overlay').classList.remove('on'); $('#gameView').classList.add('hidden'); $('#menuView').classList.remove('hidden'); refreshHistory(); };
+
+  /* ---- how-to-play sheet (same pattern as Chinese Checkers) ---- */
+  (function () {
+    var rulesBuilt = false;
+    function renderRules() {
+      if (rulesBuilt) return;
+      var r = RULES[CBGame.LANG] || RULES.en;
+      $('#rulesTitle').textContent = r.title;
+      var body = $('#rulesBody');
+      body.innerHTML = '';
+      var lede = document.createElement('p');
+      lede.className = 'lede';
+      lede.textContent = r.lede;
+      body.appendChild(lede);
+      r.sections.forEach(function (s) {
+        var h = document.createElement('h3'); h.textContent = s.h; body.appendChild(h);
+        var p = document.createElement('p'); p.textContent = s.p; body.appendChild(p);
+      });
+      rulesBuilt = true;
+    }
+    function openRules(on) {
+      var sheet = $('#rulesSheet');
+      if (on) { renderRules(); sheet.classList.remove('hidden'); $('#rulesClose').focus(); }
+      else { sheet.classList.add('hidden'); }
+    }
+    var rb = $('#rulesBtn');
+    rb.setAttribute('title', (RULES[CBGame.LANG] || RULES.en).title);
+    rb.setAttribute('aria-label', (RULES[CBGame.LANG] || RULES.en).title);
+    rb.onclick = function () { CBSound.click(); openRules(true); };
+    $('#rulesClose').onclick = function () { openRules(false); };
+    $('#rulesSheet').onclick = function (e) { if (e.target === $('#rulesSheet')) openRules(false); };
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !$('#rulesSheet').classList.contains('hidden')) openRules(false);
+    });
+  })();
 
   refreshHistory();
 })();

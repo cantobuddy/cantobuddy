@@ -62,6 +62,9 @@
     <div class="topbar-actions">
       <button class="iconbtn" id="musicBtn" title="Music">🎶</button>
       <button class="iconbtn" id="soundBtn" title="Sound">🔊</button>
+      <button class="iconbtn" id="rulesBtn" type="button" title="How to play" aria-label="How to play">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.4"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.3c-.7.3-1 .9-1 1.6v.4"/><path d="M12 17.1h.01"/></svg>
+      </button>
     </div>
   </div>
 
@@ -128,6 +131,17 @@
   </div>
 
   <div class="toast" id="toast"></div>
+
+  <!-- HOW TO PLAY (same pattern as Chinese Checkers) -->
+  <div class="sheet hidden" id="rulesSheet" role="dialog" aria-modal="true" aria-labelledby="rulesTitle">
+    <div class="sheet-card">
+      <div class="sheet-head">
+        <h2 id="rulesTitle">How to play</h2>
+        <button class="sheet-x" id="rulesClose" type="button" aria-label="Close">✕</button>
+      </div>
+      <div class="sheet-body" id="rulesBody"></div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -158,6 +172,48 @@
       levelLabel:'Draw', lvEasy:'Draw 1', lvHard:'Draw 3', startBtn:'Main baru',
       timeLabel:'Masa', movesLabel:'Gerak', collectBtn:'Kumpul', restartBtn:'Ulang', quitBtn:'Keluar',
       wonTitle:'Kamu menang Solitaire!', wonTime:'Masa', againBtn:'Main lagi', backMenu:'Ke menu', justNow:'Rekod baru!', notMovable:'Tak boleh ke situ', emptyStock:'Tap untuk kitar semula'
+    }
+  };
+  var RULES = {
+    en: {
+      title: 'How to play',
+      lede: 'Build four stacks from Ace to King — one for each suit. Move cards between columns to uncover new ones.',
+      sections: [
+        { h: 'Move cards', p: 'Columns go from high to low, alternating red and black. Tap a card or a run to pick it up, then tap where it goes.' },
+        { h: 'Draw', p: 'Tap the deck to draw cards. Draw 1 (Easy) or Draw 3 (Hard). When the deck is empty, tap again to recycle the waste.' },
+        { h: 'Foundations', p: 'Send Aces and up to the four stacks at the top to win. Tap Collect to auto-send every card that can go.' },
+        { h: 'Win', p: 'Move all 52 cards to the four foundation stacks.' }
+      ]
+    },
+    fil: {
+      title: 'Paano laruin',
+      lede: 'Buuin ang apat na stack mula Ace hanggang King — isa para sa bawat suit. Ilipat ang mga card sa mga column para mabunyag ang bago.',
+      sections: [
+        { h: 'Ilipat ang card', p: 'Ang mga column ay mula mataas papuntang mababa, palit-palit ang pula at itim. Pindutin ang card o run para kunin, tapos pindutin kung saan pupunta.' },
+        { h: 'Draw', p: 'Pindutin ang deck para mag-draw ng card. Draw 1 (Madali) o Draw 3 (Mahirap). Kapag ubos na, pindutin ulit para i-recycle ang waste.' },
+        { h: 'Foundations', p: 'I-send ang Ace pataas sa apat na stack sa taas para manalo. Pindutin ang Collect para awtomatikong isend ang pwede.' },
+        { h: 'Manalo', p: 'Ilipat ang lahat ng 52 card sa apat na foundation stack.' }
+      ]
+    },
+    zh: {
+      title: '玩法说明',
+      lede: '把四组牌从 A 叠到 K —— 每种花色一组。在列之间移动牌，翻开被压住的牌。',
+      sections: [
+        { h: '移动牌', p: '每列从大到小、红黑交替。点一张牌或一段连续的牌来拿起，再点要放的位置。' },
+        { h: '发牌', p: '点击牌堆发牌。简单发 1 张，困难发 3 张。牌堆空了再点一下，可以回收废牌。' },
+        { h: '收牌区', p: '把 A 及更大的牌送到顶部的四组收牌区即可获胜。点"收牌"会自动送走所有能送的牌。' },
+        { h: '获胜', p: '把全部 52 张牌都移到四个收牌区。' }
+      ]
+    },
+    id: {
+      title: 'Cara bermain',
+      lede: 'Bina empat timbunan dari Ace ke King — satu untuk setiap suit. Alih kad antara lajur untuk buka yang baharu.',
+      sections: [
+        { h: 'Alih kad', p: 'Lajur dari tinggi ke rendah, berselang merah dan hitam. Ketik kad atau rangkaian untuk ambil, kemudian ketik destinasi.' },
+        { h: 'Draw', p: 'Ketik dek untuk ambil kad. Draw 1 (Senang) atau Draw 3 (Susah). Bila dek kosong, ketik lagi untuk kitar semula waste.' },
+        { h: 'Foundations', p: 'Hantar Ace dan ke atas ke empat timbunan di atas untuk menang. Ketik Collect untuk hantar semua kad yang boleh.' },
+        { h: 'Menang', p: 'Alih semua 52 kad ke empat timbunan foundation.' }
+      ]
     }
   };
   var t = function (k, v) { return CBGame.t(STR, k, v); };
@@ -450,6 +506,41 @@
   $('#quitBtn').onclick = function () { if (timer) clearInterval(timer); $('#gameView').classList.add('hidden'); $('#menuView').classList.remove('hidden'); refreshHistory(); };
   $('#againBtn').onclick = function () { CBSound.click(); start(); };
   $('#ovMenuBtn').onclick = function () { $('#overlay').classList.remove('on'); $('#gameView').classList.add('hidden'); $('#menuView').classList.remove('hidden'); refreshHistory(); };
+
+  /* ---- how-to-play sheet (same pattern as Chinese Checkers) ---- */
+  (function () {
+    var rulesBuilt = false;
+    function renderRules() {
+      if (rulesBuilt) return;
+      var r = RULES[CBGame.LANG] || RULES.en;
+      $('#rulesTitle').textContent = r.title;
+      var body = $('#rulesBody');
+      body.innerHTML = '';
+      var lede = document.createElement('p');
+      lede.className = 'lede';
+      lede.textContent = r.lede;
+      body.appendChild(lede);
+      r.sections.forEach(function (s) {
+        var h = document.createElement('h3'); h.textContent = s.h; body.appendChild(h);
+        var p = document.createElement('p'); p.textContent = s.p; body.appendChild(p);
+      });
+      rulesBuilt = true;
+    }
+    function openRules(on) {
+      var sheet = $('#rulesSheet');
+      if (on) { renderRules(); sheet.classList.remove('hidden'); $('#rulesClose').focus(); }
+      else { sheet.classList.add('hidden'); }
+    }
+    var rb = $('#rulesBtn');
+    rb.setAttribute('title', (RULES[CBGame.LANG] || RULES.en).title);
+    rb.setAttribute('aria-label', (RULES[CBGame.LANG] || RULES.en).title);
+    rb.onclick = function () { CBSound.click(); openRules(true); };
+    $('#rulesClose').onclick = function () { openRules(false); };
+    $('#rulesSheet').onclick = function (e) { if (e.target === $('#rulesSheet')) openRules(false); };
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !$('#rulesSheet').classList.contains('hidden')) openRules(false);
+    });
+  })();
 
   refreshHistory();
 })();

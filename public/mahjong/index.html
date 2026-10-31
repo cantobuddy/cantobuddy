@@ -50,6 +50,9 @@
     <div class="topbar-actions">
       <button class="iconbtn" id="musicBtn" title="Music">🎶</button>
       <button class="iconbtn" id="soundBtn" title="Sound">🔊</button>
+      <button class="iconbtn" id="rulesBtn" type="button" title="How to play" aria-label="How to play">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.4"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.3c-.7.3-1 .9-1 1.6v.4"/><path d="M12 17.1h.01"/></svg>
+      </button>
     </div>
   </div>
 
@@ -107,6 +110,17 @@
   </div>
 
   <div class="toast" id="toast"></div>
+
+  <!-- HOW TO PLAY (same pattern as Chinese Checkers) -->
+  <div class="sheet hidden" id="rulesSheet" role="dialog" aria-modal="true" aria-labelledby="rulesTitle">
+    <div class="sheet-card">
+      <div class="sheet-head">
+        <h2 id="rulesTitle">How to play</h2>
+        <button class="sheet-x" id="rulesClose" type="button" aria-label="Close">✕</button>
+      </div>
+      <div class="sheet-body" id="rulesBody"></div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -137,6 +151,48 @@
       levelLabel:'Tahap', lvEasy:'Senang', lvMedium:'Sederhana', lvHard:'Susah', startBtn:'Mula',
       timeLabel:'Masa', tilesLabel:'Jubin lagi', pairsLabel:'Padan', hintBtn:'Petunjuk', shuffleBtn:'Kacau', restartBtn:'Ulang', quitBtn:'Keluar',
       wonTitle:'Papan selesai!', wonTime:'Masa', againBtn:'Main lagi', backMenu:'Ke menu', noMove:'Tiada gerak — kacau', pickTile:'Pilih jubin bebas'
+    }
+  };
+  var RULES = {
+    en: {
+      title: 'How to play',
+      lede: 'Clear the board by matching free tiles. A tile is free when nothing is on top of it and one side is open.',
+      sections: [
+        { h: 'Tap matching tiles', p: 'Tap two tiles with the same picture to remove them. They must both be free.' },
+        { h: 'Free tiles', p: 'A tile is free if no tile is stacked on top and at least one side is open. Free tiles are brighter and clearly outlined.' },
+        { h: 'Need help?', p: 'Tap Hint to flash a possible pair, or Shuffle to mix the board into a new solvable order.' },
+        { h: 'Win', p: 'Clear every tile from the board to win.' }
+      ]
+    },
+    fil: {
+      title: 'Paano laruin',
+      lede: 'Linisin ang board sa pagtugma ng malayang mga tile. Ang isang tile ay malaya kung wala itong nakapatong at bukas ang isang gilid.',
+      sections: [
+        { h: 'Pindutin ang magkaparehong tile', p: 'Pindutin ang dalawang tile na magkapareho ang larawan para tanggalin. Dapat parehong malaya.' },
+        { h: 'Malayang tile', p: 'Malaya ang tile kung wala itong nakapatong sa taas at bukas ang kahit isang gilid. Ang malayang tile ay mas maliwanag at may linya.' },
+        { h: 'Kailangan ng tulong?', p: 'Pindutin ang Hint para ipakita ang posibleng pares, o Shuffle para haluin ang board.' },
+        { h: 'Manalo', p: 'Tanggalin ang lahat ng tile sa board para manalo.' }
+      ]
+    },
+    zh: {
+      title: '玩法说明',
+      lede: '通过配对消除可点击的牌来清空棋盘。当一张牌上方没有牌、且至少一侧可移动时，它就是可点的。',
+      sections: [
+        { h: '点击相同的牌', p: '点击两张图案相同的牌即可消除。两张都必须可点击。' },
+        { h: '可点的牌', p: '当一张牌上方没有牌、且至少一侧空着时，它就是可点的。可点的牌更亮、有明显边框。' },
+        { h: '需要帮助?', p: '点"提示"会闪出一对可消的牌；点"洗牌"会把棋盘重新排成新的可解顺序。' },
+        { h: '获胜', p: '把棋盘上所有的牌都消除即获胜。' }
+      ]
+    },
+    id: {
+      title: 'Cara bermain',
+      lede: 'Kosongkan papan dengan memadankan jubin yang bebas. Jubin bebas bila tiada yang di atasnya dan satu sisi terbuka.',
+      sections: [
+        { h: 'Ketik jubin yang sama', p: 'Ketik dua jubin yang sama gambarnya untuk buang. Kedua-duanya mesti bebas.' },
+        { h: 'Jubin bebas', p: 'Jubin bebas bila tiada jubin di atasnya dan sekurang-kurangnya satu sisi terbuka. Jubin bebas lebih terang dan bersempadan jelas.' },
+        { h: 'Perlu bantuan?', p: 'Ketik Hint untuk kelipkan pasangan yang boleh, atau Shuffle untuk kacau papan ke susunan baharu yang selesai.' },
+        { h: 'Menang', p: 'Kosongkan semua jubin dari papan untuk menang.' }
+      ]
     }
   };
   var t = function (k, v) { return CBGame.t(STR, k, v); };
@@ -357,6 +413,41 @@
   $('#quitBtn').onclick = function () { if (timer) clearInterval(timer); $('#gameView').classList.add('hidden'); $('#menuView').classList.remove('hidden'); refreshHistory(); };
   $('#againBtn').onclick = function () { CBSound.click(); start(); };
   $('#ovMenuBtn').onclick = function () { $('#overlay').classList.remove('on'); $('#gameView').classList.add('hidden'); $('#menuView').classList.remove('hidden'); refreshHistory(); };
+
+  /* ---- how-to-play sheet (same pattern as Chinese Checkers) ---- */
+  (function () {
+    var rulesBuilt = false;
+    function renderRules() {
+      if (rulesBuilt) return;
+      var r = RULES[CBGame.LANG] || RULES.en;
+      $('#rulesTitle').textContent = r.title;
+      var body = $('#rulesBody');
+      body.innerHTML = '';
+      var lede = document.createElement('p');
+      lede.className = 'lede';
+      lede.textContent = r.lede;
+      body.appendChild(lede);
+      r.sections.forEach(function (s) {
+        var h = document.createElement('h3'); h.textContent = s.h; body.appendChild(h);
+        var p = document.createElement('p'); p.textContent = s.p; body.appendChild(p);
+      });
+      rulesBuilt = true;
+    }
+    function openRules(on) {
+      var sheet = $('#rulesSheet');
+      if (on) { renderRules(); sheet.classList.remove('hidden'); $('#rulesClose').focus(); }
+      else { sheet.classList.add('hidden'); }
+    }
+    var rb = $('#rulesBtn');
+    rb.setAttribute('title', (RULES[CBGame.LANG] || RULES.en).title);
+    rb.setAttribute('aria-label', (RULES[CBGame.LANG] || RULES.en).title);
+    rb.onclick = function () { CBSound.click(); openRules(true); };
+    $('#rulesClose').onclick = function () { openRules(false); };
+    $('#rulesSheet').onclick = function (e) { if (e.target === $('#rulesSheet')) openRules(false); };
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !$('#rulesSheet').classList.contains('hidden')) openRules(false);
+    });
+  })();
 
   refreshHistory();
 })();

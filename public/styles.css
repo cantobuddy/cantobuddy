@@ -572,6 +572,38 @@ body {
   margin-inline: auto;
 }
 
+/* First-visit banner variant: illustrated hero with left-aligned copy.
+   Applied by a tiny script on a visitor's very first Home load (see index.html);
+   returning visitors keep the standard red hero above. */
+.hero.is-banner {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: left;
+  padding: 52px 40px;
+  min-height: 420px;
+  color: #fff8ef;
+  background:
+    linear-gradient(100deg,
+      rgba(28, 20, 14, 0.90) 0%,
+      rgba(28, 20, 14, 0.74) 32%,
+      rgba(28, 20, 14, 0.32) 62%,
+      rgba(28, 20, 14, 0.05) 100%),
+    url(/banner-hero.png) center right / cover no-repeat;
+}
+.hero.is-banner .hero-title { font-size: clamp(1.8rem, 4.2vw, 3rem); line-height: 1.1; }
+.hero.is-banner .hero-sub { font-size: clamp(1rem, 2.4vw, 1.4rem); }
+.hero.is-banner .hero-desc {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.92);
+  margin-top: 14px;
+  max-width: 480px;
+  margin-inline: 0;
+}
+@media (max-width: 560px) {
+  .hero.is-banner { padding: 38px 22px; min-height: 340px; }
+}
+
 /* ---- Level cards --------------------------------------------------------
    Compact rows, each carrying its own colour. Previously three tall centred
    cards (~150px each) holding a 30px emoji and two lines of text, which spent

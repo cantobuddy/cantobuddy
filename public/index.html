@@ -219,7 +219,8 @@
          the whole paragraph. Screen readers get "Start learning, link" and meet
          the heading separately. data-i18n-attr keeps the label translated
          without touching the contents. -->
-    <a class="hero" href="/learn" onclick="goCategories(); return false;"
+    <a class="hero" id="hero" href="/learn"
+       onclick="if(window.gtag)gtag('event','begin_learn',{source:'home_hero',banner:false}); try{localStorage.setItem('cb_first_visit_hero','1');}catch(e){}; goCategories(); return false;"
        data-i18n="home.heroCta" data-i18n-attr="aria-label" aria-label="Start learning">
       <!-- Trust chip. The one fact that decides whether a helper gives this app
            a second minute is that it costs nothing — so it is the first thing on
@@ -1023,6 +1024,32 @@
      on the screen and the photographer is still owed the name. -->
 <script src="/places/credits.js"></script>
 <script src="/app.js"></script>
+<!-- First-visit banner: keep showing the illustrated marketing hero until the
+     visitor actually starts learning. The localStorage flag is set only when
+     they TAP the hero (see the onclick below), so the banner reappears on every
+     visit until they engage, then the standard red hero takes over for good. -->
+<script>
+  window.addEventListener('DOMContentLoaded', function () {
+    try {
+      var KEY = 'cb_first_visit_hero';
+      if (localStorage.getItem(KEY)) return;          // they've started — keep red hero
+      var hero = document.getElementById('hero');
+      if (!hero) return;
+      hero.classList.add('is-banner');
+      hero.setAttribute('aria-label', 'Start learning Cantonese free');
+      hero.innerHTML =
+        '<span class="hero-chip">100% Free for helpers</span>' +
+        '<h1 class="hero-title">Learn Cantonese. ' +
+          '<span class="hero-sub">Understand the culture. Feel at home.</span></h1>' +
+        '<p class="hero-desc"><strong>334 everyday words &amp; phrases with audio</strong> ' +
+          '— plus Chinese culture and useful tips. Learn at your own pace.</p>';
+      // On tap: measure the start AND remember they've started, so the banner
+      // never shows again. goCategories() opens learning in-app.
+      hero.setAttribute('onclick',
+        "if(window.gtag)gtag('event','begin_learn',{source:'home_hero',banner:true}); try{localStorage.setItem('cb_first_visit_hero','1');}catch(e){}; goCategories(); return false;");
+    } catch (e) {}
+  });
+</script>
 <!-- Opt-in push notifications (also loaded by the SEO landing pages). Self-
      contained, so it works whether or not app.js is present. -->
 <script src="/push-client.js" defer></script>

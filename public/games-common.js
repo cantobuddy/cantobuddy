@@ -173,6 +173,143 @@
     return m + ':' + (s < 10 ? '0' + s : s);
   }
 
+  /* ---------------- topbar: Messages sheet + Back to lobby ----------------
+   * The top-right of every game ends with the same two icon-only buttons:
+   *   [data-cb="feed"]  — speech bubble, opens the Messages sheet
+   *   [data-cb="leave"] — arrow-out, returns to the games lobby
+   * They are wired here rather than copied into four page scripts, so the
+   * behaviour and the four-language labels cannot drift apart. A game only has
+   * to put the two <button>s in its markup and call CB.topbar.mount(labels).
+   */
+  var WA_GLYPH =
+    '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">' +
+    '<path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Z" fill="none" stroke="currentColor" stroke-width="2"/>' +
+    '<path d="M8.6 7.6c.3-.1.6 0 .8.3l.8 1.3c.1.3.1.6-.1.8l-.5.5c-.2.2-.2.4-.1.6.5.9 1.3 1.7 2.2 2.2.2.1.4.1.6-.1l.5-.5c.2-.2.5-.3.8-.1l1.3.8c.3.2.4.5.3.8-.3 1-1.3 1.7-2.4 1.6-2.8-.3-5.2-2.7-5.5-5.5-.1-1.1.6-2.1 1.6-2.4Z" fill="currentColor"/>' +
+    '</svg>';
+
+  // Latest labels, kept at module scope so re-mounting after a language switch
+  // re-renders the already-built sheet instead of freezing the old wording.
+  var tb = { labels: {}, name: '', gid: gameId() };
+
+  // Addressed by data attribute, not id: some games already own an element
+  // called #leaveBtn (Bingo's in-room Leave), and a duplicate id would silently
+  // steal that button's click handler.
+  function tbBtn(role) {
+    return document.querySelector('[data-cb="' + role + '"]');
+  }
+
+  function msgRender() {
+    var L = tb.labels;
+    var titleEl = document.getElementById('msgTitle');
+    var body = document.getElementById('msgBody');
+    if (!body) return;
+    if (titleEl) titleEl.textContent = L.messages || 'Messages';
+    body.innerHTML = '';
+
+    if (L.lede) {
+      var p = document.createElement('p');
+      p.className = 'lede';
+      p.textContent = L.lede;
+      body.appendChild(p);
+    }
+
+    // The Level / Best / Top-3 table is the same one the menu screen shows —
+    // reused here so a player can check their best times mid-game.
+    var name = String(tb.name || '').trim();
+    if (!name) {
+      var em = document.createElement('p');
+      em.className = 'muted';
+      em.textContent = L.empty || 'No games yet — play one!';
+      body.appendChild(em);
+    } else {
+      var box = document.createElement('div');
+      box.className = 'cb-score-history';
+      body.appendChild(box);
+      CB.scores.renderInto(box, tb.gid, name);
+    }
+
+    if (L.invite) {
+      var url = location.origin + '/games/' + tb.gid + '/';
+      var txt = String(L.inviteText || '{url}')
+        .split('{url}').join(url)
+        .split('{game}').join(tb.gameName || '');
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'cb-wa-btn';
+      b.innerHTML = WA_GLYPH + '<span></span>';
+      b.querySelector('span').textContent = L.invite;
+      b.onclick = function () {
+        window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank', 'noopener');
+      };
+      body.appendChild(b);
+    }
+  }
+
+  CB.topbar = {
+    /* opts = { labels:{messages,lede,empty,invite,inviteText,backLobby},
+     *          gameName, name }
+     * Safe to call more than once: markup and listeners are built on the first
+     * call, later calls only refresh the labels and the player name. */
+    mount: function (opts) {
+      opts = opts || {};
+      tb.labels = opts.labels || {};
+      tb.gameName = opts.gameName || '';
+      tb.name = opts.name != null ? opts.name : CB.name.get();
+      tb.gid = gameId();
+      var L = tb.labels;
+
+      var put = function (role, text) {
+        var b = tbBtn(role);
+        if (!b || !text) return;
+        b.setAttribute('aria-label', text);
+        b.setAttribute('title', text);
+      };
+      put('feed', L.messages);
+      put('leave', L.backLobby);
+
+      var sheet = document.getElementById('msgSheet');
+      if (!sheet) {
+        sheet = document.createElement('div');
+        sheet.className = 'sheet hidden';
+        sheet.id = 'msgSheet';
+        sheet.setAttribute('role', 'dialog');
+        sheet.setAttribute('aria-modal', 'true');
+        sheet.setAttribute('aria-labelledby', 'msgTitle');
+        sheet.innerHTML =
+          '<div class="sheet-card">' +
+            '<div class="sheet-head">' +
+              '<h2 id="msgTitle"></h2>' +
+              '<button class="sheet-x" id="msgClose" type="button" aria-label="Close">&#10005;</button>' +
+            '</div>' +
+            '<div class="sheet-body" id="msgBody"></div>' +
+          '</div>';
+        document.body.appendChild(sheet);
+
+        var openSheet = function (on) {
+          if (on) { msgRender(); sheet.classList.remove('hidden'); }
+          else sheet.classList.add('hidden');
+        };
+        var close = document.getElementById('msgClose');
+        if (close) close.onclick = function () { openSheet(false); };
+        sheet.onclick = function (e) { if (e.target === sheet) openSheet(false); };
+        document.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape' && !sheet.classList.contains('hidden')) openSheet(false);
+        });
+        var feed = tbBtn('feed');
+        if (feed) feed.onclick = function (e) { e.preventDefault(); openSheet(true); };
+      }
+
+      var leave = tbBtn('leave');
+      if (leave) {
+        leave.onclick = function () {
+          // No confirm: the lobby is one tap away anyway and every finished
+          // round is already stored by CB.scores.
+          location.href = '/?view=games';
+        };
+      }
+    }
+  };
+
   /* ---------------- auto-run once the DOM is ready ---------------- */
   function init() {
     var gid = gameId();

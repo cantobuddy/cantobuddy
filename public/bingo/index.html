@@ -101,6 +101,12 @@
       <button class="iconbtn" id="rulesBtn" type="button" title="How to play" aria-label="How to play">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.4"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.3c-.7.3-1 .9-1 1.6v.4"/><path d="M12 17.1h.01"/></svg>
       </button>
+      <button class="iconbtn" data-cb="feed" type="button" title="Messages" aria-label="Messages">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 11.8a7.6 7.6 0 0 1-7.6 7.6H9.4L4.5 22v-4.6a7.6 7.6 0 1 1 16-5.6z"/></svg>
+      </button>
+      <button class="iconbtn" data-cb="leave" type="button" title="Back to lobby" aria-label="Back to lobby">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4.5h3.5A1.5 1.5 0 0 1 19 6v12a1.5 1.5 0 0 1-1.5 1.5H14"/><path d="M9.5 8 5.5 12l4 4"/><path d="M5.5 12H15"/></svg>
+      </button>
     </div>
   </div>
 
@@ -213,7 +219,10 @@
       errNameRequired:'Please type your name', errRoomNotFound:'Room not found', errNameTaken:'That name is taken here',
       errRoomFull:'Room is full', errSessionExpired:'Session ended — rejoin', errNoBingo:'Not a bingo yet!',
       errOnlyHost:'Only the host can do that', errAlreadyPlaying:'Game already started', errNet:'Connection problem — try again',
-      errUnknownAction:'Something went wrong', errTooManyRooms:'Too many games right now — try later'
+      errUnknownAction:'Something went wrong', errTooManyRooms:'Too many games right now — try later',
+      msgTitle:'Messages', msgLede:'Your best times, and a quick way to invite family.',
+      msgEmpty:'No games yet — play one!', msgInvite:'Invite a friend on WhatsApp',
+      msgInviteText:'Come and play {game} with me on Canto Buddy! {url}', backLobby:'Back to lobby'
     },
     fil: {
       menuTitle:'Online Bingo', menuSub:'Mag-Bingo kasama ang pamilya at kaibigan', yourName:'Pangalan mo',
@@ -224,7 +233,10 @@
       winYou:'Bingo! Nanalo ka! 🎉', winOther:'{name} ang nanalo!', lastCalled:'Huling tawag',
       errNameRequired:'Ilagay ang pangalan', errRoomNotFound:'Hindi mahanap ang kuwarto', errNameTaken:'May gumagamit na ng pangalang iyan',
       errRoomFull:'Puno na ang kuwarto', errSessionExpired:'Tapos na ang session — sumali ulit', errNoBingo:'Hindi pa bingo!',
-      errNet:'May problema sa koneksyon'
+      errNet:'May problema sa koneksyon',
+      msgTitle:'Mga Mensahe', msgLede:'Ang pinakamabilis mong oras, at mabilisang paraan para anyayahan ang pamilya.',
+      msgEmpty:'Wala pang laro — maglaro muna!', msgInvite:'Anyayahan ang kaibigan sa WhatsApp',
+      msgInviteText:'Halina, maglaro tayo ng {game} sa Canto Buddy! {url}', backLobby:'Bumalik sa lobby'
     },
     zh: {
       menuTitle:'在线宾果', menuSub:'和亲友一起玩宾果', yourName:'你的名字', namePlaceholder:'输入你的名字',
@@ -234,7 +246,10 @@
       copied:'已复制!', notYet:'还没连成宾果!', waInvite:'用 WhatsApp 邀请家人', waText:'来玩在线宾果！房间号 {code} → {url}', winYou:'宾果! 你赢了! 🎉', winOther:'{name} 赢了!',
       lastCalled:'刚喊出', errNameRequired:'请输入名字', errRoomNotFound:'找不到房间', errNameTaken:'名字已被使用',
       errRoomFull:'房间已满', errSessionExpired:'会话结束 — 请重新加入', errNoBingo:'还没连成宾果!',
-      errNet:'连接出问题 — 请重试'
+      errNet:'连接出问题 — 请重试',
+      msgTitle:'消息', msgLede:'你的最佳成绩，以及快速邀请亲友的方法。',
+      msgEmpty:'还没有记录 — 先玩一局吧!', msgInvite:'用 WhatsApp 邀请朋友',
+      msgInviteText:'来 Canto Buddy 和我一起玩{game}！{url}', backLobby:'返回游戏大厅'
     },
     id: {
       menuTitle:'Bingo Online', menuSub:'Main Bingo bersama keluarga', yourName:'Nama kamu', namePlaceholder:'Ketik nama',
@@ -244,7 +259,10 @@
       copied:'Tersalin!', notYet:'Belum bingo!', waInvite:'Undang lewat WhatsApp', waText:'Ayo main Bingo Online! Kode ruang {code} → {url}', winYou:'Bingo! Kamu menang! 🎉', winOther:'{name} menang!',
       lastCalled:'Terakhir', errNameRequired:'Isi nama dulu', errRoomNotFound:'Ruangan tak jumpa', errNameTaken:'Nama itu sudah dipakai',
       errRoomFull:'Ruangan penuh', errSessionExpired:'Sesi tamat — gabung lagi', errNoBingo:'Belum bingo!',
-      errNet:'Masalah sambungan — cuba lagi'
+      errNet:'Masalah sambungan — cuba lagi',
+      msgTitle:'Pesan', msgLede:'Waktu terbaik kamu, dan cara cepat mengajak keluarga.',
+      msgEmpty:'Belum ada permainan — main dulu!', msgInvite:'Undang kawan lewat WhatsApp',
+      msgInviteText:'Ayo main {game} dengan saya di Canto Buddy! {url}', backLobby:'Kembali ke lobi'
     }
   };
   var RULES = {
@@ -638,6 +656,18 @@
       if (e.key === 'Escape' && !$('#rulesSheet').classList.contains('hidden')) openRules(false);
     });
   })();
+
+  /* ---- topbar: Messages sheet + Back to lobby (shared with every game) ---- */
+  if (window.CB && CB.topbar) {
+    CB.topbar.mount({
+      gameName: t('menuTitle'),
+      name: CB.name.get(),
+      labels: {
+        messages: t('msgTitle'), lede: t('msgLede'), empty: t('msgEmpty'),
+        invite: t('msgInvite'), inviteText: t('msgInviteText'), backLobby: t('backLobby')
+      }
+    });
+  }
 
   /* ---- my server record ---- */
   function loadMyRecord() {

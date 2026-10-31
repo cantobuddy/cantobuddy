@@ -77,6 +77,12 @@
       <button class="iconbtn" id="rulesBtn" type="button" title="How to play" aria-label="How to play">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.4"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.3c-.7.3-1 .9-1 1.6v.4"/><path d="M12 17.1h.01"/></svg>
       </button>
+      <button class="iconbtn" data-cb="feed" type="button" title="Messages" aria-label="Messages">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 11.8a7.6 7.6 0 0 1-7.6 7.6H9.4L4.5 22v-4.6a7.6 7.6 0 1 1 16-5.6z"/></svg>
+      </button>
+      <button class="iconbtn" data-cb="leave" type="button" title="Back to lobby" aria-label="Back to lobby">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4.5h3.5A1.5 1.5 0 0 1 19 6v12a1.5 1.5 0 0 1-1.5 1.5H14"/><path d="M9.5 8 5.5 12l4 4"/><path d="M5.5 12H15"/></svg>
+      </button>
     </div>
   </div>
 
@@ -166,28 +172,40 @@
       timeLabel:'Time', movesLabel:'Moves', collectBtn:'Collect', restartBtn:'Restart', quitBtn:'Quit',
       wonTitle:'You won Solitaire!', wonTime:'Time', againBtn:'Play again', backMenu:'Back to menu',
       justNow:'New best time!', notMovable:'That card cannot go there', emptyStock:'Tap to recycle the waste',
-      needAce:'Foundations start with an Ace (A)', emptyKing:'Only a King (K) can start an empty column'
+      needAce:'Foundations start with an Ace (A)', emptyKing:'Only a King (K) can start an empty column',
+      msgTitle:'Messages', msgLede:'Your best times, and a quick way to invite family.',
+      msgEmpty:'No games yet — play one!', msgInvite:'Invite a friend on WhatsApp',
+      msgInviteText:'Come and play {game} with me on Canto Buddy! {url}', backLobby:'Back to lobby'
     },
     fil: {
       title:'Solitaire', sub:'Buuin ang apat na suit hanggang Hari', yourName:'Pangalan mo', namePlaceholder:'Ilagay ang pangalan',
       levelLabel:'Draw', lvEasy:'Draw 1', lvHard:'Draw 3', startBtn:'Bagong laro',
       timeLabel:'Oras', movesLabel:'Galaw', collectBtn:'Ipunin', restartBtn:'Ulitin', quitBtn:'Umalis',
       wonTitle:'Nanalo ka sa Solitaire!', wonTime:'Oras', againBtn:'Laro ulit', backMenu:'Bumalik sa menu', justNow:'Bagong rekord!', notMovable:'Hindi pwede doon', emptyStock:'Tap para i-recycle',
-      needAce:'Ang foundation ay nagsisimula sa Ace (A)', emptyKing:'Ang King (K) lang ang pwedeng magsimula sa walang laman na column'
+      needAce:'Ang foundation ay nagsisimula sa Ace (A)', emptyKing:'Ang King (K) lang ang pwedeng magsimula sa walang laman na column',
+      msgTitle:'Mga Mensahe', msgLede:'Ang pinakamabilis mong oras, at mabilisang paraan para anyayahan ang pamilya.',
+      msgEmpty:'Wala pang laro — maglaro muna!', msgInvite:'Anyayahan ang kaibigan sa WhatsApp',
+      msgInviteText:'Halina, maglaro tayo ng {game} sa Canto Buddy! {url}', backLobby:'Bumalik sa lobby'
     },
     zh: {
       title:'纸牌', sub:'把四花色从 A 叠到 K', yourName:'你的名字', namePlaceholder:'输入你的名字',
       levelLabel:'发牌', lvEasy:'发1张', lvHard:'发3张', startBtn:'新游戏',
       timeLabel:'时间', movesLabel:'步数', collectBtn:'收牌', restartBtn:'重玩', quitBtn:'退出',
       wonTitle:'你赢了纸牌!', wonTime:'时间', againBtn:'再玩一次', backMenu:'返回菜单', justNow:'新纪录!', notMovable:'这张牌不能放那里', emptyStock:'点此回收废牌',
-      needAce:'收牌区从 A 开始', emptyKing:'只有 K 能放在空列'
+      needAce:'收牌区从 A 开始', emptyKing:'只有 K 能放在空列',
+      msgTitle:'消息', msgLede:'你的最佳成绩，以及快速邀请亲友的方法。',
+      msgEmpty:'还没有记录 — 先玩一局吧!', msgInvite:'用 WhatsApp 邀请朋友',
+      msgInviteText:'来 Canto Buddy 和我一起玩{game}！{url}', backLobby:'返回游戏大厅'
     },
     id: {
       title:'Solitaire', sub:'Susun empat suit sampai King', yourName:'Nama kamu', namePlaceholder:'Ketik nama',
       levelLabel:'Draw', lvEasy:'Draw 1', lvHard:'Draw 3', startBtn:'Main baru',
       timeLabel:'Masa', movesLabel:'Gerak', collectBtn:'Kumpul', restartBtn:'Ulang', quitBtn:'Keluar',
       wonTitle:'Kamu menang Solitaire!', wonTime:'Masa', againBtn:'Main lagi', backMenu:'Ke menu', justNow:'Rekod baru!', notMovable:'Tak boleh ke situ', emptyStock:'Tap untuk kitar semula',
-      needAce:'Foundation mula dari Ace (A)', emptyKing:'Hanya King (K) boleh mula tiang kosong'
+      needAce:'Foundation mula dari Ace (A)', emptyKing:'Hanya King (K) boleh mula tiang kosong',
+      msgTitle:'Pesan', msgLede:'Waktu terbaik kamu, dan cara cepat mengajak keluarga.',
+      msgEmpty:'Belum ada permainan — main dulu!', msgInvite:'Undang kawan lewat WhatsApp',
+      msgInviteText:'Ayo main {game} dengan saya di Canto Buddy! {url}', backLobby:'Kembali ke lobi'
     }
   };
   var RULES = {
@@ -659,6 +677,18 @@
       if (e.key === 'Escape' && !$('#rulesSheet').classList.contains('hidden')) openRules(false);
     });
   })();
+
+  /* ---- topbar: Messages sheet + Back to lobby (shared with every game) ---- */
+  if (window.CB && CB.topbar) {
+    CB.topbar.mount({
+      gameName: t('title'),
+      name: CB.name.get(),
+      labels: {
+        messages: t('msgTitle'), lede: t('msgLede'), empty: t('msgEmpty'),
+        invite: t('msgInvite'), inviteText: t('msgInviteText'), backLobby: t('backLobby')
+      }
+    });
+  }
 
   refreshHistory();
 })();

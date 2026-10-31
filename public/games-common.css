@@ -71,6 +71,24 @@ body {
 .iconbtn.off { opacity: .5; }
 .iconbtn.is-on { background: var(--primary-tint); border-color: var(--primary); }
 
+/* Five icon buttons now share the topbar (music, sound, rules, messages,
+   leave). Tighten them a little on phones so the row still fits inside the
+   screen instead of pushing past the right edge. */
+@media (max-width: 460px) {
+  .topbar { gap: 8px; }
+  .topbar-actions { gap: 6px; }
+  .iconbtn { width: 40px; height: 40px; border-radius: 11px; padding: 0; }
+  .iconbtn svg { width: 18px; height: 18px; }
+  .iconbtn.has-lbl { width: auto; padding: 0 12px; }
+}
+
+/* On phones the game name drops to its own line under the controls, so the
+   icon row never squeezes it into an ellipsis. */
+@media (max-width: 620px) {
+  .topbar { row-gap: 10px; }
+  .title { flex: 1 1 100%; order: 3; font-size: 1.3rem; }
+}
+
 /* ----- buttons ----- */
 .btn {
   display: inline-flex; align-items: center; justify-content: center;
@@ -188,6 +206,17 @@ input[type="text"]:focus, select:focus { outline: 3px solid var(--primary-tint);
 .sheet-body p { margin: 0; font-size: 1.2rem; line-height: 1.65; color: #2b3947; }
 .sheet-body ul { margin: 8px 0 0; padding-left: 22px; }
 .sheet-body li { font-size: 1.2rem; line-height: 1.65; color: #2b3947; margin-bottom: 8px; }
+
+/* ----- WhatsApp invite row (inside the Messages sheet) ----- */
+.cb-wa-btn {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  width: 100%; margin-top: 18px; padding: 15px 16px; border-radius: 14px;
+  background: #25d366; color: #fff; border: 0; cursor: pointer;
+  font-family: inherit; font-size: 1.1rem; font-weight: 800;
+  box-shadow: 0 6px 16px rgba(37, 211, 102, .28);
+}
+.cb-wa-btn:active { transform: scale(.98); }
+.cb-wa-btn svg { width: 22px; height: 22px; display: block; flex: 0 0 auto; }
 
 /* ----- generic helpers ----- */
 .center { text-align: center; }

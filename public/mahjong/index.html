@@ -68,6 +68,12 @@
       <button class="iconbtn" id="rulesBtn" type="button" title="How to play" aria-label="How to play">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.4"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.3c-.7.3-1 .9-1 1.6v.4"/><path d="M12 17.1h.01"/></svg>
       </button>
+      <button class="iconbtn" data-cb="feed" type="button" title="Messages" aria-label="Messages">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 11.8a7.6 7.6 0 0 1-7.6 7.6H9.4L4.5 22v-4.6a7.6 7.6 0 1 1 16-5.6z"/></svg>
+      </button>
+      <button class="iconbtn" data-cb="leave" type="button" title="Back to lobby" aria-label="Back to lobby">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4.5h3.5A1.5 1.5 0 0 1 19 6v12a1.5 1.5 0 0 1-1.5 1.5H14"/><path d="M9.5 8 5.5 12l4 4"/><path d="M5.5 12H15"/></svg>
+      </button>
     </div>
   </div>
 
@@ -152,25 +158,37 @@
       levelLabel:'Level', lvEasy:'Easy', lvMedium:'Medium', lvHard:'Hard', startBtn:'Start game', backToApp:'CantoBuddy',
       timeLabel:'Time', tilesLabel:'Tiles left', pairsLabel:'Matched', hintBtn:'Hint', shuffleBtn:'Shuffle', restartBtn:'Restart', quitBtn:'Quit',
       wonTitle:'Board cleared!', wonTime:'Time', againBtn:'Play again', backMenu:'Back to menu',
-      bestLabel:'Best time', justNow:'New best time!', noMove:'No moves — tap Shuffle', pickTile:'Pick a free tile'
+      bestLabel:'Best time', justNow:'New best time!', noMove:'No moves — tap Shuffle', pickTile:'Pick a free tile',
+      msgTitle:'Messages', msgLede:'Your best times, and a quick way to invite family.',
+      msgEmpty:'No games yet — play one!', msgInvite:'Invite a friend on WhatsApp',
+      msgInviteText:'Come and play {game} with me on Canto Buddy! {url}', backLobby:'Back to lobby'
     },
     fil: {
       title:'Mahjong Solitaire', sub:'Tugmain ang malayang mga tile', yourName:'Pangalan mo', namePlaceholder:'Ilagay ang pangalan',
       levelLabel:'Antas', lvEasy:'Madali', lvMedium:'Katamtaman', lvHard:'Mahirap', startBtn:'Simulan',
       timeLabel:'Oras', tilesLabel:'Natitirang tile', pairsLabel:'Tugma', hintBtn:'Tulong', shuffleBtn:'Haluin', restartBtn:'Ulitin', quitBtn:'Umalis',
-      wonTitle:'Na-clear ang board!', wonTime:'Oras', againBtn:'Laro ulit', backMenu:'Bumalik sa menu', noMove:'Walang galaw — haluin', pickTile:'Piliin ang malayang tile'
+      wonTitle:'Na-clear ang board!', wonTime:'Oras', againBtn:'Laro ulit', backMenu:'Bumalik sa menu', noMove:'Walang galaw — haluin', pickTile:'Piliin ang malayang tile',
+      msgTitle:'Mga Mensahe', msgLede:'Ang pinakamabilis mong oras, at mabilisang paraan para anyayahan ang pamilya.',
+      msgEmpty:'Wala pang laro — maglaro muna!', msgInvite:'Anyayahan ang kaibigan sa WhatsApp',
+      msgInviteText:'Halina, maglaro tayo ng {game} sa Canto Buddy! {url}', backLobby:'Bumalik sa lobby'
     },
     zh: {
       title:'麻将接龙', sub:'配对消除可点击的麻将牌', yourName:'你的名字', namePlaceholder:'输入你的名字',
       levelLabel:'难度', lvEasy:'简单', lvMedium:'中等', lvHard:'困难', startBtn:'开始游戏',
       timeLabel:'时间', tilesLabel:'剩余牌', pairsLabel:'已消', hintBtn:'提示', shuffleBtn:'洗牌', restartBtn:'重玩', quitBtn:'退出',
-      wonTitle:'通关啦!', wonTime:'时间', againBtn:'再玩一次', backMenu:'返回菜单', noMove:'无可消除 — 点洗牌', pickTile:'选择可点的牌'
+      wonTitle:'通关啦!', wonTime:'时间', againBtn:'再玩一次', backMenu:'返回菜单', noMove:'无可消除 — 点洗牌', pickTile:'选择可点的牌',
+      msgTitle:'消息', msgLede:'你的最佳成绩，以及快速邀请亲友的方法。',
+      msgEmpty:'还没有记录 — 先玩一局吧!', msgInvite:'用 WhatsApp 邀请朋友',
+      msgInviteText:'来 Canto Buddy 和我一起玩{game}！{url}', backLobby:'返回游戏大厅'
     },
     id: {
       title:'Mahjong Solitaire', sub:'Padankan jubin yang bebas', yourName:'Nama kamu', namePlaceholder:'Ketik nama',
       levelLabel:'Tahap', lvEasy:'Senang', lvMedium:'Sederhana', lvHard:'Susah', startBtn:'Mula',
       timeLabel:'Masa', tilesLabel:'Jubin lagi', pairsLabel:'Padan', hintBtn:'Petunjuk', shuffleBtn:'Kacau', restartBtn:'Ulang', quitBtn:'Keluar',
-      wonTitle:'Papan selesai!', wonTime:'Masa', againBtn:'Main lagi', backMenu:'Ke menu', noMove:'Tiada gerak — kacau', pickTile:'Pilih jubin bebas'
+      wonTitle:'Papan selesai!', wonTime:'Masa', againBtn:'Main lagi', backMenu:'Ke menu', noMove:'Tiada gerak — kacau', pickTile:'Pilih jubin bebas',
+      msgTitle:'Pesan', msgLede:'Waktu terbaik kamu, dan cara cepat mengajak keluarga.',
+      msgEmpty:'Belum ada permainan — main dulu!', msgInvite:'Undang kawan lewat WhatsApp',
+      msgInviteText:'Ayo main {game} dengan saya di Canto Buddy! {url}', backLobby:'Kembali ke lobi'
     }
   };
   var RULES = {
@@ -585,6 +603,18 @@
       if (e.key === 'Escape' && !$('#rulesSheet').classList.contains('hidden')) openRules(false);
     });
   })();
+
+  /* ---- topbar: Messages sheet + Back to lobby (shared with every game) ---- */
+  if (window.CB && CB.topbar) {
+    CB.topbar.mount({
+      gameName: t('title'),
+      name: CB.name.get(),
+      labels: {
+        messages: t('msgTitle'), lede: t('msgLede'), empty: t('msgEmpty'),
+        invite: t('msgInvite'), inviteText: t('msgInviteText'), backLobby: t('backLobby')
+      }
+    });
+  }
 
   refreshHistory();
 })();

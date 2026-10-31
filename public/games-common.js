@@ -214,8 +214,9 @@
     }
 
     // The Level / Best / Top-3 table is the same one the menu screen shows —
-    // reused here so a player can check their best times mid-game.
-    var name = String(tb.name || '').trim();
+    // reused here so a player can check their best times mid-game. The name is
+    // read live: a player may type it after the page has already booted.
+    var name = String(CB.name.get() || tb.name || '').trim();
     if (!name) {
       var em = document.createElement('p');
       em.className = 'muted';

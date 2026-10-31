@@ -1397,16 +1397,6 @@ const GAMES_CATALOG = [
     nameKey: 'games.checkersName',
   },
   {
-    href: '/games/bingo',
-    artClass: 'game-art--bingo',
-    art: `<svg viewBox="0 0 48 48" aria-hidden="true">
-      <circle cx="24" cy="24" r="17" fill="#ffffff" stroke="#cdd5df" stroke-width="1.6"/>
-      <text x="24" y="30" font-size="16" font-weight="900" fill="#2b6cf0" text-anchor="middle">B</text>
-      <circle cx="24" cy="24" r="17" fill="none" stroke="#f0b429" stroke-width="2" stroke-dasharray="3 4"/>
-    </svg>`,
-    nameKey: 'games.bingoName',
-  },
-  {
     href: '/games/memorymatch',
     artClass: 'game-art--memory',
     art: `<svg viewBox="0 0 48 48" aria-hidden="true">

@@ -69,19 +69,19 @@ app.use('/games/wordmatch', require('./wordmatch').handle);
 app.use('/games/sudoku', require('./sudoku').handle);
 app.use('/games/chinesechecker', require('./chinesechecker').handle);
 
-// The four new elder-friendly games (2026-10-31). Bingo is a live multiplayer
-// table like UNO — its own module, mounted before express.json() so it can read
-// the raw body itself (same reason as the other tables). The other three are
-// entirely client-side, so they share one tiny static-file factory.
-app.use('/games/bingo', require('./bingo').handle);
+// The elder-friendly games (2026-10-31). The ones that remain are entirely
+// client-side, so they share one tiny static-file factory.
+//
+// Two of the original four are WITHDRAWN at the operator's request. Their pages
+// and modules are left in the repo untouched — only the mounts are gone — so
+// anyone following an old link lands on the games list instead of a dead room
+// or a broken board. To restore either one, put back its `app.use(...)` line and
+// re-add its entry in public/app.js (search for the nameKey below).
+//   - Online Bingo       -> 'games.bingoName'
+//   - Mahjong Solitaire  -> 'games.mahjongName'  (needs its tile-face CSS first)
+app.use('/games/bingo', (req, res) => res.redirect(302, '/?view=games'));
 const makeStaticGame = require('./game-static');
 app.use('/games/memorymatch', makeStaticGame('memorymatch').handle);
-// Mahjong Solitaire is WITHDRAWN (2026-10-31, operator request): its tile faces
-// had no CSS, so dot/bamboo tiles rendered as blank squares and the board was
-// unplayable. The page is no longer linked from the hub; anyone following an old
-// link is sent back to the games list rather than to a broken board.
-// To restore: put back `app.use('/games/mahjong', makeStaticGame('mahjong').handle)`
-// and re-add its entry in public/app.js (search for 'games.mahjongName').
 app.use('/games/mahjong', (req, res) => res.redirect(302, '/?view=games'));
 app.use('/games/solitaire', makeStaticGame('solitaire').handle);
 

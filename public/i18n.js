@@ -428,6 +428,9 @@ const I18N = {
     'progress.couldNotLoad': 'Could not load progress.',
     'progress.partial': 'Incomplete',
     'progress.stoppedAt': 'Stopped at',
+    'progress.reset': 'Reset progress',
+    'progress.resetConfirm': 'Reset all your quiz progress? This cannot be undone.',
+    'quiz.checkProgress': '📊 Check my progress',
 
     // statistics — her own numbers, shown inside My Progress
     'stats.title': 'Your statistics',
@@ -1026,6 +1029,9 @@ const I18N = {
     'progress.couldNotLoad': 'Hindi ma-load ang progreso.',
     'progress.partial': 'Hindi kumpleto',
     'progress.stoppedAt': 'Huminto sa',
+    'progress.reset': 'I-reset ang progreso',
+    'progress.resetConfirm': 'I-reset ang lahat ng iyong progreso sa quiz? Hindi na mababawi.',
+    'quiz.checkProgress': '📊 Tingnan ang aking progreso',
 
     // statistics — her own numbers, shown inside My Progress
     'stats.title': 'Iyong estadistika',
@@ -1629,6 +1635,9 @@ const I18N = {
     'progress.couldNotLoad': '无法加载进度。',
     'progress.partial': '未完成',
     'progress.stoppedAt': '中止于',
+    'progress.reset': '重置进度',
+    'progress.resetConfirm': '确定要重置所有测验进度？此操作无法还原。',
+    'quiz.checkProgress': '📊 查看我的进度',
 
     // statistics — her own numbers, shown inside My Progress
     'stats.title': '我的统计',
@@ -2229,6 +2238,9 @@ const I18N = {
     'progress.couldNotLoad': 'Tidak bisa memuat kemajuan.',
     'progress.partial': 'Belum selesai',
     'progress.stoppedAt': 'Berhenti di',
+    'progress.reset': 'Reset progres',
+    'progress.resetConfirm': 'Reset semua progres kuis Anda? Tidak boleh dibatalkan.',
+    'quiz.checkProgress': '📊 Lihat kemajuan saya',
 
     // statistics
     'stats.title': 'Statistik Anda',

@@ -2025,6 +2025,7 @@ const S = {
   listProgressByCategory: db.prepare('SELECT * FROM progress WHERE category_id = ? ORDER BY id'),
   listProgressByLearnerLevel: db.prepare('SELECT * FROM progress WHERE learner = ? AND level = ? ORDER BY id'),
   listProgressByLearnerCategory: db.prepare('SELECT * FROM progress WHERE learner = ? AND category_id = ? ORDER BY id'),
+  deleteProgressByLearnerId: db.prepare('DELETE FROM progress WHERE learner_id = ?'),
   getProgressById: db.prepare('SELECT * FROM progress WHERE id = ?'),
   getProgressBySession: db.prepare('SELECT * FROM progress WHERE session_id = ?'),
   insertProgress: db.prepare(
@@ -3439,6 +3440,16 @@ function saveProgress(b) {
     now
   );
   return { row: S.getProgressById.get(Number(info.lastInsertRowid)), created: true };
+}
+
+/**
+ * Delete ALL progress rows for a learner (device). Driven by the Progress page's
+ * "reset progress" button. The route only ever calls this with the device's own
+ * learner_id, so one device cannot wipe another's history. Returns row count.
+ */
+function deleteProgress({ learner_id } = {}) {
+  if (learner_id == null || learner_id === '') return 0;
+  return S.deleteProgressByLearnerId.run(Number(learner_id)).changes;
 }
 
 function getStats() {
@@ -5979,6 +5990,7 @@ module.exports = {
 
   listProgress,
   saveProgress,
+  deleteProgress,
   getStats,
 
   getCredits,

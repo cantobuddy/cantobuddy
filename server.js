@@ -1106,6 +1106,25 @@ app.post('/api/progress', (req, res) => {
   res.status(created ? 201 : 200).json(row);
 });
 
+// Reset: a device clears its own progress by public_id (same device-token trust
+// model as GET). Admins may also clear by numeric learner_id.
+app.delete('/api/progress', (req, res) => {
+  const { public_id, learner_id } = req.query;
+  if (public_id) {
+    const found = store.getLearnerByPublicId(public_id);
+    if (!found) return res.status(404).json({ error: 'Learner not found.' });
+    const n = store.deleteProgress({ learner_id: found.id });
+    return res.json({ ok: true, deleted: n });
+  }
+  if (learner_id) {
+    const user = sessionUser(req);
+    if (!user || user.role !== 'admin') return res.status(401).json({ error: 'Unauthorized.' });
+    const n = store.deleteProgress({ learner_id: Number(learner_id) });
+    return res.json({ ok: true, deleted: n });
+  }
+  return res.status(400).json({ error: 'public_id or learner_id required.' });
+});
+
 // Aggregate stats for admin dashboard
 app.get('/api/stats', requireAdmin, (req, res) => {
   res.json(store.getStats());

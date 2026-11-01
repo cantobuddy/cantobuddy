@@ -3276,7 +3276,8 @@ async function renderProgress() {
         `<div class="progress-empty">${t('progress.none')}</div>` +
         renderRewardsCard() +
         renderSharingCard() +
-        renderFeedbackCard();
+        renderFeedbackCard() +
+        `<button class="btn btn-block progress-reset-btn" onclick="resetCantoneseProgress()">${t('progress.reset')}</button>`;
       return;
     }
 
@@ -3361,10 +3362,28 @@ async function renderProgress() {
     // admin of "who can see this" second, and the invitation to reply last.
     html += renderFeedbackCard();
 
+    // Reset: clears this device's progress only (server-side, by device token).
+    html += `<button class="btn btn-block progress-reset-btn" onclick="resetCantoneseProgress()">${t('progress.reset')}</button>`;
+
     wrap.innerHTML = html;
   } catch (err) {
     wrap.innerHTML = `<div class="progress-empty">${t('progress.couldNotLoad')}</div>`;
   }
+}
+
+/**
+ * Reset ALL of this device's Cantonese quiz progress (Progress page button).
+ * Asks for confirmation first — irreversible — then deletes server-side rows
+ * (by device token) and re-renders the now-empty progress page.
+ */
+async function resetCantoneseProgress() {
+  if (!window.confirm(t('progress.resetConfirm'))) return;
+  try {
+    await apiDelete(`/api/progress?public_id=${encodeURIComponent(STATE.deviceId)}`);
+  } catch (err) {
+    console.warn('Reset progress failed:', err);
+  }
+  renderProgress();
 }
 
 // ---- Sharing: who can see my progress --------------------------------------

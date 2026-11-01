@@ -719,6 +719,11 @@ body {
 .btn-lg { font-size: 1.05rem; padding: 14px 24px; min-height: 52px; }
 .btn-sm { font-size: 0.8rem; padding: 6px 12px; min-height: 36px; }
 .btn-block { width: 100%; }
+/* Reset-progress button on the Cantonese Progress page */
+.progress-reset-btn { margin-top: 16px; border: 1px solid #e2c9c9; color: #b3404a; background: #fff; font-weight: 700; }
+.progress-reset-btn:active { transform: scale(0.985); }
+/* "Check my progress" link on the Quiz page */
+.quiz-check-progress { margin-top: 8px; }
 
 /* Stacked, not side by side. "Start Quiz" and "My Progress" fit a half-width
    button in English and in no other language: Filipino is "Simulan ang

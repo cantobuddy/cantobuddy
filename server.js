@@ -20,6 +20,9 @@ const reminders = require('./push-reminders');
 const dailyPhrase = require('./daily-phrase');
 const sundayTable = require('./sunday-table');
 const { createSweeper } = require('./push-sweep');
+// English track (/en) — isolated data layer for elderly learners. Separate DB
+// file (cantobuddy-en.db) so the Cantonese site and its database are untouched.
+const en = require('./en');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -2077,6 +2080,36 @@ app.get('/api/admin/report.csv', requireAdmin, (req, res) => {
 // the people who pay for domestic help is indexable and says something. It is
 // still the sign-in page — the form is untouched — which is why /reset keeps
 // serving the bare shell: a password reset has no business being indexed.
+// ---------------------------------------------------------------------------
+// English track (/en) — a separate set of pages for elderly learners who want to
+// learn simple English (housework instructions, household items, shopping).
+// Served from public/en.html; data comes from the isolated en.js module.
+// ---------------------------------------------------------------------------
+app.get('/en', (req, res) => res.sendFile(path.join(__dirname, 'public', 'en.html')));
+
+app.get('/api/en/categories', (req, res) => res.json(en.listEnCategories()));
+app.get('/api/en/vocabulary', (req, res) => {
+  const { level, category_id } = req.query;
+  res.json(en.listEnWords({ level, category_id }));
+});
+app.get('/api/en/scenarios', (req, res) => res.json(en.listEnScenarios()));
+app.get('/api/en/scenario/:id/phrases', (req, res) => {
+  res.json(en.listEnScenarioPhrases(req.params.id));
+});
+app.get('/api/en/progress', (req, res) => {
+  const device = req.query.device || req.headers['x-device-id'];
+  if (!device) return res.status(400).json({ error: 'device required' });
+  res.json(en.getEnProgress(device));
+});
+app.post('/api/en/progress', (req, res) => {
+  const { device_id, vocab_id, correct } = req.body || {};
+  if (!device_id || vocab_id == null) {
+    return res.status(400).json({ error: 'device_id and vocab_id required' });
+  }
+  en.recordEnProgress(device_id, vocab_id, !!correct);
+  res.json({ ok: true });
+});
+
 app.get('/portal', (req, res) => res.type('html').send(seo.portalPage()));
 app.get('/reset', (req, res) => res.sendFile(path.join(__dirname, 'public', 'portal.html')));
 app.get('/join/:code', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));

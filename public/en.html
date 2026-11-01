@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <meta name="theme-color" content="#e63946" />
+  <meta name="description" content="CantoBuddy 學英文 — learn everyday English for elderly people in Hong Kong: household words, housework instructions for the helper, and shopping. Listen and practise." />
+  <title>CantoBuddy 學英文 — Learn everyday English</title>
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
+  <style>
+    :root {
+      --red: #e63946;
+      --red-dark: #c92d3a;
+      --ink: #1d1d1f;
+      --muted: #6b6b70;
+      --bg: #fff7f2;
+      --card: #ffffff;
+      --line: #f0d9d0;
+      --gold: #f4a340;
+      --green: #2a9d57;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: "Noto Sans SC", "PingFang HK", "Microsoft YaHei", Inter, system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      font-size: 19px;
+      line-height: 1.5;
+      padding-bottom: 84px; /* room for bottom nav */
+    }
+    .en-header {
+      position: sticky; top: 0; z-index: 20;
+      background: var(--red); color: #fff;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.12);
+    }
+    .en-brand { font-weight: 700; font-size: 22px; display: flex; align-items: baseline; gap: 8px; }
+    .en-brand-sub { font-size: 16px; font-weight: 500; opacity: 0.92; }
+    .en-header-right { display: flex; align-items: center; gap: 10px; }
+    .en-lang { display: flex; gap: 4px; }
+    .en-lang button {
+      border: 1px solid rgba(255,255,255,0.6); background: transparent; color: #fff;
+      font-size: 15px; font-weight: 600; border-radius: 999px; padding: 5px 10px; cursor: pointer;
+      min-width: 38px;
+    }
+    .en-lang button.active { background: #fff; color: var(--red); }
+    .en-back {
+      color: #fff; text-decoration: none; font-size: 15px; font-weight: 600;
+      border: 1px solid rgba(255,255,255,0.6); border-radius: 999px; padding: 5px 12px;
+    }
+    .en-view { display: none; padding: 18px 16px 28px; max-width: 760px; margin: 0 auto; }
+    .en-view.active { display: block; }
+    /* Hero / banner (different content from the Cantonese site) */
+    .en-hero {
+      background: linear-gradient(135deg, #fff 0%, #ffe9dd 100%);
+      border: 1px solid var(--line); border-radius: 20px;
+      padding: 26px 20px; text-align: center; margin-bottom: 18px;
+    }
+    .en-hero h1 { font-size: 30px; margin: 0 0 8px; color: var(--red); }
+    .en-hero p { font-size: 18px; color: var(--muted); margin: 0 0 18px; }
+    .en-hero .cta-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .en-cta {
+      background: var(--red); color: #fff; border: none; border-radius: 14px;
+      font-size: 20px; font-weight: 700; padding: 14px 22px; cursor: pointer; min-width: 150px;
+    }
+    .en-cta.secondary { background: #fff; color: var(--red); border: 2px solid var(--red); }
+    .en-section-title { font-size: 22px; font-weight: 700; margin: 6px 0 14px; }
+    /* Category grid */
+    .en-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+    .en-cat {
+      background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+      padding: 16px; text-align: center; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    }
+    .en-cat:active { transform: scale(0.98); }
+    .en-cat .ic { font-size: 38px; }
+    .en-cat .nm { font-weight: 700; font-size: 19px; margin-top: 6px; }
+    .en-cat .ct { font-size: 14px; color: var(--muted); margin-top: 2px; }
+    /* Word cards */
+    .en-word {
+      background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+      padding: 16px 18px; margin-bottom: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    }
+    .en-word .top { display: flex; align-items: center; gap: 12px; }
+    .en-word .emoji { font-size: 36px; }
+    .en-word .en { font-size: 26px; font-weight: 700; color: var(--red); flex: 1; }
+    .en-word .ph { color: var(--muted); font-size: 16px; margin: 2px 0 2px 48px; }
+    .en-word .yue { font-size: 20px; margin: 2px 0 10px 48px; }
+    .en-audio-row { display: flex; gap: 10px; margin-left: 48px; flex-wrap: wrap; }
+    .en-audio {
+      border: 1px solid var(--red); color: var(--red); background: #fff;
+      border-radius: 12px; padding: 10px 14px; font-size: 17px; font-weight: 600; cursor: pointer;
+    }
+    .en-audio:active { background: var(--red); color: #fff; }
+    /* Quiz */
+    .en-quiz-word { font-size: 34px; font-weight: 800; color: var(--red); text-align: center; margin: 10px 0; }
+    .en-quiz-ph { text-align: center; color: var(--muted); margin-bottom: 8px; }
+    /* Listening test controls */
+    .en-quiz-play {
+      display: inline-flex; align-items: center; gap: 10px; background: var(--red); color: #fff;
+      border: none; border-radius: 999px; font-size: 26px; font-weight: 700; padding: 16px 30px; cursor: pointer;
+    }
+    .en-quiz-play:active { transform: scale(0.97); }
+    .en-quiz-show {
+      background: #fff; color: var(--red); border: 2px solid var(--red); border-radius: 12px;
+      font-size: 16px; font-weight: 700; padding: 8px 14px; cursor: pointer;
+    }
+    .en-quiz-show:active { background: var(--red); color: #fff; }
+    .en-quiz-txt { font-size: 30px; font-weight: 800; color: var(--red); margin-left: 14px; }
+    .en-quiz-ph { margin-left: 8px; }
+    .en-quiz-q { text-align: center; font-size: 18px; margin: 14px 0; }
+    .en-opt {
+      display: block; width: 100%; text-align: left; background: #fff; border: 2px solid var(--line);
+      border-radius: 14px; padding: 16px 18px; font-size: 21px; margin-bottom: 12px; cursor: pointer;
+    }
+    .en-opt.correct { border-color: var(--green); background: #eafaf0; }
+    .en-opt.wrong { border-color: var(--red); background: #fdeaec; }
+    .en-feedback { text-align: center; font-size: 20px; font-weight: 700; margin: 10px 0; min-height: 26px; }
+    .en-feedback.ok { color: var(--green); }
+    .en-feedback.no { color: var(--red); }
+    /* Scenarios */
+    .en-scn {
+      display: flex; align-items: center; gap: 14px; background: var(--card); border: 1px solid var(--line);
+      border-radius: 16px; padding: 16px; margin-bottom: 14px; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    }
+    .en-scn .ic { font-size: 34px; }
+    .en-scn .nm { font-weight: 700; font-size: 20px; }
+    .en-scn .ds { font-size: 15px; color: var(--muted); }
+    .en-back-btn {
+      background: #fff; color: var(--red); border: 2px solid var(--red); border-radius: 12px;
+      font-size: 18px; font-weight: 700; padding: 12px 18px; cursor: pointer; margin-bottom: 16px;
+    }
+    .en-progress-card {
+      background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+      padding: 20px; text-align: center; font-size: 20px; margin-bottom: 14px;
+    }
+    .en-progress-card .big { font-size: 36px; font-weight: 800; color: var(--red); }
+    /* Progress bar + 3-up stat grid (aligned with Cantonese My Progress) */
+    .en-progress-bar { height: 16px; background: #f0d9d0; border-radius: 999px; overflow: hidden; margin: 2px 0 6px; }
+    .en-progress-bar-fill { height: 100%; background: var(--red); transition: width .4s ease; }
+    .en-progress-pct { text-align: center; font-size: 15px; color: var(--muted); margin-bottom: 16px; }
+    .en-grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .en-grid3 .en-progress-card { padding: 16px 8px; font-size: 14px; margin-bottom: 0; }
+    .en-grid3 .en-progress-card .big { font-size: 28px; }
+    /* Bottom nav */
+    .en-nav {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
+      background: #fff; border-top: 1px solid var(--line);
+      display: flex; justify-content: space-around; padding: 8px 0; box-shadow: 0 -2px 10px rgba(0,0,0,0.08);
+    }
+    .en-nav button {
+      background: none; border: none; color: var(--muted); font-size: 13px; font-weight: 600;
+      display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; padding: 4px 10px;
+    }
+    .en-nav button .ic { font-size: 24px; display: flex; justify-content: center; }
+    .en-nav button .ic svg { width: 24px; height: 24px; display: block; }
+    .en-nav button.active { color: var(--red); }
+    .en-hidden { display: none !important; }
+    /* Voice chooser (top menu) */
+    .en-voice-btn {
+      border: 1px solid rgba(255,255,255,0.6); background: transparent; color: #fff;
+      font-size: 18px; border-radius: 999px; padding: 5px 9px; cursor: pointer; line-height: 1;
+    }
+    .en-voice-btn:active { background: rgba(255,255,255,0.15); }
+    .en-voice-panel {
+      position: absolute; top: 52px; right: 12px; z-index: 40;
+      background: #fff; color: var(--ink); border: 1px solid var(--line); border-radius: 14px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.18); padding: 14px 14px 12px; width: 280px; max-width: 86vw;
+    }
+    .en-voice-panel .vp-title { font-weight: 700; font-size: 16px; margin-bottom: 10px; color: var(--red); }
+    .en-voice-panel .vp-row { display: block; font-size: 14px; font-weight: 600; margin-bottom: 10px; }
+    .en-voice-panel select {
+      display: block; width: 100%; margin-top: 5px; font-size: 15px; padding: 8px 10px;
+      border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink);
+    }
+    .en-voice-panel .vp-hint { font-size: 12px; color: var(--muted); line-height: 1.4; }
+  </style>
+</head>
+<body>
+  <header class="en-header">
+    <div class="en-brand">CantoBuddy <span class="en-brand-sub" id="brand-sub">學英文</span></div>
+    <div class="en-header-right">
+      <div class="en-lang" id="en-lang"></div>
+      <button id="en-voice-btn" class="en-voice-btn" onclick="toggleEnVoicePanel(event)" aria-label="選擇語音" title="選擇語音 Voice">🔊</button>
+      <div id="en-voice-panel" class="en-voice-panel en-hidden">
+        <div class="vp-title">選擇語音 · Voice</div>
+        <label class="vp-row">英文語音 / English
+          <select id="en-voice-en" onchange="setEnVoice('en', this.value)"></select>
+        </label>
+        <label class="vp-row">粵語語音 / Cantonese
+          <select id="en-voice-yue" onchange="setEnVoice('yue', this.value)"></select>
+        </label>
+        <div class="vp-hint">揀自然啲嘅聲線，撳🔊就會用佢。Pick a natural voice, then tap 🔊.</div>
+      </div>
+      <a class="en-back" href="/" id="back-canto">粵語版</a>
+    </div>
+  </header>
+
+  <main>
+    <!-- HOME -->
+    <section id="view-home" class="en-view active">
+      <div class="en-hero">
+        <h1 id="hero-title">學日常英文</h1>
+        <p id="hero-sub">教你點同家務助理溝通 · 認屋企嘢 · 出街買餸</p>
+        <div class="cta-row">
+          <button class="en-cta" onclick="enGoLearn()">學詞</button>
+          <button class="en-cta secondary" onclick="enGoPractice()">情景練習</button>
+        </div>
+      </div>
+      <div class="en-section-title" id="home-quick-title">快啲開始</div>
+      <div class="en-grid" id="home-quick"></div>
+    </section>
+
+    <!-- LEARN / CATEGORIES -->
+    <section id="view-learn" class="en-view">
+      <div class="en-section-title" id="learn-title">揀一類嚟學詞</div>
+      <div class="en-grid" id="learn-grid"></div>
+    </section>
+
+    <!-- BROWSE (words in a category) -->
+    <section id="view-browse" class="en-view">
+      <button class="en-back-btn" id="browse-back" onclick="enNavigate('learn')">返回</button>
+      <div class="en-section-title" id="browse-title">詞語</div>
+      <div id="browse-list"></div>
+      <button class="en-cta" style="width:100%;margin-top:8px" onclick="enStartQuiz(STATE.currentCat)" id="browse-quiz-btn">測驗</button>
+    </section>
+
+    <!-- QUIZ -->
+    <section id="view-quiz" class="en-view">
+      <button class="en-back-btn" id="quiz-back" onclick="enNavigate('browse')">返回</button>
+      <div class="en-section-title" id="quiz-title">測驗：撳啱嘅意思</div>
+      <div class="en-quiz-word" id="quiz-word">—</div>
+      <div class="en-quiz-ph" id="quiz-ph"></div>
+      <div class="en-feedback" id="quiz-feedback"></div>
+      <div id="quiz-options"></div>
+      <div class="en-quiz-q" id="quiz-progress"></div>
+    </section>
+
+    <!-- PRACTICE / SCENARIOS -->
+    <section id="view-practice" class="en-view">
+      <div class="en-section-title" id="practice-title">情景練習</div>
+      <p style="color:var(--muted);margin-top:-6px" id="practice-sub">同家務助理講嘅句子</p>
+      <div id="practice-list"></div>
+    </section>
+
+    <!-- SCENARIO DETAIL (phrases) -->
+    <section id="view-scenario" class="en-view">
+      <button class="en-back-btn" id="scenario-back" onclick="enNavigate('practice')">返回</button>
+      <div class="en-section-title" id="scenario-title">句子</div>
+      <div id="scenario-list"></div>
+    </section>
+
+    <!-- PROGRESS -->
+    <section id="view-progress" class="en-view">
+      <div class="en-section-title" id="progress-title">我的進度</div>
+      <div id="progress-body"></div>
+    </section>
+  </main>
+
+  <nav class="en-nav" id="en-nav">
+    <button data-view="home" class="active" onclick="enNavigate('home')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v9h14v-9"/></svg></span><span id="nav-home">主頁</span></button>
+    <button data-view="learn" onclick="enNavigate('learn')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5C10.5 4 8.5 4 7 4 5.3 4 4 5.2 4 7v12c0 1.2 1 2.2 2.5 2.2 1.5 0 3.5 0 5.5-1"/><path d="M12 5c1.5-1 3.5-1 5-1 1.7 0 3 1.2 3 3v10c0 1.2-1 2.2-2.5 2.2-1.5 0-3.5 0-5.5-1"/><path d="M12 5v14"/></svg></span><span id="nav-learn">學詞</span></button>
+    <button data-view="practice" onclick="enNavigate('practice')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.5 7.2L4 21l1.8-5.5A8 8 0 1 1 21 12Z"/><path d="M8.5 11h7M8.5 14h4"/></svg></span><span id="nav-practice">練習</span></button>
+    <button data-view="progress" onclick="enNavigate('progress')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/></svg></span><span id="nav-progress">進度</span></button>
+  </nav>
+
+  <script src="/en-i18n.js"></script>
+  <script src="/en-app.js"></script>
+</body>
+</html>

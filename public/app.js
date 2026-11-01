@@ -2720,6 +2720,36 @@ async function finishQuiz() {
         { label: t('share.chatBtn'), icon: WHATSAPP_ICON_SVG, onclick: "shareResult('chat')", variant: 'wa' },
         { label: t('share.pictureBtn'), icon: '🖼️', onclick: 'shareResult()' },
       ])}
+      <!-- The result screen used to be a dead end: with "Try Again" and "Done"
+           (home) as the only exits, most learners tapped Done and the rest of
+           the app — My Progress, Learn, Games, Discover — never got a look.
+           This panel meets her at the one moment she is demonstrably engaged
+           (she just finished a quiz) and hands her the obvious next thing,
+           which is what lifts those functions' usage. My Progress leads,
+           because the activity chart it shows is the page this change exists
+           to surface. -->
+      <div class="next-steps">
+        <h3 class="next-title">${t('result.nextTitle')}</h3>
+        <p class="next-hint">${t('result.nextHint')}</p>
+        <div class="next-grid">
+          <button class="next-card next-primary" type="button" onclick="navigate('progress')">
+            <span class="next-ico" aria-hidden="true">📊</span>
+            <span class="next-label">${t('progress.title')}</span>
+          </button>
+          <button class="next-card" type="button" onclick="navigate('categories')">
+            <span class="next-ico" aria-hidden="true">📚</span>
+            <span class="next-label">${t('nav.learn')}</span>
+          </button>
+          <button class="next-card" type="button" onclick="navigate('games')">
+            <span class="next-ico" aria-hidden="true">🎮</span>
+            <span class="next-label">${t('nav.games')}</span>
+          </button>
+          <button class="next-card" type="button" onclick="navigate('discover')">
+            <span class="next-ico" aria-hidden="true">🧭</span>
+            <span class="next-label">${t('nav.discover')}</span>
+          </button>
+        </div>
+      </div>
     </div>
   `;
 

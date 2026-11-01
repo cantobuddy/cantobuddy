@@ -290,6 +290,8 @@ const I18N = {
     'header.setName': 'Set your name',
     'header.voiceTitle': 'Choose practice voice',
     'header.langTitle': 'Change language',
+    'header.langShort': 'Language',
+    'header.voiceShort': 'Practice voice',
     // The language button advertises the language you would switch TO, so
     // these two are the button's label/tooltip, not the current language.
     'header.langSwitchEn': 'Switch to English',
@@ -411,6 +413,8 @@ const I18N = {
     'result.tryAgain': 'Try Again',
     'result.done': 'Done',
     'result.share': 'Share my score',
+    'result.nextTitle': 'Keep going',
+    'result.nextHint': 'Try one of these next',
 
     // progress
     'progress.title': 'My Progress',
@@ -898,6 +902,8 @@ const I18N = {
     'header.setName': 'Ilagay ang pangalan',
     'header.voiceTitle': 'Pumili ng boses',
     'header.langTitle': 'Palitan ang wika',
+    'header.langShort': 'Wika',
+    'header.voiceShort': 'Tinig',
     'header.langSwitchEn': 'Palitan sa Ingles',
     'header.langSwitchFil': 'Palitan sa Filipino',
     'header.employerSite': 'Para sa employer',
@@ -1005,6 +1011,8 @@ const I18N = {
     'result.tryAgain': 'Subukan Muli',
     'result.done': 'Tapos',
     'result.share': 'Ibahagi ang puntos',
+    'result.nextTitle': 'Magpatuloy',
+    'result.nextHint': 'Subukan ang isa sa mga ito',
 
     // progress
     'progress.title': 'Aking Progreso',
@@ -1496,6 +1504,8 @@ const I18N = {
     'header.setName': '设置姓名',
     'header.voiceTitle': '选择练习语音',
     'header.langTitle': '切换语言',
+    'header.langShort': '语言',
+    'header.voiceShort': '练习语音',
     'header.langSwitchEn': '切换到英文',
     'header.langSwitchFil': '切换到菲律宾语',
     'header.langSwitchZh': '切换到简体中文',
@@ -1604,6 +1614,8 @@ const I18N = {
     'result.tryAgain': '再试一次',
     'result.done': '完成',
     'result.share': '分享我的成绩',
+    'result.nextTitle': '继续学习',
+    'result.nextHint': '接下来试试这些',
 
     // progress
     'progress.title': '我的进度',
@@ -2093,6 +2105,8 @@ const I18N = {
     'header.setName': 'Atur nama Anda',
     'header.voiceTitle': 'Pilih suara latihan',
     'header.langTitle': 'Ganti bahasa',
+    'header.langShort': 'Bahasa',
+    'header.voiceShort': 'Suara latihan',
     'header.langSwitchEn': 'Ganti ke bahasa Inggris',
     'header.langSwitchFil': 'Ganti ke bahasa Filipino',
     'header.employerSite': 'Untuk majikan',
@@ -2200,6 +2214,8 @@ const I18N = {
     'result.tryAgain': 'Coba Lagi',
     'result.done': 'Selesai',
     'result.share': 'Bagikan skor saya',
+    'result.nextTitle': 'Lanjut',
+    'result.nextHint': 'Coba salah satu berikut',
 
     // progress
     'progress.title': 'Kemajuan Saya',

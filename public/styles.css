@@ -2832,6 +2832,68 @@ a.game-tile:active { transform: scale(0.96); background: var(--c-primary-tint); 
   box-shadow: 0 6px 20px var(--c-shadow);
 }
 
+/* ---- Post-quiz "Keep going" panel ----------------------------------------
+   The result screen used to be a dead end: with "Try Again" and "Done"
+   (home) as the only exits, most learners tapped Done and the rest of the
+   app — My Progress, Learn, Games, Discover — never got a look. This panel
+   meets her at the one moment she is demonstrably engaged (she just finished
+   a quiz) and hands her the obvious next step, which is what lifts those
+   functions' usage. My Progress leads because the activity chart it shows is
+   the page this change exists to surface. */
+.next-steps {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--c-border);
+  text-align: center;
+}
+.next-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 0 0 2px;
+  color: var(--c-text);
+}
+.next-hint {
+  font-size: 0.85rem;
+  color: var(--c-text-soft);
+  margin: 0 0 14px;
+}
+.next-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.next-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1.5px solid var(--c-border);
+  background: var(--c-surface);
+  color: var(--c-text);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  -webkit-tap-highlight-color: transparent;
+  transition: border-color 0.15s, background 0.15s, transform 0.12s;
+}
+.next-card:hover { border-color: var(--c-primary); background: var(--c-primary-tint); }
+.next-card:active { transform: scale(0.98); }
+.next-card .next-ico { font-size: 1.5rem; line-height: 1; flex-shrink: 0; }
+.next-card .next-label { line-height: 1.2; }
+/* My Progress leads: full width and tinted so the eye lands there first. */
+.next-card.next-primary {
+  grid-column: 1 / -1;
+  background: var(--c-primary-tint, #eaf2ff);
+  border-color: var(--c-primary, #2f6fed);
+}
+@media (max-width: 360px) {
+  .next-grid { grid-template-columns: 1fr; }
+}
+
 .quiz-q-emoji { font-size: 3.5rem; margin-bottom: 12px; }
 
 .quiz-q-cantonese {

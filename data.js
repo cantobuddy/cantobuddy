@@ -2866,6 +2866,190 @@ const SEED_POSTS = [
 </ul>
 <p>Dan kalau ada sisa, <strong>打包</strong> <em>daa2 baau1</em> — "bungkus" — akan dibungkus untuk dibawa pulang. Tak ada yang menganggap Anda pelit. Membuang makanan justru yang tidak sopan.</p>`,
   },
+  {
+    slug: 'cha-chaan-teng-hong-kong-style-cafe',
+    channel: 'culture',
+    icon: '🍳',
+    status: 'published',
+    // Newest culture article: dated today so it lands at the top of the channel.
+    published_at: '2026-11-01T10:00:00.000Z',
+    title_en: "Cha Chaan Teng: Hong Kong's Own Café",
+    title_fil: "Cha Chaan Teng: Ang Sariling Café ng Hong Kong",
+    title_zh: "茶餐厅：香港自己的咖啡室",
+    title_id: "Cha Chaan Teng: Kafe Miliknya Hong Kong",
+    summary_en: "A Hong Kong-style café born where British and Chinese food met in the 1950s — cheap, fast, and on one table you'll find Chinese noodles and iced lemon tea. The dishes worth knowing and how to order.",
+    summary_fil: "Isang Hong Kong-style café na bunga ng pagtatagpo ng pagkaing British at Tsino noong 1950s — mura, mabilis, at sa iisang mesa, Chinese noodles at iced lemon tea. Ang mga pagkaing dapat kilalanin at paano umorder.",
+    summary_zh: "五六十年代中英饮食相遇生出来的港式咖啡室——便宜、上菜快，一张桌上可以既有中式汤面又有冰柠檬茶。值得认识的招牌食物，和点单的几句话。",
+    summary_id: "Sebuah Hong Kong-style café yang lahir dari pertemuan makanan British dan Tionghoa pada 1950-an — murah, cepat, dan di satu meja ada mie Tionghoa sekaligus teh lemon es. Hidangan yang wajib dikenal dan cara memesannya.",
+    body_en: `<h2>What a cha chaan teng actually is</h2>
+<p>A <strong>cha chaan teng</strong> (茶餐廳 <em>caa4 caan1 teng1</em>) is a Hong Kong-style café — or, if you prefer, a Hong Kong diner. It is not a Western café and not a traditional Chinese restaurant. It is the city's own invention: a cheap, fast, no-frills eatery where East and West sit on the same menu. You can get a bowl of instant noodles and a glass of iced lemon tea at the same table where the next person is eating spaghetti with a fried egg on top.</p>
+<p>The name says it plainly: 茶餐廳 means "tea restaurant". The first ones grew out of post-war <strong>冰室</strong> <em>bing1 sat1</em> — "ice rooms" that sold drinks and light snacks — and by the 1950s and 60s had become full restaurants for workers who wanted Western-style food, but fast and cheap.</p>
+
+<h2>East meets West on one plate</h2>
+<p>This is the heart of a cha chaan teng. Hong Kong took British colonial food — tea, toast, baked goods, canned meat — and rebuilt it with local taste and local speed. A few things you will only find here:</p>
+<ul>
+  <li><strong>絲襪奶茶</strong> <em>si1 mat1 naai5 caa4</em> — "silk-stocking" milk tea. Strong black tea strained through a cloth bag (it looks like a silk stocking), mixed with evaporated and condensed milk. Creamy, bitter, and completely addictive.</li>
+  <li><strong>鴛鴦</strong> <em>jyun1 joeng1</em> — "yuanyang", a mix of coffee and tea in one cup. East and West literally blended in a single drink.</li>
+  <li><strong>菠蘿油</strong> <em>bo1 lo4 jau4</em> — a warm pineapple bun (菠蘿包 <em>bo1 lo4 baau1</em>) with a thick slice of cold butter tucked inside. The bun has no pineapple; the name comes from the sugary cross-hatched top that looks like the fruit.</li>
+  <li><strong>西多士</strong> <em>sai1 do1 si2</em> — Hong Kong French toast: two thick slices of bread, often with peanut butter, deep-fried, then drowned in butter and golden syrup.</li>
+  <li><strong>餐蛋麵</strong> <em>caan1 daan2 min6</em> — luncheon-meat-and-egg noodles, usually macaroni in broth. Comfort food in a bowl.</li>
+  <li><strong>羅宋湯</strong> <em>lo4 sung2 tong1</em> — a sweet-sour borscht, Russian by way of Shanghai, now a cha chaan teng staple.</li>
+  <li><strong>乾炒牛河</strong> <em>gon1 caau2 ngau4 ho2</em> — dry-fried beef ho fun noodles. A kitchen's skill shows in the wok hei (the "breath of the wok").</li>
+</ul>
+<p>Even the language on the menu is a fusion. Hong Kong borrows English and makes it Cantonese: toast becomes <strong>多士</strong> <em>do1 si2</em>, sandwich becomes <strong>三文治</strong> <em>saam1 man4 zi2</em>, cream becomes <strong>忌廉</strong> <em>gei6 lim1</em>, spaghetti becomes <em>意粉</em> <em>ji3 fan2</em>. Reading a cha chaan teng menu is like reading the city's history.</p>
+
+<h2>Cheap, fast, and open when nothing else is</h2>
+<p>Two things define the experience: price and speed. A set breakfast — milk tea, toast, and noodles or eggs — can cost HK$30 to $40. Food arrives in minutes. The turnover is deliberate: the seat you leave is the seat they sell again an hour later. Many cha chaan teng run 24 hours, and the late-night ones are where taxi drivers, night-shift workers, and insomniacs end up. For a city that never slows down, the cha chaan teng is the kitchen that keeps up.</p>
+
+<h2>The things nobody tells you</h2>
+<ul>
+  <li><strong>You may share a table.</strong> At busy times the staff will seat you at a table with strangers. It is called <strong>搭枱</strong> <em>daap3 toi2</em> and it is completely normal.</li>
+  <li><strong>"走甜" and "走冰".</strong> To order your drink less sweet or without ice, say <strong>走甜</strong> <em>zau2 tim4</em> (no sugar) or <strong>走冰</strong> <em>zau2 bing1</em> (no ice). Regular Hong Kong drinks are very sweet, so this matters.</li>
+  <li><strong>The seats are plastic.</strong> The red-and-white plastic chairs — and the clatter of them being dragged — are part of the sound of the place.</li>
+  <li><strong>Hot water may cost.</strong> Some places add a small per-person charge, like the <strong>茶芥</strong> <em>caa4 gaai3</em> on a dim sum bill. It is normal.</li>
+  <li><strong>You order, you wait, then you pay at the counter.</strong> Few places bring the bill to the table — when you are done, take your chit to the cashier and say <strong>埋單</strong> <em>maai4 daan1</em>, "the bill, please".</li>
+</ul>
+
+<h2>Where to go</h2>
+<p><strong>蘭芳園</strong> <em>laan4 fong1 jyun4</em> — Lan Fong Yuen — is the name everyone knows. Open in Central since 1952, it is credited with inventing silk-stocking milk tea and the pineapple bun with butter. The original shops are tiny and crowded, and that is the point. Tai Cheong Bakery is famous for the plain pineapple bun itself. These are not museums; they are working cafés that happened to invent something the whole city now eats.</p>
+
+<h2>How to explain it to a foreign friend</h2>
+<p>When a visitor asks where locals really eat, bring them to a cha chaan teng. Tell them: it is a Hong Kong-style café born from British and Chinese food meeting in the 1950s; it is cheap, it is fast, and on one table you can find a bowl of Chinese noodles and a glass of iced lemon tea. Then order them a silk-stocking milk tea and a pineapple bun with butter, and let the menu do the rest of the explaining.</p>
+<p>A few words to order with:</p>
+<ul>
+  <li><strong>唔該，落單</strong> <em>m4 goi1, lok6 daan1</em> — please take my order.</li>
+  <li><strong>一杯絲襪奶茶</strong> <em>jat1 bui1 si1 mat1 naai5 caa4</em> — one silk-stocking milk tea.</li>
+  <li><strong>一個菠蘿油</strong> <em>jat1 go3 bo1 lo4 jau4</em> — one pineapple bun with butter.</li>
+  <li><strong>走甜</strong> <em>zau2 tim4</em> — no sugar (for the drink).</li>
+  <li><strong>唔該，埋單</strong> <em>m4 goi1, maai4 daan1</em> — the bill, please.</li>
+</ul>`,
+    body_fil: `<h2>Ano ba talaga ang cha chaan teng</h2>
+<p>Ang <strong>cha chaan teng</strong> (茶餐廳 <em>caa4 caan1 teng1</em>) ay isang Hong Kong-style café — o kung gusto mo, isang Hong Kong diner. Hindi ito Western café, hindi rin tradisyunal na restawran ng Tsino. Gawa ng Hong Kong ito: murang, mabilis, walang arte na kainan kung saan magkatabi sa iisang menu ang Silangan at Kanluran. Sa iisang mesa, pwede kang umorder ng instant noodles at baso ng iced lemon tea habang ang katabi mo ay kumakain ng spaghetti na may itlog sa taas.</p>
+<p>Sakit ng pangalan: 茶餐廳 ay "tea restaurant". Ang mga una ay galing sa <strong>冰室</strong> <em>bing1 sat1</em> — "ice room" na nagbebenta ng inumin at meryenda — at naging buong restawran para sa mga manggagawa na gusto ng Western food, pero mabilis at mura, noong 1950s at 60s.</p>
+
+<h2>Silangan at Kanluran sa iisang pinggan</h2>
+<p>Ito ang puso ng cha chaan teng. Kinuha ng Hong Kong ang pagkaing British colonial — tsaa, toast, tinapay, de-latang karne — at binuo muli ayon sa lasa at bilis ng lokal. Ilang bagay na dito lang makikita:</p>
+<ul>
+  <li><strong>絲襪奶茶</strong> <em>si1 mat1 naai5 caa4</em> — "silk-stocking" milk tea. Matapang na black tea na sinala sa supot na tela (kamukha ng medias de seda), halo sa evaporated at condensed milk. Malapot, mapait, at nakaka-adik.</li>
+  <li><strong>鴛鴦</strong> <em>jyun1 joeng1</em> — "yuanyang", halo ng kape at tsaa sa iisang baso. Ang Silangan at Kanluran, literal na pinaghalo.</li>
+  <li><strong>菠蘿油</strong> <em>bo1 lo4 jau4</em> — mainit na pineapple bun (菠蘿包 <em>bo1 lo4 baau1</em>) na may makapal na mantikilya sa loob. Walang pinya ang tinapay; ang pangalan ay sa magkabilang pattern ng asukal na kamukha ng prutas.</li>
+  <li><strong>西多士</strong> <em>sai1 do1 si2</em> — Hong Kong French toast: dalawang makapal na hiwa ng tinapay, kadalasan may peanut butter, pina-fry, saka linulunod sa mantikilya at golden syrup.</li>
+  <li><strong>餐蛋麵</strong> <em>caa1 daan2 min6</em> — luncheon-meat-at-itlog noodles, kadalasan macaroni sa sabaw. Comfort food sa mangkok.</li>
+  <li><strong>羅宋湯</strong> <em>lo4 sung2 tong1</em> — maasim-tamis na borscht, Russian paakyat ng Shanghai, ngayon staple na ng cha chaan teng.</li>
+  <li><strong>乾炒牛河</strong> <em>gon1 caau2 ngau4 ho2</em> — dry-fried beef ho fun noodles. Sa wok hei (hininga ng kawali) nakikita ang galing ng kusina.</li>
+</ul>
+<p>Patu ang wika sa menu ay halo. Humihiram ang Hong Kong ng English at ginagawang Cantonese: ang toast ay <strong>多士</strong> <em>do1 si2</em>, sandwich ay <strong>三文治</strong> <em>saam1 man4 zi2</em>, cream ay <strong>忌廉</strong> <em>gei6 lim1</em>, spaghetti ay <em>意粉</em> <em>ji3 fan2</em>. Ang magbasa ng menu ng cha chaan teng ay parang pagbabasa ng kasaysayan ng siyudad.</p>
+
+<h2>Mura, mabilis, at bukas kapag sarado na ang lahat</h2>
+<p>Dalawang bagay ang bumubuo sa karanasan: presyo at bilis. Ang set breakfast — milk tea, toast, noodles o itlog — ay pwede lang HK$30 hanggang $40. Ilang minuto lang dumadating ang pagkain. Sinadya ang bilis: ang inuwang upuan ay ang uupuan ng susunod na customer sa isang oras. Maraming cha chaan teng ang bukas 24 oras, at doon napupunta ang mga drayber ng taxi, night-shift workers, at puyat sa madaling araw. Sa siyudad na hindi humihinto, ang cha chaan teng ang kusinang sabay sa takbo nito.</p>
+
+<h2>Ang mga bagay na walang nagpapaliwanag</h2>
+<ul>
+  <li><strong>Pwede kang makisabay sa ibang mesa.</strong> Kapag puno, ilalagay ka ng staff sa mesang may tao na. <strong>搭枱</strong> <em>daap3 toi2</em> ang tawag, at normal lang iyon.</li>
+  <li><strong>"走甜" at "走冰".</strong> Para less sweet o walang yelo ang inumin, sabihin <strong>走甜</strong> <em>zau2 tim4</em> (walang asukal) o <strong>走冰</strong> <em>zau2 bing1</em> (walang yelo). Matamis ang karaniwang inumin dito, kaya mahalaga ito.</li>
+  <li><strong>Plastic ang upuan.</strong> Ang pula-at-puting plastic chairs (at ang ingay pagkadadrag) ay bahagi ng tunog ng lugar.</li>
+  <li><strong>Pwede ring may bayad ang mainit na tubig.</strong> May mga lugar na may maliit na bayad bawat tao, gaya ng <strong>茶芥</strong> <em>caa4 gaai3</em> sa bill ng dim sum. Normal iyon.</li>
+  <li><strong>Umu-order ka, maghintay, tapos bayad sa counter.</strong> Bihirang lugar ang mag-serbisyo sa table para sa bill — pag tapos, dalhin ang resibo sa cashier at sabihin <strong>埋單</strong> <em>maai4 daan1</em>, "ang bayad po".</li>
+</ul>
+
+<h2>Saan pupunta</h2>
+<p>Ang <strong>蘭芳園</strong> <em>laan4 fong1 jyun4</em> — Lan Fong Yuen — ang pangalang alam ng lahat. Buka sa Central mula 1952, ito ang credited sa pag-imbento ng silk-stocking milk tea at pineapple bun with butter. Maliit at siksik ang orihinal na shops, at iyon ang punto. Ang Tai Cheong Bakery ay famous sa plain pineapple bun. Hindi museum ang mga ito; working café na naimbento ang kinakain ng buong siyudad.</p>
+
+<h2>Paano ipaliwanag sa foreign friend</h2>
+<p>Kapag nagtanong ang bisita kung saan talaga kumakain ang locals, dalhin mo sila sa cha chaan teng. Sabihin mo: isa itong Hong Kong-style café na bunga ng pagtatagpo ng pagkaing British at Tsino noong 1950s; mura, mabilis, at sa iisang mesa pwedeng may bowl ng Chinese noodles at baso ng iced lemon tea. Tapos umorder ka ng silk-stocking milk tea at pineapple bun with butter para sa kanila, at hayaang ang menu ang magpaliwanag ng natitira.</p>
+<p>Ilang salitang pwedeng gamitin sa pag-order:</p>
+<ul>
+  <li><strong>唔該，落單</strong> <em>m4 goi1, lok6 daan1</em> — kunin na po ang order ko.</li>
+  <li><strong>一杯絲襪奶茶</strong> <em>jat1 bui1 si1 mat1 naai5 caa4</em> — isang silk-stocking milk tea.</li>
+  <li><strong>一個菠蘿油</strong> <em>jat1 go3 bo1 lo4 jau4</em> — isang pineapple bun with butter.</li>
+  <li><strong>走甜</strong> <em>zau2 tim4</em> — walang asukal (para sa inumin).</li>
+  <li><strong>唔該，埋單</strong> <em>m4 goi1, maai4 daan1</em> — ang bayad po.</li>
+</ul>`,
+    body_zh: `<h2>茶餐厅到底是什么</h2>
+<p><strong>茶餐厅</strong>（茶餐廳 <em>caa4 caan1 teng1</em>）是一种「港式咖啡室」，也可以叫它 Hong Kong diner。它不是西式 café，也不是传统中式酒楼，而是香港人自己发明的平民食肆：便宜、上菜快、不讲究排场，菜单上东方和西方并排摆着。同一张桌子上，你可以要一碗公仔面，旁边的人却在吃上面卧着一颗煎蛋的意粉。</p>
+<p>名字说得很直白：茶餐厅就是「喝茶的餐厅」。最早的茶餐厅从战后<strong>冰室</strong>（<em>bing1 sat1</em>）演变而来——冰室只卖饮品和小食，到五六十年代渐渐变成工人也能吃得起西式快餐的正式饭堂。</p>
+
+<h2>一碟里面的中西合璧</h2>
+<p>这是茶餐厅的精髓。香港把英殖时期的饮食——奶茶、多士、面包、罐头肉——按本地口味和本地速度重做了一遍。有几样东西，只有在这里才吃得到：</p>
+<ul>
+  <li><strong>丝袜奶茶</strong>（<em>si1 mat1 naai5 caa4</em>）：用布袋（样子像丝袜）反复拉滤的浓红茶，加炼奶和淡奶，又滑又苦，一喝就上瘾。</li>
+  <li><strong>鸳鸯</strong>（<em>jyun1 joeng1</em>）：咖啡混奶茶，一杯里头东方和西方真的融在一起。</li>
+  <li><strong>菠萝油</strong>（<em>bo1 lo4 jau4</em>）：热<strong>菠萝包</strong>（<em>bo1 lo4 baau1</em>）夹一块冰牛油。面包里没有菠萝，名字来自顶面那层像菠萝的糖皮。</li>
+  <li><strong>西多士</strong>（<em>sai1 do1 si2</em>）：港式法式吐司，两片厚面包（常夹花生酱）炸过，再淋牛油和糖浆。</li>
+  <li><strong>餐蛋面</strong>（<em>caan1 daan2 min6</em>）：午餐肉加蛋的汤面，通常是通心粉，是一碗 comfort food。</li>
+  <li><strong>罗宋汤</strong>（<em>lo4 sung2 tong1</em>）：酸甜的杂菜汤，经上海传来，现在是茶餐厅的常客。</li>
+  <li><strong>干炒牛河</strong>（<em>gon1 caau2 ngau4 ho2</em>）：干炒牛肉河粉，厨房功力全在那股「镬气」上。</li>
+</ul>
+<p>连菜单上的语言都是混的。香港把英文借来变成粤语：toast 变成<strong>多士</strong>（<em>do1 si2</em>），sandwich 变成<strong>三文治</strong>（<em>saam1 man4 zi2</em>），cream 变成<strong>忌廉</strong>（<em>gei6 lim1</em>），spaghetti 变成<strong>意粉</strong>（<em>ji3 fan2</em>）。读一张茶餐厅菜单，就像读这座城的历史。</p>
+
+<h2>便宜、够快、别处关门它还开</h2>
+<p>两件事定义了这种体验：价钱和速度。一份早餐 set——奶茶、多士、面或蛋——可以只卖三十到四十港币。食物几分钟就上桌。翻台是刻意的：你离开的位，一小时后就卖给下一个人。很多茶餐厅廿四小时营业，深夜那批是 taxi 司机、夜班工和失眠的人聚脚的地方。对一座不会慢下来的城市，茶餐厅就是跟得上它的厨房。</p>
+
+<h2>没人会跟你解释的几件事</h2>
+<ul>
+  <li><strong>可能会跟陌生人拼桌。</strong>人多的时候，伙计会把你带到已经坐了人的桌子，叫<strong>搭枱</strong>（<em>daap3 toi2</em>），很正常。</li>
+  <li><strong>「走甜」「走冰」。</strong>想饮品少糖或无冰，就说<strong>走甜</strong>（<em>zau2 tim4</em>，不要糖）或<strong>走冰</strong>（<em>zau2 bing1</em>，不要冰）。这里的饮品通常很甜，所以这句话很管用。</li>
+  <li><strong>椅子是胶的。</strong>红白塑胶椅（和拖动时的声音）是这里的背景声。</li>
+  <li><strong>热水可能收费。</strong>有些店会收一点人头费，像点心单上的<strong>茶芥</strong>（<em>caa4 gaai3</em>），正常。</li>
+  <li><strong>自己落单、自己睇数。</strong>很少店会把账单送到台面——吃完拿单去收银处，说<strong>埋单</strong>（<em>maai4 daan1</em>）就行。</li>
+</ul>
+
+<h2>去哪里</h2>
+<p><strong>兰芳园</strong>（<em>laan4 fong1 jyun4</em>）是人人都识的名字。中环店自一九五二年开到现在，据说是丝袜奶茶和菠萝油的发源地。老店又细又挤，而这正是它的意思。泰昌饼家的原味菠萝包也很有名。这些不是博物馆，是仍在营业、顺手发明了全城都吃的东西的茶餐厅。</p>
+
+<h2>怎么跟外国朋友介绍</h2>
+<p>有游客问本地人到底去哪吃，就带他去茶餐厅。告诉他：这是五六十年代中英饮食相遇生出来的港式咖啡室；便宜、上菜快，一张桌上可以既有中式汤面、又有杯冰柠檬茶。然后替他点一杯丝袜奶茶、一个菠萝油，剩下的让菜单自己说。</p>
+<p>几句可以用的点单话：</p>
+<ul>
+  <li><strong>唔该，落单</strong>（<em>m4 goi1, lok6 daan1</em>）——请帮我点单。</li>
+  <li><strong>一杯丝袜奶茶</strong>（<em>jat1 bui1 si1 mat1 naai5 caa4</em>）——一杯丝袜奶茶。</li>
+  <li><strong>一个菠萝油</strong>（<em>jat1 go3 bo1 lo4 jau4</em>）——一个菠萝油。</li>
+  <li><strong>走甜</strong>（<em>zau2 tim4</em>）——不要糖（指饮品）。</li>
+  <li><strong>唔该，埋单</strong>（<em>m4 goi1, maai4 daan1</em>）——买单。</li>
+</ul>`,
+    body_id: `<h2>Apa sebenarnya cha chaan teng itu</h2>
+<p><strong>Cha chaan teng</strong> (茶餐廳 <em>caa4 caan1 teng1</em>) adalah sebuah Hong Kong-style café — atau, kalau Anda mau, sebuah Hong Kong diner. Ini bukan kafe Barat dan bukan restoran Tionghoa tradisional. Ini ciptaan Hong Kong sendiri: tempat makan murah, cepat, tanpa gimmick, di mana Timur dan Barat berdampingan dalam satu menu. Di satu meja, Anda bisa memesan mie instan dan gelas teh lemon es, sementara orang di sebelah makan spageti dengan telur di atasnya.</p>
+<p>Namanya jelas: 茶餐廳 berarti "restoran teh". Yang pertama tumbuh dari <strong>冰室</strong> <em>bing1 sat1</em> — "ruang es" yang menjual minuman dan camilan — dan pada 1950-an dan 60-an menjadi restoran lengkap untuk pekerja yang ingin makanan ala Barat, tapi cepat dan murah.</p>
+
+<h2>Timur bertemu Barat dalam satu piring</h2>
+<p>Inilah inti cha chaan teng. Hong Kong mengambil makanan kolonial British — teh, roti bakar, kue, daging kaleng — lalu membangunnya ulang dengan selera dan kecepatan lokal. Beberapa hal yang hanya ditemukan di sini:</p>
+<ul>
+  <li><strong>絲襪奶茶</strong> <em>si1 mat1 naai5 caa4</em> — "silk-stocking" milk tea. Teh hitam pekat yang disaring dengan kantung kain (mirip kaos kaki sutra), dicampur susu evaporasi dan kental manis. Kental, pahit, dan bikin ketagihan.</li>
+  <li><strong>鴛鴦</strong> <em>jyun1 joeng1</em> — "yuanyang", campuran kopi dan teh dalam satu cangkir. Timur dan Barat, literally tercampur dalam satu minuman.</li>
+  <li><strong>菠蘿油</strong> <em>bo1 lo4 jau4</em> — roti nanas hangat (菠蘿包 <em>bo1 lo4 baau1</em>) dengan irisan mentega dingin di dalamnya. Rotinya tidak pakai nanas; nama itu dari pola gula di atas yang mirip buah itu.</li>
+  <li><strong>西多士</strong> <em>sai1 do1 si2</em> — French toast ala Hong Kong: dua irisan roti tebal, sering dengan selai kacang, digoreng, lalu ditenggelamkan dalam mentega dan sirup emas.</li>
+  <li><strong>餐蛋麵</strong> <em>caan1 daan2 min6</em> — mie daging kaleng dan telur, biasanya makaroni dalam kaldu. Comfort food dalam mangkuk.</li>
+  <li><strong>羅宋湯</strong> <em>lo4 sung2 tong1</em> — borscht asam-manis, dari Rusia lewat Shanghai, kini jadi andalan cha chaan teng.</li>
+  <li><strong>乾炒牛河</strong> <em>gon1 caau2 ngau4 ho2</em> — kwetiau sapi goreng kering. Keahlian dapur terlihat dari wok hei (napas wajan).</li>
+</ul>
+<p>Bahkan bahasa di menunya adalah campuran. Hong Kong meminjam Inggris lalu menjadikannya Kanton: toast jadi <strong>多士</strong> <em>do1 si2</em>, sandwich jadi <strong>三文治</strong> <em>saam1 man4 zi2</em>, cream jadi <strong>忌廉</strong> <em>gei6 lim1</em>, spaghetti jadi <em>意粉</em> <em>ji3 fan2</em>. Membaca menu cha chaan teng seperti membaca sejarah kota ini.</p>
+
+<h2>Murah, cepat, dan buka saat yang lain sudah tutup</h2>
+<p>Dua hal yang menentukan pengalaman: harga dan kecepatan. Santap pagi set — milk tea, roti bakar, mie atau telur — bisa cuma HK$30 sampai $40. Makanan datang dalam beberapa menit. Perputaran meja disengaja: kursi yang Anda tinggalkan adalah kursi yang mereka jual lagi sejam kemudian. Banyak cha chaan teng buka 24 jam, dan yang buka malam adalah tempat sopir taksi, pekerja shift malam, dan orang yang sulit tidur berkumpul. Untuk kota yang tak pernah melambat, cha chaan teng adalah dapur yang mengimbanginya.</p>
+
+<h2>Hal-hal yang tidak pernah dijelaskan</h2>
+<ul>
+  <li><strong>Anda mungkin berbagi meja.</strong> Saat ramai, staf akan dudukkan Anda di meja yang sudah ada orangnya. Namanya <strong>搭枱</strong> <em>daap3 toi2</em>, dan itu sangat wajar.</li>
+  <li><strong>"走甜" dan "走冰".</strong> Untuk pesan minuman kurang manis atau tanpa es, katakan <strong>走甜</strong> <em>zau2 tim4</em> (tanpa gula) atau <strong>走冰</strong> <em>zau2 bing1</em> (tanpa es). Minuman di sini biasanya sangat manis, jadi ini penting.</li>
+  <li><strong>Kursinya plastik.</strong> Kursi plastik merah-putih (dan suara diseretnya) adalah bagian dari suara tempat ini.</li>
+  <li><strong>Air panas mungkin berbayar.</strong> Ada tempat yang memasang biaya kecil per orang, seperti <strong>茶芥</strong> <em>caa4 gaai3</em> di tagihan dim sum. Itu wajar.</li>
+  <li><strong>Anda pesan, tunggu, lalu bayar di kasir.</strong> Sedikit tempat yang melayani tagihan di meja — bila selesai, bawa struk ke kasir dan katakan <strong>埋單</strong> <em>maai4 daan1</em>, "minta tagihan".</li>
+</ul>
+
+<h2>Ke mana pergi</h2>
+<p><strong>蘭芳園</strong> <em>laan4 fong1 jyun4</em> — Lan Fong Yuen — adalah nama yang semua orang tahu. Buka di Central sejak 1952, ia dikreditkan menciptakan silk-stocking milk tea dan roti nanas dengan mentega. Toko aslinya kecil dan sesak, dan itulah maksudnya. Tai Cheong Bakery terkenal dengan roti nanas polosnya. Tempat ini bukan museum; kafe yang masih beroperasi dan kebetulan menciptakan makanan yang kini dimakan seluruh kota.</p>
+
+<h2>Bagaimana menjelaskannya ke teman asing</h2>
+<p>Ketika seorang tamu bertanya di mana warga lokal benar-benar makan, bawa mereka ke cha chaan teng. Katakan: ini Hong Kong-style café yang lahir dari pertemuan makanan British dan Tionghoa pada 1950-an; murah, cepat, dan di satu meja bisa ada semangkuk mie Tionghoa dan segelas teh lemon es. Lalu pesankan silk-stocking milk tea dan roti nanas dengan mentega untuk mereka, dan biarkan menu menjelaskan sisanya.</p>
+<p>Beberapa kata untuk memesan:</p>
+<ul>
+  <li><strong>唔該，落單</strong> <em>m4 goi1, lok6 daan1</em> — tolong ambil pesanan saya.</li>
+  <li><strong>一杯絲襪奶茶</strong> <em>jat1 bui1 si1 mat1 naai5 caa4</em> — satu silk-stocking milk tea.</li>
+  <li><strong>一個菠蘿油</strong> <em>jat1 go3 bo1 lo4 jau4</em> — satu roti nanas dengan mentega.</li>
+  <li><strong>走甜</strong> <em>zau2 tim4</em> — tanpa gula (untuk minuman).</li>
+  <li><strong>唔該，埋單</strong> <em>m4 goi1, maai4 daan1</em> — minta tagihan.</li>
+</ul>`,
+  },
 ];
 
 // ---------------------------------------------------------------------------

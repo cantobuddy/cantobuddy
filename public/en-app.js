@@ -331,6 +331,63 @@ function openScenario(id) {
   enNavigate('scenario');
 }
 
+// ---- Progress: sticker album (mirrors the Cantonese "My Progress" look) -----
+// These are achievement stickers derived from the learner's OWN progress — no
+// server credits needed. They unlock as the elder practises, and render in the
+// same tinted-shelf / sticker-tile style as the Cantonese album.
+const EN_SHELF_TITLES = {
+  first:    { yue: '起步獎章', zh: '起步奖章', fil: 'Unang Hakbang', id: 'Permulaan' },
+  everyday: { yue: '日常練習', zh: '日常练习', fil: 'Araw-araw', id: 'Harian' },
+  out:      { yue: '出街買餸', zh: '出门买菜', fil: 'Labas', id: 'Keluar' },
+  local:    { yue: '高手級', zh: '高手级', fil: 'Marunong', id: 'Mahir' },
+};
+
+const EN_STICKERS = [
+  { key: 'listen1', emoji: '🎧', tier: 'first', name: { yue: '第一次聽', zh: '第一次听', fil: 'Unang Paking', id: 'Dengar' }, sub: '聽過 1 個詞', test: (s) => s.seen >= 1 },
+  { key: 'hello', emoji: '👋', tier: 'first', name: { yue: '講句你好', zh: '说句你好', fil: 'Sabi Hello', id: 'Kata Hi' }, sub: '打招呼', test: (s) => s.catDone('greet') },
+  { key: 'numbers', emoji: '🔢', tier: 'first', name: { yue: '學數目', zh: '学数目', fil: 'Mga Numero', id: 'Nombor' }, sub: '數字 1–100', test: (s) => s.seen >= 12 },
+  { key: 'words10', emoji: '📚', tier: 'everyday', name: { yue: '10 個詞', zh: '10 个词', fil: '10 Salita', id: '10 Kata' }, sub: '練習 10 個', test: (s) => s.seen >= 10 },
+  { key: 'correct10', emoji: '✅', tier: 'everyday', name: { yue: '啱 10 次', zh: '对 10 次', fil: 'Tama 10', id: 'Betul 10' }, sub: '答對 10 次', test: (s) => s.correct >= 10 },
+  { key: 'scn1', emoji: '💬', tier: 'everyday', name: { yue: '首個情景', zh: '首个情景', fil: 'Unang Sitemap', id: 'Satu Skenario' }, sub: '練習 1 個情景', test: (s) => s.scenarioSeen >= 1 },
+  { key: 'kitchen', emoji: '🍳', tier: 'out', name: { yue: '廚房用語', zh: '厨房用语', fil: 'Kusina', id: 'Dapur' }, sub: '廚房詞語', test: (s) => s.catDone('kitchen') },
+  { key: 'shop', emoji: '🛒', tier: 'out', name: { yue: '買嘢用語', zh: '买东西用语', fil: 'Pamilihan', id: 'Belanja' }, sub: '購物詞語', test: (s) => s.catDone('shop') },
+  { key: 'laundry', emoji: '🧺', tier: 'out', name: { yue: '洗衣晾衫', zh: '洗衣晾衣', fil: 'Labahan', id: 'Dobi' }, sub: '洗衣露台', test: (s) => s.catDone('laund') },
+  { key: 'perfect', emoji: '🏆', tier: 'local', name: { yue: '暫時零錯', zh: '暂时零错', fil: 'Perfect', id: 'Semua Betul' }, sub: '答啱晒', test: (s) => s.quizPerfect },
+  { key: 'words50', emoji: '🌟', tier: 'local', name: { yue: '50 個詞', zh: '50 个词', fil: '50 Salita', id: '50 Kata' }, sub: '練習 50 個', test: (s) => s.seen >= 50 },
+  { key: 'allScn', emoji: '👑', tier: 'local', name: { yue: '全部情景', zh: '全部情景', fil: 'Lahat', id: 'Semua' }, sub: '完成 12 個情景', test: (s) => s.scenarioSeen >= 12 },
+];
+
+// Build a snapshot of what the learner has achieved, from STATE.progress +
+// the category/scenario word lists. `catDone(n)` is true when ~80% of a
+// category's words have been practised at least once.
+function computeProgressSummary() {
+  const entries = Object.values(STATE.progress);
+  const seen = entries.length;
+  const correct = entries.reduce((a, p) => a + (p.correct || 0), 0);
+  const byCat = {};
+  const byScn = {};
+  STATE.words.forEach((w) => {
+    if (w.type === 'word') {
+      byCat[w.category_id] = byCat[w.category_id] || { total: 0, done: 0 };
+      byCat[w.category_id].total++;
+      if (STATE.progress[w.id]) byCat[w.category_id].done++;
+    } else if (w.type === 'sentence') {
+      byScn[w.scenario_id] = byScn[w.scenario_id] || { total: 0, done: 0 };
+      byScn[w.scenario_id].total++;
+      if (STATE.progress[w.id]) byScn[w.scenario_id].done++;
+    }
+  });
+  const catDone = (needle) => {
+    const c = STATE.categories.find((x) => x.name_en && x.name_en.toLowerCase().includes(needle.toLowerCase()));
+    if (!c || !byCat[c.id]) return false;
+    const g = byCat[c.id];
+    return g.total > 0 && g.done >= Math.ceil(g.total * 0.8);
+  };
+  const scenarioSeen = Object.keys(byScn).filter((k) => byScn[k].done > 0).length;
+  const quizPerfect = seen > 0 && correct === seen;
+  return { seen, correct, catDone, scenarioSeen, quizPerfect };
+}
+
 function renderProgress() {
   const body = $('progress-body');
   if (!body) return;
@@ -341,10 +398,41 @@ function renderProgress() {
   const rights = entries.reduce((a, p) => a + (p.correct || 0), 0);
   const accuracy = attempts ? Math.round((rights / attempts) * 100) : 0;
   const pct = total ? Math.round((seen / total) * 100) : 0;
+  const lang = (typeof enCurrentLang === 'function' && enCurrentLang()) || 'yue';
   if (seen === 0) {
     body.innerHTML = `<div class="en-progress-card">${enT('progress.empty')}</div>`;
     return;
   }
+  const s = computeProgressSummary();
+  const tiers = ['first', 'everyday', 'out', 'local'];
+  let album = '<div class="sticker-album">';
+  for (const tier of tiers) {
+    const list = EN_STICKERS.filter((st) => st.tier === tier);
+    const got = list.filter((st) => st.test(s)).length;
+    const tiles = list
+      .map((st) => {
+        const unlocked = st.test(s);
+        const name = st.name[lang] || st.name.yue;
+        if (unlocked) {
+          return `<div class="sticker-tile tier-${tier} is-unlocked">
+              <span class="sticker-emoji">${st.emoji}</span>
+              <span class="sticker-name">${escapeHtml(name)}</span>
+              <span class="sticker-canto">${escapeHtml(st.sub)}</span>
+            </div>`;
+        }
+        return `<div class="sticker-tile tier-${tier} is-locked" title="${enT('progress.locked')}">
+            <span class="sticker-emoji">${st.emoji}</span>
+            <span class="sticker-name">${escapeHtml(name)}</span>
+            <span class="sticker-cost">🔒</span>
+          </div>`;
+      })
+      .join('');
+    album += `<div class="sticker-shelf">
+        <div class="sticker-shelf-title"><span>${escapeHtml(EN_SHELF_TITLES[tier][lang] || EN_SHELF_TITLES[tier].yue)}</span><span class="sticker-shelf-count">${got}/${list.length}</span></div>
+        <div class="sticker-grid">${tiles}</div>
+      </div>`;
+  }
+  album += '</div>';
   body.innerHTML = `
     <div class="en-progress-bar"><div class="en-progress-bar-fill" style="width:${pct}%"></div></div>
     <div class="en-progress-pct">${enT('progress.practicedPct', { pct, seen, total })}</div>
@@ -352,7 +440,8 @@ function renderProgress() {
       <div class="en-progress-card"><div class="big">${seen}</div>${enT('progress.seen', { n: seen })}</div>
       <div class="en-progress-card"><div class="big">${rights}</div>${enT('progress.correctTotal', { n: rights })}</div>
       <div class="en-progress-card"><div class="big">${accuracy}%</div>${enT('progress.accuracy')}</div>
-    </div>`;
+    </div>
+    ${album}`;
 }
 
 // ---- Quiz (tap the correct Cantonese meaning) -------------------------------

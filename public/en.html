@@ -145,6 +145,44 @@
     .en-grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
     .en-grid3 .en-progress-card { padding: 16px 8px; font-size: 14px; margin-bottom: 0; }
     .en-grid3 .en-progress-card .big { font-size: 28px; }
+    /* Sticker album — mirrors the Cantonese "My Progress" look (tinted squircle
+       tiles, white ring + shadow, gentle tilt on unlocked). Self-contained so it
+       does not depend on the Cantonese styles.css. */
+    .sticker-album { margin-top: 18px; display: grid; gap: 18px; }
+    .sticker-shelf-title {
+      display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+      font-size: 0.78rem; font-weight: 700; letter-spacing: 0.04em;
+      color: var(--muted); margin-bottom: 8px;
+    }
+    .sticker-shelf-count { font-variant-numeric: tabular-nums; }
+    .sticker-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .sticker-tile {
+      --tier-tint: #fdeef0; --tier-line: #f6cdd1;
+      position: relative; display: flex; flex-direction: column; align-items: center;
+      gap: 1px; min-width: 0; padding: 11px 6px 9px; border-radius: 15px;
+      border: 1px solid var(--tier-line); background: var(--tier-tint);
+      text-align: center; -webkit-tap-highlight-color: transparent;
+    }
+    .sticker-tile.tier-first    { --tier-tint: #eaf6f1; --tier-line: #c3e3d9; }
+    .sticker-tile.tier-everyday { --tier-tint: #fdf6e9; --tier-line: #eed9b8; }
+    .sticker-tile.tier-out      { --tier-tint: #eef4fc; --tier-line: #c6dbf3; }
+    .sticker-tile.tier-local    { --tier-tint: #fdeef0; --tier-line: #f6cdd1; }
+    .sticker-tile.is-unlocked {
+      cursor: pointer; box-shadow: 0 0 0 3px #fff, 0 3px 9px rgba(26,26,46,0.13);
+      transform: rotate(var(--tilt, 0deg)); transition: transform .15s ease, box-shadow .15s ease;
+    }
+    .sticker-tile.is-unlocked:nth-child(3n+1) { --tilt: -2.4deg; }
+    .sticker-tile.is-unlocked:nth-child(3n+2) { --tilt: 1.5deg; }
+    .sticker-tile.is-unlocked:nth-child(3n)   { --tilt: -0.8deg; }
+    .sticker-tile.is-unlocked:active { transform: rotate(0deg) scale(0.96); }
+    .sticker-tile.is-locked { background: #f5f5f8; border-style: dashed; border-color: #dcdce4; box-shadow: none; }
+    .sticker-tile.is-locked .sticker-emoji { filter: grayscale(1); opacity: 0.26; }
+    .sticker-emoji { font-size: 1.85rem; line-height: 1.15; filter: drop-shadow(0 2px 3px rgba(26,26,46,0.16)); }
+    .sticker-name { font-size: 0.7rem; font-weight: 700; margin-top: 3px; line-height: 1.25; overflow-wrap: anywhere; color: var(--ink); }
+    .sticker-tile.is-locked .sticker-name { color: var(--muted); }
+    .sticker-canto { font-size: 0.72rem; color: var(--red); font-weight: 600; margin-top: 1px; }
+    .sticker-tile.is-locked .sticker-canto { display: none; }
+    .sticker-cost { display: inline-block; margin-top: 4px; font-size: 0.85rem; }
     /* Bottom nav */
     .en-nav {
       position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;

@@ -38,7 +38,9 @@
       padding: 12px 16px;
       box-shadow: 0 2px 10px rgba(0,0,0,0.12);
     }
-    .en-brand { font-weight: 700; font-size: 22px; display: flex; align-items: baseline; gap: 8px; }
+    .en-brand { font-weight: 700; font-size: 22px; display: flex; align-items: baseline; gap: 8px; cursor: pointer; user-select: none; border-radius: 8px; padding: 2px 4px; margin: -2px -4px; transition: background 0.15s; }
+    .en-brand:hover { background: rgba(255,255,255,0.15); }
+    .en-brand:focus-visible { outline: 2px solid #fff; outline-offset: 1px; background: rgba(255,255,255,0.15); }
     .en-brand-sub { font-size: 16px; font-weight: 500; opacity: 0.92; }
     .en-header-right { display: flex; align-items: center; gap: 10px; }
     .en-lang { display: flex; gap: 4px; }
@@ -268,7 +270,7 @@
 </head>
 <body>
   <header class="en-header">
-    <div class="en-brand">CantoBuddy <span class="en-brand-sub" id="brand-sub">學英文</span></div>
+    <div class="en-brand" role="button" tabindex="0" aria-label="返回主頁 · Back to home" title="返回主頁 · Home" onclick="enNavigate('home')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();enNavigate('home');}">CantoBuddy <span class="en-brand-sub" id="brand-sub">學英文</span></div>
     <div class="en-header-right">
       <div class="en-lang" id="en-lang"></div>
       <button id="en-voice-btn" class="en-voice-btn" onclick="toggleEnVoicePanel(event)" aria-label="選擇語音" title="選擇語音 Voice">🔊</button>

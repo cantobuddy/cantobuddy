@@ -148,7 +148,8 @@ const GOOGLE_VERIFICATION = (process.env.GOOGLE_SITE_VERIFICATION || '').trim();
  */
 const ADSENSE_CLIENT = 'ca-pub-6845142564408798';
 const ADSENSE_SNIPPET =
-  `<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}" crossorigin="anonymous"></script>`;
+  `<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}" crossorigin="anonymous"></script>
+  <meta name="google-adsense-account" content="${ADSENSE_CLIENT}">`;
 
 /**
  * Google Analytics 4. Same reasoning as ADSENSE_CLIENT above: a measurement id

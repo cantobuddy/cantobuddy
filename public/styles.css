@@ -775,6 +775,49 @@ body {
 .home-resume-sub { font-size: 0.82rem; color: var(--c-text-soft); margin-top: 3px; }
 .home-resume-btn { flex: 0 0 auto; }
 
+/* Persistent, dismissible nudge to install the PWA. Sits right under the streak
+   card on the home screen. Because .home-install-tip sets display:flex, the
+   [hidden] attribute alone would not hide it — so we re-assert display:none. */
+.home-install-tip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding: 12px 14px;
+  background: linear-gradient(135deg, #fff4e0, #ffe7c2);
+  border: 1px solid #ffcf7a;
+  border-radius: var(--radius);
+}
+.home-install-tip[hidden] { display: none; }
+.hit-icon { font-size: 1.4rem; line-height: 1; }
+.hit-text { flex: 1 1 160px; min-width: 0; font-size: 0.9rem; color: #6b4a12; }
+.hit-btn {
+  flex: 0 0 auto;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 999px;
+  background: #ff7a00;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.hit-btn:active { transform: scale(0.97); }
+.hit-x {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.06);
+  color: #6b4a12;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.hit-x:hover { background: rgba(0,0,0,0.12); }
+
 /* Today's kitchen phrase, directly under the streak card.
 
    Deliberately the lightest card on the screen: no button, no progress, no

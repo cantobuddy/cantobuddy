@@ -6152,6 +6152,7 @@ function maybeOfferInstall() {
  * beforeinstallprompt handler the moment Chrome is ready to install.
  */
 function syncInstallEntry() {
+  syncHomeInstallTip();              // keep the persistent home nudge in sync, always
   const btn = document.getElementById('install-btn');
   if (!btn) return;
 
@@ -6163,6 +6164,37 @@ function syncInstallEntry() {
   // still gives real, correct steps. Offer it.
   const canDoSomething = isIOS() || Boolean(deferredInstall);
   btn.hidden = !canDoSomething;
+}
+
+/**
+ * Show or hide the persistent home-screen install nudge (#home-install-tip).
+ *
+ * Lives on the home screen as a steady, non-modal reminder — most valuable on
+ * iOS, where there is no one-tap install and the Share → Add to Home Screen
+ * steps are easy to miss. It is hidden the moment she has the app installed,
+ * has already answered the offer, or has dismissed this specific nudge. On
+ * Android, before Chrome fires `beforeinstallprompt`, there is nothing for the
+ * tap to do yet, so it stays hidden until that event arrives.
+ */
+function syncHomeInstallTip() {
+  const tip = document.getElementById('home-install-tip');
+  if (!tip) return;
+
+  let tipDismissed = false;
+  try { tipDismissed = localStorage.getItem('cb_home_tip_dismissed') === '1'; } catch { /* private mode */ }
+
+  // Same truthfulness rules as the header button: only show when a tap would
+  // actually do something, and never nag someone who has installed or answered.
+  const canDoSomething = isIOS() || Boolean(deferredInstall);
+  const show = canDoSomething && !isInstalled() && !installAnswered() && !tipDismissed;
+  tip.hidden = !show;
+}
+
+/** The × on the home nudge: hide it for good (until site data is cleared). */
+function dismissHomeInstallTip() {
+  const tip = document.getElementById('home-install-tip');
+  if (tip) tip.hidden = true;
+  try { localStorage.setItem('cb_home_tip_dismissed', '1'); } catch { /* private mode */ }
 }
 
 

@@ -221,8 +221,50 @@
       display: block; width: 100%; margin-top: 5px; font-size: 15px; padding: 8px 10px;
       border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink);
     }
-    .en-voice-panel .vp-hint { font-size: 12px; color: var(--muted); line-height: 1.4; }
-  </style>
+  .en-voice-panel .vp-hint { font-size: 12px; color: var(--muted); line-height: 1.4; }
+
+  /* ---- Install (PWA) modal ---- */
+  .en-modal-overlay {
+    position: fixed; inset: 0; background: rgba(26,26,46,0.45);
+    display: none; align-items: center; justify-content: center; z-index: 1200; padding: 16px;
+  }
+  .en-modal-overlay.show { display: flex; }
+  .en-modal-box {
+    background: #fff; border-radius: 18px; max-width: 360px; width: 100%;
+    padding: 22px 20px 18px; text-align: center; box-shadow: 0 12px 40px rgba(26,26,46,0.25);
+  }
+  .en-install-icon { font-size: 2.6rem; margin-bottom: 6px; }
+  .en-modal-box h3 { font-size: 1.15rem; margin: 0 0 6px; color: var(--ink); }
+  .en-modal-hint { font-size: 0.85rem; color: var(--muted); margin: 0 0 14px; line-height: 1.45; }
+  .en-install-sub { font-weight: 700; margin-bottom: 8px; color: var(--ink); }
+  .en-install-note { font-size: 0.85rem; color: var(--muted); line-height: 1.5; text-align: left; }
+  .en-install-steps { list-style: none; margin: 0 0 14px; padding: 0; counter-reset: step; text-align: left; }
+  .en-install-steps li {
+    position: relative; padding: 8px 0 8px 38px; font-size: 0.92rem; color: var(--ink);
+    border-bottom: 1px solid #f0f0f4;
+  }
+  .en-install-steps li:last-child { border-bottom: 0; }
+  .en-install-steps li::before {
+    counter-increment: step; content: counter(step);
+    position: absolute; left: 0; top: 8px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--red); color: #fff; font-weight: 700; font-size: 0.85rem;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .en-modal-actions { display: flex; gap: 10px; margin-top: 6px; }
+  .en-modal-actions .en-btn { flex: 1 1 auto; }
+  .en-btn {
+    border: 0; border-radius: 12px; padding: 12px 14px; font-size: 0.95rem; font-weight: 700;
+    cursor: pointer; background: #f0d9d0; color: #b3404a;
+  }
+  .en-btn-primary { background: var(--red); color: #fff; }
+  .en-btn-outline { background: #fff; color: var(--muted); border: 1px solid var(--line); }
+  .en-install-btn {
+    border: 1px solid var(--line); border-radius: 50%;
+    width: 38px; height: 38px; font-size: 1.1rem; cursor: pointer; display: inline-flex;
+    align-items: center; justify-content: center; color: var(--red); background: #fff;
+  }
+  .en-install-btn[hidden] { display: none; }
+</style>
 </head>
 <body>
   <header class="en-header">
@@ -230,6 +272,7 @@
     <div class="en-header-right">
       <div class="en-lang" id="en-lang"></div>
       <button id="en-voice-btn" class="en-voice-btn" onclick="toggleEnVoicePanel(event)" aria-label="選擇語音" title="選擇語音 Voice">🔊</button>
+      <button id="en-install-btn" class="en-install-btn" hidden onclick="enOpenInstallModal()" title="加去主螢幕 · Add to Home screen" aria-label="Add to Home screen">📲</button>
       <div id="en-voice-panel" class="en-voice-panel en-hidden">
         <div class="vp-title">選擇語音 · Voice</div>
         <label class="vp-row">英文語音 / English
@@ -314,5 +357,19 @@
 
   <script src="/en-i18n.js"></script>
   <script src="/en-app.js"></script>
+
+  <!-- Install (PWA) modal -->
+  <div id="en-install-modal" class="en-modal-overlay" onclick="enCloseInstallModal(event)">
+    <div class="en-modal-box" onclick="event.stopPropagation()">
+      <div class="en-install-icon">📲</div>
+      <h3 id="en-install-title"></h3>
+      <p class="en-modal-hint" id="en-install-lead"></p>
+      <div id="en-install-body"></div>
+      <div class="en-modal-actions">
+        <button class="en-btn en-btn-outline" id="en-install-later" onclick="enDismissInstall()"></button>
+        <button class="en-btn en-btn-primary" id="en-install-add" onclick="enDoInstall()" style="display:none"></button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

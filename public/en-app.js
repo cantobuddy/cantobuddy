@@ -503,6 +503,8 @@ function renderQuizQuestion() {
     $('quiz-feedback').className = 'en-feedback ok';
     $('quiz-options').innerHTML = `<button class="en-cta" style="width:100%" onclick="enRestartQuiz()">${enT('quiz.again')}</button>`;
     $('quiz-progress').textContent = '';
+    // Offer the install at the moment she has just had a good experience.
+    enMaybeOfferInstall();
     return;
   }
   const w = q.items[q.idx];
@@ -585,11 +587,129 @@ function enQuizAnswer(btn, vocabId, correctYue) {
   }, 900);
 }
 
+// ---- PWA install (English track) -------------------------------------------
+// Mirrors the Cantonese app's install flow: hold Chrome's beforeinstallprompt,
+// offer a one-tap install on Android, and show step-by-step "Add to Home Screen"
+// guidance on iPhone/Safari (which has no install API) and an honest message
+// inside in-app webviews. The SW (/sw.js, scope "/") and manifest already cover
+// /en, so only the UI/triggering lives here. Ask-once, remembered locally.
+
+const EN_INSTALL_KEY = 'cb_en_install'; // 'installed' | 'dismissed'
+let enDeferredInstall = null;
+
+function enIsInstalled() {
+  return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
+    window.navigator.standalone === true;
+}
+function enIsIOS() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+function enIsInAppBrowser() {
+  return /FBAN|FBAV|FB_IAB|Instagram|Line\/|WhatsApp|MicroMessenger|Twitter|Viber|; wv\)/i.test(navigator.userAgent);
+}
+function enInstallAnswered() {
+  try { return Boolean(localStorage.getItem(EN_INSTALL_KEY)); } catch (e) { return false; }
+}
+function enMarkInstallAnswered(state) {
+  try { localStorage.setItem(EN_INSTALL_KEY, state); } catch (e) {}
+}
+
+function enRenderInstallModal() {
+  const body = $('en-install-body');
+  const title = $('en-install-title');
+  const lead = $('en-install-lead');
+  const add = $('en-install-add');
+  const later = $('en-install-later');
+  if (!body || !title || !lead || !add || !later) return;
+  const steps = (lines) => `<ol class="en-install-steps">${lines.map((l) => `<li>${l}</li>`).join('')}</ol>`;
+
+  if (enIsInAppBrowser()) {
+    add.style.display = 'none';
+    later.textContent = enT('install.gotIt');
+    title.textContent = enT('install.inappTitle');
+    lead.textContent = '';
+    body.innerHTML = `<p class="en-install-note">${enT('install.inappBody')}</p>`;
+    return;
+  }
+  if (enDeferredInstall) {
+    add.style.display = '';
+    add.textContent = enT('install.add');
+    later.textContent = enT('install.notNow');
+    title.textContent = enT('install.title');
+    lead.textContent = enT('install.lead');
+    body.innerHTML = '';
+    return;
+  }
+  add.style.display = 'none';
+  later.textContent = enT('install.gotIt');
+  title.textContent = enT('install.title');
+  lead.textContent = enT('install.lead');
+  if (enIsIOS()) {
+    body.innerHTML = `<div class="en-install-sub">${enT('install.iosTitle')}</div>` +
+      steps([enT('install.ios1'), enT('install.ios2'), enT('install.ios3')]);
+  } else {
+    body.innerHTML = `<div class="en-install-sub">${enT('install.androidTitle')}</div>` +
+      steps([enT('install.android1'), enT('install.android2')]);
+  }
+}
+
+function enOpenInstallModal() {
+  if (enIsInstalled()) return;
+  enRenderInstallModal();
+  const m = $('en-install-modal'); if (m) m.classList.add('show');
+}
+function enCloseInstallModal(e) {
+  if (e && e.target !== e.currentTarget) return;
+  enDismissInstall();
+}
+function enDismissInstall() {
+  enMarkInstallAnswered('dismissed');
+  const m = $('en-install-modal'); if (m) m.classList.remove('show');
+  enSyncInstallEntry();
+}
+async function enDoInstall() {
+  const ev = enDeferredInstall;
+  if (!ev) return;
+  enDeferredInstall = null;
+  const m = $('en-install-modal'); if (m) m.classList.remove('show');
+  try {
+    ev.prompt();
+    const choice = await ev.userChoice;
+    enMarkInstallAnswered(choice && choice.outcome === 'accepted' ? 'installed' : 'dismissed');
+  } catch (e) {
+    enMarkInstallAnswered('dismissed');
+  }
+}
+function enSyncInstallEntry() {
+  const btn = $('en-install-btn');
+  if (!btn) return;
+  if (enIsInstalled() || enInstallAnswered()) { btn.hidden = true; return; }
+  btn.hidden = !(enIsIOS() || Boolean(enDeferredInstall));
+}
+function enMaybeOfferInstall() {
+  if (enIsInstalled() || enInstallAnswered()) return;
+  enOpenInstallModal();
+}
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  enDeferredInstall = e;
+  enSyncInstallEntry();
+});
+window.addEventListener('appinstalled', () => {
+  enMarkInstallAnswered('installed');
+  enDeferredInstall = null;
+  const m = $('en-install-modal'); if (m) m.classList.remove('show');
+  enSyncInstallEntry();
+});
+
 // ---- Init -------------------------------------------------------------------
 async function init() {
   STATE.deviceId = loadDeviceId();
   renderLangSwitch();
   applyStaticLang();
+  enSyncInstallEntry();   // show/hide the header "Add to Home" button correctly
   populateVoiceSelects(); // fill voice <select>s if voices are already available
   window.onEnLangChange = () => { applyStaticLang(); renderLearn(); renderPractice(); renderProgress(); };
 
@@ -620,6 +740,14 @@ async function init() {
   renderHomeQuick();
   renderLearn();
   renderPractice();
+
+  // Register the service worker so /en is installable and works offline. The SW
+  // (scope "/") is shared with the Cantonese app, so this is idempotent.
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    });
+  }
 }
 
 document.addEventListener('DOMContentLoaded', init);

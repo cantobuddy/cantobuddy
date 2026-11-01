@@ -239,6 +239,17 @@
          applyTranslations() would overwrite them with a static label. -->
     <div id="home-resume"></div>
 
+    <!-- Persistent, dismissible nudge to install. This is the most discoverable
+         path to the iOS "Add to Home Screen" steps, which have no one-tap API.
+         Hidden by default; app.js reveals it only when an install is actually on
+         offer and the learner has not already dismissed it. -->
+    <div id="home-install-tip" class="home-install-tip" hidden>
+      <span class="hit-icon">📲</span>
+      <span class="hit-text" data-i18n="install.tipBody">Add CantoBuddy to your home screen for one-tap access.</span>
+      <button class="hit-btn" onclick="openInstallModal()" data-i18n="install.add">📲 Add to Home screen</button>
+      <button class="hit-x" onclick="dismissHomeInstallTip()" aria-label="Dismiss">×</button>
+    </div>
+
     <!-- ---- Today's phrase for your kitchen --------------------------------
          Directly under the streak on purpose. The streak asks her to work; on
          a tired evening she will not. One phrase, one tap, ten seconds, keeps

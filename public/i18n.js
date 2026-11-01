@@ -635,6 +635,7 @@ const I18N = {
     'install.inappTitle': 'Open CantoBuddy in your browser first',
     'install.inappBody': 'You are viewing this inside another app. Tap its ⋯ or ⋮ menu and choose "Open in Safari" or "Open in Chrome" — then add CantoBuddy to your home screen there.',
     'install.done': 'CantoBuddy was added to your home screen 🎉',
+    'install.tipBody': 'Add CantoBuddy to your home screen for one-tap access.',
 
     // feedback — the one place she can talk back to us. The copy promises
     // anonymity plainly instead of burying it, because she may be reporting a
@@ -1231,6 +1232,7 @@ const I18N = {
     'install.inappTitle': 'Buksan muna ang CantoBuddy sa browser mo',
     'install.inappBody': 'Binubuksan mo ito sa loob ng ibang app. I-tap ang ⋯ o ⋮ menu nito at piliin ang "Open in Safari" o "Open in Chrome" — tapos idagdag ang CantoBuddy sa home screen doon.',
     'install.done': 'Naidagdag na ang CantoBuddy sa home screen mo 🎉',
+    'install.tipBody': 'Idagdag ang CantoBuddy sa home screen mo para isang tap lang.',
 
     // feedback — the one place she can talk back to us.
     'feedback.title': 'Sabihin ang iniisip mo',
@@ -1837,6 +1839,7 @@ const I18N = {
     'install.inappTitle': '请先在浏览器中打开 CantoBuddy',
     'install.inappBody': '你正在另一个应用里查看这个页面。点它的 ⋯ 或 ⋮ 菜单，选择"在 Safari 中打开"或"在 Chrome 中打开"，然后在浏览器里添加到主屏幕。',
     'install.done': 'CantoBuddy 已添加到你的主屏幕 🎉',
+    'install.tipBody': '把 CantoBuddy 添加到主屏幕，一点即开。',
 
     // feedback — the one place she can talk back to us.
     'feedback.title': '告诉我们你的想法',
@@ -2440,6 +2443,7 @@ const I18N = {
     'install.inappTitle': 'Buka CantoBuddy di browser dulu',
     'install.inappBody': 'Anda sedang melihat ini di dalam aplikasi lain. Ketuk menu ⋯ atau ⋮ dan pilih "Buka di Safari" atau "Buka di Chrome" — lalu tambahkan CantoBuddy ke layar utama di sana.',
     'install.done': 'CantoBuddy sudah ditambahkan ke layar utama 🎉',
+    'install.tipBody': 'Tambahkan CantoBuddy ke layar utama untuk akses sekali ketuk.',
 
     // feedback
     'feedback.title': 'Ceritakan pendapat Anda',

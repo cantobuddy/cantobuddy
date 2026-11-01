@@ -132,6 +132,7 @@ const S = {
     DO UPDATE SET seen = seen + 1, correct = correct + ?, updated_at = excluded.updated_at
   `),
   getProgress: db.prepare('SELECT vocab_id, seen, correct FROM en_progress WHERE device_id = ?'),
+  deleteProgress: db.prepare('DELETE FROM en_progress WHERE device_id = ?'),
 };
 
 // ---- Accessors --------------------------------------------------------------
@@ -181,6 +182,11 @@ function getEnProgress(deviceId) {
   return map;
 }
 
+/** Wipe ALL English-track progress for a device (used by the reset button). */
+function deleteEnProgress(deviceId) {
+  S.deleteProgress.run(String(deviceId));
+}
+
 module.exports = {
   DB_PATH,
   listEnCategories,
@@ -190,4 +196,5 @@ module.exports = {
   getEnVocabulary,
   recordEnProgress,
   getEnProgress,
+  deleteEnProgress,
 };

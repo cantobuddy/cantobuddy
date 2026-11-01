@@ -2109,6 +2109,12 @@ app.post('/api/en/progress', (req, res) => {
   en.recordEnProgress(device_id, vocab_id, !!correct);
   res.json({ ok: true });
 });
+app.delete('/api/en/progress', (req, res) => {
+  const device = req.query.device || (req.body && req.body.device_id) || req.headers['x-device-id'];
+  if (!device) return res.status(400).json({ error: 'device required' });
+  en.deleteEnProgress(device);
+  res.json({ ok: true });
+});
 
 app.get('/portal', (req, res) => res.type('html').send(seo.portalPage()));
 app.get('/reset', (req, res) => res.sendFile(path.join(__dirname, 'public', 'portal.html')));

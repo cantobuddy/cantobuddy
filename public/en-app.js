@@ -56,6 +56,16 @@ async function apiPost(url, body) {
   if (!r.ok) throw new Error('POST ' + url + ' failed: ' + r.status);
   return r.json();
 }
+async function apiDelete(url, body) {
+  const opts = { method: 'DELETE' };
+  if (body) {
+    opts.headers = { 'Content-Type': 'application/json' };
+    opts.body = JSON.stringify(body);
+  }
+  const r = await fetch(url, opts);
+  if (!r.ok) throw new Error('DELETE ' + url + ' failed: ' + r.status);
+  return r.json().catch(() => ({}));
+}
 
 // ---- TTS (English + Cantonese) ---------------------------------------------
 let _voices = [];
@@ -400,7 +410,8 @@ function renderProgress() {
   const pct = total ? Math.round((seen / total) * 100) : 0;
   const lang = (typeof enCurrentLang === 'function' && enCurrentLang()) || 'yue';
   if (seen === 0) {
-    body.innerHTML = `<div class="en-progress-card">${enT('progress.empty')}</div>`;
+    body.innerHTML = `<div class="en-progress-card">${enT('progress.empty')}</div>
+    <button class="en-reset-btn" onclick="enResetProgress()">${enT('progress.reset')}</button>`;
     return;
   }
   const s = computeProgressSummary();
@@ -441,7 +452,23 @@ function renderProgress() {
       <div class="en-progress-card"><div class="big">${rights}</div>${enT('progress.correctTotal', { n: rights })}</div>
       <div class="en-progress-card"><div class="big">${accuracy}%</div>${enT('progress.accuracy')}</div>
     </div>
-    ${album}`;
+    ${album}
+    <button class="en-reset-btn" onclick="enResetProgress()">${enT('progress.reset')}</button>`;
+}
+
+/**
+ * Reset ALL English-track progress for this device. Asks for confirmation first
+ * (the action is irreversible), then clears server-side rows and the local
+ * STATE.progress, and re-renders the (now empty) progress page.
+ */
+function enResetProgress() {
+  if (!window.confirm(enT('progress.resetConfirm'))) return;
+  apiDelete('/api/en/progress', { device_id: STATE.deviceId })
+    .catch(() => {})
+    .then(() => {
+      STATE.progress = {};
+      renderProgress();
+    });
 }
 
 // ---- Quiz (tap the correct Cantonese meaning) -------------------------------

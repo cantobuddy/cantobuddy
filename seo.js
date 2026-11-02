@@ -146,7 +146,7 @@ const GOOGLE_VERIFICATION = (process.env.GOOGLE_SITE_VERIFICATION || '').trim();
  * everything generated here, and the SEO pages never pass through it. Miss
  * either one and half the site serves no ads.
  */
-const ADSENSE_CLIENT = 'ca-pub-6845142564488798';
+const ADSENSE_CLIENT = 'ca-pub-6845142564408798';
 const ADSENSE_SNIPPET =
   `<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}" crossorigin="anonymous"></script>
   <meta name="google-adsense-account" content="${ADSENSE_CLIENT}">`;

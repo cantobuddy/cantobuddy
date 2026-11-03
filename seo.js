@@ -2892,7 +2892,7 @@ function postCardLi(post, lang, prefix) {
  * Only topics that actually have items appear. An empty section headed
  * "Government" with nothing under it is a promise the page does not keep.
  */
-function newsTopicSections(news, lang, prefix) {
+function newsTopicSections(news, lang, prefix, perTopic = 6) {
   const topics = ['hongkong', 'work', 'money', 'health', 'home', 'politics', 'other'];
   const groups = new Map();
   for (const p of news) {
@@ -2903,11 +2903,15 @@ function newsTopicSections(news, lang, prefix) {
   const nav = [...groups.keys()]
     .map((k) => `<li><a href="#topic-${esc(k)}">${esc(newsTopicLabel(lang, k))}</a></li>`)
     .join('');
+  // The hub is a doorway, not an archive. Rendering every imported headline put
+  // 200 news cards on one page, which buried the editorial pillars and split the
+  // internal link equity across items nobody scrolls to. Eight newest per topic
+  // keeps every bucket current and keeps the page a reasonable weight.
   const sections = [...groups.entries()]
     .map(([k, items]) => `
 <h3 class="disc-h3" id="topic-${esc(k)}">${esc(newsTopicLabel(lang, k))}</h3>
 <ul class="guide-list">
-${items.map((p) => postCardLi(p, lang, prefix)).join('\n')}
+${items.slice(0, perTopic).map((p) => postCardLi(p, lang, prefix)).join('\n')}
 </ul>`)
     .join('\n');
   return `
@@ -2998,8 +3002,11 @@ ${extraSections}
 <h2 class="disc-h2">${esc(ui.news)}</h2>
 <p class="lede">${esc(ui.newsLede)}</p>
 ${news.length ? newsTopicSections(news, lang, prefix) : `<p class="lede">${esc(ui.empty)}</p>`}
-${section(ui.stories, ui.storiesLede, stories)}
-${more(storiesUi.backToStories, `${prefix}/stories`)}
+${
+    stories.length
+      ? `${section(ui.stories, ui.storiesLede, stories.slice(0, 24))}\n${more(storiesUi.backToStories, `${prefix}/stories`)}`
+      : more(ui.stories, `${prefix}/stories`)
+  }
 ${ctaCard(lang)}
 `;
 

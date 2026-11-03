@@ -30,7 +30,7 @@ const path = require('path');
 
 const store = require('./db');
 const { GUIDES, GUIDE_BY_SLUG, UPDATED } = require('./content');
-const enData = require('./en-data');
+const enStore = require('./en');
 const dailyPhrase = require('./daily-phrase');
 
 /**
@@ -3566,23 +3566,36 @@ ${ctaCard('en')}
    /en, and listed in the sitemap. Content is sourced from the same seed the app
    is built from (en-data.js) so the two can never disagree.
    ============================================================================ */
-const EN_VOCAB = enData.SEED_EN_VOCABULARY.filter((v) => v.type === 'word');
-const EN_CATEGORIES = enData.SEED_EN_CATEGORIES;
-
-function enCatById(id) {
-  return EN_CATEGORIES.find((c) => c.id === id) || null;
+/* Read the English track from the SAME database the app uses (cantobuddy-en.db,
+ * via en.js), NOT from the seed. The seed only fills an empty DB; once populated
+ * the DB is the source of truth, and an operator edit must show up on these pages
+ * too. server.js already loads en.js, so requiring it here reuses that module and
+ * its single connection. */
+function enWordRows() {
+  // listEnWords({}) returns words AND scenario sentences; the SEO pages are about
+  // browsable words, so sentences are filtered out exactly as the app does.
+  return enStore.listEnWords({}).filter((v) => v.type === 'word');
+}
+function enCategoryRows() {
+  return enStore.listEnCategories();
+}
+function enCatById(cats, id) {
+  return cats.find((c) => c.id === id) || null;
 }
 
 /* Unique slug index, mirroring buildWordIndex() for the main site.
  * A handful of English words appear in two rooms (Tap in Kitchen and Toilet,
  * Table in Bedroom and Living Room), so slugify(english) alone collides: the
  * second word would be unreachable and the sitemap would list the same URL
- * twice. A colliding slug gains its category id, which is stable across boots. */
-const EN_WORD_INDEX = (() => {
+ * twice. A colliding slug gains its category id, which is stable across boots.
+ * Built per render (not once at boot) so a DB change is reflected immediately,
+ * the same way buildWordIndex() works for the Cantonese site. */
+function buildEnWordIndex() {
+  const words = enWordRows();
   const bySlug = new Map();
   const byWord = new Map();
   const used = new Set();
-  for (const w of EN_VOCAB) {
+  for (const w of words) {
     let s = slugify(w.english);
     if (used.has(s)) s = `${s}-${w.category_id}`;
     let n = 2;
@@ -3591,12 +3604,20 @@ const EN_WORD_INDEX = (() => {
     bySlug.set(s, w);
     byWord.set(w, s);
   }
-  return { bySlug, byWord };
-})();
+  return { words, bySlug, byWord };
+}
+
+/* hreflang for an English-only page: it is its own alternate, and x-default
+ * points at it. Used in both the <head> and the sitemap. */
+function enAlternates(path) {
+  return [{ lang: 'en', path }, { lang: 'x-default', path }];
+}
 
 function renderEnLearnHub() {
-  const cards = EN_CATEGORIES.map((c) => {
-    const count = EN_VOCAB.filter((w) => w.category_id === c.id).length;
+  const cats = enCategoryRows();
+  const words = enWordRows();
+  const cards = cats.map((c) => {
+    const count = words.filter((w) => w.category_id === c.id).length;
     return `<li><a href="/en/category/${esc(slugify(c.name_en))}">
       <span class="em">${esc(c.icon || '')}</span>
       <span class="t">${esc(c.name_en)}</span>
@@ -3620,15 +3641,16 @@ ${ctaCard('en', '', '/en')}
     body,
     brandHref: '/en',
     ctaHref: '/en',
-    alternates: [{ lang: 'en', path: '/en/learn' }],
+    alternates: enAlternates('/en/learn'),
   });
 }
 
 function renderEnCategory(slug) {
-  const cat = EN_CATEGORIES.find((c) => slugify(c.name_en) === slug);
+  const idx = buildEnWordIndex();
+  const cat = enCategoryRows().find((c) => slugify(c.name_en) === slug);
   if (!cat) return null;
-  const words = EN_VOCAB.filter((w) => w.category_id === cat.id);
-  const rows = words.map((w) => `<li><a href="/en/words/${esc(EN_WORD_INDEX.byWord.get(w))}">
+  const words = idx.words.filter((w) => w.category_id === cat.id);
+  const rows = words.map((w) => `<li><a href="/en/words/${esc(idx.byWord.get(w))}">
     <span class="em">${esc(w.emoji || '')}</span>
     <span class="han">${esc(w.english)}<span class="n">${esc(w.cantonese || '')}</span></span>
   </a></li>`).join('\n');
@@ -3649,20 +3671,21 @@ ${ctaCard('en', '', '/en')}
     body,
     brandHref: '/en',
     ctaHref: '/en',
-    alternates: [{ lang: 'en', path: `/en/category/${slug}` }],
+    alternates: enAlternates(`/en/category/${slug}`),
   });
 }
 
 function renderEnWord(slug) {
-  const w = EN_WORD_INDEX.bySlug.get(slug);
+  const idx = buildEnWordIndex();
+  const w = idx.bySlug.get(slug);
   if (!w) return null;
-  const cat = enCatById(w.category_id);
+  const cat = enCatById(enCategoryRows(), w.category_id);
   const catName = cat ? cat.name_en : 'Useful Words';
   const catSlug = cat ? slugify(cat.name_en) : 'useful-words';
-  const related = EN_VOCAB.filter((r) => r.category_id === w.category_id && r.english !== w.english).slice(0, 12);
+  const related = idx.words.filter((r) => r.category_id === w.category_id && r.english !== w.english).slice(0, 12);
   const relatedBlock = related.length ? `<h2>More ${esc(catName)} words</h2>
 <ul class="grid">
-${related.map((r) => `<li><a href="/en/words/${esc(EN_WORD_INDEX.byWord.get(r))}">
+${related.map((r) => `<li><a href="/en/words/${esc(idx.byWord.get(r))}">
   <span class="em">${esc(r.emoji || '')}</span>
   <span class="han">${esc(r.english)}<span class="n">${esc(r.cantonese || '')}</span></span>
 </a></li>`).join('\n')}
@@ -3692,7 +3715,7 @@ ${relatedBlock}
     body,
     brandHref: '/en',
     ctaHref: '/en',
-    alternates: [{ lang: 'en', path: `/en/words/${slug}` }],
+    alternates: enAlternates(`/en/words/${slug}`),
     jsonLd: {
       '@context': 'https://schema.org',
       '@graph': [
@@ -4069,13 +4092,18 @@ ${alts}
     add(g, '0.5', 'monthly', null, SITE_STRUCTURE_DATE);
   }
 
-  // English track (/en) SEO pages — siblings of the /en SPA.
-  add('/en/learn', '0.8', 'weekly', null, SITE_STRUCTURE_DATE);
-  for (const c of EN_CATEGORIES) {
-    add(`/en/category/${slugify(c.name_en)}`, '0.7', 'monthly', null, SITE_STRUCTURE_DATE);
+  // English track (/en) — the SPA landing plus its server-rendered siblings.
+  // English-only pages, so hreflang is a self-reference plus x-default.
+  add('/en', '0.9', 'weekly', enAlternates('/en'), SITE_STRUCTURE_DATE);
+  add('/en/learn', '0.8', 'weekly', enAlternates('/en/learn'), SITE_STRUCTURE_DATE);
+  for (const c of enCategoryRows()) {
+    const p = `/en/category/${slugify(c.name_en)}`;
+    add(p, '0.7', 'monthly', enAlternates(p), SITE_STRUCTURE_DATE);
   }
-  for (const s of EN_WORD_INDEX.bySlug.keys()) {
-    add(`/en/words/${s}`, '0.6', 'monthly', null, SITE_STRUCTURE_DATE);
+  const enIdx = buildEnWordIndex();
+  for (const s of enIdx.bySlug.keys()) {
+    const p = `/en/words/${s}`;
+    add(p, '0.6', 'monthly', enAlternates(p), SITE_STRUCTURE_DATE);
   }
 
   // Pillar / topic pages (search intent).

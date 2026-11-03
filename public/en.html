@@ -275,9 +275,36 @@
     align-items: center; justify-content: center; color: var(--red); background: #fff;
   }
   .en-install-btn[hidden] { display: none; }
+  /* Crawlable intro for search engines — hidden visually, present in markup. */
+  .en-seo-intro {
+    position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+    overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0;
+  }
+  .en-seo-intro a { color: #c92d3a; }
 </style>
 </head>
 <body>
+  <!-- Crawlable introduction for search engines (visually hidden; the interactive
+       app below is a single-page app and renders nothing for crawlers). -->
+  <div class="en-seo-intro" aria-hidden="true">
+    <h1>CantoBuddy 學英文 — Learn Everyday English</h1>
+    <p>CantoBuddy 學英文 helps elderly people in Hong Kong learn simple, everyday
+      English for home life: household items room by room, housework instructions
+      for the helper, and shopping for daily goods. Each word is shown with its
+      Cantonese meaning and spoken aloud in both English and Cantonese.</p>
+    <p>Browse the English words by topic:</p>
+    <ul>
+      <li><a href="/en/learn">English for Daily Life — all topics</a></li>
+      <li><a href="/en/category/greetings">Greetings</a></li>
+      <li><a href="/en/category/numbers-money">Numbers &amp; Money</a></li>
+      <li><a href="/en/category/kitchen">Kitchen</a></li>
+      <li><a href="/en/category/shopping-goods">Shopping Goods</a></li>
+      <li><a href="/en/category/emergency">Emergency</a></li>
+    </ul>
+    <p>Also learn Cantonese for free at <a href="/">CantoBuddy</a>, including
+      <a href="/cantonese-for-domestic-helpers">Cantonese for domestic helpers</a>
+      and <a href="/cantonese-food-phrases">Cantonese food phrases</a>.</p>
+  </div>
   <header class="en-header">
     <div class="en-brand" role="button" tabindex="0" aria-label="返回主頁 · Back to home" title="返回主頁 · Home" onclick="enNavigate('home')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();enNavigate('home');}">CantoBuddy <span class="en-brand-sub" id="brand-sub">學英文</span></div>
     <div class="en-header-right">

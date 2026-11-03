@@ -30,6 +30,8 @@ const path = require('path');
 
 const store = require('./db');
 const { GUIDES, GUIDE_BY_SLUG, UPDATED } = require('./content');
+const enData = require('./en-data');
+const dailyPhrase = require('./daily-phrase');
 
 /**
  * The date the vocabulary library last changed. This is the honest `lastmod`
@@ -1326,8 +1328,8 @@ function page(o) {
 <body>
 <header class="site">
   <div class="wrap">
-    <a class="brand" href="${LANG_PREFIX[lang] || '/'}"><span class="em">🦜</span>CantoBuddy</a>
-    <a class="cta" href="/">${esc(L[lang].openApp)}</a>
+  <a class="brand" href="${esc(o.brandHref || LANG_PREFIX[lang] || '/')}"><span class="em">🦜</span>CantoBuddy</a>
+  <a class="cta" href="${esc(o.ctaHref || '/')}">${esc(L[lang].openApp)}</a>
   </div>
 </header>
 <main>
@@ -1347,7 +1349,10 @@ ${o.body}
        &nbsp;·&nbsp; <a href="${FOR_EMPLOYERS_HREF[lang]}">${esc(FOR_EMPLOYERS_LABEL[lang])}</a>
        &nbsp;·&nbsp; <a href="/about">About</a>
        &nbsp;·&nbsp; <a href="/contact">Contact</a>
-       &nbsp;·&nbsp; <a href="/terms">Terms</a></p>
+       &nbsp;·&nbsp; <a href="/terms">Terms</a>
+       &nbsp;·&nbsp; <a href="/cantonese-for-domestic-helpers">For helpers</a>
+       &nbsp;·&nbsp; <a href="/cantonese-food-phrases">Food phrases</a>
+       &nbsp;·&nbsp; <a href="/cantonese-for-elderly-learners">Elderly learners</a></p>
   </div>
 </footer>
 ${VISIT_BEACON}
@@ -1378,11 +1383,12 @@ function languageLinks(current) {
 }
 
 /** Shared CTA block linking back into the SPA. */
-function ctaCard(lang, extra) {
+function ctaCard(lang, extra, href) {
   const t = L[lang];
+  const to = href || '/';
   return `<div class="cta-card">
     <p>${esc(t.openAppDesc)}</p>
-    <a class="cta" href="/">${esc(t.openApp)}</a>
+    <a class="cta" href="${esc(to)}">${esc(t.openApp)}</a>
   </div>`;
 }
 
@@ -3552,6 +3558,294 @@ ${ctaCard('en')}
   return page({ lang: 'en', title, description, path, jsonLd, body });
 }
 
+/* ============================ English Track (/en) ============================
+   Server-rendered SEO siblings of the /en single-page app. The /en app (en.html)
+   renders nothing crawlable at its own URL, so Google sees an empty shell and
+   assigns no rankings — the gap the operator reported. Mirroring the main site,
+   the SPA stays at /en and the content is exposed as plain HTML here, linked from
+   /en, and listed in the sitemap. Content is sourced from the same seed the app
+   is built from (en-data.js) so the two can never disagree.
+   ============================================================================ */
+const EN_VOCAB = enData.SEED_EN_VOCABULARY.filter((v) => v.type === 'word');
+const EN_CATEGORIES = enData.SEED_EN_CATEGORIES;
+
+function enCatById(id) {
+  return EN_CATEGORIES.find((c) => c.id === id) || null;
+}
+
+/* Unique slug index, mirroring buildWordIndex() for the main site.
+ * A handful of English words appear in two rooms (Tap in Kitchen and Toilet,
+ * Table in Bedroom and Living Room), so slugify(english) alone collides: the
+ * second word would be unreachable and the sitemap would list the same URL
+ * twice. A colliding slug gains its category id, which is stable across boots. */
+const EN_WORD_INDEX = (() => {
+  const bySlug = new Map();
+  const byWord = new Map();
+  const used = new Set();
+  for (const w of EN_VOCAB) {
+    let s = slugify(w.english);
+    if (used.has(s)) s = `${s}-${w.category_id}`;
+    let n = 2;
+    while (used.has(s)) { s = `${slugify(w.english)}-${w.category_id}-${n++}`; }
+    used.add(s);
+    bySlug.set(s, w);
+    byWord.set(w, s);
+  }
+  return { bySlug, byWord };
+})();
+
+function renderEnLearnHub() {
+  const cards = EN_CATEGORIES.map((c) => {
+    const count = EN_VOCAB.filter((w) => w.category_id === c.id).length;
+    return `<li><a href="/en/category/${esc(slugify(c.name_en))}">
+      <span class="em">${esc(c.icon || '')}</span>
+      <span class="t">${esc(c.name_en)}</span>
+      <span class="n">${count} words</span>
+    </a></li>`;
+  }).join('\n');
+
+  const body = `
+<h1>English for Daily Life</h1>
+<p class="lede">Simple English words and phrases for everyday home life in Hong Kong — name household items room by room, give the helper housework instructions, and shop with confidence. Each word shows its Cantonese meaning so you can learn at home.</p>
+<ul class="grid">
+${cards}
+</ul>
+${ctaCard('en', '', '/en')}
+`;
+  return page({
+    lang: 'en',
+    title: 'English for Daily Life — Learn Everyday English | CantoBuddy',
+    description: 'Simple English words and phrases for elderly learners in Hong Kong: household items, shopping, greetings and emergencies, each with its Cantonese meaning. Free.',
+    path: '/en/learn',
+    body,
+    brandHref: '/en',
+    ctaHref: '/en',
+    alternates: [{ lang: 'en', path: '/en/learn' }],
+  });
+}
+
+function renderEnCategory(slug) {
+  const cat = EN_CATEGORIES.find((c) => slugify(c.name_en) === slug);
+  if (!cat) return null;
+  const words = EN_VOCAB.filter((w) => w.category_id === cat.id);
+  const rows = words.map((w) => `<li><a href="/en/words/${esc(EN_WORD_INDEX.byWord.get(w))}">
+    <span class="em">${esc(w.emoji || '')}</span>
+    <span class="han">${esc(w.english)}<span class="n">${esc(w.cantonese || '')}</span></span>
+  </a></li>`).join('\n');
+  const body = `
+<nav class="crumbs" aria-label="Breadcrumb"><a href="/en/learn">English for Daily Life</a><span class="sep">›</span><span>${esc(cat.name_en)}</span></nav>
+<h1>${esc(cat.icon || '')} ${esc(cat.name_en)}</h1>
+<p class="lede">English words for ${esc(cat.name_en).toLowerCase()} — each shown with its Cantonese meaning (${esc(cat.name_yue || '')}) so you can learn at home.</p>
+<ul class="grid">
+${rows}
+</ul>
+${ctaCard('en', '', '/en')}
+`;
+  return page({
+    lang: 'en',
+    title: `${cat.name_en} — Everyday English Words | CantoBuddy`,
+    description: `Learn ${cat.name_en} in English with Cantonese meanings. Free everyday English words for elderly learners and domestic helpers in Hong Kong.`,
+    path: `/en/category/${slug}`,
+    body,
+    brandHref: '/en',
+    ctaHref: '/en',
+    alternates: [{ lang: 'en', path: `/en/category/${slug}` }],
+  });
+}
+
+function renderEnWord(slug) {
+  const w = EN_WORD_INDEX.bySlug.get(slug);
+  if (!w) return null;
+  const cat = enCatById(w.category_id);
+  const catName = cat ? cat.name_en : 'Useful Words';
+  const catSlug = cat ? slugify(cat.name_en) : 'useful-words';
+  const related = EN_VOCAB.filter((r) => r.category_id === w.category_id && r.english !== w.english).slice(0, 12);
+  const relatedBlock = related.length ? `<h2>More ${esc(catName)} words</h2>
+<ul class="grid">
+${related.map((r) => `<li><a href="/en/words/${esc(EN_WORD_INDEX.byWord.get(r))}">
+  <span class="em">${esc(r.emoji || '')}</span>
+  <span class="han">${esc(r.english)}<span class="n">${esc(r.cantonese || '')}</span></span>
+</a></li>`).join('\n')}
+</ul>` : '';
+  const body = `
+<nav class="crumbs" aria-label="Breadcrumb"><a href="/en/learn">English for Daily Life</a><span class="sep">›</span><a href="/en/category/${esc(catSlug)}">${esc(catName)}</a><span class="sep">›</span><span>${esc(w.english)}</span></nav>
+<h1 class="word-hero">
+  <span class="han">${esc(w.english)}</span>
+  ${w.phonetic ? `<span class="jy">${esc(w.phonetic)}</span>` : ''}
+  ${w.cantonese ? `<span class="gloss">${esc(w.cantonese)}</span>` : ''}
+</h1>
+<dl class="meta">
+  <dt>English</dt><dd>${esc(w.english)}</dd>
+  ${w.phonetic ? `<dt>Say it like</dt><dd>${esc(w.phonetic)}</dd>` : ''}
+  ${w.cantonese ? `<dt>廣東話 (Cantonese)</dt><dd lang="zh-Hans">${esc(w.cantonese)}</dd>` : ''}
+  <dt>Topic</dt><dd><a href="/en/category/${esc(catSlug)}">${esc(catName)}</a></dd>
+</dl>
+${ctaCard('en', '', '/en')}
+${relatedBlock}
+`;
+  const desc = `${w.english}${w.phonetic ? `, pronounced "${w.phonetic}"` : ''}${w.cantonese ? `, means ${w.cantonese} in Cantonese` : ''}. A simple everyday English word for elderly learners in Hong Kong.`;
+  return page({
+    lang: 'en',
+    title: `${w.english} — English word with Cantonese meaning | CantoBuddy`,
+    description: desc,
+    path: `/en/words/${slug}`,
+    body,
+    brandHref: '/en',
+    ctaHref: '/en',
+    alternates: [{ lang: 'en', path: `/en/words/${slug}` }],
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@graph': [
+        ORG_LD,
+        { '@type': 'DefinedTerm', name: w.english, alternateName: w.cantonese, description: desc, inLanguage: 'en', url: `${SITE_ORIGIN}/en/words/${slug}` },
+      ],
+    },
+  });
+}
+
+/* ============================ Pillar / topic pages ============================
+   Indexable pages organised by SEARCH INTENT, not by the database schema. Each
+   links into the real vocabulary, discover and /en pages, so the crawlable
+   surface area grows and the pages reinforce one another. English-only.
+   ============================================================================ */
+function pillarCatLinks(regex, limit) {
+  return store.listEnabledCategories()
+    .filter((c) => regex.test(c.name_en))
+    .slice(0, limit || 12)
+    .map((c) => `<li><a href="/learn/${esc(slugify(c.name_en))}"><span class="em">${esc(c.icon || '')}</span> ${esc(c.name_en)}</a></li>`)
+    .join('\n');
+}
+
+const PILLARS = {
+  'cantonese-for-domestic-helpers': {
+    title: 'Cantonese for Domestic Helpers in Hong Kong',
+    description: 'Free Cantonese words and phrases for domestic helpers in Hong Kong — talk about housework, food, shopping and emergencies with the family you work for.',
+    intro: 'Most helpers learn Cantonese on the job, a few words at a time. These topic lists collect the words families actually use at home, with Jyutping and English so you can check as you go.',
+  },
+  'cantonese-for-elderly-learners': {
+    title: 'Cantonese & English for Elderly Learners',
+    description: 'Gentle English and Cantonese practice for elderly learners in Hong Kong — household words, greetings and everyday phrases, with clear audio.',
+    intro: 'Learning a language later in life is easier with familiar, everyday words. Start with the English-for-daily-life track, then explore the Cantonese topics below.',
+  },
+  'cantonese-food-phrases': {
+    title: 'Cantonese Food & Dining Phrases',
+    description: 'Order, shop and talk about food in Cantonese — market and supermarket words, classic dishes, and the Hong Kong café (Cha Chaan Teng) explained.',
+    intro: 'Food is where most everyday Cantonese happens. These topics cover the words you need at the market, the supermarket and the table.',
+  },
+};
+
+function renderPillar(slug) {
+  const p = PILLARS[slug];
+  if (!p) return null;
+  let links = '';
+  if (slug === 'cantonese-for-domestic-helpers') {
+    links = pillarCatLinks(/kitchen|food|meal|clean|house|home|wash|shop|market|emergency|health|child|care|daily|family|greet|basic/i);
+  } else if (slug === 'cantonese-for-elderly-learners') {
+    links = `<li><a href="/en/learn"><span class="em">📘</span> English for Daily Life (elderly track)</a></li>\n` +
+      pillarCatLinks(/greet|number|basic|everyday|essential|useful/i);
+  } else if (slug === 'cantonese-food-phrases') {
+    links = `<li><a href="/discover/cha-chaan-teng-hong-kong-style-cafe"><span class="em">🍳</span> Cha Chaan Teng — Hong Kong-style café</a></li>\n` +
+      pillarCatLinks(/food|meal|kitchen|drink|fruit|vegetable|market|snack/i);
+  }
+  const body = `
+<h1>${esc(p.title)}</h1>
+<p class="lede">${esc(p.description)}</p>
+<p>${esc(p.intro)}</p>
+<h2>Start with these topics</h2>
+<ul class="grid">
+${links}
+</ul>
+${ctaCard('en', '', '/')}
+`;
+  return page({
+    lang: 'en',
+    title: `${p.title} | CantoBuddy`,
+    description: p.description,
+    path: `/${slug}`,
+    body,
+    alternates: [{ lang: 'en', path: `/${slug}` }],
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@graph': [
+        ORG_LD,
+        { '@type': 'WebPage', name: p.title, description: p.description, url: `${SITE_ORIGIN}/${slug}`, inLanguage: 'en-HK' },
+      ],
+    },
+  });
+}
+
+/* ============================ Phrase of the Day ============================
+   One crawlable, permanent page per calendar day. The daily-phrase logic
+   (daily-phrase.js) is a pure function of vocabulary + date; here we render it
+   as static HTML so each day accrues its own indexable URL — about 365 new
+   pages a year — instead of living only inside the SPA.
+   ============================================================================ */
+const PHRASE_POOL = (() => {
+  let pool = [];
+  for (const id of dailyPhrase.KITCHEN_CATEGORY_IDS) {
+    pool = pool.concat(store.listVocabulary({ category_id: id, enabledOnly: true }));
+  }
+  return pool;
+})();
+
+function hkDateStr(d) {
+  const hk = new Date(d.getTime() + 8 * 3600 * 1000);
+  return hk.toISOString().slice(0, 10);
+}
+
+function renderPhrase(dateStr) {
+  const date = dateStr || hkDateStr(new Date());
+  // Reject anything that is not a REAL calendar date. A format-only check lets
+  // /phrase/2026-13-99 through (Date.UTC normalises it), which would make every
+  // typo an indexable page — an unbounded set of soft-404 junk URLs.
+  if (dateStr) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return null;
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const dt = new Date(Date.UTC(y, m - 1, d));
+    if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== m - 1 || dt.getUTCDate() !== d) return null;
+  }
+  const word = dailyPhrase.pickPhrase(PHRASE_POOL, date);
+  if (!word) return null;
+  const { bySlug } = buildWordIndex();
+  let slug = null;
+  for (const [s, w] of bySlug) { if (w.id === word.id) { slug = s; break; } }
+  const title = `Cantonese Phrase for ${date} — ${word.cantonese}${word.jyutping ? ` (${word.jyutping})` : ''} | CantoBuddy`;
+  const description = `Daily Cantonese phrase for ${date}: ${word.cantonese}${word.jyutping ? ` (${word.jyutping})` : ''} means "${word.english}". Practise with CantoBuddy's free audio and quiz.`;
+  const body = `
+<h1>Daily Cantonese Phrase</h1>
+<p class="lede">A Cantonese phrase to practise every day. This one is for the Hong Kong date ${esc(date)}.</p>
+<h1 class="word-hero">
+  <span class="han">${esc(word.cantonese)}</span>
+  ${word.jyutping ? `<span class="jy">${esc(word.jyutping)}</span>` : ''}
+  <span class="gloss">${esc(word.english)}</span>
+</h1>
+<dl class="meta">
+  <dt>Cantonese</dt><dd>${esc(word.cantonese)}</dd>
+  ${word.jyutping ? `<dt>Jyutping</dt><dd>${esc(word.jyutping)}</dd>` : ''}
+  <dt>English</dt><dd>${esc(word.english)}</dd>
+  ${word.tagalog ? `<dt>Filipino</dt><dd>${esc(word.tagalog)}</dd>` : ''}
+  <dt>Date</dt><dd>${esc(date)}</dd>
+</dl>
+${slug ? `<p><a class="cta" href="/words/${esc(slug)}">Practise “${esc(word.cantonese)}” with audio &amp; quiz →</a></p>` : ''}
+${ctaCard('en', '', '/')}
+`;
+  return page({
+    lang: 'en',
+    title,
+    description,
+    path: dateStr ? `/phrase/${dateStr}` : '/phrase',
+    body,
+    alternates: [{ lang: 'en', path: dateStr ? `/phrase/${dateStr}` : '/phrase' }],
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@graph': [
+        ORG_LD,
+        { '@type': 'DefinedTerm', name: word.cantonese, alternateName: word.english, description, inLanguage: 'yue', url: `${SITE_ORIGIN}${dateStr ? `/phrase/${dateStr}` : '/phrase'}` },
+      ],
+    },
+  });
+}
+
 function renderSitemap() {
   const urls = [];
 
@@ -3775,6 +4069,30 @@ ${alts}
     add(g, '0.5', 'monthly', null, SITE_STRUCTURE_DATE);
   }
 
+  // English track (/en) SEO pages — siblings of the /en SPA.
+  add('/en/learn', '0.8', 'weekly', null, SITE_STRUCTURE_DATE);
+  for (const c of EN_CATEGORIES) {
+    add(`/en/category/${slugify(c.name_en)}`, '0.7', 'monthly', null, SITE_STRUCTURE_DATE);
+  }
+  for (const s of EN_WORD_INDEX.bySlug.keys()) {
+    add(`/en/words/${s}`, '0.6', 'monthly', null, SITE_STRUCTURE_DATE);
+  }
+
+  // Pillar / topic pages (search intent).
+  for (const slug of Object.keys(PILLARS)) {
+    add(`/${slug}`, '0.7', 'monthly', null, SITE_STRUCTURE_DATE);
+  }
+
+  // Phrase of the Day — one crawlable URL per day (past year + today).
+  {
+    const today = new Date();
+    for (let i = 364; i >= 0; i--) {
+      const ds = hkDateStr(new Date(today.getTime() - i * 86400000));
+      add(`/phrase/${ds}`, '0.4', 'daily', null, ds);
+    }
+    add('/phrase', '0.5', 'daily', null, hkDateStr(today));
+  }
+
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:xhtml="http://www.w3.org/1999/xhtml">
@@ -3805,6 +4123,11 @@ Allow: /zh
 Allow: /id
 Allow: /privacy
 Allow: /portal
+Allow: /en
+Allow: /phrase
+Allow: /cantonese-for-domestic-helpers
+Allow: /cantonese-for-elderly-learners
+Allow: /cantonese-food-phrases
 
 # The employer landing page is /portal. /portal.html is the same shell WITHOUT
 # the landing content, and it carries its own noindex — so it is deliberately
@@ -4183,6 +4506,38 @@ function mount(app) {
   app.get('/about', (req, res) => html(res, renderAbout()));
   app.get('/contact', (req, res) => html(res, renderContact(req.query.sent === '1')));
   app.get('/terms', (req, res) => html(res, renderTerms()));
+
+  // --- English track (/en) SEO siblings of the /en SPA ---
+  app.get('/en/learn', (req, res) => {
+    try { const b = renderEnLearnHub(); if (!b) return html(res, renderNotFound('en'), 404); html(res, b); }
+    catch (e) { console.error('  ! /en/learn render failed:', e.message); html(res, renderNotFound('en'), 500); }
+  });
+  app.get('/en/category/:slug', (req, res) => {
+    try { const b = renderEnCategory(req.params.slug); if (!b) return html(res, renderNotFound('en'), 404); html(res, b); }
+    catch (e) { console.error('  ! /en/category render failed:', e.message); html(res, renderNotFound('en'), 500); }
+  });
+  app.get('/en/words/:slug', (req, res) => {
+    try { const b = renderEnWord(req.params.slug); if (!b) return html(res, renderNotFound('en'), 404); html(res, b); }
+    catch (e) { console.error('  ! /en/words render failed:', e.message); html(res, renderNotFound('en'), 500); }
+  });
+
+  // --- Pillar / topic pages (search intent) ---
+  for (const slug of Object.keys(PILLARS)) {
+    app.get(`/${slug}`, (req, res) => {
+      try { const b = renderPillar(slug); if (!b) return html(res, renderNotFound('en'), 404); html(res, b); }
+      catch (e) { console.error(`  ! /${slug} render failed:`, e.message); html(res, renderNotFound('en'), 500); }
+    });
+  }
+
+  // --- Phrase of the Day (one crawlable URL per day) ---
+  app.get('/phrase', (req, res) => {
+    try { const b = renderPhrase(null); if (!b) return html(res, renderNotFound('en'), 404); html(res, b); }
+    catch (e) { console.error('  ! /phrase render failed:', e.message); html(res, renderNotFound('en'), 500); }
+  });
+  app.get('/phrase/:date', (req, res) => {
+    try { const b = renderPhrase(req.params.date); if (!b) return html(res, renderNotFound('en'), 404); html(res, b); }
+    catch (e) { console.error('  ! /phrase/:date render failed:', e.message); html(res, renderNotFound('en'), 500); }
+  });
 
   console.log(`  SEO:          ${SITE_ORIGIN}/sitemap.xml  (${store.listVocabulary({ enabledOnly: true }).length} words, ${store.listEnabledCategories().length} categories, ${LANGS.length} languages)`);
 }

@@ -3050,6 +3050,298 @@ const SEED_POSTS = [
   <li><strong>唔該，埋單</strong> <em>m4 goi1, maai4 daan1</em> — minta tagihan.</li>
 </ul>`,
   },
+
+  {
+    slug: 'cantonese-survival-phrases-market',
+    channel: 'survival-phrases',
+    icon: '🧺',
+    status: 'published',
+    published_at: '2026-11-01T09:00:00.000Z',
+    title_en: 'Cantonese Survival Phrases for the Market',
+    title_fil: 'Mga Survival na Parirala sa Cantonese para sa Palengke',
+    title_zh: '街市生存粤语',
+    title_id: 'Frasa Bertahan Bahasa Kanton untuk Pasar',
+    summary_en:
+      'The wet market is loud, fast and cash-only. Five phrases get you through it — and one of them will save you from paying tourist prices.',
+    summary_fil:
+      'Maingay, mabilis at cash-only ang wet market. Limang parirala ang makakalampas sa iyo — at isa sa kanila ang magliligtas sa iyo sa presyong pang-turista.',
+    summary_zh: '街市又吵又快，而且只收现金。五句话就能走完一趟——其中一句还能让你不必付游客价。',
+    summary_id:
+      'Pasar basah itu ramai, cepat, dan hanya tunai. Lima frasa cukup untuk melewatinya — dan satu di antaranya menyelamatkan Anda dari harga turis.',
+    body_en: `<p>The wet market is the best place to practise Cantonese and the worst place to be shy. It is loud, the queue moves fast, and the auntie has already weighed your vegetables before you finish saying hello.</p>
+<h2>🧺 The five that matter</h2>
+<ul>
+<li><strong>幾多錢？</strong> <em>gei2 do1 cin2</em> — "How much?" The first phrase you will use, every single time.</li>
+<li><strong>平啲得唔得？</strong> <em>peng4 di1 dak1 m4 dak1</em> — "Can it be a bit cheaper?" Said with a smile, it is normal, not rude.</li>
+<li><strong>我要一斤</strong> <em>ngo5 jiu3 jat1 gan1</em> — "I want one catty." A 斤 (gan1) is about 600g; most stalls sell by it.</li>
+<li><strong>唔要</strong> <em>m4 jiu3</em> — "I don't want it." For the plastic bag, the extra ginger, the thing you did not ask for.</li>
+<li><strong>唔該晒</strong> <em>m4 goi1 saai3</em> — "Thanks for all of it." The polite exit.</li>
+</ul>
+<h2>💡 The trick nobody tells you</h2>
+<p>Say the price back to them before you pay. <strong>六十？</strong> <em>luk6 sap6</em> — "sixty?" — confirms the number and quietly signals you are listening. It is also the fastest way to catch a price that changed between the sign and the till.</p>
+<h2>😄 The honest truth</h2>
+<p>You will mispronounce 一斤 the first ten times and end up with more vegetables than you planned. The auntie will laugh, you will laugh, and next week she will remember you. That is how the market works — it is a relationship, not a transaction.</p>`,
+    body_fil: `<p>Ang wet market ang pinakamagandang lugar para magsanay ng Cantonese at ang pinakamasamang lugar para mahiya. Maingay ito, mabilis ang pila, at natimbang na ng tindera ang gulay mo bago mo pa matapos ang "hello".</p>
+<h2>🧺 Ang limang kailangan</h2>
+<ul>
+<li><strong>幾多錢？</strong> <em>gei2 do1 cin2</em> — "Magkano?" Ang unang pariralang gagamitin mo, tuwing beses.</li>
+<li><strong>平啲得唔得？</strong> <em>peng4 di1 dak1 m4 dak1</em> — "Pwede bang bawasan nang kaunti?" Sabihin nang nakangiti; normal ito, hindi bastos.</li>
+<li><strong>我要一斤</strong> <em>ngo5 jiu3 jat1 gan1</em> — "Isang catty." Ang 斤 (gan1) ay mga 600g; karamihan ng stall ay ganito ang benta.</li>
+<li><strong>唔要</strong> <em>m4 jiu3</em> — "Ayoko." Para sa plastic bag, dagdag na luya, o bagay na hindi mo hiningi.</li>
+<li><strong>唔該晒</strong> <em>m4 goi1 saai3</em> — "Salamat sa lahat." Ang magalang na pag-alis.</li>
+</ul>
+<h2>💡 Ang trick na hindi sinasabi</h2>
+<p>Ulitin ang presyo bago magbayad. <strong>六十？</strong> <em>luk6 sap6</em> — "animnapu?" — kumpirmasyon, at senyales na nakikinig ka. Ito rin ang pinakamabilis na paraan para mahuli ang presyong nagbago mula sa karatula hanggang sa bayaran.</p>
+<h2>😄 Ang totoo</h2>
+<p>Mali-mali mo ang 一斤 sa unang sampung beses at mas marami ang gulay mo kaysa plano. Tatawa ang tindera, tatawa ka, at sa susunod na linggo, maaalala ka niya. Ganito ang palengke — relasyon, hindi transaksyon.</p>`,
+    body_zh: `<p>街市是练粤语最好的地方，也是最不该害羞的地方。它很吵，队伍走得快，你还没说完「你好」，阿姨已经把你的菜称好了。</p>
+<h2>🧺 五句就够</h2>
+<ul>
+<li><strong>幾多錢？</strong> <em>gei2 do1 cin2</em>——「多少钱？」你每次都会用到的第一句。</li>
+<li><strong>平啲得唔得？</strong> <em>peng4 di1 dak1 m4 dak1</em>——「能便宜一点吗？」笑着说，这是正常，不是没礼貌。</li>
+<li><strong>我要一斤</strong> <em>ngo5 jiu3 jat1 gan1</em>——「我要一斤。」一斤约600克，多数摊子按斤卖。</li>
+<li><strong>唔要</strong> <em>m4 jiu3</em>——「不要。」用来拒绝胶袋、多给的姜，或你没要的东西。</li>
+<li><strong>唔該晒</strong> <em>m4 goi1 saai3</em>——「多谢晒。」礼貌地离开。</li>
+</ul>
+<h2>💡 没人告诉你的小技巧</h2>
+<p>付钱前把价钱念一遍。<strong>六十？</strong> <em>luk6 sap6</em>——「六十？」既是确认，也悄悄表示你在听。这也是最快发现「牌价和收银不一致」的办法。</p>
+<h2>😄 实话</h2>
+<p>头十次你都会把「一斤」念错，最后买回家的菜比计划多。阿姨会笑，你也会笑，下星期她就记得你了。街市就是这样——是关系，不是交易。</p>`,
+    body_id: `<p>Pasar basah adalah tempat terbaik untuk berlatih bahasa Kanton dan tempat terburuk untuk malu. Ramai, antrean cepat, dan ibu penjual sudah menimbang sayur Anda sebelum Anda selesai bilang halo.</p>
+<h2>🧺 Lima yang penting</h2>
+<ul>
+<li><strong>幾多錢？</strong> <em>gei2 do1 cin2</em> — "Berapa?" Frasa pertama yang akan Anda pakai, setiap kali.</li>
+<li><strong>平啲得唔得？</strong> <em>peng4 di1 dak1 m4 dak1</em> — "Bisa lebih murah sedikit?" Sambil tersenyum, ini normal, bukan kasar.</li>
+<li><strong>我要一斤</strong> <em>ngo5 jiu3 jat1 gan1</em> — "Saya mau satu catty." 斤 (gan1) sekitar 600g; kebanyakan lapak menjual per itu.</li>
+<li><strong>唔要</strong> <em>m4 jiu3</em> — "Tidak mau." Untuk kantong plastik, jahe ekstra, atau barang yang tidak Anda minta.</li>
+<li><strong>唔該晒</strong> <em>m4 goi1 saai3</em> — "Terima kasih semuanya." Cara pamit yang sopan.</li>
+</ul>
+<h2>💡 Trik yang tidak diberitahu</h2>
+<p>Ulangi harganya sebelum membayar. <strong>六十？</strong> <em>luk6 sap6</em> — "enam puluh?" — konfirmasi, sekaligus tanda Anda mendengarkan. Ini juga cara tercepat menangkap harga yang berubah antara papan dan kasir.</p>
+<h2>😄 Sejujurnya</h2>
+<p>Sepuluh kali pertama Anda akan salah mengucapkan 一斤 dan pulang dengan sayur lebih banyak dari rencana. Ibu penjual akan tertawa, Anda ikut tertawa, dan minggu depan ia mengingat Anda. Begitulah pasar — hubungan, bukan transaksi.</p>`,
+  },
+
+  {
+    slug: 'asking-where-does-this-go',
+    channel: 'work-household',
+    icon: '🧺',
+    status: 'published',
+    published_at: '2026-11-01T10:00:00.000Z',
+    title_en: 'How to Ask “Where Does This Go?” Without Sounding Rude',
+    title_fil: 'Paano Itanong ang “Saan Ito Nilalagay?” Nang Hindi Bastos',
+    title_zh: '怎么问「这个放哪里？」又不失礼',
+    title_id: 'Cara Bertanya “Ini Ditaruh di Mana?” Tanpa Terkesan Kasar',
+    summary_en:
+      'You have cleaned the thing, and now you are standing in the living room holding it. One question fixes this — and it is not the one most people learn first.',
+    summary_fil:
+      'Nalinis mo na, at nakatayo ka sa sala na hawak ito. Isang tanong ang ayos nito — at hindi ito ang unang natututunan ng karamihan.',
+    summary_zh: '东西擦干净了，你站在客厅里拿着它，不知道它住哪。一句话就能解决——而且不是大多数人先学的那句。',
+    summary_id:
+      'Anda sudah membersihkannya, dan kini berdiri di ruang tamu sambil memegangnya. Satu pertanyaan menyelesaikan ini — dan bukan yang pertama dipelajari orang.',
+    body_en: `<p>Every helper has had this moment: you have cleaned something, the family is out, and you are standing in the living room holding it with no idea where it lives. You could guess. Guessing is how the remote ends up in the cutlery drawer.</p>
+<h2>❓ The question</h2>
+<p><strong>呢個放喺邊度？</strong> <em>ni1 go3 fong3 hai2 bin1 dou6</em> — "Where does this go?" It is neutral, it is short, and it puts the decision where it belongs: with the person who owns the thing.</p>
+<p>A softer version: <strong>呢個擺邊度好？</strong> <em>ni1 go3 baai2 bin1 dou6 hou2</em> — "Where would be good to put this?"</p>
+<h2>🧠 Why it works</h2>
+<p>It is not a confession of ignorance; it is a request for a rule. Once you know the rule — plates in the left cupboard, chargers in the drawer by the TV — you never have to ask again. Families notice this. The helper who asks once and remembers is worth more than the one who guesses ten times.</p>
+<h2>✅ Three more that save a conversation</h2>
+<ul>
+<li><strong>呢個要唔要洗？</strong> <em>ni1 go3 jiu3 m4 jiu3 sai2</em> — "Does this need washing?"</li>
+<li><strong>擺喺邊個櫃？</strong> <em>baai2 hai2 bin1 go3 gwai6</em> — "Which cupboard does it go in?"</li>
+<li><strong>我做完喇</strong> <em>ngo5 zou6 jyun4 laa3</em> — "I have finished."</li>
+</ul>
+<p>Ask once. Write it down. Next week you will be the one telling the new helper where the chargers go.</p>`,
+    body_fil: `<p>May sandaling ganito ang bawat katulong: nalinis mo ang isang bagay, wala ang pamilya, at nakatayo ka sa sala na hawak ito nang hindi alam kung saan ito nakatira. Puwede kang maghula. Ang paghula ang dahilan kung bakit napupunta ang remote sa drawer ng kubyertos.</p>
+<h2>❓ Ang tanong</h2>
+<p><strong>呢個放喺邊度？</strong> <em>ni1 go3 fong3 hai2 bin1 dou6</em> — "Saan ito nilalagay?" Neutral, maikli, at inilalagay ang desisyon sa taong may-ari ng bagay.</p>
+<p>Mas malambing na bersyon: <strong>呢個擺邊度好？</strong> <em>ni1 go3 baai2 bin1 dou6 hou2</em> — "Saan kaya magandang ilagay ito?"</p>
+<h2>🧠 Bakit ito gumagana</h2>
+<p>Hindi ito pag-amin ng kamangmangan; hiling ito ng panuntunan. Kapag alam mo ang panuntunan — plato sa kaliwang aparador, charger sa drawer sa tabi ng TV — hindi mo na kailangang magtanong muli. Napapansin ito ng pamilya. Ang katulong na nagtanong isang beses at naalala ay mas mahalaga kaysa sa naghula ng sampung beses.</p>
+<h2>✅ Tatlo pang nakakatipid ng usapan</h2>
+<ul>
+<li><strong>呢個要唔要洗？</strong> <em>ni1 go3 jiu3 m4 jiu3 sai2</em> — "Kailangan bang hugasan ito?"</li>
+<li><strong>擺喺邊個櫃？</strong> <em>baai2 hai2 bin1 go3 gwai6</em> — "Sa aling aparador ito?"</li>
+<li><strong>我做完喇</strong> <em>ngo5 zou6 jyun4 laa3</em> — "Tapos na ako."</li>
+</ul>
+<p>Magtanong isang beses. Isulat. Sa susunod na linggo, ikaw ang magsasabi sa bagong katulong kung saan ang charger.</p>`,
+    body_zh: `<p>每个家佣都遇过这一刻：东西擦干净了，家里人出去了，你站在客厅里拿着它，完全不知道它平时放哪。你可以猜。猜的结果，就是遥控器跑进了餐具抽屉。</p>
+<h2>❓ 这句话</h2>
+<p><strong>呢個放喺邊度？</strong> <em>ni1 go3 fong3 hai2 bin1 dou6</em>——「这个放哪里？」中性、简短，把决定权交回给东西的主人。</p>
+<p>想更客气一点：<strong>呢個擺邊度好？</strong> <em>ni1 go3 baai2 bin1 dou6 hou2</em>——「这个放哪里比较好？」</p>
+<h2>🧠 为什么有用</h2>
+<p>这不是承认自己不懂，而是问一条规则。一旦知道规则——盘子放左边柜子，充电器放电视旁的抽屉——你就不用再问。家里人看得出来。问一次就记住的家佣，比猜十次的值钱。</p>
+<h2>✅ 另外三句，省掉一场对话</h2>
+<ul>
+<li><strong>呢個要唔要洗？</strong> <em>ni1 go3 jiu3 m4 jiu3 sai2</em>——「这个要洗吗？」</li>
+<li><strong>擺喺邊個櫃？</strong> <em>baai2 hai2 bin1 go3 gwai6</em>——「放哪个柜子？」</li>
+<li><strong>我做完喇</strong> <em>ngo5 zou6 jyun4 laa3</em>——「我做完了。」</li>
+</ul>
+<p>问一次，记下来。下星期，就是你来告诉新来的家佣充电器放哪。</p>`,
+    body_id: `<p>Setiap asisten pernah mengalami ini: Anda sudah membersihkan sesuatu, keluarga sedang keluar, dan Anda berdiri di ruang tamu sambil memegangnya tanpa tahu di mana tempatnya. Anda bisa menebak. Menebak adalah cara remote berakhir di laci sendok.</p>
+<h2>❓ Pertanyaannya</h2>
+<p><strong>呢個放喺邊度？</strong> <em>ni1 go3 fong3 hai2 bin1 dou6</em> — "Ini ditaruh di mana?" Netral, singkat, dan menyerahkan keputusan kepada pemilik barang.</p>
+<p>Versi lebih lembut: <strong>呢個擺邊度好？</strong> <em>ni1 go3 baai2 bin1 dou6 hou2</em> — "Sebaiknya ditaruh di mana?"</p>
+<h2>🧠 Mengapa berhasil</h2>
+<p>Ini bukan pengakuan tidak tahu; ini permintaan aturan. Begitu tahu aturannya — piring di lemari kiri, charger di laci dekat TV — Anda tak perlu bertanya lagi. Keluarga memperhatikan ini. Asisten yang bertanya sekali lalu ingat lebih berharga daripada yang menebak sepuluh kali.</p>
+<h2>✅ Tiga lagi yang menghemat percakapan</h2>
+<ul>
+<li><strong>呢個要唔要洗？</strong> <em>ni1 go3 jiu3 m4 jiu3 sai2</em> — "Apakah ini perlu dicuci?"</li>
+<li><strong>擺喺邊個櫃？</strong> <em>baai2 hai2 bin1 go3 gwai6</em> — "Di lemari mana?"</li>
+<li><strong>我做完喇</strong> <em>ngo5 zou6 jyun4 laa3</em> — "Saya sudah selesai."</li>
+</ul>
+<p>Tanya sekali. Catat. Minggu depan, Anda yang memberi tahu asisten baru di mana charger.</p>`,
+  },
+
+  {
+    slug: 'saying-you-feel-sick-in-cantonese',
+    channel: 'health',
+    icon: '🤒',
+    status: 'published',
+    published_at: '2026-11-02T09:00:00.000Z',
+    title_en: 'Telling Someone You Feel Sick — the Words That Get Help Fast',
+    title_fil: 'Pagsasabi na Masama ang Pakiramdam — ang mga Salitang Nagdadala ng Tulong',
+    title_zh: '怎么说不舒服——能马上求助的那几句话',
+    title_id: 'Mengatakan Anda Sakit — Kata yang Mendatangkan Bantuan Cepat',
+    summary_en:
+      'When you are unwell, the hardest part is explaining it in a second language. Five sentences cover almost every situation.',
+    summary_fil:
+      'Kapag may sakit ka, ang pinakamahirap ay ipaliwanag ito sa ikalawang wika. Limang pangungusap ang saklaw halos lahat ng sitwasyon.',
+    summary_zh: '生病时最难的是用第二语言解释。五句话，几乎覆盖所有情况。',
+    summary_id:
+      'Saat sakit, bagian tersulit adalah menjelaskannya dalam bahasa kedua. Lima kalimat mencakup hampir semua situasi.',
+    body_en: `<p>Being ill in a language you are still learning is frightening in a very specific way: you know something is wrong, and you cannot say what. These are the sentences to learn before you need them.</p>
+<h2>🤒 Start here</h2>
+<p><strong>我唔舒服</strong> <em>ngo5 m4 syu1 fuk6</em> — "I don't feel well." It is vague on purpose. It opens the conversation without committing you to a diagnosis you cannot pronounce.</p>
+<h2>📍 Say where</h2>
+<ul>
+<li><strong>頭痛</strong> <em>tau4 tung3</em> — headache</li>
+<li><strong>肚痛</strong> <em>tou5 tung3</em> — stomach ache</li>
+<li><strong>發燒</strong> <em>faat3 siu1</em> — fever</li>
+<li><strong>呢度痛</strong> <em>ni1 dou6 tung3</em> — "it hurts here" (point)</li>
+</ul>
+<h2>🚑 If it is serious</h2>
+<p>Call <strong>999</strong>. The word for ambulance is <strong>救護車</strong> <em>gau3 wu6 ce1</em>. If you cannot speak, say <strong>救命</strong> <em>gau3 meng6</em> — "help" — and give your address. The operator will find you.</p>
+<h2>💊 At the pharmacy</h2>
+<p>Show your phone with <strong>我發燒</strong> <em>ngo5 faat3 siu1</em> — "I have a fever" — and the staff will point you to the right shelf. You do not need a perfect sentence; you need one true one.</p>
+<p>And the one you will actually need: <strong>我要食藥</strong> <em>ngo5 jiu3 sik6 joek6</em> — "I need to take medicine."</p>`,
+    body_fil: `<p>Ang magkasakit sa wikang pinag-aaralan mo pa lang ay nakakatakot sa isang partikular na paraan: alam mong may mali, at hindi mo masabi kung ano. Ito ang mga pangungusap na dapat mong malaman bago mo kailanganin.</p>
+<h2>🤒 Magsimula dito</h2>
+<p><strong>我唔舒服</strong> <em>ngo5 m4 syu1 fuk6</em> — "Masama ang pakiramdam ko." Sadyang malabo. Binubuksan nito ang usapan nang hindi ka nagsasabi ng diagnosis na hindi mo kayang bigkasin.</p>
+<h2>📍 Sabihin kung saan</h2>
+<ul>
+<li><strong>頭痛</strong> <em>tau4 tung3</em> — sakit ng ulo</li>
+<li><strong>肚痛</strong> <em>tou5 tung3</em> — sakit ng tiyan</li>
+<li><strong>發燒</strong> <em>faat3 siu1</em> — lagnat</li>
+<li><strong>呢度痛</strong> <em>ni1 dou6 tung3</em> — "masakit dito" (ituro)</li>
+</ul>
+<h2>🚑 Kung malala</h2>
+<p>Tumawag ng <strong>999</strong>. Ang salita para sa ambulansya ay <strong>救護車</strong> <em>gau3 wu6 ce1</em>. Kung hindi ka makapagsalita, sabihin ang <strong>救命</strong> <em>gau3 meng6</em> — "tulong" — at ibigay ang address. Hahanapin ka ng operator.</p>
+<h2>💊 Sa parmasya</h2>
+<p>Ipakita ang telepono na may <strong>我發燒</strong> <em>ngo5 faat3 siu1</em> — "Nilalagnat ako" — at ituturo ng staff ang tamang shelf. Hindi mo kailangan ng perpektong pangungusap; kailangan mo ng isang totoong pangungusap.</p>
+<p>At ang talagang kakailanganin mo: <strong>我要食藥</strong> <em>ngo5 jiu3 sik6 joek6</em> — "Kailangan kong uminom ng gamot."</p>`,
+    body_zh: `<p>在用还在学的语言生病，有一种特别的害怕：你知道不对劲，却说不清哪里不对。这些话，趁还没需要时先学会。</p>
+<h2>🤒 从这句开始</h2>
+<p><strong>我唔舒服</strong> <em>ngo5 m4 syu1 fuk6</em>——「我不舒服。」它故意说得含糊，既开了口，又不用说出你念不出的病名。</p>
+<h2>📍 说哪里</h2>
+<ul>
+<li><strong>頭痛</strong> <em>tau4 tung3</em>——头痛</li>
+<li><strong>肚痛</strong> <em>tou5 tung3</em>——肚子痛</li>
+<li><strong>發燒</strong> <em>faat3 siu1</em>——发烧</li>
+<li><strong>呢度痛</strong> <em>ni1 dou6 tung3</em>——「这里痛」（指一指）</li>
+</ul>
+<h2>🚑 如果严重</h2>
+<p>打 <strong>999</strong>。救护车的粤语是 <strong>救護車</strong> <em>gau3 wu6 ce1</em>。如果说不成句，就喊 <strong>救命</strong> <em>gau3 meng6</em>，再报地址。接线员会找到你。</p>
+<h2>💊 在药房</h2>
+<p>把手机给店员看 <strong>我發燒</strong> <em>ngo5 faat3 siu1</em>——「我发烧」，他们会指你去对的货架。你不需要完美的句子，只需要一句真的。</p>
+<p>还有一句你一定会用到：<strong>我要食藥</strong> <em>ngo5 jiu3 sik6 joek6</em>——「我要吃药。」</p>`,
+    body_id: `<p>Sakit dalam bahasa yang masih Anda pelajari menakutkan dengan cara tertentu: Anda tahu ada yang salah, dan tidak bisa mengatakan apa. Ini kalimat yang perlu dipelajari sebelum dibutuhkan.</p>
+<h2>🤒 Mulai dari sini</h2>
+<p><strong>我唔舒服</strong> <em>ngo5 m4 syu1 fuk6</em> — "Saya tidak enak badan." Sengaja samar. Membuka percakapan tanpa memaksa Anda menyebut diagnosis yang sulit diucapkan.</p>
+<h2>📍 Sebutkan di mana</h2>
+<ul>
+<li><strong>頭痛</strong> <em>tau4 tung3</em> — sakit kepala</li>
+<li><strong>肚痛</strong> <em>tou5 tung3</em> — sakit perut</li>
+<li><strong>發燒</strong> <em>faat3 siu1</em> — demam</li>
+<li><strong>呢度痛</strong> <em>ni1 dou6 tung3</em> — "sakit di sini" (tunjuk)</li>
+</ul>
+<h2>🚑 Kalau serius</h2>
+<p>Telepon <strong>999</strong>. Kata untuk ambulans adalah <strong>救護車</strong> <em>gau3 wu6 ce1</em>. Kalau tak bisa bicara, ucapkan <strong>救命</strong> <em>gau3 meng6</em> — "tolong" — dan beri alamat. Operator akan menemukan Anda.</p>
+<h2>💊 Di apotek</h2>
+<p>Tunjukkan ponsel dengan <strong>我發燒</strong> <em>ngo5 faat3 siu1</em> — "Saya demam" — dan petugas akan mengarahkan ke rak yang tepat. Anda tidak perlu kalimat sempurna; cukup satu yang benar.</p>
+<p>Dan yang pasti dibutuhkan: <strong>我要食藥</strong> <em>ngo5 jiu3 sik6 joek6</em> — "Saya perlu minum obat."</p>`,
+  },
+
+  {
+    slug: 'mid-autumn-mooncake-rules',
+    channel: 'festivals',
+    icon: '🌕',
+    status: 'published',
+    published_at: '2026-11-02T10:00:00.000Z',
+    title_en: 'Mid-Autumn: What the Mooncake Box Actually Means',
+    title_fil: 'Mid-Autumn: Ano Ba Talaga ang Kahulugan ng Kahon ng Mooncake',
+    title_zh: '中秋：那盒月饼到底是什么意思',
+    title_id: 'Mid-Autumn: Apa Arti Sebenarnya Kotak Mooncake',
+    summary_en:
+      'A box of mooncakes arrives, nobody eats them, and they get passed on. It is not rudeness — it is a whole social system in a tin.',
+    summary_fil:
+      'May dumating na kahon ng mooncake, walang kumakain, at ipinapasa lang. Hindi ito kawalang-galang — isang buong sistemang panlipunan ito sa isang lata.',
+    summary_zh: '一盒月饼来了，没人吃，又被送走。这不是失礼——是一整套人情往来，装在一个铁盒里。',
+    summary_id:
+      'Sebuah kotak mooncake datang, tak ada yang memakannya, lalu diteruskan. Ini bukan tidak sopan — ini seluruh sistem sosial dalam satu kaleng.',
+    body_en: `<p>Every autumn a tin appears in the flat. It has four mooncakes in it, a picture of a rabbit on the lid, and nobody opens it. A week later it is gone, and a different tin has taken its place. If you have ever wondered what is happening: this is not about cake.</p>
+<h2>🌕 What the festival is</h2>
+<p>Mid-Autumn Festival falls on the 15th day of the 8th lunar month, when the moon is fullest. Families gather, eat mooncakes, and children carry lanterns. The mooncake is dense, sweet and rich — lotus seed paste around a salted egg yolk — and one slice is genuinely enough for most people.</p>
+<h2>🎁 Why the tin moves</h2>
+<p>Mooncakes are a GIFT, and gifts circulate. Your employer receives a tin from a client, gives one to a relative, and the relative gives one to someone else. The tin you see in the flat may have been through three homes already. It is not that nobody likes them; it is that the giving is the point.</p>
+<h2>✅ What to do</h2>
+<ul>
+<li>Do not throw the tin away, even if it looks unopened. Ask first: <strong>呢盒要唔要？</strong> <em>ni1 hap6 jiu3 m4 jiu3</em> — "Do you want this box?"</li>
+<li>If you are offered a slice, take it. <strong>多謝</strong> <em>do1 ze6</em> — it is a gift, not a service.</li>
+<li>If the family gives you a whole tin to take home, that is a real gift. Say <strong>多謝晒</strong> <em>do1 ze6 saai3</em>.</li>
+</ul>
+<h2>😄 The one rule</h2>
+<p>Never eat the last mooncake in a tin without asking. It is the office equivalent of finishing the milk. Nobody will say anything, and everybody will notice.</p>`,
+    body_fil: `<p>Tuwing taglagas may lumilitaw na lata sa bahay. May apat na mooncake, may larawan ng kuneho sa takip, at walang nagbubukas. Makalipas ang isang linggo, wala na ito, at may ibang lata ang pumalit. Kung nagtataka ka kung ano ang nangyayari: hindi ito tungkol sa cake.</p>
+<h2>🌕 Ano ang pista</h2>
+<p>Ang Mid-Autumn Festival ay sa ika-15 araw ng ika-8 buwan ng lunar, kapag pinakabilog ang buwan. Nagtitipon ang pamilya, kumakain ng mooncake, at may mga bata na may parol. Ang mooncake ay mabigat, matamis at mayaman — lotus seed paste na may salted egg yolk — at isang hiwa ay sapat na para sa karamihan.</p>
+<h2>🎁 Bakit gumagalaw ang lata</h2>
+<p>Ang mooncake ay REGALO, at umiikot ang regalo. May natatanggap ang amo mo mula sa kliyente, ibinibigay sa kamag-anak, at ibinibigay naman ng kamag-anak sa iba. Ang latang nakikita mo ay maaaring dumaan na sa tatlong bahay. Hindi dahil ayaw nila; ang pagbibigay ang mahalaga.</p>
+<h2>✅ Ano ang gawin</h2>
+<ul>
+<li>Huwag itapon ang lata, kahit mukhang hindi binuksan. Magtanong muna: <strong>呢盒要唔要？</strong> <em>ni1 hap6 jiu3 m4 jiu3</em> — "Gusto ba ninyo ang kahong ito?"</li>
+<li>Kung inalok ka ng isang hiwa, tanggapin. <strong>多謝</strong> <em>do1 ze6</em> — regalo ito, hindi serbisyo.</li>
+<li>Kung bibigyan ka ng buong lata para sa bahay, tunay na regalo iyon. Sabihin ang <strong>多謝晒</strong> <em>do1 ze6 saai3</em>.</li>
+</ul>
+<h2>😄 Ang isang tuntunin</h2>
+<p>Huwag kainin ang huling mooncake sa lata nang hindi nagtatanong. Katumbas ito ng pag-ubos ng gatas sa opisina. Walang magsasabi, at lahat mapapansin.</p>`,
+    body_zh: `<p>每年秋天，家里都会出现一个铁盒。里面四个月饼，盖子上画着兔子，却没人打开。一星期后它不见了，换成了另一个铁盒。如果你一直不明白发生了什么：这跟饼没关系。</p>
+<h2>🌕 这是什么节</h2>
+<p>中秋节在农历八月十五，月亮最圆。家人团聚、吃月饼，孩子提灯笼。月饼扎实、甜、油——莲蓉包着咸蛋黄——多数人吃一块就够。</p>
+<h2>🎁 铁盒为什么会走动</h2>
+<p>月饼是礼物，而礼物会流转。雇主从客户那里收到一盒，送一盒给亲戚，亲戚再送给别人。你看到的这盒，可能已经过三个家了。不是没人喜欢，而是「送」才是重点。</p>
+<h2>✅ 该怎么做</h2>
+<ul>
+<li>别把铁盒扔掉，就算看起来没开过。先问：<strong>呢盒要唔要？</strong> <em>ni1 hap6 jiu3 m4 jiu3</em>——「这盒你们要吗？」</li>
+<li>有人分你一块，就收下。<strong>多謝</strong> <em>do1 ze6</em>——这是礼物，不是服务。</li>
+<li>如果家里整盒给你带回家，那是真的礼物。说 <strong>多謝晒</strong> <em>do1 ze6 saai3</em>。</li>
+</ul>
+<h2>😄 唯一一条规矩</h2>
+<p>不要不问就吃掉盒里最后一个月饼。这就像在公司把牛奶喝光。没人会说，但所有人都记得。</p>`,
+    body_id: `<p>Setiap musim gugur muncul kaleng di rumah. Isinya empat mooncake, ada gambar kelinci di tutupnya, dan tak ada yang membukanya. Seminggu kemudian hilang, digantikan kaleng lain. Kalau Anda bertanya-tanya apa yang terjadi: ini bukan soal kue.</p>
+<h2>🌕 Apa festivalnya</h2>
+<p>Mid-Autumn jatuh pada hari ke-15 bulan ke-8 kalender lunar, saat bulan paling bulat. Keluarga berkumpul, makan mooncake, dan anak-anak membawa lentera. Mooncake padat, manis, dan kaya — pasta biji teratai dengan kuning telur asin — dan satu potong cukup bagi kebanyakan orang.</p>
+<h2>🎁 Mengapa kalengnya berpindah</h2>
+<p>Mooncake adalah HADIAH, dan hadiah berputar. Majikan menerima kaleng dari klien, memberi satu ke kerabat, dan kerabat memberikannya ke orang lain. Kaleng yang Anda lihat mungkin sudah melewati tiga rumah. Bukan karena tak ada yang suka; memberi itulah intinya.</p>
+<h2>✅ Yang harus dilakukan</h2>
+<ul>
+<li>Jangan buang kalengnya, meski tampak belum dibuka. Tanya dulu: <strong>呢盒要唔要？</strong> <em>ni1 hap6 jiu3 m4 jiu3</em> — "Apakah kotak ini mau?"</li>
+<li>Kalau ditawari sepotong, terimalah. <strong>多謝</strong> <em>do1 ze6</em> — ini hadiah, bukan layanan.</li>
+<li>Kalau keluarga memberi satu kaleng utuh untuk dibawa pulang, itu hadiah sungguhan. Ucapkan <strong>多謝晒</strong> <em>do1 ze6 saai3</em>.</li>
+</ul>
+<h2>😄 Satu aturan</h2>
+<p>Jangan makan mooncake terakhir di kaleng tanpa bertanya. Ini setara menghabiskan susu di kantor. Tak ada yang bilang, dan semua orang memperhatikan.</p>`,
+  },
 ];
 
 // ---------------------------------------------------------------------------

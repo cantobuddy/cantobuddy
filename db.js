@@ -4167,7 +4167,7 @@ function deleteFeedback(id) {
 // Discover feed (posts)
 // ---------------------------------------------------------------------------
 
-const POST_CHANNELS = ['culture', 'news'];
+const POST_CHANNELS = ['culture', 'news', 'survival-phrases', 'work-household', 'health', 'festivals'];
 const POST_STATUSES = ['draft', 'published'];
 const POST_TITLE_MAX = 200;
 const POST_SUMMARY_MAX = 700;

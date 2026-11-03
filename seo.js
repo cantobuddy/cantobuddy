@@ -1352,7 +1352,8 @@ ${o.body}
        &nbsp;·&nbsp; <a href="/terms">Terms</a>
        &nbsp;·&nbsp; <a href="/cantonese-for-domestic-helpers">For helpers</a>
        &nbsp;·&nbsp; <a href="/cantonese-food-phrases">Food phrases</a>
-       &nbsp;·&nbsp; <a href="/cantonese-for-elderly-learners">Elderly learners</a></p>
+       &nbsp;·&nbsp; <a href="/cantonese-for-elderly-learners">Elderly learners</a>
+       &nbsp;·&nbsp; <a href="/cantonese-for-health-emergencies">Health</a></p>
   </div>
 </footer>
 ${VISIT_BEACON}
@@ -2931,6 +2932,35 @@ function renderDiscoverHub(lang) {
   // to be found would have no internal link pointing at them.
   const stories = store.listPublishedStories({ limit: 200 });
 
+  // The intent channels added for search: survival, work, health, festivals.
+  // Each gets its own section so a helper can jump straight to the words they
+  // need, and so the posts have an internal link from a high-authority page.
+  const CHANNEL_UI = {
+    'survival-phrases': {
+      en: ['Survival Phrases', 'The words you need in your first week — market, phone, directions.'],
+      fil: ['Mga Parirala para Maka-survive', 'Ang mga salitang kailangan mo sa unang linggo — palengke, telepono, direksyon.'],
+      zh: ['生存粤语', '第一周就用得到的词——街市、电话、问路。'],
+      id: ['Frasa Bertahan', 'Kata yang Anda butuhkan di minggu pertama — pasar, telepon, arah.'],
+    },
+    'work-household': {
+      en: ['Work & Household', 'Instructions, chores, and asking where things go.'],
+      fil: ['Trabaho at Bahay', 'Mga utos, gawaing-bahay, at pagtatanong kung saan nilalagay ang mga bagay.'],
+      zh: ['工作与家务', '指令、家务，以及「这个放哪里」。'],
+      id: ['Kerja & Rumah', 'Perintah, pekerjaan rumah, dan bertanya barang ditaruh di mana.'],
+    },
+    'health': {
+      en: ['Health', 'Feeling sick, pain, and getting help fast.'],
+      fil: ['Kalusugan', 'Pakiramdam na may sakit, pananakit, at mabilis na tulong.'],
+      zh: ['健康', '不舒服、疼痛，以及尽快求助。'],
+      id: ['Kesehatan', 'Merasa sakit, nyeri, dan mendapat bantuan cepat.'],
+    },
+    'festivals': {
+      en: ['Festivals', 'What the family celebrates, and what to do.'],
+      fil: ['Mga Pista', 'Ang ipinagdiriwang ng pamilya, at ang dapat gawin.'],
+      zh: ['节庆', '家里在庆祝什么，以及你该怎么做。'],
+      id: ['Festival', 'Apa yang dirayakan keluarga, dan apa yang harus dilakukan.'],
+    },
+  };
   const section = (heading, lede, list) => `
 <h2 class="disc-h2">${esc(heading)}</h2>
 <p class="lede">${esc(lede)}</p>
@@ -2943,11 +2973,24 @@ ${
   // A link to the full shelf, so this page is a doorway rather than a dead end.
   const more = (label, href) => `<p class="lede"><a href="${href}">${esc(label)} →</a></p>`;
 
+  // Computed AFTER section() is defined — referencing it earlier would be a
+  // temporal-dead-zone error at render time.
+  const extraChannels = ['survival-phrases', 'work-household', 'health', 'festivals'];
+  const extraSections = extraChannels
+    .map((ch) => {
+      const list = posts.filter((p) => p.channel === ch);
+      if (!list.length) return '';
+      const label = (CHANNEL_UI[ch] && (CHANNEL_UI[ch][lang] || CHANNEL_UI[ch].en)) || [ch, ''];
+      return section(label[0], label[1], list);
+    })
+    .join('\n');
+
   const body = `
 ${crumbs(lang, [{ label: ui.title }])}
 <h1>${esc(ui.title)}</h1>
 <p class="lede">${esc(ui.lede)}</p>
 ${section(ui.culture, ui.cultureLede, culture)}
+${extraSections}
 <h2 class="disc-h2">${esc(ui.news)}</h2>
 <p class="lede">${esc(ui.newsLede)}</p>
 ${news.length ? newsTopicSections(news, lang, prefix) : `<p class="lede">${esc(ui.empty)}</p>`}
@@ -3728,70 +3771,84 @@ ${relatedBlock}
 
 /* ============================ Pillar / topic pages ============================
    Indexable pages organised by SEARCH INTENT, not by the database schema. Each
-   links into the real vocabulary, discover and /en pages, so the crawlable
-   surface area grows and the pages reinforce one another. English-only.
+   links into the real vocabulary, Discover and /en pages, so the crawlable
+   surface area grows and the pages reinforce one another. Content lives in
+   pillars-content.js in all four languages, because a Filipino searcher types a
+   Filipino query and should land on a Filipino URL.
    ============================================================================ */
-function pillarCatLinks(regex, limit) {
+const { PILLARS } = require('./pillars-content');
+
+function pillarCatLinks(regex, lang, limit) {
+  const prefix = LANG_PREFIX[lang] || '';
   return store.listEnabledCategories()
     .filter((c) => regex.test(c.name_en))
     .slice(0, limit || 12)
-    .map((c) => `<li><a href="/learn/${esc(slugify(c.name_en))}"><span class="em">${esc(c.icon || '')}</span> ${esc(c.name_en)}</a></li>`)
+    .map((c) => `<li><a href="${prefix}/learn/${esc(slugify(c.name_en))}"><span class="em">${esc(c.icon || '')}</span> ${esc(catName(c, lang))}</a></li>`)
     .join('\n');
 }
 
-const PILLARS = {
-  'cantonese-for-domestic-helpers': {
-    title: 'Cantonese for Domestic Helpers in Hong Kong',
-    description: 'Free Cantonese words and phrases for domestic helpers in Hong Kong — talk about housework, food, shopping and emergencies with the family you work for.',
-    intro: 'Most helpers learn Cantonese on the job, a few words at a time. These topic lists collect the words families actually use at home, with Jyutping and English so you can check as you go.',
-  },
-  'cantonese-for-elderly-learners': {
-    title: 'Cantonese & English for Elderly Learners',
-    description: 'Gentle English and Cantonese practice for elderly learners in Hong Kong — household words, greetings and everyday phrases, with clear audio.',
-    intro: 'Learning a language later in life is easier with familiar, everyday words. Start with the English-for-daily-life track, then explore the Cantonese topics below.',
-  },
-  'cantonese-food-phrases': {
-    title: 'Cantonese Food & Dining Phrases',
-    description: 'Order, shop and talk about food in Cantonese — market and supermarket words, classic dishes, and the Hong Kong café (Cha Chaan Teng) explained.',
-    intro: 'Food is where most everyday Cantonese happens. These topics cover the words you need at the market, the supermarket and the table.',
-  },
+function pillarBySlug(lang, slug) {
+  for (const key of Object.keys(PILLARS)) {
+    const p = PILLARS[key];
+    if (p[lang] && p[lang].slug === slug) return { key, def: p };
+  }
+  return null;
+}
+
+const PILLAR_UI = {
+  en: { start: 'Start with these topics', know: 'Good to know', elderly: 'English for Daily Life (elderly track)' },
+  fil: { start: 'Simulan sa mga paksang ito', know: 'Dapat mong malaman', elderly: 'English for Daily Life (para sa matatanda)' },
+  zh: { start: '从这些主题开始', know: '值得知道', elderly: '每日英语（长者专区）' },
+  id: { start: 'Mulai dari topik ini', know: 'Perlu diketahui', elderly: 'Bahasa Inggris Sehari-hari (jalur lansia)' },
 };
 
-function renderPillar(slug) {
-  const p = PILLARS[slug];
-  if (!p) return null;
-  let links = '';
-  if (slug === 'cantonese-for-domestic-helpers') {
-    links = pillarCatLinks(/kitchen|food|meal|clean|house|home|wash|shop|market|emergency|health|child|care|daily|family|greet|basic/i);
-  } else if (slug === 'cantonese-for-elderly-learners') {
-    links = `<li><a href="/en/learn"><span class="em">📘</span> English for Daily Life (elderly track)</a></li>\n` +
-      pillarCatLinks(/greet|number|basic|everyday|essential|useful/i);
-  } else if (slug === 'cantonese-food-phrases') {
-    links = `<li><a href="/discover/cha-chaan-teng-hong-kong-style-cafe"><span class="em">🍳</span> Cha Chaan Teng — Hong Kong-style café</a></li>\n` +
-      pillarCatLinks(/food|meal|kitchen|drink|fruit|vegetable|market|snack/i);
+function renderPillar(lang, slug) {
+  const hit = pillarBySlug(lang, slug);
+  if (!hit) return null;
+  const { key, def } = hit;
+  const c = def[lang];
+  const prefix = LANG_PREFIX[lang] || '';
+  const path = `${prefix}/${slug}`;
+  const ui = PILLAR_UI[lang] || PILLAR_UI.en;
+
+  // hreflang: every language's own slug for this same pillar.
+  const alternates = hreflangLinks((l) => {
+    const s = def[l] && def[l].slug;
+    return s ? `${LANG_PREFIX[l] || ''}/${s}` : null;
+  });
+
+  let links = pillarCatLinks(def.catRegex, lang);
+  if (def.postSlug) {
+    links = `<li><a href="${prefix}/discover/${esc(def.postSlug)}"><span class="em">📖</span> ${esc(c.postLabel)}</a></li>\n` + links;
   }
+  if (key === 'cantonese-for-elderly-learners') {
+    links = `<li><a href="/en/learn"><span class="em">📘</span> ${esc(ui.elderly)}</a></li>\n` + links;
+  }
+
+  const tips = (c.tips || []).map((t) => `<li>${esc(t)}</li>`).join('\n');
   const body = `
-<h1>${esc(p.title)}</h1>
-<p class="lede">${esc(p.description)}</p>
-<p>${esc(p.intro)}</p>
-<h2>Start with these topics</h2>
+<h1>${esc(c.title)}</h1>
+<p class="lede">${esc(c.description)}</p>
+<p>${esc(c.intro)}</p>
+<h2>${esc(ui.start)}</h2>
 <ul class="grid">
 ${links}
 </ul>
-${ctaCard('en', '', '/')}
+${tips ? `<h2>${esc(ui.know)}</h2>\n<ul>\n${tips}\n</ul>` : ''}
+${ctaCard(lang, '', '/')}
 `;
   return page({
-    lang: 'en',
-    title: `${p.title} | CantoBuddy`,
-    description: p.description,
-    path: `/${slug}`,
+    lang,
+    title: `${c.title} | CantoBuddy`,
+    description: c.description,
+    path,
     body,
-    alternates: [{ lang: 'en', path: `/${slug}` }],
+    alternates,
     jsonLd: {
       '@context': 'https://schema.org',
       '@graph': [
         ORG_LD,
-        { '@type': 'WebPage', name: p.title, description: p.description, url: `${SITE_ORIGIN}/${slug}`, inLanguage: 'en-HK' },
+        { '@type': 'WebPage', name: c.title, description: c.description, url: `${SITE_ORIGIN}${path}`, inLanguage: L[lang].htmlLang },
       ],
     },
   });
@@ -3982,6 +4039,11 @@ ${alts}
   // posts. Asking each channel on its own terms cannot starve either one.
   const culturePosts = store.listPosts({ status: 'published', channel: 'culture', limit: 200 });
   const newsPosts = store.listPosts({ status: 'published', channel: 'news', limit: 500 });
+  // The intent channels (survival / work / health / festivals). They are
+  // operator-written and evergreen, so they belong in the sitemap exactly like
+  // the culture posts. Asked per channel so none can starve the others.
+  const extraChannelPosts = ['survival-phrases', 'work-household', 'health', 'festivals']
+    .flatMap((ch) => store.listPosts({ status: 'published', channel: ch, limit: 200 }));
 
   const newestOf = (list) =>
     list.reduce((m, p) => {
@@ -3989,7 +4051,7 @@ ${alts}
       return d > m ? d : m;
     }, SITE_STRUCTURE_DATE);
 
-  const newestPost = newestOf([...culturePosts, ...newsPosts]);
+  const newestPost = newestOf([...culturePosts, ...newsPosts, ...extraChannelPosts]);
   const newestDiscoverItem = newestPost > newestStory ? newestPost : newestStory;
 
   // IMPORTED NEWS IS DELIBERATELY NOT LISTED HERE.
@@ -4011,7 +4073,7 @@ ${alts}
   // still linked from /discover and the app, so Google finds them the ordinary
   // way. They are simply not ADVERTISED as canonical in a file whose job is to
   // list what will still exist tomorrow.
-  const evergreenPosts = [...culturePosts, ...newsPosts.filter((p) => p.origin !== 'auto')];
+  const evergreenPosts = [...culturePosts, ...newsPosts.filter((p) => p.origin !== 'auto'), ...extraChannelPosts];
 
   for (const prefix of Object.values(LANG_PREFIX)) {
     add(`${prefix}/discover`, '0.7', 'daily', hreflangLinks((l) => `${LANG_PREFIX[l]}/discover`), newestDiscoverItem);
@@ -4106,9 +4168,18 @@ ${alts}
     add(p, '0.6', 'monthly', enAlternates(p), SITE_STRUCTURE_DATE);
   }
 
-  // Pillar / topic pages (search intent).
-  for (const slug of Object.keys(PILLARS)) {
-    add(`/${slug}`, '0.7', 'monthly', null, SITE_STRUCTURE_DATE);
+  // Pillar / topic pages (search intent), in every language.
+  for (const key of Object.keys(PILLARS)) {
+    const def = PILLARS[key];
+    for (const lang of LANGS) {
+      const c = def[lang];
+      if (!c) continue;
+      const p = `${LANG_PREFIX[lang] || ''}/${c.slug}`;
+      add(p, '0.7', 'monthly', hreflangLinks((l) => {
+        const s = def[l] && def[l].slug;
+        return s ? `${LANG_PREFIX[l] || ''}/${s}` : null;
+      }), SITE_STRUCTURE_DATE);
+    }
   }
 
   // Phrase of the Day — one crawlable URL per day (past year + today).
@@ -4549,12 +4620,18 @@ function mount(app) {
     catch (e) { console.error('  ! /en/words render failed:', e.message); html(res, renderNotFound('en'), 500); }
   });
 
-  // --- Pillar / topic pages (search intent) ---
-  for (const slug of Object.keys(PILLARS)) {
-    app.get(`/${slug}`, (req, res) => {
-      try { const b = renderPillar(slug); if (!b) return html(res, renderNotFound('en'), 404); html(res, b); }
-      catch (e) { console.error(`  ! /${slug} render failed:`, e.message); html(res, renderNotFound('en'), 500); }
-    });
+  // --- Pillar / topic pages (search intent), one URL per language ---
+  for (const key of Object.keys(PILLARS)) {
+    const def = PILLARS[key];
+    for (const lang of LANGS) {
+      const c = def[lang];
+      if (!c) continue;
+      const route = `${LANG_PREFIX[lang] || ''}/${c.slug}`;
+      app.get(route, (req, res) => {
+        try { const b = renderPillar(lang, c.slug); if (!b) return html(res, renderNotFound(lang), 404); html(res, b); }
+        catch (e) { console.error(`  ! ${route} render failed:`, e.message); html(res, renderNotFound(lang), 500); }
+      });
+    }
   }
 
   // --- Phrase of the Day (one crawlable URL per day) ---

@@ -52,14 +52,34 @@
       position: sticky; top: 0; z-index: 20;
       background: var(--red); color: #fff;
       display: flex; align-items: center; justify-content: space-between;
+      gap: 10px;
       padding: 12px 16px;
       box-shadow: 0 2px 10px rgba(0,0,0,0.12);
     }
-    .en-brand { font-weight: 700; font-size: 22px; display: flex; align-items: baseline; gap: 8px; cursor: pointer; user-select: none; border-radius: 8px; padding: 2px 4px; margin: -2px -4px; transition: background 0.15s; }
+    /* nowrap is load-bearing: without it the brand is a flex item that will
+       happily shrink until 學英文 stacks one character per line, which is
+       exactly the broken header this replaces. */
+    .en-brand { font-weight: 700; font-size: 22px; display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; border-radius: 8px; padding: 2px 4px; margin: -2px -4px; transition: background 0.15s; white-space: nowrap; min-width: 0; }
+    .en-brand-emoji { font-size: 1.05em; line-height: 1; }
     .en-brand:hover { background: rgba(255,255,255,0.15); }
     .en-brand:focus-visible { outline: 2px solid #fff; outline-offset: 1px; background: rgba(255,255,255,0.15); }
     .en-brand-sub { font-size: 16px; font-weight: 500; opacity: 0.92; }
-    .en-header-right { display: flex; align-items: center; gap: 10px; }
+    .en-header-right { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
+    /* Wide screen: the controls are a plain inline row, unchanged. */
+    .en-header-extra { display: flex; align-items: center; gap: 10px; }
+    .en-more-btn {
+      display: none;
+      border: 1px solid rgba(255,255,255,0.6); background: transparent; color: #fff;
+      width: 40px; height: 40px; padding: 0; border-radius: 999px;
+      font-size: 20px; font-weight: 700; line-height: 1; cursor: pointer;
+      align-items: center; justify-content: center;
+    }
+    .en-more-btn:active { background: rgba(255,255,255,0.15); }
+    .en-more-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+    /* Labels exist for the phone sheet only. In the header bar a bare 🔊 is
+       clear enough beside the pills; alone on a full-width row it reads as an
+       empty button, so the sheet shows the words. */
+    .en-more-label { display: none; }
     .en-lang { display: flex; gap: 4px; }
     .en-lang button {
       border: 1px solid rgba(255,255,255,0.6); background: transparent; color: #fff;
@@ -70,6 +90,56 @@
     .en-back {
       color: #fff; text-decoration: none; font-size: 15px; font-weight: 600;
       border: 1px solid rgba(255,255,255,0.6); border-radius: 999px; padding: 5px 12px;
+    }
+
+    /* ---- Phone header ------------------------------------------------------
+       Below 600px the bar keeps only the brand and ⋯, which is how the
+       Cantonese site's header behaves and what a phone has room for. The four
+       language pills, the voice picker, the install button and the 粵語版 link
+       move into a sheet that drops from ⋯. Nothing is removed — it is one tap
+       further away instead of half of it hanging off the screen. */
+    @media (max-width: 600px) {
+      .en-header { padding: 10px 12px; }
+      .en-brand { font-size: 19px; gap: 6px; }
+      /* The sub-line is what wrapped one character per line when squeezed. */
+      .en-brand-sub { display: none; }
+      .en-more-btn { display: inline-flex; }
+
+      .en-header-extra {
+        display: none;
+        position: absolute; top: 56px; right: 10px; z-index: 45;
+        flex-direction: column; align-items: stretch; gap: 10px;
+        background: #fff; color: var(--ink);
+        border: 1px solid var(--line); border-radius: 14px;
+        box-shadow: 0 10px 28px rgba(0,0,0,0.20);
+        padding: 12px; width: 236px; max-width: calc(100vw - 20px);
+      }
+      .en-header-extra.open { display: flex; }
+
+      /* Repaint the controls for a white sheet — on red they would vanish. */
+      .en-header-extra .en-lang { flex-wrap: wrap; gap: 6px; }
+      .en-header-extra .en-lang button {
+        flex: 1 1 auto; border-color: var(--line); background: #fff; color: var(--ink);
+      }
+      .en-header-extra .en-lang button.active {
+        background: var(--red); color: #fff; border-color: var(--red);
+      }
+      .en-header-extra .en-voice-btn {
+        width: 100%; padding: 10px; font-size: 16px;
+        border-color: var(--line); background: #fff; color: var(--ink);
+        display: flex; align-items: center; justify-content: center; gap: 8px;
+      }
+      .en-header-extra .en-install-btn {
+        width: 100%; height: 42px; border-radius: 10px; border-color: var(--line);
+        gap: 8px;
+      }
+      .en-header-extra .en-more-label {
+        display: inline; font-size: 15px; font-weight: 600; white-space: nowrap;
+      }
+      .en-header-extra .en-back {
+        border-color: var(--line); color: var(--ink); text-align: center;
+        padding: 9px 12px;
+      }
     }
     .en-view { display: none; padding: 18px 16px 28px; max-width: 760px; margin: 0 auto; }
     .en-view.active { display: block; }
@@ -314,11 +384,23 @@
       and <a href="/cantonese-food-phrases">Cantonese food phrases</a>.</p>
   </div>
   <header class="en-header">
-    <div class="en-brand" role="button" tabindex="0" aria-label="返回主頁 · Back to home" title="返回主頁 · Home" onclick="enNavigate('home')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();enNavigate('home');}">CantoBuddy <span class="en-brand-sub" id="brand-sub">學英文</span></div>
+    <div class="en-brand" role="button" tabindex="0" aria-label="返回主頁 · Back to home" title="返回主頁 · Home" onclick="enNavigate('home')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();enNavigate('home');}"><span class="en-brand-emoji" aria-hidden="true">🦜</span>CantoBuddy <span class="en-brand-sub" id="brand-sub">學英文</span></div>
     <div class="en-header-right">
-      <div class="en-lang" id="en-lang"></div>
-      <button id="en-voice-btn" class="en-voice-btn" onclick="toggleEnVoicePanel(event)" aria-label="選擇語音" title="選擇語音 Voice">🔊</button>
-      <button id="en-install-btn" class="en-install-btn" hidden onclick="enOpenInstallModal()" title="加去主螢幕 · Add to Home screen" aria-label="Add to Home screen">📲</button>
+      <!-- Everything in here is inline on a wide screen and collapses into the
+           ⋯ sheet on a phone. The row used to hold four language pills, a voice
+           button, an install button and a 粵語版 link side by side, which does
+           not fit 375px — the brand was squeezed until 學英文 stacked one
+           character per line and the last pill fell off the edge. -->
+      <div class="en-header-extra" id="en-header-extra">
+        <div class="en-lang" id="en-lang"></div>
+        <button id="en-voice-btn" class="en-voice-btn" onclick="toggleEnVoicePanel(event)" aria-label="選擇語音" title="選擇語音 Voice">🔊<span class="en-more-label">語音 · Voice</span></button>
+        <button id="en-install-btn" class="en-install-btn" hidden onclick="closeEnHeaderMore();enOpenInstallModal()" title="加去主螢幕 · Add to Home screen" aria-label="Add to Home screen">📲<span class="en-more-label">加到主螢幕 · Install</span></button>
+        <a class="en-back" href="/" id="back-canto">粵語版</a>
+      </div>
+      <!-- The one control that stays in the bar on a phone. -->
+      <button class="en-more-btn" id="en-more-btn" type="button" onclick="toggleEnHeaderMore(event)"
+              aria-label="更多設定 · More" title="更多設定 · More"
+              aria-expanded="false" aria-controls="en-header-extra">⋯</button>
       <div id="en-voice-panel" class="en-voice-panel en-hidden">
         <div class="vp-title">選擇語音 · Voice</div>
         <label class="vp-row">英文語音 / English
@@ -329,7 +411,6 @@
         </label>
         <div class="vp-hint">揀自然啲嘅聲線，撳🔊就會用佢。Pick a natural voice, then tap 🔊.</div>
       </div>
-      <a class="en-back" href="/" id="back-canto">粵語版</a>
     </div>
   </header>
 

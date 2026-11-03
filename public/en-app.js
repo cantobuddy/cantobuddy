@@ -155,6 +155,9 @@ function populateVoiceSelects() {
 }
 function toggleEnVoicePanel(e) {
   if (e) e.stopPropagation();
+  // The voice button lives inside the ⋯ sheet on a phone. Leaving the sheet
+  // open behind the panel would stack two popovers on a 375px screen.
+  closeEnHeaderMore();
   const p = $('en-voice-panel');
   if (p) p.classList.toggle('en-hidden');
 }
@@ -171,6 +174,45 @@ document.addEventListener('click', (e) => {
   const btn = $('en-voice-btn');
   if (p.contains(e.target) || (btn && btn.contains(e.target))) return;
   p.classList.add('en-hidden');
+});
+
+// ---- Phone header sheet (⋯) ------------------------------------------------
+// Below 600px the language pills, the voice picker, the install button and the
+// 粵語版 link all live in this sheet — the same arrangement the Cantonese site
+// uses. On a wide screen every function here is a no-op: the button is
+// display:none and the controls are already inline in the header bar.
+function toggleEnHeaderMore(e) {
+  if (e) e.stopPropagation();
+  const extra = $('en-header-extra');
+  const btn = $('en-more-btn');
+  if (!extra) return;
+  const open = extra.classList.toggle('open');
+  if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  // Only one popover at a time — two stacked on a phone is a trap.
+  if (open) {
+    const p = $('en-voice-panel');
+    if (p) p.classList.add('en-hidden');
+  }
+}
+
+function closeEnHeaderMore() {
+  const extra = $('en-header-extra');
+  const btn = $('en-more-btn');
+  if (!extra || !extra.classList.contains('open')) return;
+  extra.classList.remove('open');
+  if (btn) btn.setAttribute('aria-expanded', 'false');
+}
+
+document.addEventListener('click', (e) => {
+  const extra = $('en-header-extra');
+  if (!extra || !extra.classList.contains('open')) return;
+  const btn = $('en-more-btn');
+  if (extra.contains(e.target) || (btn && btn.contains(e.target))) return;
+  closeEnHeaderMore();
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeEnHeaderMore();
 });
 
 // ---- Navigation -------------------------------------------------------------
@@ -217,7 +259,7 @@ const STATIC_TEXT = {
 function renderLangSwitch() {
   const wrap = $('en-lang');
   wrap.innerHTML = EN_LANGS.map(
-    (l) => `<button class="${l.code === enCurrentLang() ? 'active' : ''}" onclick="setEnLang('${l.code}');renderLangSwitch();applyStaticLang();renderLearn();renderPractice();">${l.label}</button>`
+    (l) => `<button class="${l.code === enCurrentLang() ? 'active' : ''}" onclick="setEnLang('${l.code}');renderLangSwitch();applyStaticLang();renderLearn();renderPractice();closeEnHeaderMore();">${l.label}</button>`
   ).join('');
 }
 

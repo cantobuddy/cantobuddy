@@ -3872,6 +3872,14 @@ for (const v of SEED_VOCABULARY) {
   if (!String(v.usage_note || '').trim() && USAGE_NOTES[v.id]) v.usage_note = USAGE_NOTES[v.id];
 }
 
+/* The four "practical" channels (survival / household / health / festivals)
+   keep their articles in practical-posts.js — this seed is about vocabulary,
+   and those posts are a different kind of writing. Pushing them here rather
+   than inlining them keeps both files readable, and seedPostsIfNeeded() only
+   compares SEED_POSTS.length against the count it last wrote, so new entries
+   are picked up on the next boot without touching the DB by hand. */
+SEED_POSTS.push(...require('./practical-posts'));
+
 module.exports = {
   load,
   save,

@@ -2923,9 +2923,13 @@ function renderDiscoverHub(lang) {
   const storiesUi = STORIES_UI[lang] || STORIES_UI.en;
   const prefix = LANG_PREFIX[lang] || '';
 
-  const posts = store.listPosts({ status: 'published', limit: 200 });
-  const culture = posts.filter((p) => p.channel === 'culture');
-  const news = posts.filter((p) => p.channel === 'news');
+  // Ask each channel on its own terms. A single limit-200 list ordered by date
+  // is filled by the hourly news import, which pushes the editorial channels
+  // (culture AND the new intent channels) out of the window entirely. This is
+  // the same starvation the sitemap already fixes; the hub needed it too.
+  const culture = store.listPosts({ status: 'published', channel: 'culture', limit: 200 });
+  const news = store.listPosts({ status: 'published', channel: 'news', limit: 200 });
+  const posts = [...culture, ...news];
   // The third channel. Discover has three, and this page is the one with the
   // authority to link into the stories — without a section here the stories hub
   // is reachable only from the footer and the app, so the pages that most need
@@ -2978,7 +2982,7 @@ ${
   const extraChannels = ['survival-phrases', 'work-household', 'health', 'festivals'];
   const extraSections = extraChannels
     .map((ch) => {
-      const list = posts.filter((p) => p.channel === ch);
+      const list = store.listPosts({ status: 'published', channel: ch, limit: 50 });
       if (!list.length) return '';
       const label = (CHANNEL_UI[ch] && (CHANNEL_UI[ch][lang] || CHANNEL_UI[ch].en)) || [ch, ''];
       return section(label[0], label[1], list);

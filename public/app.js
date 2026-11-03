@@ -136,7 +136,9 @@ const STATE = {
   // reader browses by category and opens a passage; reactions, comments and share
   // live on the passage page. `list` caches the shelf; `current` is the open
   // passage, kept so a language switch re-renders without a refetch.
-  living: { list: null, current: null },
+  // `practical` is the four everyday-phrase groups that head the shelf — they
+  // come from the same request, so caching them here keeps a tab switch free.
+  living: { list: null, practical: null, current: null },
   // One culture article per day, from /api/posts/daily-culture. `null` means
   // "not asked yet", `false` means "asked and there is nothing" — the
   // distinction stops Home re-fetching on every language switch when there is
@@ -5338,6 +5340,31 @@ const LIVING_CAT_ORDER = ['before', 'medical', 'holiday', 'entertainment', 'home
 function livingCatIcon(cat) { return LIVING_CAT_ICON[cat] || '🏠'; }
 function livingCatLabel(cat) { return t('living.cat' + cat.charAt(0).toUpperCase() + cat.slice(1)); }
 
+/**
+ * Pick a localized string off a {en,fil,zh,id} object sent by the server.
+ *
+ * The practical channels are defined in practical-channels.js, not here, so
+ * their labels arrive already translated and this function is the only place
+ * that knows how to read them. Adding a channel needs no change to this file.
+ */
+function livingLocalized(obj) {
+  if (!obj) return '';
+  const lang = typeof currentLang === 'function' ? currentLang() : 'en';
+  return obj[lang] || obj.en || '';
+}
+
+/**
+ * One half of a section pair from practical-channels.js: part 0 is the heading,
+ * part 1 is the lede. The server sends {en:[title, lede], fil:[…], …}.
+ */
+function livingSectionText(sec, key, part) {
+  const s = sec && sec[key];
+  if (!s) return '';
+  const lang = typeof currentLang === 'function' ? currentLang() : 'en';
+  const pair = s[lang] || s.en || [];
+  return pair[part] || '';
+}
+
 /** One card on the Living shelf: title, excerpt, and a Facebook-style footer. */
 function livingCardHtml(post) {
   const title = livingField(post, 'title');
@@ -5374,19 +5401,35 @@ function livingCardHtml(post) {
     </button>`;
 }
 
-/** The Living channel: passages grouped by category, newest first within each. */
+/**
+ * The Living channel.
+ *
+ * Two things live on this shelf, and the order is deliberate:
+ *
+ *   1. The everyday-phrase groups (survival, household, health, festivals).
+ *      These are the ones she needs in her FIRST week, and they answer a
+ *      question rather than telling a story, so they go on top under their own
+ *      heading.
+ *   2. The longer passages, grouped by category (before you come, medical,
+ *      holiday…), which are for when she has time to read.
+ *
+ * Both arrive in one request so the shelf never renders half-populated.
+ */
 async function renderLivingList(feed) {
   const host = feed || document.getElementById('discover-feed');
   if (!host) return;
 
   // Cached so a tab switch is instant and a language switch does not refetch.
   let posts = STATE.living.list;
+  let practical = STATE.living.practical;
   if (!posts) {
     host.innerHTML = `<div class="discover-loading">…</div>`;
     try {
       const data = await apiGet('/api/living');
-      posts = data.posts;
+      posts = data.posts || [];
+      practical = data.practical || null;
       STATE.living.list = posts;
+      STATE.living.practical = practical;
     } catch (err) {
       console.warn('Could not load Living:', err);
       host.innerHTML = `<p class="discover-empty">${escapeHtml(t('discover.livingLoadFailed'))}</p>`;
@@ -5399,16 +5442,43 @@ async function renderLivingList(feed) {
   for (const p of posts) (byCat[p.category] = byCat[p.category] || []).push(p);
   const cats = LIVING_CAT_ORDER.filter((c) => byCat[c] && byCat[c].length);
 
-  if (!cats.length) {
+  // The server sends the groups already ordered and already filtered to the
+  // ones that have posts, so this file adds no knowledge of its own. A channel
+  // added to practical-channels.js shows up here with no code change.
+  const groups = (practical && practical.groups) || [];
+  const sec = (practical && practical.sections) || {};
+
+  if (!cats.length && !groups.length) {
     host.innerHTML = `<p class="discover-empty">${escapeHtml(t('discover.livingEmpty'))}</p>`;
     return;
   }
 
-  host.innerHTML = cats.map((c) => `
-    <section class="living-group">
-      <h3 class="living-group-title"><span class="living-group-icon">${livingCatIcon(c)}</span>${escapeHtml(livingCatLabel(c))}</h3>
-      <div class="living-group-list">${byCat[c].map(livingCardHtml).join('')}</div>
-    </section>`).join('');
+  const practicalHtml = groups.length
+    ? `<section class="living-group living-group-practical">
+      <h3 class="living-group-title"><span class="living-group-icon">💬</span>${escapeHtml(livingSectionText(sec, 'practical', 0))}</h3>
+      <p class="living-group-lede">${escapeHtml(livingSectionText(sec, 'practical', 1))}</p>
+      ${groups.map((g) => `
+        <div class="living-subgroup">
+          <h4 class="living-subgroup-title"><span class="living-group-icon">${escapeHtml(g.icon || '💬')}</span>${escapeHtml(livingLocalized(g.label))}</h4>
+          ${livingLocalized(g.lede) ? `<p class="living-subgroup-lede">${escapeHtml(livingLocalized(g.lede))}</p>` : ''}
+          <div class="living-group-list">${g.posts.map(postCardHtml).join('')}</div>
+        </div>`).join('')}
+    </section>`
+    : '';
+
+  const passagesHtml = cats.length
+    ? `<section class="living-group living-group-passages">
+      <h3 class="living-group-title"><span class="living-group-icon">🏠</span>${escapeHtml(livingSectionText(sec, 'passages', 0))}</h3>
+      <p class="living-group-lede">${escapeHtml(livingSectionText(sec, 'passages', 1))}</p>
+      ${cats.map((c) => `
+        <div class="living-subgroup">
+          <h4 class="living-subgroup-title"><span class="living-group-icon">${livingCatIcon(c)}</span>${escapeHtml(livingCatLabel(c))}</h4>
+          <div class="living-group-list">${byCat[c].map(livingCardHtml).join('')}</div>
+        </div>`).join('')}
+    </section>`
+    : '';
+
+  host.innerHTML = practicalHtml + passagesHtml;
 }
 
 /** Opens one passage by slug, fetching its reactions and comments. */

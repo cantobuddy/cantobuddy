@@ -32,6 +32,9 @@ const store = require('./db');
 const { GUIDES, GUIDE_BY_SLUG, UPDATED } = require('./content');
 const enStore = require('./en');
 const dailyPhrase = require('./daily-phrase');
+// The practical channels (survival / household / health / festivals). Shared
+// with server.js and the app so adding one is a single-file edit.
+const { PRACTICAL_CHANNELS, practicalText, practicalSection } = require('./practical-channels');
 
 /**
  * The date the vocabulary library last changed. This is the honest `lastmod`
@@ -2940,35 +2943,6 @@ function renderDiscoverHub(lang) {
   // to be found would have no internal link pointing at them.
   const stories = store.listPublishedStories({ limit: 200 });
 
-  // The intent channels added for search: survival, work, health, festivals.
-  // Each gets its own section so a helper can jump straight to the words they
-  // need, and so the posts have an internal link from a high-authority page.
-  const CHANNEL_UI = {
-    'survival-phrases': {
-      en: ['Survival Phrases', 'The words you need in your first week — market, phone, directions.'],
-      fil: ['Mga Parirala para Maka-survive', 'Ang mga salitang kailangan mo sa unang linggo — palengke, telepono, direksyon.'],
-      zh: ['生存粤语', '第一周就用得到的词——街市、电话、问路。'],
-      id: ['Frasa Bertahan', 'Kata yang Anda butuhkan di minggu pertama — pasar, telepon, arah.'],
-    },
-    'work-household': {
-      en: ['Work & Household', 'Instructions, chores, and asking where things go.'],
-      fil: ['Trabaho at Bahay', 'Mga utos, gawaing-bahay, at pagtatanong kung saan nilalagay ang mga bagay.'],
-      zh: ['工作与家务', '指令、家务，以及「这个放哪里」。'],
-      id: ['Kerja & Rumah', 'Perintah, pekerjaan rumah, dan bertanya barang ditaruh di mana.'],
-    },
-    'health': {
-      en: ['Health', 'Feeling sick, pain, and getting help fast.'],
-      fil: ['Kalusugan', 'Pakiramdam na may sakit, pananakit, at mabilis na tulong.'],
-      zh: ['健康', '不舒服、疼痛，以及尽快求助。'],
-      id: ['Kesehatan', 'Merasa sakit, nyeri, dan mendapat bantuan cepat.'],
-    },
-    'festivals': {
-      en: ['Festivals', 'What the family celebrates, and what to do.'],
-      fil: ['Mga Pista', 'Ang ipinagdiriwang ng pamilya, at ang dapat gawin.'],
-      zh: ['节庆', '家里在庆祝什么，以及你该怎么做。'],
-      id: ['Festival', 'Apa yang dirayakan keluarga, dan apa yang harus dilakukan.'],
-    },
-  };
   const section = (heading, lede, list) => `
 <h2 class="disc-h2">${esc(heading)}</h2>
 <p class="lede">${esc(lede)}</p>
@@ -2981,16 +2955,19 @@ ${
   // A link to the full shelf, so this page is a doorway rather than a dead end.
   const more = (label, href) => `<p class="lede"><a href="${href}">${esc(label)} →</a></p>`;
 
+  // The practical channels, straight from practical-channels.js — the same
+  // registry the app's Living shelf and the /living hub read. Adding a channel
+  // there puts it on all three surfaces at once.
+  //
   // Computed AFTER section() is defined — referencing it earlier would be a
   // temporal-dead-zone error at render time.
-  const extraChannels = ['survival-phrases', 'work-household', 'health', 'festivals'];
-  const extraSections = extraChannels
-    .map((ch) => {
-      const list = store.listPosts({ status: 'published', channel: ch, limit: 50 });
+  const extraSections = PRACTICAL_CHANNELS
+    .map((c) => {
+      const list = store.listPosts({ status: 'published', channel: c.channel, limit: 50 });
       if (!list.length) return '';
-      const label = (CHANNEL_UI[ch] && (CHANNEL_UI[ch][lang] || CHANNEL_UI[ch].en)) || [ch, ''];
-      return section(label[0], label[1], list);
+      return section(practicalText(c, 'label', lang), practicalText(c, 'lede', lang), list);
     })
+    .filter(Boolean)
     .join('\n');
 
   const body = `
@@ -3512,6 +3489,10 @@ const LIVING_CAT_LABEL = {
   homesick: 'Homesick', food: 'Food', transport: 'Transport',
   churches: 'Churches', before: 'Before You Come',
 };
+// The order a reader expects, not the order above: what to know BEFORE you
+// come first, then the situations in the order she is likely to meet them.
+// Mirrors LIVING_CAT_ORDER in public/app.js so the shelf and this page agree.
+const LIVING_CAT_ORDER = ['before', 'medical', 'holiday', 'entertainment', 'homesick', 'food', 'transport', 'churches'];
 
 /** Plain-text snippet for meta descriptions and hub cards. */
 function plainSnippet(s, n) {
@@ -3560,15 +3541,53 @@ function livingPostShell(slug) {
   return injectLivingHead(SPA_SHELL, { title, description, canonicalPath, ogType: 'article', jsonLd });
 }
 
-/** Standalone, crawlable directory of every published Living passage. */
+/**
+ * Standalone, crawlable directory of every published Living passage.
+ *
+ * Organised the way the app's Living shelf is organised: the practical
+ * channels first (words for today), then the passages grouped by situation
+ * (before you come, medical, holiday…). One registry drives both, so the page
+ * a crawler reads and the shelf a helper taps never drift apart.
+ */
 function renderLivingHub() {
   const posts = store.listLivingPosts({ limit: 300 });
-  const list = posts.length
-    ? `<ul class="guide-list">\n${posts.map((p) => {
-        const title = p.title_en || p.slug;
-        const sub = p.sub_en || '';
-        const snippet = plainSnippet(p.body_en, 160);
-        return `<li class="guide-card">
+
+  // Practical channels — same registry, same order, same labels as the app.
+  const practicalGroups = PRACTICAL_CHANNELS
+    .map((c) => ({ c, list: store.listPosts({ status: 'published', channel: c.channel, limit: 50 }) }))
+    .filter((g) => g.list.length);
+
+  const practicalSection_ = practicalGroups.length
+    ? `<h2 class="disc-h2">${esc(practicalSection('practical', 'en').title)}</h2>
+<p class="lede">${esc(practicalSection('practical', 'en').lede)}</p>
+${practicalGroups.map((g) => `
+<h3 class="disc-h3">${esc(practicalText(g.c, 'label', 'en'))}</h3>
+<p class="lede">${esc(practicalText(g.c, 'lede', 'en'))}</p>
+<ul class="guide-list">
+${g.list.map((p) => postCardLi(p, 'en', '')).join('\n')}
+</ul>`).join('\n')}`
+    : '';
+
+  // Passages, grouped by situation. LIVING_CAT_ORDER is the order a reader
+  // expects — "before you come" first, not whatever order the DB returns.
+  const catOrder = LIVING_CAT_ORDER;
+  const byCat = new Map();
+  for (const p of posts) {
+    const k = p.category || 'other';
+    if (!byCat.has(k)) byCat.set(k, []);
+    byCat.get(k).push(p);
+  }
+  const cats = [...byCat.keys()].sort((a, b) => {
+    const ia = catOrder.indexOf(a);
+    const ib = catOrder.indexOf(b);
+    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+  });
+
+  const passageCard = (p) => {
+    const title = p.title_en || p.slug;
+    const sub = p.sub_en || '';
+    const snippet = plainSnippet(p.body_en, 160);
+    return `<li class="guide-card">
   <a href="/living/${esc(p.slug)}">
     <span class="em">${esc(p.icon || '🏠')}</span>
     ${sub ? `<span class="pm">${esc(LIVING_CAT_LABEL[p.category] || p.category)} · ${esc(sub)}</span>` : `<span class="pm">${esc(LIVING_CAT_LABEL[p.category] || p.category)}</span>`}
@@ -3576,11 +3595,20 @@ function renderLivingHub() {
     ${snippet ? `<span class="gd">${esc(snippet)}</span>` : ''}
   </a>
 </li>`;
-      }).join('\n')}\n</ul>`
+  };
+
+  const passages = posts.length
+    ? `<h2 class="disc-h2">${esc(practicalSection('passages', 'en').title)}</h2>
+<p class="lede">${esc(practicalSection('passages', 'en').lede)}</p>
+${cats.map((c) => `
+<h3 class="disc-h3">${esc(LIVING_CAT_LABEL[c] || c)}</h3>
+<ul class="guide-list">
+${byCat.get(c).map(passageCard).join('\n')}
+</ul>`).join('\n')}`
     : `<p class="lede">Practical guides for life in Hong Kong.</p>`;
 
   const title = 'Practical guides for life in Hong Kong | CantoBuddy';
-  const description = 'Plain-English guides for foreign domestic helpers in Hong Kong — the FDW system, your contract, real costs, and everyday life before and after you arrive.';
+  const description = 'Plain-English guides for foreign domestic helpers in Hong Kong — the FDW system, your contract, real costs, everyday life, and the Cantonese words you need at the market, at home, and when you feel unwell.';
   const path = '/living';
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -3593,12 +3621,20 @@ function renderLivingHub() {
         description,
         url: `${SITE_ORIGIN}${path}`,
         inLanguage: 'en',
-        hasPart: posts.slice(0, 50).map((p) => ({
-          '@type': 'Article',
-          headline: p.title_en || p.slug,
-          url: `${SITE_ORIGIN}/living/${p.slug}`,
-          inLanguage: 'en',
-        })),
+        hasPart: [
+          ...practicalGroups.flatMap((g) => g.list).map((p) => ({
+            '@type': 'Article',
+            headline: p.title_en || p.slug,
+            url: `${SITE_ORIGIN}/discover/${p.slug}`,
+            inLanguage: 'en',
+          })),
+          ...posts.slice(0, 50).map((p) => ({
+            '@type': 'Article',
+            headline: p.title_en || p.slug,
+            url: `${SITE_ORIGIN}/living/${p.slug}`,
+            inLanguage: 'en',
+          })),
+        ],
       },
     ],
   };
@@ -3606,7 +3642,8 @@ function renderLivingHub() {
 ${crumbs('en', [{ label: 'Living guides' }])}
 <h1>Living guides for domestic helpers in Hong Kong</h1>
 <p class="lede">${esc(description)}</p>
-${list}
+${practicalSection_}
+${passages}
 ${ctaCard('en')}
 `;
   return page({ lang: 'en', title, description, path, jsonLd, body });

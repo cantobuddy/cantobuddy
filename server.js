@@ -964,10 +964,38 @@ app.post('/api/stories', storyRateLimit, (req, res) => {
 // again clears it. Comments publish immediately as plain text.
 // ---------------------------------------------------------------------------
 
+/**
+ * The practical channels that head the Living shelf.
+ *
+ * The list, its order, its icons and its four-language labels all live in
+ * practical-channels.js — adding a channel there is the only edit needed.
+ * They are editorial posts (posts table), not Living passages (living_posts),
+ * so they are returned ALONGSIDE the passages rather than merged into them: a
+ * passage has reactions and a comment thread, a post does not.
+ */
+const { PRACTICAL_CHANNELS, PRACTICAL_SECTIONS } = require('./practical-channels');
+
 /** GET /api/living — the public shelf, optionally narrowed to one category. */
 app.get('/api/living', (req, res) => {
   const category = req.query.category ? String(req.query.category) : null;
-  res.json({ posts: store.listLivingPosts({ category }) });
+  const posts = store.listLivingPosts({ category });
+  // A category-filtered request is a narrow view of the passages only; the
+  // practical groups are the unfiltered shelf's introduction, so they are
+  // omitted there rather than repeated under a filter they do not respect.
+  const groups = category
+    ? []
+    : PRACTICAL_CHANNELS
+      .map((c) => ({
+        channel: c.channel,
+        icon: c.icon,
+        label: c.label,
+        lede: c.lede,
+        posts: store.listPosts({ status: 'published', channel: c.channel, limit: 20 }),
+      }))
+      // A channel with nothing published is dropped: an empty shelf reads worse
+      // than no shelf. Seeding a post is what makes a new channel appear.
+      .filter((g) => g.posts.length);
+  res.json({ posts, practical: { sections: PRACTICAL_SECTIONS, groups } });
 });
 
 /** GET /api/living/categories — which categories have passages, with counts. */

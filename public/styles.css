@@ -5720,6 +5720,33 @@ a.game-tile:active { transform: scale(0.96); background: var(--c-primary-tint); 
 }
 .living-group-list { display: flex; flex-direction: column; gap: 10px; }
 
+/* The shelf is two halves: practical phrase groups, then the longer passages.
+   The split is drawn with a rule and a little air so the reader can tell at a
+   glance where "words for today" ends and "read when you have time" begins. */
+.living-group + .living-group {
+  margin-top: 26px;
+  padding-top: 22px;
+  border-top: 1px solid var(--c-border);
+}
+.living-group-lede {
+  margin: -4px 0 14px;
+  font-size: .86rem; line-height: 1.5; color: var(--c-text-soft);
+}
+.living-subgroup { margin-top: 16px; }
+.living-subgroup:first-of-type { margin-top: 0; }
+.living-subgroup-title {
+  display: flex; align-items: center; gap: 8px;
+  font-size: .92rem; font-weight: 650; color: var(--c-text);
+  margin: 0 0 8px;
+}
+.living-subgroup-title .living-group-icon {
+  width: 26px; height: 26px; border-radius: 8px; font-size: .95rem;
+}
+.living-subgroup-lede {
+  margin: -2px 0 10px 34px;
+  font-size: .82rem; line-height: 1.45; color: var(--c-text-soft);
+}
+
 /* The Facebook-style footer on each card (reacts / comments / share). */
 .living-card-footer {
   display: flex; align-items: center; gap: 14px;

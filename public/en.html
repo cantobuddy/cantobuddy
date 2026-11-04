@@ -14,6 +14,15 @@
   <meta property="og:title" content="CantoBuddy 學英文 — Learn everyday English" />
   <meta property="og:description" content="Learn everyday English for elderly people in Hong Kong: household words, housework instructions for the helper, and shopping. Listen and practise." />
   <meta property="og:url" content="https://cantobuddy.com/en" />
+  <!-- The /en page had a title and a description but no image, so sharing it
+       produced a bare text link. This is the grandmother banner at 1200x630,
+       the shape WhatsApp and Facebook render without cropping. -->
+  <meta property="og:image" content="https://cantobuddy.com/og-en.jpg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="An elderly woman learning English on her phone at home in Hong Kong" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="https://cantobuddy.com/og-en.jpg" />
 
   <!-- Google AdSense (Auto Ads), publisher ca-pub-6845142564408798.
        This English app is served as a static file (express.static), so it
@@ -143,15 +152,67 @@
     }
     .en-view { display: none; padding: 18px 16px 28px; max-width: 760px; margin: 0 auto; }
     .en-view.active { display: block; }
-    /* Hero / banner (different content from the Cantonese site) */
+    /* Hero / banner (different content from the Cantonese site).
+       The illustration is the grandmother version of the home banner — same
+       room, same light, same composition, different learner — so the two apps
+       read as one family. Copy sits on the left over a dark gradient; the
+       picture holds the right third, where she is. */
     .en-hero {
-      background: linear-gradient(135deg, #fff 0%, #ffe9dd 100%);
-      border: 1px solid var(--line); border-radius: 20px;
-      padding: 26px 20px; text-align: center; margin-bottom: 18px;
+      position: relative;
+      display: flex; flex-direction: column; justify-content: center;
+      background-color: #2a1d14;
+      background-image:
+        linear-gradient(100deg,
+          rgba(28, 20, 14, 0.94) 0%,
+          rgba(28, 20, 14, 0.82) 36%,
+          rgba(28, 20, 14, 0.50) 68%,
+          rgba(28, 20, 14, 0.08) 100%),
+        url(/banner-hero-en.jpg);
+      background-position: center right, center right;
+      background-size: cover, cover;
+      background-repeat: no-repeat, no-repeat;
+      border-radius: 20px;
+      padding: 34px 30px; min-height: 380px;
+      text-align: left; margin-bottom: 18px; overflow: hidden;
+      color: #fff8ef;
     }
-    .en-hero h1 { font-size: 30px; margin: 0 0 8px; color: var(--red); }
-    .en-hero p { font-size: 18px; color: var(--muted); margin: 0 0 18px; }
-    .en-hero .cta-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .en-hero-chip {
+      align-self: flex-start; display: inline-block;
+      font-size: 12px; font-weight: 700; letter-spacing: 0.06em;
+      text-transform: uppercase; padding: 5px 12px; border-radius: 999px;
+      background: rgba(255,255,255,0.18); color: #fff; margin-bottom: 12px;
+    }
+    .en-hero h1 { font-size: 30px; margin: 0 0 8px; color: #fff; line-height: 1.15; }
+    .en-hero p { font-size: 17px; color: rgba(255,255,255,0.92); margin: 0 0 18px; }
+    .en-hero .en-hero-desc { font-size: 15px; max-width: 400px; margin: 14px 0 20px; line-height: 1.5; }
+    .en-hero .en-hero-desc strong { color: #fff; font-weight: 700; }
+    .en-hero .cta-row { display: flex; gap: 12px; justify-content: flex-start; flex-wrap: wrap; }
+    /* A 1.63:1 picture in a 375px box is cropped to a narrow slice, so the
+       horizontal gradient runs the headline straight across her face. On a
+       phone the banner becomes picture-then-panel: the image pinned to the top
+       at a fixed height, the copy below it on the dark base colour, and the
+       gradient used only to fade the picture's edge into that panel. Same
+       treatment as the Cantonese hero in styles.css, so the two match. */
+    @media (max-width: 620px) {
+      .en-hero {
+        min-height: 0; padding: 268px 20px 26px; justify-content: flex-start;
+        background-image:
+          linear-gradient(180deg,
+            rgba(28, 20, 14, 0) 0px,
+            rgba(28, 20, 14, 0) 192px,
+            rgba(28, 20, 14, 0.55) 228px,
+            rgba(28, 20, 14, 1) 254px),
+          url(/banner-hero-en.jpg);
+        background-position: right top, 92% top;
+        background-size: 100% 100%, auto 246px;
+        background-repeat: no-repeat, no-repeat;
+        background-color: #2a1d14;
+      }
+      .en-hero h1 { font-size: 24px; }
+      .en-hero p { font-size: 15px; }
+      .en-hero .en-hero-desc { font-size: 13px; margin: 10px 0 16px; }
+      .en-hero .cta-row .en-cta { flex: 1 1 0; min-width: 0; }
+    }
     .en-cta {
       background: var(--red); color: #fff; border: none; border-radius: 14px;
       font-size: 20px; font-weight: 700; padding: 14px 22px; cursor: pointer; min-width: 150px;
@@ -418,8 +479,13 @@
     <!-- HOME -->
     <section id="view-home" class="en-view active">
       <div class="en-hero">
+        <span class="en-hero-chip" id="hero-chip">100% 免費 · 唔使登記</span>
         <h1 id="hero-title">學日常英文</h1>
         <p id="hero-sub">教你點同家務助理溝通 · 認屋企嘢 · 出街買餸</p>
+        <!-- The bold and the rest of the sentence carry separate ids on
+             purpose: applyStaticLang() sets textContent, so one id on the <p>
+             would delete the <strong> on every language switch. -->
+        <p class="en-hero-desc"><strong id="hero-bold">135 個英文生字同 65 句常用句，全部有語音</strong><span id="hero-rest"> — 情景練習、小測驗，仲有粵語解釋。慢慢學，唔急。</span></p>
         <div class="cta-row">
           <button class="en-cta" onclick="enGoLearn()">學詞</button>
           <button class="en-cta secondary" onclick="enGoPractice()">情景練習</button>

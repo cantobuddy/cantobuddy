@@ -494,55 +494,64 @@ body {
 }
 
 /* ---- Hero ---------------------------------------------------------------
-   Was plain centred text on the page background, which made the first thing a
-   visitor sees the flattest thing on the screen. It is now a brand block — the
-   one place on Home that owns the colour, so the page has a top to it. */
+   The illustrated banner — on every visit, in every language.
+
+   It used to be a red gradient block, with a script that swapped this version
+   in for FIRST-TIME visitors only. Two things were wrong with that. Returning
+   visitors, who are the ones most likely to recommend the app, got the
+   flattest thing on the page. And the banner copy existed only after JS ran,
+   so it was invisible to Google on the one page that matters most.
+
+   So the banner IS the hero now. The dark base colour below is a fallback, not
+   decoration: white text must sit on something dark even if the JPEG is slow,
+   blocked, or still downloading on a 3G phone in a service lift. */
 .hero {
   /* An <a> now, not a <div>: the reset matters. Without display:block the
      anchor is inline and the padding collapses; without text-decoration and
      color the whole block goes blue and underlined. */
-  display: block;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   position: relative;
   overflow: hidden;
-  text-align: center;
-  padding: 20px 18px 22px;
+  text-align: left;
+  padding: 52px 40px;
+  min-height: 420px;
   border-radius: var(--radius-lg);
-  background: linear-gradient(140deg, #ef4a56 0%, #c1121f 100%);
-  color: #fff;
+  background-color: #2a1d14;
+  background-image:
+    linear-gradient(100deg,
+      rgba(28, 20, 14, 0.92) 0%,
+      rgba(28, 20, 14, 0.78) 34%,
+      rgba(28, 20, 14, 0.44) 64%,
+      rgba(28, 20, 14, 0.06) 100%),
+    url(/banner-hero.jpg);
+  background-position: center right, center right;
+  background-size: cover, cover;
+  background-repeat: no-repeat, no-repeat;
+  color: #fff8ef;
   text-decoration: none;
-  box-shadow: 0 8px 22px rgba(193, 18, 31, 0.22);
+  box-shadow: 0 8px 22px rgba(60, 40, 25, 0.22);
   /* It looks tappable because it is, so it has to move like the other cards. */
   cursor: pointer;
   transition: transform 0.12s, box-shadow 0.12s;
 }
 
-.hero:hover { box-shadow: 0 10px 26px rgba(193, 18, 31, 0.3); }
+.hero:hover { box-shadow: 0 10px 26px rgba(60, 40, 25, 0.32); }
 .hero:active { transform: scale(0.99); }
 
 /* Keyboard users get the same affordance as a finger. Offset so the ring is
    not clipped by the block's own rounded edge. */
 .hero:focus-visible {
-  outline: 3px solid var(--c-text);
+  outline: 3px solid #fff;
   outline-offset: 3px;
-}
-
-/* A soft highlight so the block is not a flat rectangle. Decorative only. */
-.hero::after {
-  content: '';
-  position: absolute;
-  right: -40px;
-  top: -60px;
-  width: 160px;
-  height: 160px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.10);
-  pointer-events: none;
 }
 
 .hero-chip {
   position: relative;
   z-index: 1;
   display: inline-block;
+  align-self: flex-start;
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -557,60 +566,66 @@ body {
 .hero-title {
   position: relative;
   z-index: 1;
-  font-size: 1.7rem;
+  font-size: clamp(1.8rem, 4.2vw, 3rem);
   font-weight: 700;
   color: #fff;
-  line-height: 1.25;
+  line-height: 1.1;
 }
 
 .hero-sub {
   display: block;
-  font-size: 0.95rem;
+  font-size: clamp(1rem, 2.4vw, 1.4rem);
   font-weight: 500;
   color: rgba(255, 255, 255, 0.92);
-  margin-top: 4px;
+  margin-top: 6px;
+  line-height: 1.3;
 }
 
 .hero-desc {
   position: relative;
   z-index: 1;
-  font-size: 0.88rem;
-  color: rgba(255, 255, 255, 0.86);
-  margin-top: 10px;
-  max-width: 400px;
-  margin-inline: auto;
-}
-
-/* First-visit banner variant: illustrated hero with left-aligned copy.
-   Applied by a tiny script on a visitor's very first Home load (see index.html);
-   returning visitors keep the standard red hero above. */
-.hero.is-banner {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  text-align: left;
-  padding: 52px 40px;
-  min-height: 420px;
-  color: #fff8ef;
-  background:
-    linear-gradient(100deg,
-      rgba(28, 20, 14, 0.90) 0%,
-      rgba(28, 20, 14, 0.74) 32%,
-      rgba(28, 20, 14, 0.32) 62%,
-      rgba(28, 20, 14, 0.05) 100%),
-    url(/banner-hero.png) center right / cover no-repeat;
-}
-.hero.is-banner .hero-title { font-size: clamp(1.8rem, 4.2vw, 3rem); line-height: 1.1; }
-.hero.is-banner .hero-sub { font-size: clamp(1rem, 2.4vw, 1.4rem); }
-.hero.is-banner .hero-desc {
   font-size: 1rem;
   color: rgba(255, 255, 255, 0.92);
   margin-top: 14px;
   max-width: 480px;
   margin-inline: 0;
 }
-@media (max-width: 560px) {
-  .hero.is-banner { padding: 38px 22px; min-height: 340px; }
+
+.hero-desc strong { color: #fff; font-weight: 700; }
+
+/* ---- The same banner on a phone ----------------------------------------
+   Text over the picture does not survive a 375px screen. A 1.63:1 image in a
+   375px-wide box is cropped to a narrow vertical slice, so the copy lands
+   across the character's face — which is the one thing the illustration exists
+   to show. Overlaying a darker gradient only fixes the legibility, not the
+   composition: she ends up behind a brown wash.
+
+   So on a phone the banner becomes picture-then-panel. The image is pinned to
+   the top at a FIXED height (auto 250px, so it keeps its own aspect instead of
+   being stretched), the copy sits underneath on the dark base colour, and the
+   gradient is only used to fade the picture's bottom edge into that panel so
+   the join does not read as a crop. */
+@media (max-width: 620px) {
+  .hero {
+    min-height: 0;
+    padding: 272px 20px 26px;
+    justify-content: flex-start;
+    background-image:
+      linear-gradient(180deg,
+        rgba(28, 20, 14, 0) 0px,
+        rgba(28, 20, 14, 0) 196px,
+        rgba(28, 20, 14, 0.55) 232px,
+        rgba(28, 20, 14, 1) 258px),
+      url(/banner-hero.jpg);
+    background-position: right top, 92% top;
+    background-size: 100% 100%, auto 250px;
+    background-repeat: no-repeat, no-repeat;
+    background-color: #2a1d14;
+  }
+  .hero-title { font-size: 1.7rem; }
+  .hero-sub { font-size: 1rem; }
+  .hero-desc { font-size: 0.88rem; max-width: none; margin-top: 12px; }
+  .hero-chip { margin-bottom: 10px; }
 }
 
 /* ---- Level cards --------------------------------------------------------

@@ -54,13 +54,20 @@
   <link rel="canonical" href="https://cantobuddy.com/" />
 
   <!-- Social preview. The app has a Share button, so a bare link with no
-       og:image was the actual result of sharing it. -->
+       og:image was the actual result of sharing it. It used to point at the
+       512x512 app icon, which twitter:card=summary_large_image then letterboxed
+       into a small square in the middle of a wide card. og-home.jpg is the
+       banner at 1200x630 — the 1.91:1 shape WhatsApp, Facebook and X all want,
+       so the link preview now looks like the app. -->
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="CantoBuddy" />
   <meta property="og:title" content="CantoBuddy – Learn Cantonese for Daily Life in Hong Kong" />
   <meta property="og:description" content="Practical Cantonese words and phrases with audio, pictures and quizzes. Free for Filipino and Indonesian domestic helpers in Hong Kong." />
   <meta property="og:url" content="https://cantobuddy.com/" />
-  <meta property="og:image" content="https://cantobuddy.com/icons/icon-512.png" />
+  <meta property="og:image" content="https://cantobuddy.com/og-home.jpg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="A domestic helper learning Cantonese on her phone in a Hong Kong flat" />
   <meta property="og:locale" content="en_HK" />
   <meta property="og:locale:alternate" content="fil_PH" />
   <meta property="og:locale:alternate" content="zh_CN" />
@@ -68,7 +75,7 @@
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="CantoBuddy – Learn Cantonese for Daily Life in Hong Kong" />
   <meta name="twitter:description" content="Practical Cantonese words and phrases with audio, pictures and quizzes. Free for Filipino and Indonesian domestic helpers in Hong Kong." />
-  <meta name="twitter:image" content="https://cantobuddy.com/icons/icon-512.png" />
+  <meta name="twitter:image" content="https://cantobuddy.com/og-home.jpg" />
 
   <!-- Structured data: tells search engines this is a free educational app
        aimed at a specific audience, which is the one thing the page copy
@@ -221,14 +228,25 @@
          the heading separately. data-i18n-attr keeps the label translated
          without touching the contents. -->
     <a class="hero" id="hero" href="/learn"
-       onclick="if(window.gtag)gtag('event','begin_learn',{source:'home_hero',banner:false}); try{localStorage.setItem('cb_first_visit_hero','1');}catch(e){}; goCategories(); return false;"
+       onclick="if(window.gtag)gtag('event','begin_learn',{source:'home_hero'}); goCategories(); return false;"
        data-i18n="home.heroCta" data-i18n-attr="aria-label" aria-label="Start learning">
       <!-- Trust chip. The one fact that decides whether a helper gives this app
            a second minute is that it costs nothing — so it is the first thing on
            the page rather than a line in a footer. -->
-      <span class="hero-chip" data-i18n="home.freeChip">Free for helpers</span>
-      <h1 class="hero-title"><span data-i18n="home.title">Learn Cantonese</span> <span class="hero-sub" data-i18n="home.subtitle">for daily life in Hong Kong</span></h1>
-      <p class="hero-desc" data-i18n="home.desc">Practical words and phrases with audio, pictures, and quizzes. Start at your level!</p>
+      <span class="hero-chip" data-i18n="home.bannerChip">100% free for helpers</span>
+      <!-- The banner copy is the marketing hero, and it is now the PERMANENT
+           hero rather than a first-visit-only swap. It used to be applied by a
+           script that checked localStorage and rewrote innerHTML, which meant
+           returning visitors — the ones most likely to recommend the app — saw
+           the plain red block instead, and no crawler ever saw the banner words
+           at all because they only existed after JS ran.
+           It is static markup now, so it is translated by data-i18n like every
+           other string (the old script hard-coded English into all four
+           languages) and it is in the HTML source for Google to read.
+           The <strong> carries its own key: applyTranslations() sets
+           textContent, so a data-i18n on the <p> would delete the bold span. -->
+      <h1 class="hero-title"><span data-i18n="home.bannerTitle">Learn Cantonese.</span> <span class="hero-sub" data-i18n="home.bannerSub">Understand the culture. Feel at home.</span></h1>
+      <p class="hero-desc"><strong data-i18n="home.bannerBold">334 everyday words &amp; phrases with audio</strong><span data-i18n="home.bannerRest"> — plus Chinese culture and useful tips. Learn at your own pace.</span></p>
     </a>
 
     <!-- ---- Returning-learner cards ------------------------------------
@@ -1035,32 +1053,11 @@
      on the screen and the photographer is still owed the name. -->
 <script src="/places/credits.js"></script>
 <script src="/app.js"></script>
-<!-- First-visit banner: keep showing the illustrated marketing hero until the
-     visitor actually starts learning. The localStorage flag is set only when
-     they TAP the hero (see the onclick below), so the banner reappears on every
-     visit until they engage, then the standard red hero takes over for good. -->
-<script>
-  window.addEventListener('DOMContentLoaded', function () {
-    try {
-      var KEY = 'cb_first_visit_hero';
-      if (localStorage.getItem(KEY)) return;          // they've started — keep red hero
-      var hero = document.getElementById('hero');
-      if (!hero) return;
-      hero.classList.add('is-banner');
-      hero.setAttribute('aria-label', 'Start learning Cantonese free');
-      hero.innerHTML =
-        '<span class="hero-chip">100% Free for helpers</span>' +
-        '<h1 class="hero-title">Learn Cantonese. ' +
-          '<span class="hero-sub">Understand the culture. Feel at home.</span></h1>' +
-        '<p class="hero-desc"><strong>334 everyday words &amp; phrases with audio</strong> ' +
-          '— plus Chinese culture and useful tips. Learn at your own pace.</p>';
-      // On tap: measure the start AND remember they've started, so the banner
-      // never shows again. goCategories() opens learning in-app.
-      hero.setAttribute('onclick',
-        "if(window.gtag)gtag('event','begin_learn',{source:'home_hero',banner:true}); try{localStorage.setItem('cb_first_visit_hero','1');}catch(e){}; goCategories(); return false;");
-    } catch (e) {}
-  });
-</script>
+<!-- The illustrated hero used to be swapped in by a script here that read
+     localStorage and rewrote the hero's innerHTML. It is plain markup in the
+     hero itself now — see the comment there — so nothing needs patching after
+     load: the banner is what the server sends, in every language, to every
+     visitor including the ones arriving from a search result. -->
 <!-- Opt-in push notifications (also loaded by the SEO landing pages). Self-
      contained, so it works whether or not app.js is present. -->
 <script src="/push-client.js" defer></script>

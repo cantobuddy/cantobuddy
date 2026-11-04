@@ -156,7 +156,14 @@ app.use((req, res, next) => {
   res.redirect(301, target + qs);
 });
 
-app.use(express.static(path.join(__dirname, 'public')));
+// `redirect: false` matters because public/places/ is the photograph directory
+// while /places is now a server-rendered Outings HUB (see seo.js). With the
+// default, express.static answers a bare directory request with a 301 to
+// /places/ — which the trailing-slash rule above bounces straight back to
+// /places, an infinite redirect instead of the hub. Real files inside the
+// directory (/places/*.jpg, credits.js) are still served normally; only a
+// request for the directory itself falls through to the route in seo.mount().
+app.use(express.static(path.join(__dirname, 'public'), { redirect: false }));
 
 app.use(
   session({

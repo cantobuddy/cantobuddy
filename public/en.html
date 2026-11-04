@@ -189,24 +189,34 @@
     .en-hero .cta-row { display: flex; gap: 12px; justify-content: flex-start; flex-wrap: wrap; }
     /* A 1.63:1 picture in a 375px box is cropped to a narrow slice, so the
        horizontal gradient runs the headline straight across her face. On a
-       phone the banner becomes picture-then-panel: the image pinned to the top
-       at a fixed height, the copy below it on the dark base colour, and the
-       gradient used only to fade the picture's edge into that panel. Same
-       treatment as the Cantonese hero in styles.css, so the two match. */
+       phone the banner becomes picture-then-panel: a fixed-height picture band
+       at the top, the copy below it on the dark panel, and a gradient fading
+       the join. Same treatment as the Cantonese hero in styles.css, so the two
+       match. The picture is a ::before pinned to that band so `cover` scales
+       against a short wide box: a background layer on the whole card either
+       left a bare dark block down the left (fixed height) or zoomed in until
+       only her eyes showed (cover). Padding/gradient stops are unchanged. */
     @media (max-width: 620px) {
       .en-hero {
         min-height: 0; padding: 268px 20px 26px; justify-content: flex-start;
-        background-image:
-          linear-gradient(180deg,
-            rgba(28, 20, 14, 0) 0px,
-            rgba(28, 20, 14, 0) 192px,
-            rgba(28, 20, 14, 0.55) 228px,
-            rgba(28, 20, 14, 1) 254px),
-          url(/banner-hero-en.jpg);
-        background-position: right top, 92% top;
-        background-size: 100% 100%, auto 246px;
-        background-repeat: no-repeat, no-repeat;
-        background-color: #2a1d14;
+        background: #1c140e;
+      }
+      .en-hero > * { position: relative; z-index: 1; }
+      .en-hero::before, .en-hero::after {
+        content: ''; position: absolute; left: 0; right: 0; top: 0;
+        z-index: 0; pointer-events: none;
+      }
+      .en-hero::before {
+        height: 254px;
+        background: url(/banner-hero-en.jpg) 50% 20% / cover no-repeat;
+      }
+      .en-hero::after {
+        bottom: 0;
+        background: linear-gradient(180deg,
+          rgba(28, 20, 14, 0) 0px,
+          rgba(28, 20, 14, 0) 192px,
+          rgba(28, 20, 14, 0.55) 228px,
+          rgba(28, 20, 14, 1) 254px);
       }
       .en-hero h1 { font-size: 24px; }
       .en-hero p { font-size: 15px; }

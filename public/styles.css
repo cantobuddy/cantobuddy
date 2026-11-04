@@ -607,26 +607,49 @@ body {
    composition: she ends up behind a brown wash.
 
    So on a phone the banner becomes picture-then-panel. The image is pinned to
-   the top at a FIXED height (auto 250px, so it keeps its own aspect instead of
-   being stretched), the copy sits underneath on the dark base colour, and the
-   gradient is only used to fade the picture's bottom edge into that panel so
-   the join does not read as a crop. */
+   the top, the copy sits underneath on the dark base colour, and the gradient
+   is only used to fade the picture's bottom edge into that panel so the join
+   does not read as a crop.
+
+   WHY THE PICTURE IS A ::before, NOT A BACKGROUND LAYER (2026-11-05).
+   Both bugs came from `background-size` being measured against the WHOLE card,
+   which is 340-600px tall on a phone because of the copy below it:
+     1. Sizing the JPEG by height (`auto 152px`, the original) made it only
+        ~248px wide, so wider phones showed a hard block of bare #2a1d14 down
+        the left third of the banner — the reported bug.
+     2. `cover` fixed the gap but scaled the JPEG to the full card height, so
+        the 154px picture band showed only the top ~40%: she was cut off at
+        the eyes and the phone in her hand disappeared.
+   A pseudo-element pinned to the PICTURE BAND gives `cover` a short, wide box
+   to fill — full width, natural proportions, whole character, no dark block.
+   ::after carries the fade on top; the copy keeps z-index 1 above both. */
 @media (max-width: 620px) {
   .hero {
     min-height: 0;
     padding: 272px 20px 26px;
     justify-content: flex-start;
-    background-image:
-      linear-gradient(180deg,
-        rgba(28, 20, 14, 0) 0px,
-        rgba(28, 20, 14, 0) 196px,
-        rgba(28, 20, 14, 0.55) 232px,
-        rgba(28, 20, 14, 1) 258px),
-      url(/banner-hero.jpg);
-    background-position: right top, 92% top;
-    background-size: 100% 100%, auto 250px;
-    background-repeat: no-repeat, no-repeat;
-    background-color: #2a1d14;
+    /* The card itself is just the dark panel now. */
+    background: #1c140e;
+  }
+  .hero::before,
+  .hero::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; top: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+  .hero::before {
+    height: 258px;
+    background: url(/banner-hero.jpg) 50% 20% / cover no-repeat;
+  }
+  .hero::after {
+    bottom: 0;
+    background: linear-gradient(180deg,
+      rgba(28, 20, 14, 0) 0px,
+      rgba(28, 20, 14, 0) 196px,
+      rgba(28, 20, 14, 0.55) 232px,
+      rgba(28, 20, 14, 1) 258px);
   }
   .hero-title { font-size: 1.7rem; }
   .hero-sub { font-size: 1rem; }
@@ -1207,6 +1230,75 @@ body {
 .home-featured-links a:hover { text-decoration: underline; }
 .home-featured-count { color: var(--c-text-soft); font-weight: 400; }
 
+/* ---- Home: Days out — the photograph strip -------------------------------
+   Seventeen real Hong Kong photos, swipeable on a phone. The scroll belongs
+   to the STRIP, never to the document: max-width:100% + min-width:0 stop a
+   17-tile flex row from widening the page, which is what the 320/360/390px
+   layout sweep asserts. Overflow-x:auto also tells that suite that a tile
+   clipped inside the scroller is intentional, not broken layout. */
+.home-outings { margin-top: 22px; min-width: 0; }
+.home-outings-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 10px; flex-wrap: wrap;
+}
+#home-outings .home-section-title::before { content: '📷'; }
+.home-outings-all {
+  color: var(--c-primary); font-weight: 600; font-size: 0.84rem;
+  text-decoration: none; white-space: nowrap; margin-bottom: 10px;
+}
+.home-outings-all:hover { text-decoration: underline; }
+.home-outings-strip {
+  display: flex;
+  gap: 10px;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  padding: 2px 0 10px;
+}
+.outing-tile {
+  flex: 0 0 132px;
+  width: 132px;
+  max-width: 132px;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.12s, border-color 0.15s;
+}
+.outing-tile:hover { transform: translateY(-2px); border-color: var(--c-primary); }
+.outing-tile-photo {
+  display: block; width: 100%; aspect-ratio: 16/10;
+  background: #e9e4dc; overflow: hidden;
+}
+.outing-tile-photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.outing-tile-name {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 2.6em;
+  padding: 8px 9px 0;
+  font-size: 0.78rem; font-weight: 700; line-height: 1.3;
+  color: var(--c-text);
+}
+.outing-tile-zh {
+  display: block; padding: 2px 9px 9px;
+  font-size: 0.7rem; color: var(--c-text-soft);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+@media (max-width: 620px) {
+  .outing-tile { flex-basis: 118px; width: 118px; max-width: 118px; }
+}
+
 /* A stranger's first screen. The poster is shortened (on a phone the picture
    drops from 250px to 152px, so the phrase and the first real article are
    actually above the fold), and the four doorway buttons are hidden because
@@ -1217,16 +1309,17 @@ body {
 .view.is-new-visitor #home-discover-promo { display: none; }
 .view.is-new-visitor .hero { min-height: 0; padding: 34px 40px 30px; }
 @media (max-width: 620px) {
-  .view.is-new-visitor .hero {
-    padding: 168px 20px 22px;
-    background-image:
-      linear-gradient(180deg,
-        rgba(28, 20, 14, 0) 0px,
-        rgba(28, 20, 14, 0) 94px,
-        rgba(28, 20, 14, 0.55) 130px,
-        rgba(28, 20, 14, 1) 154px),
-      url(/banner-hero.jpg);
-    background-size: 100% 100%, auto 152px;
+  .view.is-new-visitor .hero { padding: 168px 20px 22px; }
+  /* Only the picture band and its fade shrink. The padding above and the
+     gradient stops below are the original shortened-strip values, unchanged:
+     the phrase and the first article still sit above the fold. */
+  .view.is-new-visitor .hero::before { height: 154px; }
+  .view.is-new-visitor .hero::after {
+    background: linear-gradient(180deg,
+      rgba(28, 20, 14, 0) 0px,
+      rgba(28, 20, 14, 0) 94px,
+      rgba(28, 20, 14, 0.55) 130px,
+      rgba(28, 20, 14, 1) 154px);
   }
 }
 
@@ -5548,6 +5641,19 @@ a.game-tile:active { transform: scale(0.96); background: var(--c-primary-tint); 
   transition: color 0.15s, border-color 0.15s;
 }
 .site-footer-links a:hover { color: var(--c-primary); border-color: var(--c-primary); }
+/* The Facebook page is the one footer link that is not a page on this site.
+   Same pill as the rest so it never reads as an advert, but recognisably
+   tinted so a reader looking for "where do I follow this?" can find it. */
+.site-footer-links a.footer-facebook {
+  color: #1257b8;
+  border-color: rgba(24, 119, 242, 0.35);
+  font-weight: 600;
+}
+.site-footer-links a.footer-facebook:hover {
+  color: #fff;
+  background: #1877f2;
+  border-color: #1877f2;
+}
 
 @media (min-width: 768px) {
   .site-footer { padding: 26px 20px 30px; }

@@ -290,9 +290,35 @@
            onclick="trackEvent('home_content_click',{channel:'culture',source:'home_see_all'}); navigate('discover'); showChannel('culture'); return false;"><span data-i18n="home.featuredAllCulture">All culture articles</span> <span class="home-featured-count" data-count="culture"></span></a>
         <a href="/living"
            onclick="trackEvent('home_content_click',{channel:'living',source:'home_see_all'}); navigate('discover'); showChannel('living'); return false;"><span data-i18n="home.featuredAllLiving">All living guides</span> <span class="home-featured-count" data-count="living"></span></a>
-        <a href="/discover"
+        <a href="/places"
            onclick="trackEvent('home_content_click',{channel:'places',source:'home_see_all'}); navigate('discover'); showChannel('places'); return false;"><span data-i18n="home.featuredAllOutings">All days out</span> <span class="home-featured-count" data-count="outings"></span></a>
       </nav>
+    </section>
+
+    <!-- ---- Days out: the photograph strip ---------------------------------
+         Seventeen real Hong Kong photographs already ship with the site but
+         never appeared on Home. A stranger deciding whether this site is about
+         Hong Kong needs to SEE Hong Kong, not read four button labels.
+
+         The heading and "see all" link are STATIC MARKUP pointing at /places —
+         the new server-rendered hub — so a crawler reaching / has a plain
+         crawlable path into all 17 outing pages without executing a script.
+         The tiles are drawn by app.js from places.js, the SAME 17 records the
+         server renders at /places/<slug>. Each tile keeps a real href for
+         no-JS readers; a delegated handler opens it inside the app instead,
+         so a tap does not bounce a learner out to a separate document.
+
+         Scrolling is scoped to the strip (overflow-x) — it must never widen
+         the document, which is what the layout suite checks at 320px.
+         ------------------------------------------------------------------ -->
+    <section class="home-outings" id="home-outings" aria-labelledby="home-outings-title">
+      <div class="home-outings-head">
+        <h4 class="home-section-title" id="home-outings-title" data-i18n="home.outingsTitle">Days out in Hong Kong</h4>
+        <a class="home-outings-all" href="/places"
+           onclick="trackEvent('home_content_click',{channel:'places',source:'home_outings_all'}); navigate('discover'); showChannel('places'); return false;"
+           data-i18n="home.outingsAll">See all outings →</a>
+      </div>
+      <div class="home-outings-strip" id="home-outings-strip" role="list" aria-label="Days out in Hong Kong"></div>
     </section>
 
     <!-- ---- The Sunday Table ----------------------------------------------
@@ -872,6 +898,13 @@
       <a href="/about">About</a>
       <a href="/contact">Contact</a>
       <a href="/terms">Terms</a>
+      <!-- The project's Facebook page. Same URL as FACEBOOK_URL in seo.js —
+           this is a static file so it cannot require that module. rel="me" is
+           the machine-readable ownership claim that matches ORG_LD.sameAs;
+           noopener/noreferrer because it opens a new tab. "Facebook" is a
+           proper noun, so there is nothing to translate. -->
+      <a class="footer-facebook" href="https://www.facebook.com/profile.php?id=61595817612067"
+         target="_blank" rel="me noopener noreferrer">📘 Facebook</a>
     </nav>
     <!-- Not a crawlable link like the ones above — this one opens a dialog. Kept
          on its own line so it reads as "talk to us" rather than as one more

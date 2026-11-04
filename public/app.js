@@ -622,10 +622,20 @@ function navigate(view) {
  * would drop her on Home and the tab she came from would look lost.
  */
 function openViewFromUrl() {
-  const name = new URLSearchParams(location.search).get('view');
+  const qs = new URLSearchParams(location.search);
+  const name = qs.get('view');
   if (!name) return;
   if (!document.getElementById('view-' + name)) return;
   if (name !== 'home') navigate(name);
+  /* The server-rendered /places/<slug> page links back into the app with
+     ?view=place&p=<slug>. Without this the empty place shell would open with
+     no outing in it — a doorway that leads to a blank room. Validate the slug
+     against the shipped list so a crafted query cannot open an unknown view. */
+  if (name === 'place') {
+    const slug = qs.get('p');
+    if (slug && placeList().some((x) => x.slug === slug)) openPlace(slug);
+    else navigate('home');
+  }
   try { history.replaceState(null, '', location.pathname); } catch (e) { /* ignore */ }
 }
 
@@ -799,6 +809,7 @@ async function init() {
     renderHomeCards();
     renderHomePhrase();
     renderHomeFeatured();
+    renderHomeOutings();
     renderHomeSundayTable();
     renderHomeFestival();
     renderHomeDailyCulture();
@@ -1427,6 +1438,53 @@ async function renderHomeFeatured() {
     console.warn('Could not load featured content:', err);
     wrap.innerHTML = '';
   }
+}
+
+/* ---------------------------------------------------------------------------
+   The Days-out photograph strip
+   ---------------------------------------------------------------------------
+   Seventeen real Hong Kong photographs ship with the site, but Home only ever
+   showed ONE of them (and only when the daily rotation happened to pick an
+   outing). A stranger landing on / saw a poster, a phrase and four labels;
+   nothing told her this site knows anything about the city she lives in.
+
+   The tiles come straight from places.js — the same array /api/home/featured
+   and the server-rendered /places hub read — so adding an outing puts it here
+   too, with no second list. Text on a tile is a proper noun, so it needs no
+   re-render on a language switch; the section's two labels are static
+   [data-i18n] and are handled by applyTranslations().
+
+   One delegated listener rather than 17 inline onclick handlers: no slug is
+   ever interpolated into JavaScript source, and modifying clicks (new tab,
+   copy link) still reach the real /places/<slug> URL.
+   --------------------------------------------------------------------------- */
+function outingTileHtml(p) {
+  return `<a class="outing-tile" role="listitem" href="/places/${escapeAttr(p.slug)}" data-outing="${escapeAttr(p.slug)}">
+    <span class="outing-tile-photo"><img src="${escapeAttr(p.card)}" alt="${escapeAttr(p.name)} — ${escapeAttr(p.nameZh)}" loading="lazy" decoding="async" width="320" height="180"></span>
+    <span class="outing-tile-name">${escapeHtml(p.emoji)} ${escapeHtml(p.name)}</span>
+    <span class="outing-tile-zh">${escapeHtml(p.nameZh)}</span>
+  </a>`;
+}
+
+function renderHomeOutings() {
+  const wrap = document.getElementById('home-outings-strip');
+  if (!wrap) return;
+  wrap.innerHTML = placeList().map(outingTileHtml).join('');
+  if (wrap.dataset.bound) return;
+  wrap.dataset.bound = '1';
+  wrap.addEventListener('click', (e) => {
+    const a = e.target && e.target.closest ? e.target.closest('[data-outing]') : null;
+    if (!a) return;
+    // Ctrl/Cmd/Shift-click and middle-click are "open the real page" — do not
+    // steal them; the href is a genuine server-rendered outing page.
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+    e.preventDefault();
+    const slug = a.getAttribute('data-outing');
+    trackEvent('home_content_click', {
+      channel: 'places', content_kind: 'place', slug, source: 'home_outings_strip',
+    });
+    openPlace(slug);
+  });
 }
 
 /**

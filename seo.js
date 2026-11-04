@@ -27,6 +27,7 @@
  */
 const fs = require('fs');
 const path = require('path');
+const vm = require('vm');
 
 const store = require('./db');
 const { GUIDES, GUIDE_BY_SLUG, UPDATED } = require('./content');
@@ -35,6 +36,54 @@ const dailyPhrase = require('./daily-phrase');
 // The practical channels (survival / household / health / festivals). Shared
 // with server.js and the app so adding one is a single-file edit.
 const { PRACTICAL_CHANNELS, practicalText, practicalSection } = require('./practical-channels');
+
+/* ---------------------------------------------------------------------------
+   Outings (/places) — ONE data source, two runtimes
+   ---------------------------------------------------------------------------
+   The 17 days out are authored in public/places.js, translated in
+   public/i18n.js and attributed in public/places/credits.js. Before this
+   change they existed ONLY in the browser: a crawler fetching /discover saw
+   an empty <div>, so 17 real, photographed guides were invisible to search.
+
+   Re-typing all of that into a second server-side list would guarantee drift
+   the first time an outing is added. Instead:
+
+     places.js       already has a guarded CommonJS export (like server.js uses
+                     for /api/home/featured), so it is require()-ed directly.
+     i18n.js         is a classic browser <script> whose only top-level DOM
+                     access is localStorage.getItem(), so it is evaluated in a
+                     throwaway vm context with a stub and I18N is lifted out.
+     credits.js      is GENERATED ("do not edit by hand") and its whole body is
+                     `window.PLACE_CREDITS = {...}`, so the same vm approach
+                     lifts the object without editing the generator's output.
+
+   The vm sandbox has no require, no process and no filesystem: these files are
+   plain data-plus-functions, not code we execute beyond the initialisation
+   statements. If one of them ever grows a real top-level DOM call, the server
+   fails loudly at boot instead of silently rendering an empty page.
+   --------------------------------------------------------------------------- */
+function browserValue(relPath, expression) {
+  const src = fs.readFileSync(path.join(__dirname, relPath), 'utf8');
+  const box = {
+    console,
+    window: {},
+    localStorage: { getItem: () => null, setItem: () => {} },
+  };
+  vm.runInNewContext(`${src}\n;globalThis.__CB_VALUE__ = (${expression});`, box, {
+    filename: relPath,
+    timeout: 2000,
+  });
+  return box.__CB_VALUE__;
+}
+
+const { PLACES, PLACE_KINDS } = require('./public/places.js');
+const PLACE_I18N = browserValue('public/i18n.js', 'I18N');
+const PLACE_CREDITS = browserValue('public/places/credits.js', 'window.PLACE_CREDITS');
+
+/** The day these outing URLs first became publicly indexable. A fixed
+ *  historical fact, NOT a crawl date — bumping it on every deploy is exactly
+ *  the over-claiming that teaches Google to ignore lastmod. */
+const PLACES_FIRST_PUBLISHED = '2026-11-05';
 
 /**
  * The date the vocabulary library last changed. This is the honest `lastmod`
@@ -95,6 +144,19 @@ function wordLastmod(w) {
  * because a wrong-but-absolute canonical is far safer than a missing one.
  */
 const SITE_ORIGIN = (process.env.SITE_ORIGIN || 'https://cantobuddy.com').replace(/\/+$/, '');
+
+/**
+ * The project's Facebook page.
+ *
+ * `rel="me"` on the outbound link is deliberate: it is the machine-readable
+ * counterpart of the `sameAs` below, and is how a crawler (or Facebook's own
+ * link checker) confirms the page really belongs to this site. One constant so
+ * the footer, the About page and the Organization JSON-LD cannot drift apart.
+ * The static HTML shells (index.html / domestic-helpers.html) repeat the URL
+ * verbatim because they are served as files and cannot require this module.
+ */
+const FACEBOOK_URL = 'https://www.facebook.com/profile.php?id=61595817612067';
+const FACEBOOK_LINK = `<a href="${FACEBOOK_URL}" target="_blank" rel="me noopener noreferrer">Facebook</a>`;
 
 /**
  * Sentinel returned by a renderer whose page was RETIRED on purpose.
@@ -485,7 +547,12 @@ const FOR_EMPLOYERS_LABEL = { en: 'For employers', fil: 'Para sa mga employer', 
  * serves it via portalPage()). Listing it would make the language suites
  * expect /fil/portal, /zh/portal and /id/portal to exist, and would count it as
  * an English-only URL when they assert the four trees are the same size. */
-const ROUTE_FAMILIES = ['learn', 'words', 'level', 'guide', 'discover', 'stories', 'privacy'];
+// `places` is here because the outing guides now ship as four mirrored SSR
+// trees. Test suites derive their four-tree counts and the service-worker
+// network-first matcher from this list, so a new family that is left out would
+// be invisible to every drift guard. `living` is deliberately NOT here: its
+// passages and hub are English-only, so it has no four-tree count to compare.
+const ROUTE_FAMILIES = ['learn', 'words', 'level', 'guide', 'discover', 'stories', 'privacy', 'places'];
 
 /** Every language tree this module serves, in the order links should list them. */
 const LANGS = ['en', 'fil', 'zh', 'id'];
@@ -1059,6 +1126,53 @@ article:has(table) ul:first-of-type li strong{display:block;color:var(--ink);fon
   font-size:18px;font-weight:500;white-space:nowrap}
 .fest-jyut{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;color:var(--muted)}
 @media (max-width:560px){.fest-banner-words li{flex:1 1 auto}}
+/* Outings (/places): the photo-card hub and the long-form guide. */
+.place-grid{list-style:none;padding:0;margin:0 0 26px;display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.place-card{margin:0;background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.place-card>a{display:block;height:100%;text-decoration:none;color:var(--ink)}
+.place-card-img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;background:#e9edf2}
+.place-card-body{display:block;padding:12px 14px 16px}
+.place-card-name{display:block;font-size:16px;line-height:1.35}
+.place-card-zh{display:block;font-size:13px;color:var(--muted);margin-top:2px}
+.place-card-meta{display:block;font-size:12.5px;color:var(--muted);margin-top:8px}
+.place-card-sum{display:block;font-size:14px;color:var(--muted);line-height:1.5;margin-top:8px}
+.place-card:hover{border-color:#f3c2c7;box-shadow:0 3px 14px rgba(29,39,51,.06)}
+.place-figure{margin:0 0 22px}
+.place-hero{display:block;width:100%;height:auto;max-height:420px;object-fit:cover;
+  border-radius:14px;background:#e9edf2}
+.place-figure figcaption{font-size:12.5px;color:var(--muted);margin-top:8px}
+.place-figure figcaption p{margin:0}
+.place-figure figcaption a{color:var(--muted)}
+.place-facts{list-style:none;padding:0;margin:0 0 26px;display:flex;flex-wrap:wrap;gap:8px}
+.place-facts li{background:#fff;border:1px solid var(--line);border-radius:999px;
+  padding:6px 13px;font-size:13.5px}
+.place-facts li strong{font-weight:600;color:var(--muted);font-size:12px;margin-right:5px}
+.place-steps{list-style:none;counter-reset:step;padding:0;margin:0 0 30px;max-width:70ch}
+.place-steps li{position:relative;padding:10px 0 10px 42px;border-bottom:1px solid var(--line);font-size:15.5px}
+.place-steps li:before{counter-increment:step;content:counter(step);position:absolute;left:0;top:9px;
+  width:26px;height:26px;border-radius:50%;background:#fff5f5;color:#c1121f;font-size:13px;
+  font-weight:700;display:flex;align-items:center;justify-content:center}
+.place-step-icon{margin-right:7px}
+.place-fees{list-style:none;padding:0;margin:0 0 12px;max-width:52ch}
+.place-fees li{display:flex;justify-content:space-between;gap:12px;padding:9px 0;
+  border-bottom:1px solid var(--line);font-size:15.5px}
+.place-fee-amt{font-weight:700;white-space:nowrap}
+.place-fee-when{font-size:12px;color:var(--muted);margin-left:6px}
+.place-free-note{font-size:17px;font-weight:600}
+.place-oneway-note,.place-prices-note,.place-hours{font-size:14.5px;color:var(--muted)}
+.place-tips{padding-left:22px;max-width:70ch}
+.place-tips li{margin:0 0 8px}
+.place-more{margin-top:38px;padding-top:22px;border-top:1px solid var(--line)}
+.place-more h2{margin-top:0}
+.place-more ul{list-style:none;padding:0;display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.place-more li a{display:block;background:#fff;border:1px solid var(--line);border-radius:10px;
+  padding:10px 13px;text-decoration:none;font-weight:600;font-size:14.5px}
+@media (max-width:620px){
+  .place-grid,.place-more ul{grid-template-columns:1fr}
+  .place-hero{max-height:260px}
+}
 .cta-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px 22px;
   display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;margin:26px 0}
 .cta-card p{margin:0;color:var(--muted);font-size:15px;max-width:46ch}
@@ -1120,6 +1234,11 @@ figure.example .ex-en{font-size:15.5px;color:var(--ink)}
 footer.site{border-top:1px solid var(--line);margin-top:44px;padding:24px 0 40px;
   color:var(--muted);font-size:14px}
 footer.site a{color:var(--muted)}
+/* The Facebook page gets its own line: a social profile buried in a long link
+   run is the one thing a reader who came to say hello will not find. */
+footer.site .site-social{margin-top:16px;font-size:15px}
+footer.site .site-social a{color:var(--red);font-weight:600;text-decoration:none}
+footer.site .site-social a:hover{text-decoration:underline}
 /* Guides — long-form prose. The vocabulary pages are tables; these are articles,
    so they need real reading rhythm rather than the tight table spacing. */
 article{max-width:70ch}
@@ -1379,6 +1498,7 @@ ${o.body}
        &nbsp;·&nbsp; <a href="/cantonese-food-phrases">Food phrases</a>
        &nbsp;·&nbsp; <a href="/cantonese-for-elderly-learners">Elderly learners</a>
        &nbsp;·&nbsp; <a href="/cantonese-for-health-emergencies">Health</a></p>
+    <p class="site-social">📘 ${FACEBOOK_LINK}</p>
   </div>
 </footer>
 ${VISIT_BEACON}
@@ -1515,6 +1635,10 @@ const ORG_LD = {
     'A free Cantonese learning app for Filipino and Indonesian domestic helpers in Hong Kong: practical vocabulary with audio, pictures and quizzes.',
   areaServed: { '@type': 'Place', name: 'Hong Kong' },
   audience: { '@type': 'Audience', audienceType: 'Filipino and Indonesian domestic helpers' },
+  // sameAs is the one field that tells a search engine which social profile is
+  // actually ours rather than a fan page or a name collision. Every server-
+  // rendered page embeds ORG_LD, so one line here covers the whole SEO tree.
+  sameAs: [FACEBOOK_URL],
 };
 
 function breadcrumbLd(trail) {
@@ -3290,6 +3414,326 @@ ${ctaCard(lang)}
   });
 }
 
+/* ===========================================================================
+   Outings — /places and /places/<slug>
+   ===========================================================================
+   The app's Outings tab is drawn entirely by app.js into one URL. It has 17
+   real Hong Kong photographs, 17 MTR/ferry routes, opening hours, fares and
+   tips — and none of it existed as HTML for a crawler. A search for "Peak Tram
+   how to get there" could not land on a page that answers it.
+
+   These two renderers publish that content in all four language trees. Chrome
+   AND the summary text come from the same i18n/places data the app uses, so
+   the four trees are genuinely different documents and the hreflang set below
+   is an honest claim rather than four copies of one English page.
+
+   The hub is also the crawl path: every one of the 17 detail pages is linked
+   from a plain <a href> here, from the sitemap, and from the Home photo strip.
+   =========================================================================== */
+
+/** Chrome that is SEO copy rather than UI copy, so it is not in i18n.js. */
+const PLACE_SEO_UI = {
+  en: {
+    hubName: 'Days out in Hong Kong',
+    hubTitle: 'Free days out in Hong Kong: MTR routes, hours and prices | CantoBuddy',
+    hubDescription: 'Free and low-cost days out in Hong Kong for domestic helpers on their day off, with MTR and ferry routes, opening hours, fares and a real photograph of each place.',
+    hubLede: (n) => `Pick one of ${n} days out in Hong Kong. Every guide gives the route from the MTR or ferry, what it costs, the opening hours and things worth knowing before you go — with a real photograph of the place.`,
+    pageSuffix: 'Hong Kong day out: MTR route, opening hours and cost',
+    moreDaysOut: 'More days out',
+    inApp: 'Take the full route with you on your phone, with the Cantonese words you will need.',
+  },
+  fil: {
+    hubName: 'Mga gala sa Hong Kong',
+    hubTitle: 'Libreng gala sa Hong Kong: ruta ng MTR, oras at presyo | CantoBuddy',
+    hubDescription: 'Libre at murang lakad sa Hong Kong para sa mga helper sa araw ng pahinga, na may ruta ng MTR at bangka, oras ng pagbubukas, pamasahe at totoong larawan ng bawat lugar.',
+    hubLede: (n) => `Pumili sa ${n} gala sa Hong Kong. Bawat gabay ay may ruta mula sa MTR o bangka, magkano, oras ng pagbubukas, at mga dapat malaman bago umalis — na may totoong larawan ng lugar.`,
+    pageSuffix: 'Gala sa Hong Kong: ruta, oras at gastos',
+    moreDaysOut: 'Iba pang gala',
+    inApp: 'Dalhin ang buong ruta sa iyong phone, kasama ang mga salitang Cantonese na kakailanganin mo.',
+  },
+  zh: {
+    hubName: '香港好去处',
+    hubTitle: '香港免费好去处：港铁路线、开放时间与费用 | CantoBuddy',
+    hubDescription: '为香港家佣整理的放假好去处：港铁与渡轮路线、开放时间、票价，以及每个地点的实景照片。',
+    hubLede: (n) => `从 ${n} 个香港好去处中挑一个。每篇都有港铁或渡轮路线、费用、开放时间和出发前的实用提示，并附上实景照片。`,
+    pageSuffix: '香港好去处：交通路线、开放时间与费用',
+    moreDaysOut: '其他好去处',
+    inApp: '把完整路线带在手机上，还可以一起学会用得上的粤语词。',
+  },
+  id: {
+    hubName: 'Jalan-jalan di Hong Kong',
+    hubTitle: 'Jalan-jalan gratis di Hong Kong: rute MTR, jam buka dan biaya | CantoBuddy',
+    hubDescription: 'Tempat jalan-jalan gratis dan murah di Hong Kong untuk asisten rumah tangga saat hari libur, lengkap dengan rute MTR dan kapal, jam buka, tarif, serta foto asli setiap tempat.',
+    hubLede: (n) => `Pilih salah satu dari ${n} tempat jalan-jalan di Hong Kong. Setiap panduan berisi rute dari MTR atau kapal, biaya, jam buka, dan hal yang perlu diketahui sebelum berangkat — dengan foto asli tempatnya.`,
+    pageSuffix: 'Jalan-jalan di Hong Kong: rute, jam buka dan biaya',
+    moreDaysOut: 'Tempat lain',
+    inApp: 'Bawa rute lengkapnya di ponsel, bersama kata-kata Kanton yang akan Anda butuhkan.',
+  },
+};
+
+const placeCap = (s) => String(s || '').charAt(0).toUpperCase() + String(s || '').slice(1);
+
+/** t() for the place dictionary, with the same {name} substitution the app uses. */
+function placeT(lang, key, vars) {
+  const dict = PLACE_I18N[lang] || PLACE_I18N.en;
+  const raw = dict[key] != null ? dict[key] : (PLACE_I18N.en[key] != null ? PLACE_I18N.en[key] : key);
+  return String(raw).replace(/\{(\w+)\}/g, (m, k) => (vars && vars[k] != null ? String(vars[k]) : m));
+}
+
+const PLACE_TIME_KEYS = { fewHours: 'place.timeFew', halfDay: 'place.timeHalf', fullDay: 'place.timeFull' };
+const placeTime = (p, lang) => placeT(lang, PLACE_TIME_KEYS[p.time] || 'place.timeFew');
+const placeSummary = (p, lang) => (p.summary && (p.summary[lang] || p.summary.en)) || '';
+
+function placeMoney(n) {
+  const v = Math.round(Number(n) * 10) / 10;
+  return Number.isInteger(v) ? `HK$${v}` : `HK$${v.toFixed(1)}`;
+}
+
+/** The one price on a card. A one-way fare says so, or a day on an island
+ *  looks like it costs half of what it does. Same rule as app.js. */
+function placePriceChip(p, lang) {
+  if (!p.fee) return '';
+  if (p.fee.free) return placeT(lang, 'place.free');
+  const first = p.fee.items && p.fee.items[0];
+  if (!first) return placeT(lang, 'place.free');
+  const each = p.fee.oneWay ? ` ${placeT(lang, 'place.eachWay')}` : '';
+  return `${first.approx ? '≈' : ''}${placeMoney(first.hkd)}${each}`;
+}
+
+/** One route step, mirroring app.js so the two never disagree. */
+function placeStepText(s, lang) {
+  if (s.t === 'mtr') {
+    const base = placeT(lang, 'place.stepMtr', { station: s.station });
+    return s.exit ? `${base} · ${placeT(lang, 'place.stepExit', { exit: s.exit })}` : base;
+  }
+  if (s.t === 'walk') {
+    return s.to
+      ? placeT(lang, 'place.stepWalkTo', { min: s.min, to: s.to })
+      : placeT(lang, 'place.stepWalk', { min: s.min });
+  }
+  if (s.t === 'bus') {
+    if (s.from && s.to) return `${placeT(lang, 'place.stepBusFrom', { route: s.route, from: s.from })} → ${s.to}`;
+    if (s.to) return placeT(lang, 'place.stepBusTo', { route: s.route, to: s.to });
+    return placeT(lang, 'place.stepBus', { route: s.route });
+  }
+  if (s.t === 'minibus') return placeT(lang, 'place.stepMinibusTo', { route: s.route, to: s.to });
+  if (s.t === 'ferry') {
+    return s.min
+      ? placeT(lang, 'place.stepFerryMin', { to: s.to, min: s.min })
+      : placeT(lang, 'place.stepFerryTo', { to: s.to });
+  }
+  if (s.t === 'tram') return placeT(lang, 'place.stepTram');
+  return '';
+}
+
+/** The photograph is somebody's work under a licence that names them. */
+function placeCreditHtml(p, lang) {
+  const c = PLACE_CREDITS[p.slug];
+  if (!c) return '';
+  const author = String(c.author || '').replace(/\s*\(Wikimedia Commons\)$/i, '') || 'Wikimedia Commons';
+  return `<p class="place-credit">${esc(placeT(lang, 'place.credit', { author, licence: c.licence }))}
+    · <a href="${esc(c.page)}" target="_blank" rel="noopener noreferrer">Wikimedia Commons</a></p>`;
+}
+
+function placeCardLi(p, lang, prefix) {
+  return `<li class="place-card">
+  <a href="${esc(`${prefix}/places/${p.slug}`)}">
+    <img class="place-card-img" src="${esc(p.card)}" alt="${esc(p.name)} — ${esc(p.nameZh)}" loading="lazy" decoding="async" width="640" height="360" />
+    <span class="place-card-body">
+      <strong class="place-card-name">${esc(p.emoji)} ${esc(p.name)}</strong>
+      <span class="place-card-zh">${esc(p.nameZh)}</span>
+      <span class="place-card-meta">📍 ${esc(p.area)} · ⏱ ${esc(placeTime(p, lang))} · 💵 ${esc(placePriceChip(p, lang))}</span>
+      <span class="place-card-sum">${esc(placeSummary(p, lang))}</span>
+    </span>
+  </a>
+</li>`;
+}
+
+function renderPlacesHub(lang) {
+  const ui = PLACE_SEO_UI[lang] || PLACE_SEO_UI.en;
+  const prefix = LANG_PREFIX[lang] || '';
+
+  // Grouped by kind: six real sections rather than one undifferentiated wall of
+  // cards, and every group label is one the app already translates.
+  const sections = PLACE_KINDS.map((kind) => {
+    const list = PLACES.filter((p) => p.kind === kind);
+    if (!list.length) return '';
+    return `<h2 class="disc-h2">${esc(placeT(lang, `place.kind${placeCap(kind)}`))}</h2>
+<ul class="place-grid">\n${list.map((p) => placeCardLi(p, lang, prefix)).join('\n')}\n</ul>`;
+  }).join('\n');
+
+  const body = `
+${crumbs(lang, [{ label: ui.hubName }])}
+<h1>${esc(ui.hubName)}</h1>
+<p class="lede">${esc(ui.hubLede(PLACES.length))}</p>
+${sections}
+${ctaCard(lang)}
+`;
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      ORG_LD,
+      breadcrumbLd([{ name: ui.hubName, path: `${prefix}/places` }]),
+      {
+        '@type': 'CollectionPage',
+        name: ui.hubName,
+        description: ui.hubDescription,
+        url: `${SITE_ORIGIN}${prefix}/places`,
+        inLanguage: L[lang].htmlLang,
+        hasPart: PLACES.map((p) => ({
+          '@type': 'TouristAttraction',
+          name: p.name,
+          url: `${SITE_ORIGIN}${prefix}/places/${p.slug}`,
+        })),
+      },
+      {
+        '@type': 'ItemList',
+        numberOfItems: PLACES.length,
+        itemListElement: PLACES.map((p, i) => ({
+          '@type': 'ListItem',
+          position: i + 1,
+          name: p.name,
+          url: `${SITE_ORIGIN}${prefix}/places/${p.slug}`,
+        })),
+      },
+    ],
+  };
+
+  return page({
+    lang,
+    title: ui.hubTitle,
+    description: ui.hubDescription,
+    path: `${prefix}/places`,
+    jsonLd,
+    body,
+    ogImage: `${SITE_ORIGIN}/og-home.jpg`,
+    alternates: hreflangLinks((l) => `${LANG_PREFIX[l]}/places`),
+  });
+}
+
+/** One outing. Returns null for an unknown slug so the route answers 404. */
+function renderPlace(lang, slug) {
+  const p = PLACES.find((x) => x.slug === slug);
+  if (!p) return null;
+  const ui = PLACE_SEO_UI[lang] || PLACE_SEO_UI.en;
+  const prefix = LANG_PREFIX[lang] || '';
+  const free = !!(p.fee && p.fee.free);
+  const summary = placeSummary(p, lang);
+  const canonicalPath = `${prefix}/places/${p.slug}`;
+  const shareUrl = `${SITE_ORIGIN}${canonicalPath}`;
+  const title = `${p.name} (${p.nameZh}) — ${ui.pageSuffix}`;
+
+  const steps = (p.steps || []).map((s) => `<li><span class="place-step-icon" aria-hidden="true">${
+    { mtr: '🚇', walk: '🚶', bus: '🚌', minibus: '🚐', ferry: '⛴️', tram: '🚊' }[s.t] || '•'
+  }</span>${esc(placeStepText(s, lang))}</li>`).join('\n');
+
+  const feeRows = free ? '' : (p.fee.items || []).map((it) => {
+    const when = it.when ? ` <span class="place-fee-when">${esc(placeT(lang, `place.fee${placeCap(it.when)}`))}</span>` : '';
+    return `<li><span>${esc(placeT(lang, `place.fee${placeCap(it.label)}`))}${when}</span>
+      <span class="place-fee-amt">${it.approx ? '≈' : ''}${esc(placeMoney(it.hkd))}</span></li>`;
+  }).join('\n');
+
+  const tips = (p.goodToKnow || []).map((tip) => `<li>${esc(tip)}</li>`).join('\n');
+
+  // Internal links to sibling outings. Prefer the same kind (someone reading
+  // about a hike is likelier to want another hike), then fill up to four from
+  // the rest so a group with only one entry is never a dead end.
+  const sameKind = PLACES.filter((x) => x.slug !== p.slug && x.kind === p.kind);
+  const others = [...sameKind, ...PLACES.filter((x) => x.slug !== p.slug && x.kind !== p.kind)].slice(0, 4);
+  const moreHtml = `<section class="place-more">
+  <h2>${esc(ui.moreDaysOut)}</h2>
+  <ul>${others.map((x) => `<li><a href="${esc(`${prefix}/places/${x.slug}`)}">${esc(x.emoji)} ${esc(x.name)}</a></li>`).join('\n')}</ul>
+  <p class="updated"><a href="${esc(`${prefix}/places`)}">${esc(placeT(lang, 'place.back'))}</a></p>
+</section>`;
+
+  const body = `
+${crumbs(lang, [{ label: ui.hubName, href: `${prefix}/places` }, { label: p.name }])}
+<article class="place-article">
+  <figure class="place-figure">
+    <img class="place-hero" src="${esc(p.photo)}" alt="${esc(p.name)} — ${esc(p.nameZh)}, Hong Kong" width="1280" height="720" decoding="async" />
+    <figcaption>${placeCreditHtml(p, lang)}</figcaption>
+  </figure>
+  <h1>${esc(p.emoji)} ${esc(p.name)}<span class="sub">${esc(p.nameZh)}</span></h1>
+  ${summary ? `<p class="lede">${esc(summary)}</p>` : ''}
+  <ul class="place-facts">
+    <li><strong>${esc(placeT(lang, 'place.area'))}</strong>${esc(p.area)}</li>
+    <li><strong>${esc(placeT(lang, 'place.timeNeeded'))}</strong>${esc(placeTime(p, lang))}</li>
+    <li><strong>${esc(placeT(lang, 'place.cost'))}</strong>${esc(placePriceChip(p, lang))}</li>
+  </ul>
+  <h2>🚇 ${esc(placeT(lang, 'place.howToGet'))}</h2>
+  <ol class="place-steps">${steps}</ol>
+  <h2>💵 ${esc(placeT(lang, 'place.cost'))}</h2>
+  ${free
+    ? `<p class="place-free-note">🎉 ${esc(placeT(lang, 'place.free'))}</p>`
+    : `<ul class="place-fees">${feeRows}</ul>`}
+  ${!free && p.fee.oneWay ? `<p class="place-oneway-note">↔️ ${esc(placeT(lang, 'place.oneWayNote'))}</p>` : ''}
+  <p class="place-prices-note">${esc(placeT(lang, 'place.pricesNote'))}</p>
+  <h2>🕒 ${esc(placeT(lang, 'place.open'))}</h2>
+  <p class="place-hours">${esc(p.hours)}</p>
+  <h2>💡 ${esc(placeT(lang, 'place.goodToKnow'))}</h2>
+  <ul class="place-tips">${tips}</ul>
+</article>
+${shareRow(lang, shareUrl, title)}
+${moreHtml}
+<div class="cta-card">
+  <p>${esc(ui.inApp)}</p>
+  <a class="cta" href="/?view=place&amp;p=${esc(encodeURIComponent(p.slug))}">${esc(L[lang].openApp)}</a>
+</div>
+`;
+
+  const fares = free ? [] : (p.fee.items || []).map((it) => Number(it.hkd)).filter(Number.isFinite);
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      ORG_LD,
+      breadcrumbLd([
+        { name: ui.hubName, path: `${prefix}/places` },
+        { name: p.name, path: canonicalPath },
+      ]),
+      {
+        '@type': 'TouristAttraction',
+        name: p.name,
+        alternateName: p.nameZh,
+        description: summary,
+        inLanguage: L[lang].htmlLang,
+        url: `${SITE_ORIGIN}${canonicalPath}`,
+        image: `${SITE_ORIGIN}${p.photo}`,
+        isAccessibleForFree: free,
+        address: {
+          '@type': 'PostalAddress',
+          addressLocality: p.area,
+          addressRegion: 'Hong Kong',
+          addressCountry: 'HK',
+        },
+        ...(fares.length ? {
+          offers: {
+            '@type': 'AggregateOffer',
+            priceCurrency: 'HKD',
+            lowPrice: Math.min(...fares),
+            offerCount: fares.length,
+          },
+        } : {}),
+      },
+    ],
+  };
+
+  return page({
+    lang,
+    title: `${title} | CantoBuddy`,
+    description: summary || title,
+    path: canonicalPath,
+    jsonLd,
+    body,
+    ogImage: `${SITE_ORIGIN}${p.photo}`,
+    ogImageAlt: `${p.name} (${p.nameZh}), Hong Kong`,
+    // All four trees really do render translated chrome AND a translated
+    // summary, so unlike the untranslated /discover posts every alternate is
+    // an honest, distinct document.
+    alternates: hreflangLinks((l) => `${LANG_PREFIX[l]}/places/${p.slug}`),
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Stories — a helper's own life story, written in her own language
 // ---------------------------------------------------------------------------
@@ -4319,9 +4763,31 @@ ${alts}
   // sitemap, so Google was never told to crawl them. English only, like /portal:
   // the fil/zh/id columns are empty, so the app falls back to English.
   const livingPosts = store.listLivingPosts({ limit: 300 });
+  const livingDates = [];
   for (const p of livingPosts) {
     const d = postDateShort(p.updated_at || p.published_at || SITE_STRUCTURE_DATE);
+    livingDates.push(d);
     add(`/living/${p.slug}`, '0.7', 'monthly', null, d);
+  }
+  /* THE HUB WAS MISSING. Every /living/<slug> passage was listed, but the page
+     that organises them — the one with the category headings and all the
+     internal links — was not. Google could find a leaf but never the doorway.
+     Its honest lastmod is the newest passage it lists, not the crawl date. */
+  const newestLiving = livingDates.reduce((m, d) => (d > m ? d : m), SITE_STRUCTURE_DATE);
+  add('/living', '0.8', 'weekly', null, newestLiving);
+
+  /* Outings. 17 photographed guides, four language trees each, plus the four
+     hubs. Before this they had no indexable URL at all — the app rendered them
+     into /discover at runtime. lastmod is the fixed day these pages shipped;
+     the underlying place data has no updated_at column, and stamping today's
+     date on every crawl would be a lie that devalues the whole file. */
+  for (const prefix of Object.values(LANG_PREFIX)) {
+    add(`${prefix}/places`, '0.8', 'monthly',
+      hreflangLinks((l) => `${LANG_PREFIX[l]}/places`), PLACES_FIRST_PUBLISHED);
+    for (const p of PLACES) {
+      add(`${prefix}/places/${p.slug}`, '0.7', 'monthly',
+        hreflangLinks((l) => `${LANG_PREFIX[l]}/places/${p.slug}`), PLACES_FIRST_PUBLISHED);
+    }
   }
 
   // Games — the UNO / Big Two / Word Match tables. App features, not search
@@ -4394,6 +4860,11 @@ Allow: /level
 Allow: /guide
 Allow: /discover
 Allow: /stories
+Allow: /living
+# /places is BOTH a server-rendered hub and the directory holding the photos.
+# express.static is mounted with redirect:false so the bare URL reaches the
+# hub; an explicit Allow makes the intent clear to anyone reading this file.
+Allow: /places
 Allow: /fil
 Allow: /zh
 Allow: /id
@@ -4515,6 +4986,9 @@ ${crumbs('en', [{ label: 'About' }])}
 <h2>How it is paid for</h2>
 <p>Hosting and the audio cost money, and advertising pays for it. Ads appear on this website; they are served by Google, and they are never targeted using anything a helper tells the app. There is no subscription, no in-app purchase, and nothing in the app to sell her.</p>
 <p>We do not sell personal information, and there is no account to sell it from — a learner is identified by a device token, not an email address. The <a href="/privacy">privacy policy</a> sets out exactly what is and is not collected.</p>
+
+<h2>Follow along</h2>
+<p>New words, practical guides and days out are posted on the <a href="${FACEBOOK_URL}" target="_blank" rel="me noopener noreferrer">CantoBuddy Facebook page</a>. It is the quickest way to see what changed without waiting for a search engine to catch up, and it is a public place to ask a question in front of other helpers who may have the same one.</p>
 
 <h2>Corrections</h2>
 <p>Cantonese is not one thing, and a word that is right in one household can sound odd in another. If an entry is wrong, if a Jyutping reading is off, or if a guide has gone out of date, tell us — <a href="/contact">the contact form</a> goes straight to the person who maintains this.</p>
@@ -4719,6 +5193,13 @@ function mount(app) {
     // distinct and the ordering makes that explicit.
     ['/stories', (lang) => renderStoriesHub(lang)],
     ['/stories/:slug', (lang, p) => renderStory(lang, p.slug)],
+    // Outings. Registered in the mirrored route table, so /places and all 17
+    // /places/<slug> guides exist in each of the four language trees with a
+    // self-canonical plus the full hreflang set. A bare /places is NOT served
+    // by express.static: that mount has redirect:false (see server.js), so the
+    // directory request falls through to here instead of bouncing to /places/.
+    ['/places', (lang) => renderPlacesHub(lang)],
+    ['/places/:slug', (lang, p) => renderPlace(lang, p.slug)],
     // The privacy policy. Last, so the two-segment guide route above cannot be
     // shadowed, and reachable at /privacy (root) plus /fil|/zh|/id/privacy.
     ['/privacy', (lang) => renderPrivacy(lang)],

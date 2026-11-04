@@ -346,6 +346,10 @@ const I18N = {
     'home.featuredAllCulture': 'All culture articles',
     'home.featuredAllLiving': 'All living guides',
     'home.featuredAllOutings': 'All days out',
+    // The Home photograph strip. Proper nouns on the tiles need no translation;
+    // these two labels do.
+    'home.outingsTitle': 'Days out in Hong Kong',
+    'home.outingsAll': 'See all outings →',
     // The "coming up" card, shown for three days before a festival and on the
     // day itself. The wording is deliberately about PREPARING — she is told
     // what is about to happen to the household, not given a calendar entry.
@@ -964,6 +968,8 @@ const I18N = {
     'home.featuredAllCulture': 'Lahat ng artikulo sa kultura',
     'home.featuredAllLiving': 'Lahat ng gabay sa buhay',
     'home.featuredAllOutings': 'Lahat ng lakad',
+    'home.outingsTitle': 'Mga gala sa Hong Kong',
+    'home.outingsAll': 'Tingnan lahat ng gala →',
     'home.festLabel': 'Papalapit na pista',
     'home.festKicker': 'Papalapit',
     'home.festToday': 'Ngayon',
@@ -1580,6 +1586,8 @@ const I18N = {
     'home.featuredAllCulture': '所有文化文章',
     'home.featuredAllLiving': '所有生活指南',
     'home.featuredAllOutings': '所有好去处',
+    'home.outingsTitle': '香港好去处',
+    'home.outingsAll': '查看全部 →',
     'home.festLabel': '即将到来的节日',
     'home.festKicker': '即将到来',
     'home.festToday': '今天',
@@ -2193,6 +2201,8 @@ const I18N = {
     'home.featuredAllCulture': 'Semua artikel budaya',
     'home.featuredAllLiving': 'Semua panduan hidup',
     'home.featuredAllOutings': 'Semua tempat jalan-jalan',
+    'home.outingsTitle': 'Jalan-jalan di Hong Kong',
+    'home.outingsAll': 'Lihat semua →',
     'home.festLabel': 'Hari raya akan datang',
     'home.festKicker': 'Segera',
     'home.festToday': 'Hari ini',

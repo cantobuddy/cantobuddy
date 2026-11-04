@@ -258,17 +258,6 @@
          applyTranslations() would overwrite them with a static label. -->
     <div id="home-resume"></div>
 
-    <!-- Persistent, dismissible nudge to install. This is the most discoverable
-         path to the iOS "Add to Home Screen" steps, which have no one-tap API.
-         Hidden by default; app.js reveals it only when an install is actually on
-         offer and the learner has not already dismissed it. -->
-    <div id="home-install-tip" class="home-install-tip" hidden>
-      <span class="hit-icon">📲</span>
-      <span class="hit-text" data-i18n="install.tipBody">Add CantoBuddy to your home screen for one-tap access.</span>
-      <button class="hit-btn" onclick="openInstallModal()" data-i18n="install.add">📲 Add to Home screen</button>
-      <button class="hit-x" onclick="dismissHomeInstallTip()" aria-label="Dismiss">×</button>
-    </div>
-
     <!-- ---- Today's phrase for your kitchen --------------------------------
          Directly under the streak on purpose. The streak asks her to work; on
          a tired evening she will not. One phrase, one tap, ten seconds, keeps
@@ -277,6 +266,34 @@
          this one is shown to everyone: a first-time visitor is precisely who
          needs a reason to come back tomorrow. -->
     <div id="home-phrase"></div>
+
+    <!-- ---- Today in Hong Kong ---------------------------------------------
+         Real articles, not the four labelled doorway buttons further down.
+         A first-time visitor decides whether this site is for her from the
+         first screen, and "Culture" as a button tells her nothing — an actual
+         headline ("Yum cha in Hong Kong: the culture behind dim sum") does.
+
+         The heading, the three "see all" links and their hrefs are STATIC
+         MARKUP, not JS: /discover and /living are crawlable pages, and this is
+         the one place on the SPA home where a crawler can reach them without
+         executing a script. app.js only fills #home-featured-cards and the
+         live counts, both of which are empty-but-harmless if JS never runs.
+
+         The onclick handlers keep a learner inside the app; the href is the
+         real page for no-JS readers and for Google. Same pattern as the hero.
+         ------------------------------------------------------------------ -->
+    <section class="home-featured" id="home-featured" aria-labelledby="home-featured-title">
+      <h4 class="home-section-title" id="home-featured-title" data-i18n="home.featuredTitle">Today in Hong Kong</h4>
+      <div id="home-featured-cards" class="home-featured-cards"></div>
+      <nav class="home-featured-links" aria-label="All CantoBuddy content">
+        <a href="/discover"
+           onclick="trackEvent('home_content_click',{channel:'culture',source:'home_see_all'}); navigate('discover'); showChannel('culture'); return false;"><span data-i18n="home.featuredAllCulture">All culture articles</span> <span class="home-featured-count" data-count="culture"></span></a>
+        <a href="/living"
+           onclick="trackEvent('home_content_click',{channel:'living',source:'home_see_all'}); navigate('discover'); showChannel('living'); return false;"><span data-i18n="home.featuredAllLiving">All living guides</span> <span class="home-featured-count" data-count="living"></span></a>
+        <a href="/discover"
+           onclick="trackEvent('home_content_click',{channel:'places',source:'home_see_all'}); navigate('discover'); showChannel('places'); return false;"><span data-i18n="home.featuredAllOutings">All days out</span> <span class="home-featured-count" data-count="outings"></span></a>
+      </nav>
+    </section>
 
     <!-- ---- The Sunday Table ----------------------------------------------
          The one weekly appointment. Only rendered in the 48 hours before a
@@ -361,6 +378,22 @@
          sat below the category grid, more than a screen down, and was easy to
          miss. Sharing now has its own page (#view-share) reached from the
          Share tab in the bottom nav. -->
+
+    <!-- ---- Install nudge --------------------------------------------------
+         MOVED DOWN (2026-11-04). It used to sit immediately under the hero,
+         which is the second-most-valuable slot on a phone — so a stranger's
+         first two screens were "learn Cantonese" and "do us a favour: install
+         us", before she had read a single useful thing. Value first: hero →
+         playable phrase → real articles → levels → THEN the install ask.
+         Hidden by default; app.js reveals it only when an install is actually
+         on offer and the learner has not already dismissed it. -->
+    <div id="home-install-tip" class="home-install-tip" hidden>
+      <span class="hit-icon">📲</span>
+      <span class="hit-text" data-i18n="install.tipBody">Add CantoBuddy to your home screen for one-tap access.</span>
+      <button class="hit-btn" onclick="openInstallModal()" data-i18n="install.add">📲 Add to Home screen</button>
+      <button class="hit-x" onclick="dismissHomeInstallTip()" aria-label="Dismiss">×</button>
+    </div>
+
     <div class="home-categories" id="home-categories"></div>
   </section>
 

@@ -974,6 +974,10 @@ app.post('/api/stories', storyRateLimit, (req, res) => {
  * passage has reactions and a comment thread, a post does not.
  */
 const { PRACTICAL_CHANNELS, PRACTICAL_SECTIONS } = require('./practical-channels');
+// The outings live in a browser classic-script file with a guarded module.exports
+// (see its footer), so the server can read the SAME records rather than keeping
+// a second list of places that drifts the first time one is added.
+const { PLACES } = require('./public/places.js');
 
 /** GET /api/living — the public shelf, optionally narrowed to one category. */
 app.get('/api/living', (req, res) => {
@@ -1001,6 +1005,142 @@ app.get('/api/living', (req, res) => {
 /** GET /api/living/categories — which categories have passages, with counts. */
 app.get('/api/living/categories', (req, res) => {
   res.json({ categories: store.listLivingCategories() });
+});
+
+/* ---------------------------------------------------------------------------
+   GET /api/home/featured — REAL content for the Home screen
+   ---------------------------------------------------------------------------
+   Home used to advertise Discover with four labelled buttons ("Culture",
+   "Living", "Outings"), so a first-time visitor saw the names of sections and
+   none of the writing. This returns one actual item from each of the four
+   content families: a day out (with its photograph), a culture article, a
+   Living passage and a practical phrase guide.
+
+   Two rules make it safe to grow:
+     - Every pool is read from the database (or PLACES) at request time. Seed a
+       post, append a place, add a channel to practical-channels.js — it joins
+       the rotation with no edit here and no edit on the client.
+     - The pick is a hash of (channel + Hong Kong date), so every device shows
+       the same four items on the same day, it changes at HK midnight, and it
+       is cacheable. It is deliberately NOT random-per-request.
+
+   `href` is a real crawlable URL on every item. The client intercepts the tap
+   to open the in-app view; without JS the link still lands somewhere useful.
+   --------------------------------------------------------------------------- */
+const FEATURED_LANGS = ['en', 'fil', 'zh', 'id'];
+const FEATURED_BADGES = {
+  places: { en: 'Day out', fil: 'Lakad', zh: '好去处', id: 'Jalan-jalan' },
+  culture: { en: 'Culture', fil: 'Kultura', zh: '文化', id: 'Budaya' },
+  living: { en: 'Living guide', fil: 'Gabay sa buhay', zh: '生活指南', id: 'Panduan hidup' },
+};
+
+/** FNV-1a — the same deterministic hash /api/posts/daily-culture uses. */
+function featuredHash(s) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h >>> 0;
+}
+
+/** Today in Hong Kong, so the set changes at HK midnight rather than UTC. */
+function featuredDayKey() {
+  return new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
+/** A post row's `title_*` / `summary_*` / `sub_*` columns as one language map. */
+function featuredLangMap(row, field) {
+  const out = {};
+  for (const l of FEATURED_LANGS) {
+    const v = row && row[`${field}_${l}`];
+    out[l] = String(v == null ? '' : v).trim()
+      || String((row && row[`${field}_en`]) || '').trim();
+  }
+  return out;
+}
+
+app.get('/api/home/featured', (req, res) => {
+  const day = featuredDayKey();
+  const pick = (tag, list) => (list.length
+    ? list[featuredHash(`cb-featured-${tag}-${day}`) % list.length]
+    : null);
+
+  const culture = store.listPosts({ status: 'published', channel: 'culture', limit: 200 });
+  const practical = PRACTICAL_CHANNELS.flatMap((c) =>
+    store.listPosts({ status: 'published', channel: c.channel, limit: 50 })
+      .map((post) => ({ post, entry: c })));
+  const living = store.listLivingPosts({ limit: 300 });
+  const places = PLACES.filter((p) => p.photo && p.card);
+
+  const items = [];
+
+  const place = pick('places', places);
+  if (place) {
+    const summary = {};
+    for (const l of FEATURED_LANGS) {
+      summary[l] = (place.summary && (place.summary[l] || place.summary.en)) || '';
+    }
+    const title = {};
+    for (const l of FEATURED_LANGS) title[l] = place.name;
+    // The Chinese sign at the station is the one she has to read, so the
+    // Chinese card names it first.
+    if (place.nameZh) title.zh = `${place.nameZh} ${place.name}`;
+    items.push({
+      kind: 'place', channel: 'places', slug: place.slug, icon: place.emoji || '🗺️',
+      title, summary, badge: FEATURED_BADGES.places,
+      photo: place.card, href: '/discover',
+    });
+  }
+
+  const article = pick('culture', culture);
+  if (article) {
+    items.push({
+      kind: 'post', channel: 'culture', slug: article.slug, icon: article.icon || '🏛️',
+      title: featuredLangMap(article, 'title'),
+      summary: featuredLangMap(article, 'summary'),
+      badge: FEATURED_BADGES.culture, photo: null,
+      href: `/discover/${article.slug}`,
+    });
+  }
+
+  const passage = pick('living', living);
+  if (passage) {
+    items.push({
+      kind: 'living', channel: 'living', slug: passage.slug, icon: passage.icon || '🏠',
+      title: featuredLangMap(passage, 'title'),
+      summary: featuredLangMap(passage, 'sub'),
+      badge: FEATURED_BADGES.living, photo: null,
+      href: `/living/${passage.slug}`,
+    });
+  }
+
+  const practicalPick = pick('practical', practical);
+  if (practicalPick) {
+    const { post, entry } = practicalPick;
+    items.push({
+      kind: 'post', channel: entry.channel, slug: post.slug, icon: post.icon || entry.icon,
+      title: featuredLangMap(post, 'title'),
+      summary: featuredLangMap(post, 'summary'),
+      // The label travels with the registry, so a brand-new channel needs no
+      // client-side translation table either.
+      badge: entry.label, photo: null,
+      href: `/discover/${post.slug}`,
+    });
+  }
+
+  res.set('Cache-Control', 'public, max-age=300');
+  res.json({
+    day,
+    items,
+    // Live counts, so Home never hardcodes a number that drifts as content is
+    // added (the "334 words" problem in the hero copy).
+    counts: {
+      culture: culture.length,
+      living: living.length,
+      outings: places.length,
+    },
+  });
 });
 
 /**

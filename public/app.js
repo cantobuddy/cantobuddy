@@ -793,8 +793,12 @@ async function init() {
     // draw empty and then fill in; a failure leaves STATE.stats null and the
     // card simply does not appear.
     await fetchLearnerStats();
+    // Decided only once stats are in: "has this device ever practised?" is the
+    // one fact that separates a stranger from a returning learner.
+    applyHomeIntent();
     renderHomeCards();
     renderHomePhrase();
+    renderHomeFeatured();
     renderHomeSundayTable();
     renderHomeFestival();
     renderHomeDailyCulture();
@@ -828,6 +832,7 @@ function rerenderForLanguage() {
   renderHomeSundayTable();
   renderHomeFestival();
   renderHomeDailyCulture();
+  renderHomeFeatured();
   renderHomeDiscoverPromo();
   renderHomeGamesPromo();
   renderGamesHub();
@@ -1314,12 +1319,114 @@ function renderHomeDiscoverPromo() {
     `<h4 class="home-section-title">${escapeHtml(t('discover.title'))}</h4>` +
     `<div class="discover-promo-grid">` +
     channels.map((c) => `
-      <button class="discover-promo-card" onclick="navigate('discover'); showChannel('${c.key}');">
+      <button class="discover-promo-card" onclick="trackEvent('home_content_click',{channel:'${c.key}',source:'home_channel_card'}); navigate('discover'); showChannel('${c.key}');">
         <span class="discover-promo-emoji">${c.emoji}</span>
         <span class="discover-promo-label">${escapeHtml(c.label)}</span>
         <span class="discover-promo-desc">${escapeHtml(c.desc)}</span>
       </button>`).join('') +
     `</div>`;
+}
+
+/* ---------------------------------------------------------------------------
+   CONTENT-FIRST HOME (2026-11-04)
+   ---------------------------------------------------------------------------
+   Home used to be a returning-learner dashboard shown to everyone. A stranger
+   arriving from Google or a WhatsApp link saw a poster, an install request,
+   and four buttons labelled "Culture / News / Living / Outings" — the names of
+   sections, with none of the writing. The writing is the good part.
+
+   Two intents, one DOM:
+     - a device that has EVER practised keeps the whole dashboard untouched;
+     - a new device gets the same elements, but the doorway buttons are hidden,
+       the hero is shorter, and four REAL articles sit directly under the
+       playable phrase.
+   Nothing is inserted or removed at runtime, so every existing Home test still
+   sees the elements it asserts on (including the four channel cards).
+   --------------------------------------------------------------------------- */
+
+/** Fire-and-forget GA4. Analytics must never be able to break a tap. */
+function trackEvent(name, params) {
+  try {
+    if (typeof window.gtag === 'function') window.gtag('event', name, params || {});
+  } catch (_) { /* no analytics, no problem */ }
+}
+
+/** The same "has she ever practised?" test renderHomeResume() uses. */
+function isReturningLearner() {
+  const s = STATE.stats;
+  return !!(s && s.totals && s.totals.attempts);
+}
+
+/** One class decides which Home she sees. Safe to call more than once. */
+function applyHomeIntent() {
+  const view = document.getElementById('view-home');
+  if (view) view.classList.toggle('is-new-visitor', !isReturningLearner());
+}
+
+/** Cached for the session: the server rotates the set at HK midnight, not per tap. */
+let HOME_FEATURED = null;
+
+function localMap(map) {
+  if (!map) return '';
+  const l = currentLang();
+  return String(map[l] || map.en || '');
+}
+
+/**
+ * A featured card is an <a>, not a <button>: href is a real crawlable page,
+ * and with JS the tap stays inside the app. One named event per tap so Culture
+ * / Living / Outings / practical can be compared instead of guessed at.
+ */
+function featuredClick(channel, kind, slug) {
+  trackEvent('home_content_click', {
+    channel, content_kind: kind, slug, source: 'home_featured',
+  });
+  if (kind === 'place') openPlace(slug);
+  else if (kind === 'living') openLiving(slug);
+  else openPost(slug);
+}
+
+function featuredCardHtml(item) {
+  const photo = item.photo
+    ? `<span class="home-featured-photo"><img src="${escapeAttr(item.photo)}" alt="" loading="lazy" width="640" height="300"></span>`
+    : '';
+  const channel = jsAttr(item.channel || '');
+  const kind = jsAttr(item.kind || '');
+  const slug = jsAttr(item.slug || '');
+  const summary = escapeHtml(localMap(item.summary));
+  return `
+    <a class="home-featured-card${item.photo ? ' has-photo' : ''}"
+       href="${escapeAttr(item.href || '/discover')}"
+       onclick="featuredClick('${channel}','${kind}','${slug}'); return false;">
+      ${photo}
+      <span class="home-featured-body">
+        <span class="home-featured-badge">${escapeHtml(item.icon || '📖')} ${escapeHtml(localMap(item.badge))}</span>
+        <span class="home-featured-title">${escapeHtml(localMap(item.title))}</span>
+        ${summary ? `<span class="home-featured-summary">${summary}</span>` : ''}
+      </span>
+    </a>`;
+}
+
+/**
+ * Draws the four real articles. Counts come from the server, so "25 culture
+ * articles" cannot drift the way the hardcoded "334 words" in the hero does.
+ * Silent on failure: an empty strip is still the Home she had before.
+ */
+async function renderHomeFeatured() {
+  const wrap = document.getElementById('home-featured-cards');
+  if (!wrap) return;
+  try {
+    if (!HOME_FEATURED) HOME_FEATURED = await apiGet('/api/home/featured');
+    const data = HOME_FEATURED || { items: [], counts: {} };
+    document.querySelectorAll('.home-featured-count').forEach((el) => {
+      const n = data.counts && data.counts[el.dataset.count];
+      el.textContent = Number.isFinite(n) ? `· ${n}` : '';
+    });
+    wrap.innerHTML = (data.items || []).map(featuredCardHtml).join('');
+  } catch (err) {
+    console.warn('Could not load featured content:', err);
+    wrap.innerHTML = '';
+  }
 }
 
 /**

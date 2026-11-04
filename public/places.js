@@ -586,3 +586,11 @@ if (typeof window !== 'undefined') {
   window.PLACES = PLACES;
   window.PLACE_KINDS = PLACE_KINDS;
 }
+
+/* The server reads the SAME records for /api/home/featured, so a new outing
+   added here joins the Home rotation without a second list to maintain.
+   Guarded on `module`: this file is also a plain <script> in index.html,
+   where `module` does not exist. */
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { PLACES, PLACE_KINDS };
+}

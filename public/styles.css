@@ -156,6 +156,12 @@ body {
 /* Compound selector on purpose: .site-btn sets display/width later in the file
    and would otherwise override a bare .header-more class. */
 .site-btn.header-more { display: none; width: 44px; height: 44px; font-size: 1.25rem; line-height: 1; }
+/* The 48px hit-area pseudo-element extends 5px past the button on every side.
+   On a phone the "more" button is the LAST child of .header-right, so its right
+   extension made the header report scrollWidth 168 in a 165px box — a 3px
+   false "clipped label" across every language and width. Keep the left/top/
+   bottom reach (49px target) and stop the right side at the button edge. */
+.site-btn.header-more::before { right: 0; }
 .header-extra { display: flex; align-items: center; gap: 10px; }
 .he-label { display: none; }
 
@@ -1124,6 +1130,106 @@ body {
   line-height: 1.35;
 }
 
+/* ---- Home: Today in Hong Kong -------------------------------------------
+   The content-first Home (2026-11-04). Four REAL articles with a real title,
+   summary and (for an outing) a real photograph, instead of four buttons that
+   only name a section. The photo card is first because a picture is the one
+   thing on this screen a stranger can judge in under a second. */
+.home-featured { margin-top: 20px; }
+#home-featured .home-section-title::before { content: '🗞️'; }
+.home-featured-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+  align-items: stretch;
+}
+.home-featured-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.12s, box-shadow 0.15s, border-color 0.15s;
+}
+.home-featured-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px var(--c-shadow-lg);
+  border-color: var(--c-primary);
+}
+.home-featured-card:active { transform: scale(0.99); }
+.home-featured-photo {
+  display: block;
+  height: 132px;
+  background: #e9e4dc;
+  overflow: hidden;
+}
+.home-featured-photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.home-featured-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 5px;
+  padding: 12px 14px 14px;
+}
+.home-featured-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--c-primary);
+}
+.home-featured-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--c-text);
+}
+.home-featured-summary {
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--c-text-soft);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.home-featured-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-top: 12px;
+  font-size: 0.84rem;
+}
+.home-featured-links a { color: var(--c-primary); font-weight: 600; text-decoration: none; }
+.home-featured-links a:hover { text-decoration: underline; }
+.home-featured-count { color: var(--c-text-soft); font-weight: 400; }
+
+/* A stranger's first screen. The poster is shortened (on a phone the picture
+   drops from 250px to 152px, so the phrase and the first real article are
+   actually above the fold), and the four doorway buttons are hidden because
+   the articles above have replaced them. Returning learners keep the full
+   dashboard exactly as it was. Nothing is removed from the DOM — the cards
+   stay reachable to the app's own navigation and to the tests that assert on
+   them. */
+.view.is-new-visitor #home-discover-promo { display: none; }
+.view.is-new-visitor .hero { min-height: 0; padding: 34px 40px 30px; }
+@media (max-width: 620px) {
+  .view.is-new-visitor .hero {
+    padding: 168px 20px 22px;
+    background-image:
+      linear-gradient(180deg,
+        rgba(28, 20, 14, 0) 0px,
+        rgba(28, 20, 14, 0) 94px,
+        rgba(28, 20, 14, 0.55) 130px,
+        rgba(28, 20, 14, 1) 154px),
+      url(/banner-hero.jpg);
+    background-size: 100% 100%, auto 152px;
+  }
+}
+
 /* ---- Home: Games promo -------------------------------------------------
    The promotion for the new Games tab. It borrows the Games hub's own
    `.game-card` so the card tapped here is the card seen there — the only
@@ -1573,7 +1679,10 @@ a.game-card:active { transform: scale(0.985); }
 .game-tile {
   flex: 1 1 0;
   max-width: 84px;
-  min-width: 56px;
+  /* 56px clipped the longest Indonesian game label by 2px at 320px. The row
+     already scrolls horizontally by design, so two extra pixels cost nothing
+     and keep every label inside its own tile. */
+  min-width: 58px;
   display: flex;
   flex-direction: column;
   align-items: center;

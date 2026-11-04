@@ -1062,6 +1062,18 @@ article:has(table) ul:first-of-type li strong{display:block;color:var(--ink);fon
 .cta-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px 22px;
   display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;margin:26px 0}
 .cta-card p{margin:0;color:var(--muted);font-size:15px;max-width:46ch}
+/* Sharing an article. WhatsApp and Facebook are ordinary links, so this works
+   with JavaScript off — the reader most likely to forward a link is on a phone
+   with a hostile network, not a desktop with a fast one. */
+.share-row{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:26px 0;max-width:70ch}
+.share-ask{margin:0 0 12px;font-size:15px;font-weight:600;color:var(--ink)}
+.share-actions{display:flex;flex-wrap:wrap;gap:10px}
+.share-actions a,.share-actions button{display:inline-flex;align-items:center;justify-content:center;
+  border-radius:999px;padding:9px 18px;font:inherit;font-size:14px;font-weight:600;text-decoration:none;cursor:pointer}
+.share-wa{background:#25d366;color:#fff;border:1px solid #25d366}
+.share-fb{background:#1877f2;color:#fff;border:1px solid #1877f2}
+.share-copy{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.share-actions a:hover,.share-actions button:hover{filter:brightness(.94)}
 table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);
   border-radius:12px;overflow:hidden;font-size:15px}
 th,td{text-align:left;padding:11px 13px;border-bottom:1px solid var(--line);vertical-align:top}
@@ -1295,6 +1307,14 @@ function page(o) {
 
   const OG_LOCALE = { en: 'en_HK', fil: 'fil_PH', zh: 'zh_CN', id: 'id_ID' };
 
+  // A 512px app icon was the social card for EVERY server-rendered page.
+  // WhatsApp and Facebook render that as a tiny square in the middle of a
+  // wide card, so an article someone forwards looks like an app advert rather
+  // than a story. Article pages supply a real 1280px Hong Kong photograph;
+  // o.ogImage keeps the icon as the fallback for pages with no natural image.
+  const ogImage = o.ogImage || `${SITE_ORIGIN}/icons/icon-512.png`;
+  const ogImageAlt = o.ogImageAlt || 'CantoBuddy — free Cantonese for helpers in Hong Kong';
+
   return `<!DOCTYPE html>
 <html lang="${esc(L[lang].htmlLang)}">
 <head>
@@ -1313,12 +1333,14 @@ function page(o) {
   <meta property="og:title" content="${esc(o.title)}" />
   <meta property="og:description" content="${esc(o.description)}" />
   <meta property="og:url" content="${esc(canonical)}" />
-  <meta property="og:image" content="${SITE_ORIGIN}/icons/icon-512.png" />
+  <meta property="og:image" content="${esc(ogImage)}" />
+  <meta property="og:image:alt" content="${esc(ogImageAlt)}" />
   <meta property="og:locale" content="${OG_LOCALE[lang]}" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${esc(o.title)}" />
   <meta name="twitter:description" content="${esc(o.description)}" />
-  <meta name="twitter:image" content="${SITE_ORIGIN}/icons/icon-512.png" />
+  <meta name="twitter:image" content="${esc(ogImage)}" />
+  <meta name="twitter:image:alt" content="${esc(ogImageAlt)}" />
   <meta name="theme-color" content="#e63946" />
   <link rel="icon" href="/favicon.ico" sizes="any" />
   <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
@@ -1361,6 +1383,19 @@ ${o.body}
 </footer>
 ${VISIT_BEACON}
 <script src="/push-client.js" defer></script>
+<script>
+/* "Copy link" on an article's share row. Delegated, so it works for any number
+   of rows and never runs on pages without one. The Clipboard API needs HTTPS;
+   on an old WebView the two share LINKS above still work with JS disabled. */
+document.addEventListener('click', function (e) {
+  var b = e.target && e.target.closest ? e.target.closest('[data-copy]') : null;
+  if (!b) return;
+  function done() { b.textContent = b.getAttribute('data-done'); }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(b.getAttribute('data-copy')).then(done, function () {});
+  }
+});
+</script>
 </body>
 </html>`;
 }
@@ -3037,8 +3072,81 @@ ${ctaCard(lang)}
     path: `${prefix}/discover`,
     jsonLd,
     body,
+    ogImage: `${SITE_ORIGIN}/og-home.jpg`,
     alternates: hreflangLinks((l) => `${LANG_PREFIX[l]}/discover`),
   });
+}
+
+/* ---------------------------------------------------------------------------
+   Article social cards and sharing (2026-11-04)
+   ---------------------------------------------------------------------------
+   Every server-rendered page used icon-512.png as its og:image. On WhatsApp
+   and Facebook that renders as a small square inside a wide card, so a helper
+   forwarding "Yum cha in Hong Kong" was forwarding a picture of the app icon.
+   The Outings photos are real 1280px Hong Kong photographs that already ship
+   with the build, so they are reused here: one stable photo per article, no
+   image pipeline, no new assets, and nothing to maintain when content grows.
+   --------------------------------------------------------------------------- */
+const ARTICLE_OG_PHOTOS = [
+  'cheung-chau', 'dragons-back', 'flower-market', 'kowloon-park',
+  'lamma-island', 'lion-rock', 'nan-lian-garden', 'repulse-bay',
+  'sai-kung', 'stanley', 'star-ferry', 'tai-o', 'tai-tam',
+  'temple-street', 'tst-promenade', 'victoria-park', 'victoria-peak',
+];
+
+/** Hash the SLUG, not the title: fixing a typo must not change the preview. */
+function articleOgImage(post) {
+  let h = 0x811c9dc5;
+  const s = 'cb-og-' + String((post && post.slug) || '');
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return `${SITE_ORIGIN}/places/${ARTICLE_OG_PHOTOS[(h >>> 0) % ARTICLE_OG_PHOTOS.length]}.jpg`;
+}
+
+const SHARE_UI = {
+  en: {
+    ask: 'Useful? Send it to a friend.',
+    wa: 'WhatsApp', fb: 'Facebook', copy: 'Copy link', copied: 'Link copied!',
+    intro: 'I found this on CantoBuddy (free for helpers in Hong Kong):',
+  },
+  fil: {
+    ask: 'Nakatulong? Ipadala sa kaibigan.',
+    wa: 'WhatsApp', fb: 'Facebook', copy: 'Kopyahin ang link', copied: 'Nakopya na!',
+    intro: 'Nakita ko ito sa CantoBuddy (libre para sa mga helper sa Hong Kong):',
+  },
+  zh: {
+    ask: '觉得有用？分享给朋友吧。',
+    wa: 'WhatsApp', fb: 'Facebook', copy: '复制链接', copied: '已复制！',
+    intro: '在 CantoBuddy 看到的（香港家佣免费使用）：',
+  },
+  id: {
+    ask: 'Berguna? Kirim ke teman.',
+    wa: 'WhatsApp', fb: 'Facebook', copy: 'Salin tautan', copied: 'Tautan tersalin!',
+    intro: 'Saya menemukan ini di CantoBuddy (gratis untuk pekerja rumah tangga di Hong Kong):',
+  },
+};
+
+/**
+ * WhatsApp and Facebook are plain links (they work with JS off); only "Copy
+ * link" needs the delegated handler in page(). The prefilled message is in the
+ * reader's own language, which is the whole point of a share button on a site
+ * whose readers are Filipino and Indonesian.
+ */
+function shareRow(lang, url, title) {
+  const u = SHARE_UI[lang] || SHARE_UI.en;
+  const text = `${u.intro} ${title}\n${url}`;
+  const wa = 'https://wa.me/?text=' + encodeURIComponent(text);
+  const fb = 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url);
+  return `<aside class="share-row">
+  <p class="share-ask">${esc(u.ask)}</p>
+  <div class="share-actions">
+    <a class="share-wa" href="${esc(wa)}" target="_blank" rel="noopener noreferrer">${esc(u.wa)}</a>
+    <a class="share-fb" href="${esc(fb)}" target="_blank" rel="noopener noreferrer">${esc(u.fb)}</a>
+    <button class="share-copy" type="button" data-copy="${esc(url)}" data-done="${esc(u.copied)}">${esc(u.copy)}</button>
+  </div>
+</aside>`;
 }
 
 /** One article. Returns null for an unknown slug, so the route can 404. */
@@ -3067,6 +3175,10 @@ function renderPost(lang, slug) {
   // Does this tree actually translate the post, or is it the English text in
   // another tree's clothing? Drives the canonical and the hreflang set below.
   const translated = isTranslated(post, lang);
+  // Share the CANONICAL url, not the untranslated variant the reader may have
+  // arrived on — otherwise Filipino and English readers forward two different
+  // links to the same article and the credit is split.
+  const shareUrl = `${SITE_ORIGIN}${translated ? `${prefix}/discover/${slug}` : `/discover/${slug}`}`;
 
   // Attribution block, only when there is a source to attribute. Culture posts
   // have none, and an empty "Source:" line would be worse than no line.
@@ -3090,6 +3202,7 @@ ${summary ? `<p class="lede">${esc(summary)}</p>` : ''}
 ${bodyHtml}
 ${sourceBlock}
 </article>
+${shareRow(lang, shareUrl, title)}
 <p class="updated"><a href="${prefix}/discover">${esc(ui.backToDiscover)}</a></p>
 ${ctaCard(lang)}
 `;
@@ -3129,6 +3242,8 @@ ${ctaCard(lang)}
     path: `${prefix}/discover/${slug}`,
     jsonLd,
     body,
+    ogImage: articleOgImage(post),
+    ogImageAlt: title,
     /* IMPORTED NEWS IS NOINDEX, AND THAT IS THE POINT.
      *
      * The importer runs hourly and pruneNewsPast() deletes its rows after
@@ -3513,6 +3628,13 @@ function injectLivingHead(shell, o) {
   h = h.replace(/<meta property="og:url"[^>]*>/, `<meta property="og:url" content="${esc(SITE_ORIGIN + o.canonicalPath)}" />`);
   h = h.replace(/<meta name="twitter:title"[^>]*>/, `<meta name="twitter:title" content="${esc(o.title)}" />`);
   h = h.replace(/<meta name="twitter:description"[^>]*>/, `<meta name="twitter:description" content="${esc(o.description)}" />`);
+  // A Living passage is served from the SPA shell, whose head carries the home
+  // page's social card. Replace it too, or a forwarded guide still previews as
+  // the homepage.
+  if (o.ogImage) {
+    h = h.replace(/<meta property="og:image"[^>]*>/, `<meta property="og:image" content="${esc(o.ogImage)}" />`);
+    h = h.replace(/<meta name="twitter:image"[^>]*>/, `<meta name="twitter:image" content="${esc(o.ogImage)}" />`);
+  }
   const ld = o.jsonLd ? `\n  <script type="application/ld+json">${JSON.stringify(o.jsonLd)}</script>` : '';
   return h.replace('</head>', `${ld}\n</head>`);
 }
@@ -3538,7 +3660,11 @@ function livingPostShell(slug) {
     publisher: ORG_LD,
     mainEntityOfPage: `${SITE_ORIGIN}${canonicalPath}`,
   };
-  return injectLivingHead(SPA_SHELL, { title, description, canonicalPath, ogType: 'article', jsonLd });
+  return injectLivingHead(SPA_SHELL, {
+    title, description, canonicalPath,
+    ogType: 'article', jsonLd,
+    ogImage: articleOgImage(post),
+  });
 }
 
 /**
@@ -3646,7 +3772,10 @@ ${practicalSection_}
 ${passages}
 ${ctaCard('en')}
 `;
-  return page({ lang: 'en', title, description, path, jsonLd, body });
+  return page({
+    lang: 'en', title, description, path, jsonLd, body,
+    ogImage: `${SITE_ORIGIN}/og-home.jpg`,
+  });
 }
 
 /* ============================ English Track (/en) ============================

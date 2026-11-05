@@ -625,6 +625,13 @@ function openViewFromUrl() {
   const qs = new URLSearchParams(location.search);
   const name = qs.get('view');
   if (!name) return;
+  // These names refer to shelves, not the empty single-article shells.
+  if (name === 'living' || name === 'stories') {
+    navigate('discover');
+    showChannel(name);
+    try { history.replaceState(null, '', location.pathname); } catch (e) { /* ignore */ }
+    return;
+  }
   if (!document.getElementById('view-' + name)) return;
   if (name !== 'home') navigate(name);
   /* The server-rendered /places/<slug> page links back into the app with
@@ -1445,20 +1452,23 @@ const homeBanners = {
   index: 0,
   timer: null,
   paused: false,
+  busy: false,
+  queued: null,
+  motionCleanup: null,
 };
 
-/** The slides actually in the rotation, in DOM order. Disabled ones are
- *  display:none, so they take no space and are never landed on by a dot. */
+/** Logical slides only: disabled slides take no space, and boundary clones
+ *  must never count toward the index or dots. */
 function visibleBannerSlides() {
   const track = document.getElementById('hb-track');
   return track
-    ? Array.prototype.slice.call(track.children).filter((el) => !el.classList.contains('hb-off'))
+    ? Array.prototype.slice.call(track.children).filter((el) =>
+      !el.classList.contains('hb-off') && !el.classList.contains('hb-clone'))
     : [];
 }
 
-/** Fetch the operator's settings once. Called from init() and on every
- *  language change; only the dot labels need re-translating, the slides are
- *  static and are handled by applyTranslations(). */
+/** Fetch the operator's settings once. On language changes, paint rebuilds
+ *  boundary clones from the originals updated by applyTranslations(). */
 async function renderHomeBanners() {
   if (!document.getElementById('home-banners')) return;
 
@@ -1484,9 +1494,17 @@ async function renderHomeBanners() {
 }
 
 function paintHomeBanners() {
+  if (homeBanners.motionCleanup) homeBanners.motionCleanup();
+  homeBanners.busy = false;
+  homeBanners.queued = null;
+  stopBannerTimer();
+
   const track = document.getElementById('hb-track');
   const dots = document.getElementById('hb-dots');
   if (!track || !dots) return;
+
+  track.style.transition = 'none';
+  Array.prototype.forEach.call(track.querySelectorAll('.hb-clone'), (el) => el.remove());
 
   // De-duplicate and ignore unknown slugs: a repeated slug must not become
   // two slides, and a slug with no markup must not become an empty one.
@@ -1504,8 +1522,8 @@ function paintHomeBanners() {
     else el.tabIndex = -1;
   });
 
-  // Append the enabled promos in the operator's order. The hero is never
-  // moved: it is always slide 1, the first thing a new visitor sees. Disabled
+  // Append enabled promos in the operator's order. The original hero stays
+  // first logically; only the temporary head clone will precede it. Disabled
   // slides are display:none, so their DOM position has no effect on the track.
   wanted.forEach((slug) => {
     const el = promos.find((p) => p.dataset.banner === slug);
@@ -1514,6 +1532,21 @@ function paintHomeBanners() {
 
   const visible = visibleBannerSlides();
   if (homeBanners.index >= visible.length) homeBanners.index = 0;
+
+  if (visible.length > 1) {
+    const clones = [visible[visible.length - 1], visible[0]].map((el) => {
+      const clone = el.cloneNode(true);
+      clone.classList.add('hb-clone');
+      clone.removeAttribute('id');
+      Array.prototype.forEach.call(clone.querySelectorAll('[id]'), (child) => child.removeAttribute('id'));
+      clone.setAttribute('aria-hidden', 'true');
+      clone.tabIndex = -1;
+      clone.inert = true;
+      return clone;
+    });
+    track.insertBefore(clones[0], track.firstChild);
+    track.appendChild(clones[1]);
+  }
 
   dots.innerHTML = visible.map((el, i) => {
     const label = t('banner.showN').replace('{n}', String(i + 1));
@@ -1530,24 +1563,88 @@ function paintHomeBanners() {
   });
 
   attachBannerSwipe(track);
-  applyBannerTransform();
+  normalizeBannerTransform();
   restartBannerTimer();
 }
 
-function applyBannerTransform() {
+function applyBannerTransform(position) {
   const track = document.getElementById('hb-track');
   if (!track) return;
-  track.style.transform = `translateX(-${homeBanners.index * 100}%)`;
+  if (position === undefined) {
+    position = visibleBannerSlides().length > 1 ? homeBanners.index + 1 : 0;
+  }
+  track.style.transform = `translateX(-${position * 100}%)`;
   Array.prototype.forEach.call(document.querySelectorAll('#hb-dots .hb-dot'), (d, i) => {
     d.classList.toggle('on', i === homeBanners.index);
   });
 }
 
-function goBanner(i) {
-  const n = visibleBannerSlides().length;
-  if (!n) return;
-  homeBanners.index = ((i % n) + n) % n;
+function normalizeBannerTransform() {
+  const track = document.getElementById('hb-track');
+  if (!track) return;
+  track.style.transition = 'none';
   applyBannerTransform();
+  void track.offsetWidth;
+  track.style.removeProperty('transition');
+  void track.offsetWidth;
+}
+
+function goBanner(i, direction = 0) {
+  const track = document.getElementById('hb-track');
+  const n = visibleBannerSlides().length;
+  if (!track || !n) return;
+  const reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (homeBanners.busy) {
+    if (!reducedMotion) {
+      // Latest dot wins; a queued swipe remains relative to the completed move.
+      homeBanners.queued = { i, direction };
+      return;
+    }
+    homeBanners.motionCleanup();
+    homeBanners.busy = false;
+    homeBanners.queued = null;
+    normalizeBannerTransform();
+  }
+
+  const previous = homeBanners.index;
+  const target = direction ? previous + direction : i;
+  const next = ((target % n) + n) % n;
+  if (next === previous) return;
+  homeBanners.index = next;
+
+  if (n < 2 || reducedMotion) {
+    normalizeBannerTransform();
+    return;
+  }
+
+  let position = next + 1;
+  if (previous === n - 1 && next === 0 && direction >= 0) position = n + 1;
+  else if (previous === 0 && next === n - 1 && direction <= 0) position = 0;
+
+  homeBanners.busy = true;
+  let fallback;
+  const finish = () => {
+    // Ignore stale callbacks after a repaint or an already-completed move.
+    if (homeBanners.motionCleanup !== cleanup) return;
+    cleanup();
+    if (position !== homeBanners.index + 1) normalizeBannerTransform();
+    homeBanners.busy = false;
+    const queued = homeBanners.queued;
+    homeBanners.queued = null;
+    if (queued) goBanner(queued.i, queued.direction);
+  };
+  const onEnd = (event) => {
+    if (event.target === track && event.propertyName === 'transform') finish();
+  };
+  const cleanup = () => {
+    clearTimeout(fallback);
+    track.removeEventListener('transitionend', onEnd);
+    homeBanners.motionCleanup = null;
+  };
+  homeBanners.motionCleanup = cleanup;
+  track.addEventListener('transitionend', onEnd);
+  fallback = setTimeout(finish, 700);
+  applyBannerTransform(position);
 }
 
 function stopBannerTimer() {
@@ -1562,8 +1659,12 @@ function restartBannerTimer() {
   if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const ms = Math.max(2000, homeBanners.seconds * 1000);
   homeBanners.timer = setInterval(() => {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      stopBannerTimer();
+      return;
+    }
     if (homeBanners.paused || document.hidden) return;
-    goBanner(homeBanners.index + 1);
+    goBanner(homeBanners.index + 1, 1);
   }, ms);
 }
 
@@ -1593,7 +1694,7 @@ function attachBannerSwipe(track) {
     // Only a clearly horizontal gesture counts: a vertical one is a page
     // scroll that happened to start on the carousel.
     if (Math.abs(dx) > 42 && Math.abs(dx) > Math.abs(dy)) {
-      goBanner(homeBanners.index + (dx < 0 ? 1 : -1));
+      goBanner(homeBanners.index + (dx < 0 ? 1 : -1), dx < 0 ? 1 : -1);
     }
     restartBannerTimer();
   });

@@ -509,163 +509,11 @@ body {
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ---- Hero ---------------------------------------------------------------
-   The illustrated banner — on every visit, in every language.
-
-   It used to be a red gradient block, with a script that swapped this version
-   in for FIRST-TIME visitors only. Two things were wrong with that. Returning
-   visitors, who are the ones most likely to recommend the app, got the
-   flattest thing on the page. And the banner copy existed only after JS ran,
-   so it was invisible to Google on the one page that matters most.
-
-   So the banner IS the hero now. The dark base colour below is a fallback, not
-   decoration: white text must sit on something dark even if the JPEG is slow,
-   blocked, or still downloading on a 3G phone in a service lift. */
-.hero {
-  /* An <a> now, not a <div>: the reset matters. Without display:block the
-     anchor is inline and the padding collapses; without text-decoration and
-     color the whole block goes blue and underlined. */
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  position: relative;
-  overflow: hidden;
-  text-align: left;
-  padding: 52px 40px;
-  min-height: 420px;
-  border-radius: var(--radius-lg);
-  background-color: #2a1d14;
-  background-image:
-    linear-gradient(100deg,
-      rgba(28, 20, 14, 0.92) 0%,
-      rgba(28, 20, 14, 0.78) 34%,
-      rgba(28, 20, 14, 0.44) 64%,
-      rgba(28, 20, 14, 0.06) 100%),
-    url(/banner-hero.jpg);
-  background-position: center right, center right;
-  background-size: cover, cover;
-  background-repeat: no-repeat, no-repeat;
-  color: #fff8ef;
-  text-decoration: none;
-  box-shadow: 0 8px 22px rgba(60, 40, 25, 0.22);
-  /* It looks tappable because it is, so it has to move like the other cards. */
-  cursor: pointer;
-  transition: transform 0.12s, box-shadow 0.12s;
-}
-
-.hero:hover { box-shadow: 0 10px 26px rgba(60, 40, 25, 0.32); }
-.hero:active { transform: scale(0.99); }
-
-/* Keyboard users get the same affordance as a finger. Offset so the ring is
-   not clipped by the block's own rounded edge. */
-.hero:focus-visible {
-  outline: 3px solid #fff;
-  outline-offset: 3px;
-}
-
-.hero-chip {
-  position: relative;
-  z-index: 1;
-  display: inline-block;
-  align-self: flex-start;
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  padding: 5px 12px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.18);
-  color: #fff;
-  margin-bottom: 12px;
-}
-
-.hero-title {
-  position: relative;
-  z-index: 1;
-  font-size: clamp(1.8rem, 4.2vw, 3rem);
-  font-weight: 700;
-  color: #fff;
-  line-height: 1.1;
-}
-
-.hero-sub {
-  display: block;
-  font-size: clamp(1rem, 2.4vw, 1.4rem);
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.92);
-  margin-top: 6px;
-  line-height: 1.3;
-}
-
-.hero-desc {
-  position: relative;
-  z-index: 1;
-  font-size: 1rem;
-  color: rgba(255, 255, 255, 0.92);
-  margin-top: 14px;
-  max-width: 480px;
-  margin-inline: 0;
-}
-
-.hero-desc strong { color: #fff; font-weight: 700; }
-
-/* ---- The same banner on a phone ----------------------------------------
-   Text over the picture does not survive a 375px screen. A 1.63:1 image in a
-   375px-wide box is cropped to a narrow vertical slice, so the copy lands
-   across the character's face — which is the one thing the illustration exists
-   to show. Overlaying a darker gradient only fixes the legibility, not the
-   composition: she ends up behind a brown wash.
-
-   So on a phone the banner becomes picture-then-panel. The image is pinned to
-   the top, the copy sits underneath on the dark base colour, and the gradient
-   is only used to fade the picture's bottom edge into that panel so the join
-   does not read as a crop.
-
-   WHY THE PICTURE IS A ::before, NOT A BACKGROUND LAYER (2026-11-05).
-   Both bugs came from `background-size` being measured against the WHOLE card,
-   which is 340-600px tall on a phone because of the copy below it:
-     1. Sizing the JPEG by height (`auto 152px`, the original) made it only
-        ~248px wide, so wider phones showed a hard block of bare #2a1d14 down
-        the left third of the banner — the reported bug.
-     2. `cover` fixed the gap but scaled the JPEG to the full card height, so
-        the 154px picture band showed only the top ~40%: she was cut off at
-        the eyes and the phone in her hand disappeared.
-   A pseudo-element pinned to the PICTURE BAND gives `cover` a short, wide box
-   to fill — full width, natural proportions, whole character, no dark block.
-   ::after carries the fade on top; the copy keeps z-index 1 above both. */
-@media (max-width: 620px) {
-  .hero {
-    min-height: 0;
-    padding: 272px 20px 26px;
-    justify-content: flex-start;
-    /* The card itself is just the dark panel now. */
-    background: #1c140e;
-  }
-  .hero::before,
-  .hero::after {
-    content: '';
-    position: absolute;
-    left: 0; right: 0; top: 0;
-    z-index: 0;
-    pointer-events: none;
-  }
-  .hero::before {
-    height: 258px;
-    background: url(/banner-hero.jpg) 50% 20% / cover no-repeat;
-  }
-  .hero::after {
-    bottom: 0;
-    background: linear-gradient(180deg,
-      rgba(28, 20, 14, 0) 0px,
-      rgba(28, 20, 14, 0) 196px,
-      rgba(28, 20, 14, 0.55) 232px,
-      rgba(28, 20, 14, 1) 258px);
-  }
-  .hero-title { font-size: 1.7rem; }
-  .hero-sub { font-size: 1rem; }
-  .hero-desc { font-size: 0.88rem; max-width: none; margin-top: 12px; }
-  .hero-chip { margin-bottom: 10px; }
-}
+/* The hero is a real learning link, not a script-built poster. Its art and
+   typography share the bright, character-led carousel component below. */
+.hero { text-align: left; cursor: pointer; }
+.hero-sub { display: block; }
+.hero-desc { display: block; }
 
 /* ---- Level cards --------------------------------------------------------
    Compact rows, each carrying its own colour. Previously three tall centred
@@ -1173,62 +1021,49 @@ body {
    animation on the compositor. The slides are real <a> links in STATIC HTML,
    so a crawler sees all five and a visitor whose JS fails still gets the hero.
 
-   HEIGHT comes from the slides, not the viewport: flex items stretch to the
-   tallest one, so the hero's own responsive height rules — including the
-   shortened first-visit banner — size every promo slide automatically. That
-   is why .hb-promo mirrors the hero's padding in both of those states. */
+   Warm paper colours replace the old black overlays. The text occupies the
+   left reading panel on desktop; on a phone the bright picture sits above it.
+   Flex items share the tallest slide height so there is no layout jump. */
 .home-banners { margin-top: 0; }
-
 .hb-viewport {
   position: relative;
   overflow: hidden;
-  border-radius: var(--radius-lg, 18px);
-  box-shadow: 0 8px 22px rgba(60, 40, 25, .22);
+  border: 1px solid rgba(103, 77, 56, .12);
+  border-radius: 26px;
+  box-shadow: 0 12px 32px rgba(83, 60, 39, .10);
   touch-action: pan-y;
 }
-/* The viewport owns the rounded edge and the shadow now. Leaving the hero's
-   own radius/shadow on top of it double-drew both. */
-.home-banners .hero { border-radius: 0; box-shadow: none; }
-
 .hb-track {
   display: flex;
   align-items: stretch;
   transition: transform .55s cubic-bezier(.4, .05, .2, 1);
   will-change: transform;
 }
-
-/* Layout only. The hero keeps its own typography and background; .hb-promo
-   below mirrors its shape with an illustration behind the copy. */
 .hb-slide {
+  --hb-paper: #fff6e8;
+  --hb-accent: #ac2c45;
   flex: 0 0 100%;
   min-width: 0;
+  min-height: 390px;
+  padding: 38px 36px;
   position: relative;
-  overflow: hidden;
-  text-decoration: none;
-  color: #fff8ef;
-}
-/* An operator can switch a promo off. It stays in the HTML (so the link is
-   still there for crawlers and for the next operator who turns it back on),
-   but a display:none flex item takes no space and cannot be landed on. */
-.hb-track > .hb-off { display: none; }
-
-.hb-promo {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
-  min-height: 420px;
-  padding: 52px 40px;
-  background: #1c140e; /* the dark base, shown while the picture loads */
+  overflow: hidden;
+  background: var(--hb-paper);
+  color: #302a32;
+  text-decoration: none;
   cursor: pointer;
 }
-.hb-promo:active { filter: brightness(.94); }
-.hb-promo:focus-visible { outline: 3px solid #fff; outline-offset: -6px; }
+.hb-track > .hb-off { display: none; }
+.hb-clone { pointer-events: none; }
+.hb-slide:focus-visible { outline: 3px solid var(--hb-accent); outline-offset: -6px; }
 
-/* <picture>, not a CSS background: a modern browser takes the ~70 KB WebP and
-   an older phone falls back to the JPEG. A helper on an old Android should not
-   get an empty brown rectangle where the character belongs. */
-.hb-art {
+/* Keep all faces bright. A pale reading panel fades into the original art;
+   the pictures are not darkened or tinted across the character. */
+.hb-art, .home-banners .hero::before {
   position: absolute;
   inset: 0;
   z-index: 0;
@@ -1236,153 +1071,152 @@ body {
   width: 100%; height: 100%;
   pointer-events: none;
 }
-.hb-art img {
-  display: block;
-  width: 100%; height: 100%;
-  object-fit: cover;
-  object-position: center right;
+.home-banners .hero::before {
+  content: '';
+  background: url(/banner-hero.jpg) center right / cover no-repeat;
 }
-
-/* The hero's dark left-to-right wash: white copy stays legible over the calm
-   left of the picture, the character stays visible on the right. A faint
-   subject tint under the wash gives each slide its own colour. */
-.hb-wash {
+.hb-art img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center right; }
+.hb-wash, .home-banners .hero::after {
+  content: '';
   position: absolute;
   inset: 0;
   z-index: 1;
   pointer-events: none;
-  background:
-    linear-gradient(100deg,
-      rgba(18, 13, 10, .95) 0%,
-      rgba(18, 13, 10, .80) 34%,
-      rgba(18, 13, 10, .42) 64%,
-      rgba(18, 13, 10, .04) 100%),
-    var(--hb-tint, rgba(0, 0, 0, 0));
+  background: linear-gradient(90deg, var(--hb-paper) 0%, var(--hb-paper) 36%, transparent 75%);
 }
-
 .hb-copy {
   position: relative;
   z-index: 2;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  max-width: 480px;
+  width: 52%;
+  max-width: 460px;
 }
-.hb-chip {
-  display: inline-block;
-  font-size: .72rem;
-  font-weight: 800;
-  letter-spacing: .09em;
-  text-transform: uppercase;
-  padding: 5px 12px;
+.hb-chip, .home-banners .hero-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 7px 12px;
+  border: 1px solid color-mix(in srgb, var(--hb-accent) 18%, transparent);
   border-radius: 999px;
-  background: rgba(255, 255, 255, .18);
-  color: #fff;
-  margin-bottom: 12px;
+  background: rgba(255, 255, 255, .72);
+  color: var(--hb-accent);
+  font-size: .68rem;
+  font-weight: 800;
+  letter-spacing: .075em;
+  line-height: 1.35;
+  text-transform: uppercase;
 }
-.hb-title {
+.hb-chip::before, .home-banners .hero-chip::before {
+  content: '';
+  width: 6px; height: 6px;
+  flex: 0 0 6px;
+  border-radius: 50%;
+  background: var(--hb-accent);
+}
+.hb-title, .home-banners .hero-title {
   display: block;
-  font-size: clamp(1.7rem, 3.9vw, 2.7rem);
-  font-weight: 700;
-  line-height: 1.1;
-  color: #fff;
+  margin: 0;
+  font-size: clamp(2rem, 4.8vw, 3.25rem);
+  font-weight: 800;
+  letter-spacing: -.04em;
+  line-height: 1.06;
+  color: var(--hb-accent);
+  overflow-wrap: anywhere;
 }
-.hb-sub {
+.hb-sub, .home-banners .hero-sub {
   display: block;
-  margin-top: 10px;
-  font-size: clamp(.95rem, 2.1vw, 1.2rem);
-  line-height: 1.4;
-  color: rgba(255, 255, 255, .92);
+  margin-top: 14px;
+  font-size: 1.08rem;
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: 0;
+  color: #4c414b;
 }
+.home-banners .hero-desc {
+  display: block;
+  margin-top: 12px;
+  font-size: .88rem;
+  line-height: 1.55;
+  color: #675b60;
+}
+.home-banners .hero-desc strong { color: #3c343a; font-weight: 700; }
 .hb-cta {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  margin-top: 20px;
-  padding: 10px 18px;
-  border-radius: 999px;
-  background: var(--hb-accent, #fff);
-  color: #241a12;
-  font-weight: 800;
-  font-size: .92rem;
+  justify-content: space-between;
+  gap: 18px;
+  margin-top: 22px;
+  padding: 10px 12px 10px 18px;
+  min-height: 48px;
+  max-width: 100%;
+  border-radius: 14px;
+  background: var(--hb-accent);
+  box-shadow: 0 5px 13px color-mix(in srgb, var(--hb-accent) 20%, transparent);
+  color: #fff;
+  font-weight: 750;
+  font-size: .94rem;
+  line-height: 1.35;
+  transition: transform .18s ease, box-shadow .18s ease;
 }
-.hb-cta b { font-size: 1.1rem; line-height: 1; }
+.hb-cta b { display: grid; place-items: center; width: 28px; height: 28px; flex: 0 0 28px; border-radius: 9px; background: rgba(255, 255, 255, .18); font-size: 1.15rem; line-height: 1; }
+.hb-slide:hover .hb-cta { transform: translateY(-2px); box-shadow: 0 8px 18px color-mix(in srgb, var(--hb-accent) 25%, transparent); }
+.hb-slide:active .hb-cta { transform: translateY(0); }
+.hb-games { --hb-paper: #f2efff; --hb-accent: #6548ae; }
+.hb-culture { --hb-paper: #fff1e6; --hb-accent: #a84428; }
+.hb-outings { --hb-paper: #edf8f0; --hb-accent: #22694f; }
+.hb-living { --hb-paper: #fff0f2; --hb-accent: #a43c5b; }
 
-/* The illustration carries the scene. The accent only tints the wash and
-   colours the button, so five different subjects still read as one family of
-   pictures rather than five unrelated posters. */
-.hb-games   { --hb-tint: rgba(76, 63, 214, .10);  --hb-accent: #cdbfff; }
-.hb-culture { --hb-tint: rgba(178, 31, 45, .09);  --hb-accent: #ffd2a8; }
-.hb-outings { --hb-tint: rgba(15, 111, 122, .10); --hb-accent: #b7f2de; }
-.hb-living  { --hb-tint: rgba(160, 90, 18, .10);  --hb-accent: #ffe0a6; }
-
-/* ---- The same banners on a phone ---------------------------------------
-   Exactly the hero's picture-then-panel treatment: the illustration is pinned
-   to a 258px band at the top, the copy sits underneath on the dark base, and
-   the wash fades the picture's bottom edge into that panel. See the long note
-   above .hero for why the picture is a band and not a card-wide background. */
-@media (max-width: 620px) {
-  .hb-promo {
-    min-height: 0;
-    padding: 272px 20px 26px;
-    justify-content: flex-start;
-  }
-  .hb-art { height: 258px; bottom: auto; }
-  .hb-art img { object-position: 50% 20%; }
-  .hb-wash {
-    background:
-      linear-gradient(180deg,
-        rgba(18, 13, 10, 0) 0px,
-        rgba(18, 13, 10, 0) 196px,
-        rgba(18, 13, 10, .55) 232px,
-        rgba(18, 13, 10, 1) 258px),
-      linear-gradient(180deg, var(--hb-tint, rgba(0, 0, 0, 0)) 0px, rgba(0, 0, 0, 0) 258px);
-  }
-  .hb-copy { max-width: none; }
-  .hb-title { font-size: 1.6rem; }
-  .hb-sub { font-size: .9rem; margin-top: 8px; }
-  .hb-chip { margin-bottom: 10px; }
-  .hb-cta { margin-top: 16px; padding: 9px 15px; font-size: .86rem; }
-}
-
-.hb-dots {
-  display: flex;
-  justify-content: center;
-  gap: 7px;
-  margin-top: 10px;
-}
-.hb-dot {
-  position: relative;
-  width: 9px; height: 9px;
-  padding: 0;
-  border: none;
-  border-radius: 999px;
-  background: var(--c-border, #d8dfe8);
-  cursor: pointer;
-  transition: width .22s ease, background .22s ease;
-}
-.hb-dot.on {
-  width: 26px;
-  background: var(--c-primary, #2b6cf0);
-}
-/* A 9px dot is not a tap target. The visible dot stays small; the button grows
-   an invisible ring around it, the same trick the header circles use. */
-.hb-dot::before {
-  content: '';
+/* A little language moment makes the hero about learning, not just a poster. */
+.hb-phrase {
   position: absolute;
-  inset: -9px -5px;
-  border-radius: inherit;
+  z-index: 2;
+  left: 52%; right: auto; top: 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 19px;
+  border: 1px solid rgba(255, 255, 255, .8);
+  border-radius: 17px 17px 4px 17px;
+  background: rgba(255, 252, 247, .94);
+  box-shadow: 0 6px 16px rgba(86, 56, 31, .10);
+  color: #703a39;
+  transform: rotate(5deg);
+  pointer-events: none;
 }
+.hb-phrase strong { font-size: 1.65rem; font-weight: 800; line-height: 1.15; }
+.hb-phrase > span { margin-top: 3px; font-size: .7rem; letter-spacing: .035em; }
+.hb-phrase small { margin-top: 4px; font-size: .7rem; color: #7b6861; }
+.hb-dots { display: flex; justify-content: center; align-items: center; gap: 3px; margin-top: 10px; }
+.hb-dot { position: relative; display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 0; border-radius: 999px; background: transparent; cursor: pointer; }
+.hb-dot::before { content: ''; width: 7px; height: 7px; border-radius: 99px; background: #d4c9c9; transition: width .2s ease, background .2s ease; }
+.hb-dot.on::before { width: 24px; background: var(--c-primary, #ac2c45); }
+.hb-dot:focus-visible { outline: 2px solid var(--c-primary); outline-offset: 1px; }
 
-@media (max-width: 380px) {
-  .hb-title { font-size: 1.42rem; }
-  .hb-sub { font-size: .83rem; }
+@media (max-width: 620px) {
+  .hb-viewport { border-radius: 22px; }
+  .home-banners .hb-slide { min-height: 0; justify-content: flex-start; padding: 196px 22px 24px; }
+  .hb-art, .home-banners .hero::before { height: 205px; bottom: auto; }
+  .hb-art img { object-position: right 26%; }
+  .home-banners .hero::before { background-position: right 26%; }
+  .hb-wash, .home-banners .hero::after { background: linear-gradient(180deg, transparent 140px, var(--hb-paper) 205px); }
+  .hb-copy { width: 100%; max-width: none; }
+  .hb-chip, .home-banners .hero-chip { margin-bottom: 12px; padding: 6px 10px; font-size: .61rem; }
+  .hb-title, .home-banners .hero-title { font-size: 1.95rem; line-height: 1.08; letter-spacing: -.035em; }
+  .hb-sub, .home-banners .hero-sub { margin-top: 9px; font-size: .94rem; line-height: 1.45; }
+  .home-banners .hero-desc { margin-top: 10px; font-size: .8rem; line-height: 1.5; }
+  .hb-cta { margin-top: 17px; min-height: 46px; padding: 9px 11px 9px 16px; font-size: .87rem; }
+  .hb-phrase { left: 17px; right: auto; top: 17px; padding: 9px 14px; transform: rotate(-5deg); }
+  .hb-phrase strong { font-size: 1.35rem; }
 }
-
-/* Anyone who asked the system to calm animations gets an instant swap, no
-   automatic advance, and no slide transition. */
+@media (max-width: 360px) {
+  .home-banners .hb-slide { padding-left: 18px; padding-right: 18px; }
+  .hb-title, .home-banners .hero-title { font-size: 1.75rem; }
+}
 @media (prefers-reduced-motion: reduce) {
-  .hb-track { transition: none; }
+  .hb-track, .hb-cta, .hb-dot::before { transition: none; }
 }
 
 /* ---- Home: Today in Hong Kong -------------------------------------------
@@ -1539,34 +1373,13 @@ body {
    stay reachable to the app's own navigation and to the tests that assert on
    them. */
 .view.is-new-visitor #home-discover-promo { display: none; }
-/* The promo slides share the hero's shortened first-screen shape. Flex items
-   stretch to the tallest slide, so if only the hero shrank the deck would jump
-   back to full height as soon as the carousel advanced. */
-.view.is-new-visitor .hero,
-.view.is-new-visitor .hb-promo { min-height: 0; padding: 34px 40px 30px; }
+/* First-visit art is slightly shorter, but the face, CTA and reading panel
+   remain intact. All slides share the height; rotation never moves the page. */
 @media (max-width: 620px) {
-  .view.is-new-visitor .hero,
-  .view.is-new-visitor .hb-promo { padding: 168px 20px 22px; }
-  /* Only the picture band and its fade shrink. The padding above and the
-     gradient stops below are the original shortened-strip values, unchanged:
-     the phrase and the first article still sit above the fold. */
-  .view.is-new-visitor .hero::before,
-  .view.is-new-visitor .hb-art { height: 154px; }
-  .view.is-new-visitor .hero::after {
-    background: linear-gradient(180deg,
-      rgba(28, 20, 14, 0) 0px,
-      rgba(28, 20, 14, 0) 94px,
-      rgba(28, 20, 14, 0.55) 130px,
-      rgba(28, 20, 14, 1) 154px);
-  }
-  .view.is-new-visitor .hb-wash {
-    background:
-      linear-gradient(180deg,
-        rgba(18, 13, 10, 0) 0px,
-        rgba(18, 13, 10, 0) 94px,
-        rgba(18, 13, 10, .55) 130px,
-        rgba(18, 13, 10, 1) 154px),
-      linear-gradient(180deg, var(--hb-tint, rgba(0, 0, 0, 0)) 0px, rgba(0, 0, 0, 0) 154px);
+  .view.is-new-visitor .hb-slide { padding-top: 172px; }
+  .view.is-new-visitor .hero::before, .view.is-new-visitor .hb-art { height: 181px; }
+  .view.is-new-visitor .hero::after, .view.is-new-visitor .hb-wash {
+    background: linear-gradient(180deg, transparent 123px, var(--hb-paper) 181px);
   }
 }
 

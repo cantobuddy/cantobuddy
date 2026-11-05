@@ -317,6 +317,7 @@ const I18N = {
     // the old first-visit script hard-coded these in English for every
     // language, which is exactly what static keys fix.
     'home.bannerChip': '100% free for helpers',
+    'home.bannerPhraseMeaning': 'Thank you',
     'home.bannerTitle': 'Learn Cantonese.',
     'home.bannerSub': 'Understand the culture. Feel at home.',
     'home.bannerBold': '334 everyday words & phrases with audio',
@@ -967,6 +968,7 @@ const I18N = {
     'home.heroCta': 'Simulan ang pag-aaral',
     'home.freeChip': 'Libre para sa mga helper',
     'home.bannerChip': '100% libre para sa mga helper',
+    'home.bannerPhraseMeaning': 'Salamat',
     'home.bannerTitle': 'Mag-aral ng Cantonese.',
     'home.bannerSub': 'Intindihin ang kultura. Makaramdam ng tahanan.',
     'home.bannerBold': '334 pang-araw-araw na salita at parirala, may audio',
@@ -1603,6 +1605,7 @@ const I18N = {
     'home.heroCta': '开始学习',
     'home.freeChip': '家佣免费使用',
     'home.bannerChip': '家佣 100% 免费',
+    'home.bannerPhraseMeaning': '谢谢',
     'home.bannerTitle': '学粤语。',
     'home.bannerSub': '听懂文化，住得自在。',
     'home.bannerBold': '334 个日常词句，全部有发音',
@@ -2236,6 +2239,7 @@ const I18N = {
     'home.heroCta': 'Mulai belajar',
     'home.freeChip': 'Gratis untuk asisten rumah tangga',
     'home.bannerChip': '100% gratis untuk asisten rumah tangga',
+    'home.bannerPhraseMeaning': 'Terima kasih',
     'home.bannerTitle': 'Belajar bahasa Kanton.',
     'home.bannerSub': 'Pahami budayanya. Merasa di rumah.',
     'home.bannerBold': '334 kata & frasa sehari-hari dengan audio',

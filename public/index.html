@@ -263,15 +263,13 @@
           <a class="hero hb-slide" id="hero" href="/learn" data-banner="hero"
              onclick="if(window.gtag)gtag('event','begin_learn',{source:'home_hero'}); goCategories(); return false;"
              data-i18n="home.heroCta" data-i18n-attr="aria-label" aria-label="Start learning">
-            <!-- Trust chip. The one fact that decides whether a helper gives
-                 this app a second minute is that it costs nothing. -->
-            <span class="hero-chip" data-i18n="home.bannerChip">100% free for helpers</span>
-            <!-- Static markup, so it is translated by data-i18n and readable
-                 by Google without JS. The <strong> carries its own key:
-                 applyTranslations() sets textContent, so a key on the <p>
-                 would delete the bold span. -->
-            <h1 class="hero-title"><span data-i18n="home.bannerTitle">Learn Cantonese.</span> <span class="hero-sub" data-i18n="home.bannerSub">Understand the culture. Feel at home.</span></h1>
-            <p class="hero-desc"><strong data-i18n="home.bannerBold">334 everyday words &amp; phrases with audio</strong><span data-i18n="home.bannerRest"> — plus Chinese culture and useful tips. Learn at your own pace.</span></p>
+            <div class="hb-copy hero-copy">
+              <span class="hero-chip" data-i18n="home.bannerChip">100% free for helpers</span>
+              <h1 class="hero-title"><span data-i18n="home.bannerTitle">Learn Cantonese.</span> <span class="hero-sub" data-i18n="home.bannerSub">Understand the culture. Feel at home.</span></h1>
+              <span class="hero-desc"><strong data-i18n="home.bannerBold">334 everyday words &amp; phrases with audio</strong><span data-i18n="home.bannerRest"> — plus Chinese culture and useful tips. Learn at your own pace.</span></span>
+              <span class="hb-cta"><span data-i18n="home.heroCta">Start learning</span><b aria-hidden="true">→</b></span>
+            </div>
+            <span class="hb-phrase" aria-hidden="true"><strong>唔該</strong><span>m4 goi1</span><small data-i18n="home.bannerPhraseMeaning">Thank you</small></span>
           </a>
 
           <a class="hb-slide hb-promo hb-games" href="/?view=games" data-banner="games">
@@ -316,7 +314,8 @@
             </span>
           </a>
 
-          <a class="hb-slide hb-promo hb-living" href="/?view=living" data-banner="living">
+          <a class="hb-slide hb-promo hb-living" href="/stories" data-banner="living"
+             onclick="trackEvent('home_content_click',{channel:'stories',source:'home_banner'}); navigate('discover'); showChannel('stories'); return false;">
             <picture class="hb-art" aria-hidden="true">
               <source srcset="/banner-living.webp" type="image/webp" />
               <img src="/banner-living.jpg" alt="" decoding="async" />

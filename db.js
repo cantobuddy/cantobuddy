@@ -441,6 +441,33 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_visit_daily_day ON visit_daily(day);
 
+  /* The rotating promo banners on Home.
+
+     Four subjects — games, culture, outings, living — each a row rather than a
+     hard-coded block, because the operator needs to turn one off for a week or
+     move "Outings" above "Culture" without a deploy. The COPY is not here: each
+     slug maps to a set of i18n keys in the client, so the four languages stay
+     in one place and a new banner cannot ship translated in English only.
+
+     sort_order is the display order and is the only thing the up/down buttons
+     rewrite; it is renumbered 0..n-1 on every save so it can never drift into
+     gaps or duplicates. */
+  CREATE TABLE IF NOT EXISTS home_banners (
+    slug       TEXT PRIMARY KEY,
+    enabled    INTEGER NOT NULL DEFAULT 1,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    updated_at TEXT
+  );
+
+  /* Operator settings that are not per-learner and not per-banner — currently
+     just the carousel speed. A key/value table rather than a one-row table so
+     the next setting does not need a migration. */
+  CREATE TABLE IF NOT EXISTS app_settings (
+    key        TEXT PRIMARY KEY,
+    value      TEXT NOT NULL,
+    updated_at TEXT
+  );
+
   /* Something a helper or an employer typed and sent to the operator.
 
      ANONYMITY IS THE POINT for a helper. She is a live-in worker whose employer
@@ -1582,6 +1609,34 @@ function seedIfEmpty() {
 const seeded = seedIfEmpty();
 
 // ---------------------------------------------------------------------------
+// Home banner seed.
+//
+// INSERT OR IGNORE, keyed on the slug: the first boot lays down the four
+// subjects in the order they should ship, and every later boot leaves whatever
+// the operator has since done — disabled one, reordered them — untouched. That
+// is the difference between a default and an override, and getting it wrong
+// would silently undo the operator's settings on every restart.
+// ---------------------------------------------------------------------------
+const SEED_BANNERS = ['games', 'culture', 'outings', 'living'];
+const DEFAULT_ROTATE_SECONDS = 5;
+
+function seedBannersIfNeeded() {
+  const ins = db.prepare(
+    'INSERT OR IGNORE INTO home_banners (slug, enabled, sort_order, updated_at) VALUES (?, 1, ?, ?)'
+  );
+  const now = new Date().toISOString();
+  SEED_BANNERS.forEach((slug, i) => ins.run(slug, i, now));
+
+  // The speed is a setting, not a banner property: one number for the whole
+  // carousel. Inserted once so an operator who chose 9 seconds keeps it.
+  db.prepare(
+    'INSERT OR IGNORE INTO app_settings (key, value, updated_at) VALUES (?, ?, ?)'
+  ).run('banner_rotate_seconds', String(DEFAULT_ROTATE_SECONDS), now);
+}
+
+seedBannersIfNeeded();
+
+// ---------------------------------------------------------------------------
 // Discover feed seed — the culture channel's opening articles.
 //
 // DELIBERATELY SEPARATE from CONTENT_VERSION. That counter guards the vocabulary
@@ -2209,6 +2264,19 @@ const S = {
   upsertVisitDaily: db.prepare(`
     INSERT INTO visit_daily (day, path, views) VALUES (?, ?, ?)
     ON CONFLICT(day, path) DO UPDATE SET views = views + excluded.views
+  `),
+
+  /* ---- home banners ---------------------------------------------------- */
+  // Every row, in display order. The public route filters to enabled ones; the
+  // admin needs the disabled ones too, to be able to switch them back on.
+  listBanners: db.prepare('SELECT slug, enabled, sort_order FROM home_banners ORDER BY sort_order, slug'),
+  listEnabledBanners: db.prepare('SELECT slug FROM home_banners WHERE enabled = 1 ORDER BY sort_order, slug'),
+  setBannerOrder: db.prepare('UPDATE home_banners SET sort_order = ?, updated_at = ? WHERE slug = ?'),
+  setBannerEnabled: db.prepare('UPDATE home_banners SET enabled = ?, updated_at = ? WHERE slug = ?'),
+  getSetting: db.prepare('SELECT value FROM app_settings WHERE key = ?'),
+  setSetting: db.prepare(`
+    INSERT INTO app_settings (key, value, updated_at) VALUES (?, ?, ?)
+    ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
   `),
 
   sumScoreByLearner: db.prepare('SELECT COALESCE(SUM(score), 0) AS n FROM progress WHERE learner_id = ?'),
@@ -4056,6 +4124,166 @@ function recordPageView(path, count = 1) {
   const day = hktDate(Date.now());
   S.upsertVisitDaily.run(day, clean, n);
   return { day, path: clean };
+}
+
+// ---------------------------------------------------------------------------
+// Home banners
+// ---------------------------------------------------------------------------
+
+const BANNER_MIN_SECONDS = 2;
+const BANNER_MAX_SECONDS = 60;
+
+/** Clamp the rotation speed to something a human can actually read.
+ *  A value outside the range is not an error worth failing on — it is a typo,
+ *  and silently landing on the nearest sane number is kinder than a 400. */
+function clampRotateSeconds(v) {
+  const n = Math.round(Number(v));
+  if (!Number.isFinite(n)) return DEFAULT_ROTATE_SECONDS;
+  return Math.min(BANNER_MAX_SECONDS, Math.max(BANNER_MIN_SECONDS, n));
+}
+
+function getRotateSeconds() {
+  const row = S.getSetting.get('banner_rotate_seconds');
+  return clampRotateSeconds(row ? row.value : DEFAULT_ROTATE_SECONDS);
+}
+
+/** What the learner app needs: the speed and the slugs to show, in order.
+ *  Deliberately does NOT return disabled banners — a public payload should not
+ *  advertise what is switched off. */
+function getPublicBanners() {
+  return {
+    seconds: getRotateSeconds(),
+    banners: S.listEnabledBanners.all().map((r) => r.slug),
+  };
+}
+
+/** What the admin needs: every banner including the switched-off ones. */
+function getBannerConfig() {
+  return {
+    seconds: getRotateSeconds(),
+    banners: S.listBanners.all().map((r) => ({
+      slug: r.slug,
+      enabled: !!r.enabled,
+      sort_order: r.sort_order,
+    })),
+  };
+}
+
+/**
+ * Apply the operator's ordering and on/off choices.
+ *
+ * Order is RENUMBERED 0..n-1 from the submitted list rather than trusting the
+ * numbers that came back: the admin sends a drag order, and letting arbitrary
+ * sort_order values through is how a table ends up with duplicates and gaps
+ * that make "move up" behave unpredictably.
+ *
+ * Only slugs that already exist are accepted. The set of banners is fixed in
+ * code (each one is a translated design, not a text field), so a request that
+ * invents a slug is ignored rather than creating a banner nothing can render.
+ */
+function saveBannerConfig({ seconds, order, enabled } = {}) {
+  const now = new Date().toISOString();
+  const known = new Set(S.listBanners.all().map((r) => r.slug));
+
+  if (Array.isArray(order)) {
+    const seen = new Set();
+    let pos = 0;
+    for (const slug of order) {
+      if (typeof slug !== 'string' || !known.has(slug) || seen.has(slug)) continue;
+      seen.add(slug);
+      S.setBannerOrder.run(pos++, now, slug);
+    }
+    // Anything the request did not mention keeps a stable place at the end
+    // rather than sharing a sort_order with a renumbered row.
+    for (const slug of known) {
+      if (seen.has(slug)) continue;
+      S.setBannerOrder.run(pos++, now, slug);
+    }
+  }
+
+  if (enabled && typeof enabled === 'object') {
+    for (const [slug, on] of Object.entries(enabled)) {
+      if (!known.has(slug)) continue;
+      S.setBannerEnabled.run(on ? 1 : 0, now, slug);
+    }
+  }
+
+  if (seconds !== undefined && seconds !== null && seconds !== '') {
+    S.setSetting.run('banner_rotate_seconds', String(clampRotateSeconds(seconds)), now);
+  }
+
+  return getBannerConfig();
+}
+
+// ---------------------------------------------------------------------------
+// Traffic for one part of the site (used by the English-track report)
+// ---------------------------------------------------------------------------
+
+const visitDailyForPath = db.prepare(`
+  SELECT day, SUM(views) AS views
+    FROM visit_daily
+   WHERE (path = ? OR path LIKE ?) AND day >= ?
+   GROUP BY day
+   ORDER BY day
+`);
+const visitTotalsForPath = db.prepare(`
+  SELECT COALESCE(SUM(views), 0) AS views,
+         COUNT(DISTINCT day)     AS days,
+         MIN(day)                AS first_day,
+         MAX(day)                AS last_day
+    FROM visit_daily
+   WHERE (path = ? OR path LIKE ?)
+`);
+const topPathsForPath = db.prepare(`
+  SELECT path, SUM(views) AS views
+    FROM visit_daily
+   WHERE (path = ? OR path LIKE ?) AND day >= ?
+   GROUP BY path
+   ORDER BY views DESC, path
+   LIMIT 20
+`);
+
+/**
+ * Traffic for one path and everything under it, over a day window.
+ *
+ * `prefix` is matched exactly AND as a directory ('/en' and '/en/…'), because
+ * the English track is one page today and may be several tomorrow — matching
+ * only '/en' would silently stop counting the day a sub-page appears.
+ *
+ * The series is GAP-FILLED, like every other chart in this file: a day with no
+ * visitors is data, and a chart that skips it draws a straight line through a
+ * period when nobody came, which reads as steady traffic.
+ */
+function pathTraffic(prefix, days = 30) {
+  const span = Math.min(365, Math.max(1, Math.round(Number(days)) || 30));
+  const exact = String(prefix || '');
+  const like = exact + '/%';
+  const now = Date.now();
+  const since = hktDate(now - (span - 1) * DAY_MS);
+
+  const totals = visitTotalsForPath.get(exact, like) || { views: 0, days: 0 };
+  const byDay = new Map(visitDailyForPath.all(exact, like, since).map((r) => [r.day, r.views]));
+
+  const series = [];
+  for (let i = span - 1; i >= 0; i--) {
+    const day = hktDate(now - i * DAY_MS);
+    series.push({ day, views: byDay.get(day) || 0 });
+  }
+
+  return {
+    prefix: exact,
+    days: span,
+    totals: {
+      views: totals.views || 0,
+      days: totals.days || 0,
+      first_day: totals.first_day || null,
+      last_day: totals.last_day || null,
+      // The window's own figure, which is what the chart above adds up to.
+      window_views: series.reduce((a, b) => a + b.views, 0),
+    },
+    daily: series,
+    top: topPathsForPath.all(exact, like, since),
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -6023,6 +6251,10 @@ module.exports = {
   recordVisit,
   recordActivity,
   recordPageView,
+  getPublicBanners,
+  getBannerConfig,
+  saveBannerConfig,
+  pathTraffic,
   listEmployersForLearner,
   listLearnersForEmployer,
   revokeLink,

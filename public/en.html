@@ -574,5 +574,39 @@
       </div>
     </div>
   </div>
+
+  <!--
+    Page-view beacon for the English track.
+
+    The admin "Learn English" tab reports traffic for /en out of visit_daily,
+    which is only written when a page tells the server it was opened. Without
+    this, the report is structurally guaranteed to read zero.
+
+    Deliberately does NOT send a device token. The English track keeps its own
+    identity (en_dev_…) and its own database, and /api/visit would turn a device
+    token into a learner row in the CANTONESE database — so sending one would
+    leak English-track visitors into the Cantonese learner list in exchange for
+    nothing the report actually reads. A path and nothing else is all it needs.
+
+    Fire-and-forget and fully wrapped: if sendBeacon is missing, storage is
+    blocked, or the request fails, the reader still gets the page.
+  -->
+  <script>
+  (function () {
+    try {
+      var body = JSON.stringify({ path: location.pathname });
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon('/api/visit', new Blob([body], { type: 'application/json' }));
+      } else {
+        fetch('/api/visit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: body,
+          keepalive: true
+        });
+      }
+    } catch (e) {}
+  })();
+  </script>
 </body>
 </html>

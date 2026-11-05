@@ -808,6 +808,7 @@ async function init() {
     applyHomeIntent();
     renderHomeCards();
     renderHomePhrase();
+    renderHomeBanners();
     renderHomeFeatured();
     renderHomeOutings();
     renderHomeSundayTable();
@@ -843,6 +844,7 @@ function rerenderForLanguage() {
   renderHomeSundayTable();
   renderHomeFestival();
   renderHomeDailyCulture();
+  renderHomeBanners();
   renderHomeFeatured();
   renderHomeDiscoverPromo();
   renderHomeGamesPromo();
@@ -1417,6 +1419,186 @@ function featuredCardHtml(item) {
       </span>
     </a>`;
 }
+
+/**
+ * The rotating promo banners.
+ *
+ * WHAT IS SERVER-DRIVEN AND WHAT IS NOT. The operator controls three things —
+ * which banners show, in what order, and how many seconds each gets — and those
+ * come from /api/home-banners. Everything else (the words, the emoji, the
+ * colour, the link) is fixed here, because each banner is a designed thing, not
+ * a text box: a title typed into an admin form could not be translated into the
+ * four languages this app ships in, and would silently be English-only.
+ *
+ * The slides are real <a> elements laid out side by side and moved with a
+ * transform, NOT swapped through innerHTML. That keeps all four links in the
+ * DOM at once, so a crawler sees every doorway rather than whichever slide
+ * happened to be showing.
+ */
+const HOME_BANNERS = {
+  games:   { emoji: '🎮', href: '/?view=games',    cls: 'hb-games' },
+  culture: { emoji: '🏮', href: '/?view=discover', cls: 'hb-culture' },
+  outings: { emoji: '🗺️', href: '/places',         cls: 'hb-outings' },
+  living:  { emoji: '🏠', href: '/?view=living',   cls: 'hb-living' },
+};
+
+const homeBanners = {
+  loaded: false,
+  slugs: [],
+  seconds: 5,
+  index: 0,
+  timer: null,
+  paused: false,
+};
+
+/** Fetch the operator's settings once, then paint. Called from init() and from
+ *  every language change (the words are translated, the settings are not). */
+async function renderHomeBanners() {
+  const box = document.getElementById('home-banners');
+  if (!box) return;
+
+  if (!homeBanners.loaded) {
+    try {
+      const r = await fetch('/api/home-banners', { headers: { Accept: 'application/json' } });
+      if (!r.ok) throw new Error('banners ' + r.status);
+      const d = await r.json();
+      homeBanners.slugs = Array.isArray(d.banners) ? d.banners : [];
+      const secs = Number(d.seconds);
+      homeBanners.seconds = Number.isFinite(secs) && secs > 0 ? secs : 5;
+      homeBanners.loaded = true;
+    } catch (err) {
+      // Decoration, not content: a failed fetch must leave Home exactly as it
+      // was rather than showing an empty coloured box.
+      box.classList.add('hidden');
+      return;
+    }
+  }
+  paintHomeBanners();
+}
+
+function paintHomeBanners() {
+  const box = document.getElementById('home-banners');
+  const track = document.getElementById('hb-track');
+  const dots = document.getElementById('hb-dots');
+  if (!box || !track || !dots) return;
+
+  // Unknown slugs are dropped rather than rendered blank: a slug the client
+  // does not know the copy for would otherwise be an empty coloured strip.
+  const slugs = homeBanners.slugs.filter((s) => HOME_BANNERS[s]);
+  if (!slugs.length) {
+    box.classList.add('hidden');
+    stopBannerTimer();
+    return;
+  }
+
+  track.innerHTML = slugs.map((slug) => {
+    const m = HOME_BANNERS[slug];
+    return `<a class="hb-slide ${m.cls}" href="${m.href}" data-banner="${slug}">`
+      + `<span class="hb-emoji" aria-hidden="true">${m.emoji}</span>`
+      + `<span class="hb-text">`
+      + `<span class="hb-title">${escapeHtml(t('banner.' + slug + '.title'))}</span>`
+      + `<span class="hb-sub">${escapeHtml(t('banner.' + slug + '.sub'))}</span>`
+      + `</span>`
+      + `<span class="hb-arrow" aria-hidden="true">›</span></a>`;
+  }).join('');
+
+  dots.innerHTML = slugs.map((slug, i) => {
+    const label = t('banner.showN').replace('{n}', String(i + 1));
+    return `<button class="hb-dot${i === homeBanners.index ? ' on' : ''}" type="button"`
+      + ` data-i="${i}" aria-label="${escapeHtml(label)}"></button>`;
+  }).join('');
+
+  Array.prototype.forEach.call(dots.querySelectorAll('.hb-dot'), (b) => {
+    b.addEventListener('click', () => {
+      goBanner(Number(b.getAttribute('data-i')));
+      restartBannerTimer();
+    });
+  });
+
+  attachBannerSwipe(track);
+
+  if (homeBanners.index >= slugs.length) homeBanners.index = 0;
+  applyBannerTransform();
+  box.classList.remove('hidden');
+  restartBannerTimer();
+}
+
+function applyBannerTransform() {
+  const track = document.getElementById('hb-track');
+  if (!track) return;
+  track.style.transform = `translateX(-${homeBanners.index * 100}%)`;
+  Array.prototype.forEach.call(document.querySelectorAll('#hb-dots .hb-dot'), (d, i) => {
+    d.classList.toggle('on', i === homeBanners.index);
+  });
+}
+
+function goBanner(i) {
+  const n = document.querySelectorAll('#hb-track .hb-slide').length;
+  if (!n) return;
+  homeBanners.index = ((i % n) + n) % n;
+  applyBannerTransform();
+}
+
+function stopBannerTimer() {
+  if (homeBanners.timer) { clearInterval(homeBanners.timer); homeBanners.timer = null; }
+}
+
+function restartBannerTimer() {
+  stopBannerTimer();
+  const n = document.querySelectorAll('#hb-track .hb-slide').length;
+  // One banner is not a carousel. Also honour a reduced-motion preference:
+  // automatically moving content is exactly what that setting asks you not to do.
+  if (n < 2) return;
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const ms = Math.max(2000, homeBanners.seconds * 1000);
+  homeBanners.timer = setInterval(() => {
+    if (homeBanners.paused || document.hidden) return;
+    goBanner(homeBanners.index + 1);
+  }, ms);
+}
+
+/**
+ * Swipe, and pause-while-touching.
+ *
+ * The pause matters more than the swipe: a slide that changes while a finger is
+ * on it is a slide that gets tapped by accident. Both are wired with pointer
+ * events so a mouse drag works the same as a thumb.
+ */
+let bannerDrag = null;
+function attachBannerSwipe(track) {
+  const box = document.getElementById('home-banners');
+  if (!box || box.dataset.swipeBound) return;
+  box.dataset.swipeBound = '1';
+
+  box.addEventListener('pointerdown', (e) => {
+    bannerDrag = { x: e.clientX, y: e.clientY, moved: false };
+    homeBanners.paused = true;
+  });
+  box.addEventListener('pointerup', (e) => {
+    if (!bannerDrag) return;
+    const dx = e.clientX - bannerDrag.x;
+    const dy = e.clientY - bannerDrag.y;
+    bannerDrag = null;
+    homeBanners.paused = false;
+    // Only a clearly horizontal gesture counts: a vertical one is a page
+    // scroll that happened to start on the carousel.
+    if (Math.abs(dx) > 42 && Math.abs(dx) > Math.abs(dy)) {
+      goBanner(homeBanners.index + (dx < 0 ? 1 : -1));
+    }
+    restartBannerTimer();
+  });
+  box.addEventListener('pointercancel', () => { bannerDrag = null; homeBanners.paused = false; });
+  // Keyboard users get the same courtesy as a hovering mouse.
+  box.addEventListener('focusin', () => { homeBanners.paused = true; });
+  box.addEventListener('focusout', () => { homeBanners.paused = false; restartBannerTimer(); });
+}
+
+// A tab in the background is not being read; stop advancing and resume where
+// she left off rather than skipping three slides while she was away.
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) stopBannerTimer();
+  else if (homeBanners.loaded) restartBannerTimer();
+});
 
 /**
  * Draws the four real articles. Counts come from the server, so "25 culture

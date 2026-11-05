@@ -133,6 +133,40 @@ const S = {
   `),
   getProgress: db.prepare('SELECT vocab_id, seen, correct FROM en_progress WHERE device_id = ?'),
   deleteProgress: db.prepare('DELETE FROM en_progress WHERE device_id = ?'),
+
+  /* ---- operator editing -------------------------------------------------
+     The English track's content lives in these tables, seeded once from
+     en-data.js. Until now there was no way to correct a typo or retire a word
+     without editing the seed and resetting the database, so the operator could
+     not actually look after this half of the site. */
+  updateVocab: db.prepare(`
+    UPDATE en_vocabulary
+       SET english = ?, phonetic = ?, cantonese = ?, emoji = ?, level = ?,
+           category_id = ?, scenario_id = ?, updated_at = ?
+     WHERE id = ?
+  `),
+  deleteVocab: db.prepare('DELETE FROM en_vocabulary WHERE id = ?'),
+  // Progress rows are keyed on the vocab id, so removing a word has to take its
+  // progress with it or the table keeps orphans no screen can ever reach.
+  deleteVocabProgress: db.prepare('DELETE FROM en_progress WHERE vocab_id = ?'),
+  insertVocab: db.prepare(`
+    INSERT INTO en_vocabulary
+      (english, phonetic, cantonese, emoji, level, category_id, type, scenario_id, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `),
+  updateCategory: db.prepare(`
+    UPDATE en_categories
+       SET name_en = ?, name_yue = ?, name_zh = ?, name_fil = ?, name_id = ?, icon = ?
+     WHERE id = ?
+  `),
+  updateScenario: db.prepare(`
+    UPDATE en_scenarios
+       SET name_en = ?, name_yue = ?, name_zh = ?, name_fil = ?, name_id = ?, icon = ?, description = ?
+     WHERE id = ?
+  `),
+  countProgressRows: db.prepare('SELECT COUNT(*) AS n FROM en_progress'),
+  countCorrectRows: db.prepare('SELECT COALESCE(SUM(correct), 0) AS n FROM en_progress'),
+  countDevices: db.prepare('SELECT COUNT(DISTINCT device_id) AS n FROM en_progress'),
 };
 
 // ---- Accessors --------------------------------------------------------------
@@ -187,6 +221,137 @@ function deleteEnProgress(deviceId) {
   S.deleteProgress.run(String(deviceId));
 }
 
+// ---- Operator editing -------------------------------------------------------
+
+/** Trim to a string, capped, so a stray paste cannot bloat a row. */
+const str = (v, max = 200) => String(v == null ? '' : v).trim().slice(0, max);
+
+/**
+ * A field that was NOT sent keeps its stored value.
+ *
+ * This matters more than it looks: the admin sends only the fields it edited,
+ * and a plain `str(patch.x)` returns '' for a missing key — so an edit that
+ * changed one word would silently blank every other column on the row.
+ */
+const pick = (v, fallback, max = 200) =>
+  (v === undefined || v === null ? String(fallback == null ? '' : fallback) : str(v, max));
+
+/**
+ * Update one English word or sentence.
+ *
+ * Returns the stored row, or null when the id does not exist — the route turns
+ * that into a 404 rather than a silent success on a row that was never there.
+ *
+ * `type` is not editable: a word belongs to a category and a sentence belongs to
+ * a scenario, and moving a row between those two shapes through a generic edit
+ * form is how a sentence ends up with no scenario and disappears from every
+ * screen. Adding the other kind is a separate, explicit action.
+ */
+function updateEnVocab(id, patch = {}) {
+  const existing = S.getVocab.get(Number(id));
+  if (!existing) return null;
+
+  const isSentence = existing.type === 'sentence';
+  const level = Number(patch.level);
+  const categoryId = isSentence ? null : Number(patch.category_id);
+  const scenarioId = isSentence ? Number(patch.scenario_id) : null;
+
+  S.updateVocab.run(
+    str(patch.english) || existing.english,
+    pick(patch.phonetic, existing.phonetic),
+    pick(patch.cantonese, existing.cantonese),
+    str(patch.emoji, 8) || existing.emoji,
+    Number.isFinite(level) && level >= 1 && level <= 3 ? level : existing.level,
+    Number.isFinite(categoryId) && categoryId > 0 ? categoryId : (isSentence ? null : existing.category_id),
+    Number.isFinite(scenarioId) && scenarioId > 0 ? scenarioId : (isSentence ? existing.scenario_id : null),
+    new Date().toISOString(),
+    Number(id),
+  );
+  return S.getVocab.get(Number(id));
+}
+
+/** Add a word (category) or a sentence (scenario). */
+function createEnVocab(patch = {}) {
+  const english = str(patch.english);
+  if (!english) return null;
+  const type = patch.type === 'sentence' ? 'sentence' : 'word';
+  const level = Number(patch.level);
+  const categoryId = type === 'word' ? Number(patch.category_id) : null;
+  const scenarioId = type === 'sentence' ? Number(patch.scenario_id) : null;
+  const now = new Date().toISOString();
+
+  const info = S.insertVocab.run(
+    english,
+    str(patch.phonetic),
+    str(patch.cantonese),
+    str(patch.emoji, 8) || '📝',
+    Number.isFinite(level) && level >= 1 && level <= 3 ? level : 1,
+    Number.isFinite(categoryId) && categoryId > 0 ? categoryId : null,
+    type,
+    Number.isFinite(scenarioId) && scenarioId > 0 ? scenarioId : null,
+    now,
+    now,
+  );
+  return S.getVocab.get(Number(info.lastInsertRowid));
+}
+
+/** Remove a word and any progress recorded against it. */
+function deleteEnVocab(id) {
+  const existing = S.getVocab.get(Number(id));
+  if (!existing) return false;
+  S.deleteVocabProgress.run(Number(id));
+  S.deleteVocab.run(Number(id));
+  return true;
+}
+
+function updateEnCategory(id, patch = {}) {
+  const row = S.listCategories.all().find((c) => c.id === Number(id));
+  if (!row) return null;
+  S.updateCategory.run(
+    str(patch.name_en) || row.name_en,
+    pick(patch.name_yue, row.name_yue),
+    pick(patch.name_zh, row.name_zh),
+    pick(patch.name_fil, row.name_fil),
+    pick(patch.name_id, row.name_id),
+    str(patch.icon, 8) || row.icon,
+    Number(id),
+  );
+  return S.listCategories.all().find((c) => c.id === Number(id));
+}
+
+function updateEnScenario(id, patch = {}) {
+  const row = S.listScenarios.all().find((s) => s.id === Number(id));
+  if (!row) return null;
+  S.updateScenario.run(
+    str(patch.name_en) || row.name_en,
+    pick(patch.name_yue, row.name_yue),
+    pick(patch.name_zh, row.name_zh),
+    pick(patch.name_fil, row.name_fil),
+    pick(patch.name_id, row.name_id),
+    str(patch.icon, 8) || row.icon,
+    pick(patch.description, row.description, 400),
+    Number(id),
+  );
+  return S.listScenarios.all().find((s) => s.id === Number(id));
+}
+
+/** Inventory + engagement for the operator's English tab. */
+function enContentSummary() {
+  const words = S.listWords.all().length;
+  const sentences = S.listSentences.all().length;
+  const cats = S.listCategories.all().length;
+  const scens = S.listScenarios.all().length;
+  return {
+    words,
+    sentences,
+    categories: cats,
+    scenarios: scens,
+    devices: S.countDevices.get().n || 0,
+    answers: S.countProgressRows.get().n || 0,
+    correct: S.countCorrectRows.get().n || 0,
+  };
+}
+
 module.exports = {
   DB_PATH,
   listEnCategories,
@@ -194,6 +359,12 @@ module.exports = {
   listEnWords,
   listEnScenarioPhrases,
   getEnVocabulary,
+  createEnVocab,
+  updateEnVocab,
+  deleteEnVocab,
+  updateEnCategory,
+  updateEnScenario,
+  enContentSummary,
   recordEnProgress,
   getEnProgress,
   deleteEnProgress,

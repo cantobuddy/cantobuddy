@@ -131,6 +131,8 @@ function switchTab(tab) {
     c.classList.toggle('active', c.id === 'tab-' + tab);
   });
   if (tab === 'push') renderAdminPush();
+  if (tab === 'banners') renderAdminBanners();
+  if (tab === 'english') renderAdminEnglish();
 }
 
 // ---- Push notifications -----------------------------------------------------
@@ -1977,6 +1979,373 @@ async function classifyNewsPosts() {
     if (btn) { btn.disabled = false; btn.textContent = '🏷 Re-classify news'; }
   }
 }
+
+// ---- Home banners ----------------------------------------------------------
+// The four promo banners on Home. The operator controls three things — how long
+// each holds, which are in rotation, and their order — and nothing else: the
+// words live in the client's i18n table so they stay translated in all four
+// languages. See the note in the Banners tab markup.
+//
+// Every control saves IMMEDIATELY and re-reads the server's answer rather than
+// trusting local state. That is deliberate: order is renumbered 0..n-1 on the
+// server, so the response is the only honest picture of what the app will show.
+
+const BANNER_META = {
+  games:   { emoji: '🎮', label: 'Games',   href: '/?view=games' },
+  culture: { emoji: '🏮', label: 'Culture', href: '/?view=discover' },
+  outings: { emoji: '🗺️', label: 'Outings', href: '/places' },
+  living:  { emoji: '🏠', label: 'Living',  href: '/?view=living' },
+};
+
+let BANNER_CFG = null;
+
+async function renderAdminBanners() {
+  const list = document.getElementById('admin-banners-list');
+  if (!list) return;
+  try {
+    BANNER_CFG = await apiGet('/api/admin/banners');
+    const secs = document.getElementById('banner-seconds');
+    if (secs) secs.value = BANNER_CFG.seconds;
+
+    list.innerHTML = BANNER_CFG.banners.map((b, i) => {
+      const m = BANNER_META[b.slug] || { emoji: '🖼️', label: b.slug, href: '' };
+      const on = b.enabled;
+      return `<div class="admin-vocab-row" style="display:flex;align-items:center;gap:12px;opacity:${on ? 1 : .55}">
+        <input type="checkbox" ${on ? 'checked' : ''} id="banner-on-${b.slug}"
+               onchange="toggleBanner('${b.slug}', this.checked)"
+               style="width:20px;height:20px;flex:0 0 auto" />
+        <label for="banner-on-${b.slug}" style="flex:1 1 auto;min-width:0;cursor:pointer">
+          <strong>${m.emoji} ${m.label}</strong>
+          <small style="display:block;color:#6b7280;font-weight:600">
+            ${on ? 'In rotation' : 'Hidden'} · position ${i + 1} · <code>${m.href}</code>
+          </small>
+        </label>
+        <button class="btn btn-outline btn-sm" ${i === 0 ? 'disabled' : ''}
+                onclick="moveBanner('${b.slug}', -1)" aria-label="Move ${m.label} up">↑</button>
+        <button class="btn btn-outline btn-sm" ${i === BANNER_CFG.banners.length - 1 ? 'disabled' : ''}
+                onclick="moveBanner('${b.slug}', 1)" aria-label="Move ${m.label} down">↓</button>
+      </div>`;
+    }).join('');
+
+    const enabled = BANNER_CFG.banners.filter((b) => b.enabled).length;
+    document.getElementById('admin-banners-stamp').textContent =
+      `${enabled} of ${BANNER_CFG.banners.length} in rotation · `
+      + `${BANNER_CFG.seconds}s each · saved ${new Date().toLocaleTimeString()}`;
+  } catch (e) {
+    list.innerHTML = `<div class="admin-empty">Could not load banners: ${e.message}</div>`;
+  }
+}
+
+async function saveBannerSeconds() {
+  const el = document.getElementById('banner-seconds');
+  if (!el) return;
+  try {
+    BANNER_CFG = await apiPut('/api/admin/banners', { seconds: Number(el.value) });
+    // Echo the CLAMPED value back: the server bounds it to 2..60, and leaving a
+    // typed "999" in the box would misrepresent what was actually saved.
+    el.value = BANNER_CFG.seconds;
+    await renderAdminBanners();
+  } catch (e) {
+    alert('Could not save the speed: ' + e.message);
+  }
+}
+
+async function toggleBanner(slug, on) {
+  try {
+    BANNER_CFG = await apiPut('/api/admin/banners', { enabled: { [slug]: !!on } });
+    await renderAdminBanners();
+  } catch (e) {
+    alert('Could not change that banner: ' + e.message);
+    await renderAdminBanners();
+  }
+}
+
+async function moveBanner(slug, dir) {
+  if (!BANNER_CFG) return;
+  const order = BANNER_CFG.banners.map((b) => b.slug);
+  const from = order.indexOf(slug);
+  const to = from + dir;
+  if (from < 0 || to < 0 || to >= order.length) return;
+  order.splice(to, 0, order.splice(from, 1)[0]);
+  try {
+    BANNER_CFG = await apiPut('/api/admin/banners', { order });
+    await renderAdminBanners();
+  } catch (e) {
+    alert('Could not reorder: ' + e.message);
+  }
+}
+
+// ---- Learn English ---------------------------------------------------------
+// Two halves: traffic (from the anonymous page-view beacon on /en) and content
+// (the en_* tables). Both are operator-only; neither exposes a learner.
+
+let EN_REPORT_DAYS = 30;
+let EN_CONTENT = null;
+
+function setEnReportDays(days) {
+  EN_REPORT_DAYS = days;
+  document.querySelectorAll('#en-report-range .chip').forEach((c) => {
+    c.classList.toggle('active', Number(c.dataset.days) === days);
+  });
+  renderEnTraffic();
+}
+
+async function renderAdminEnglish() {
+  await Promise.all([renderEnTraffic(), renderEnContent()]);
+}
+
+async function renderEnTraffic() {
+  const totals = document.getElementById('en-traffic-totals');
+  if (!totals) return;
+  try {
+    const d = await apiGet(`/api/admin/en/report?days=${EN_REPORT_DAYS}`);
+    const t = d.traffic;
+    const c = d.content;
+
+    const peak = t.daily.reduce((a, b) => Math.max(a, b.views), 0);
+    totals.innerHTML = [
+      statCard(t.totals.window_views, `Views · ${EN_REPORT_DAYS} days`),
+      statCard(Math.round(t.totals.window_views / Math.max(1, EN_REPORT_DAYS)), 'Views / day'),
+      statCard(t.totals.days, 'Days with traffic'),
+      statCard(t.totals.first_day || '—', 'First recorded'),
+    ].join('');
+
+    drawEnChart(t.daily);
+    document.getElementById('en-traffic-notes').textContent = peak
+      ? `Busiest day: ${peak} view${peak === 1 ? '' : 's'}.`
+      : 'No views recorded in this window.';
+
+    document.getElementById('en-top-paths').innerHTML = t.top.length
+      ? t.top.map((p) => `<div class="admin-vocab-row" style="display:flex;justify-content:space-between">
+          <code>${escapeAdmin(p.path)}</code><strong>${p.views}</strong></div>`).join('')
+      : '<div class="admin-empty">No page views yet.</div>';
+  } catch (e) {
+    totals.innerHTML = `<div class="admin-empty">Could not load the report: ${e.message}</div>`;
+  }
+}
+
+function drawEnChart(daily) {
+  const box = document.getElementById('en-traffic-chart');
+  if (!box) return;
+  if (!daily || !daily.length) { box.innerHTML = ''; return; }
+  const max = Math.max(1, ...daily.map((d) => d.views));
+  const w = 100 / daily.length;
+  box.innerHTML = `<div style="display:flex;align-items:flex-end;gap:2px;height:120px;padding:6px 0">
+    ${daily.map((d) => {
+      const h = Math.round((d.views / max) * 100);
+      return `<div title="${d.day}: ${d.views} view${d.views === 1 ? '' : 's'}"
+        style="flex:1 1 ${w}%;min-width:2px;height:${Math.max(2, h)}%;background:${
+          d.views ? 'var(--c-primary)' : 'var(--c-border)'
+        };border-radius:3px 3px 0 0"></div>`;
+    }).join('')}
+  </div>`;
+}
+
+async function renderEnContent() {
+  const totals = document.getElementById('en-content-totals');
+  if (!totals) return;
+  try {
+    EN_CONTENT = await apiGet('/api/admin/en/content');
+    const rep = await apiGet(`/api/admin/en/report?days=${EN_REPORT_DAYS}`);
+    const c = rep.content;
+    totals.innerHTML = [
+      statCard(c.words, 'Words'),
+      statCard(c.sentences, 'Sentences'),
+      statCard(c.devices, 'Devices practising'),
+      statCard(c.answers ? Math.round((c.correct / c.answers) * 100) + '%' : '—', 'Answers correct'),
+    ].join('');
+
+    // Category filter + the lists.
+    const sel = document.getElementById('en-filter-category');
+    const keep = sel.value;
+    sel.innerHTML = '<option value="">All categories</option>'
+      + EN_CONTENT.categories.map((x) => `<option value="${x.id}">${x.icon} ${escapeAdmin(x.name_en)}</option>`).join('');
+    sel.value = keep;
+
+    renderEnVocabulary();
+    renderEnTaxonomy();
+  } catch (e) {
+    totals.innerHTML = `<div class="admin-empty">Could not load content: ${e.message}</div>`;
+  }
+}
+
+function renderEnVocabulary() {
+  const box = document.getElementById('en-vocab-list');
+  if (!box || !EN_CONTENT) return;
+  const catSel = document.getElementById('en-filter-category');
+  const cat = catSel ? catSel.value : '';
+  const q = (document.getElementById('en-filter-text') || {}).value || '';
+  const needle = q.trim().toLowerCase();
+
+  let rows = EN_CONTENT.vocabulary;
+  if (cat) rows = rows.filter((r) => String(r.category_id) === String(cat));
+  if (needle) {
+    rows = rows.filter((r) => (r.english || '').toLowerCase().includes(needle)
+      || (r.cantonese || '').toLowerCase().includes(needle));
+  }
+
+  if (!rows.length) { box.innerHTML = '<div class="admin-empty">Nothing matches.</div>'; return; }
+
+  // Capped: this list is the whole English vocabulary, and rendering 200 rows of
+  // inputs makes the tab slow to open on a phone.
+  const shown = rows.slice(0, 60);
+  box.innerHTML = shown.map((r) => `
+    <div class="admin-vocab-row" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span style="font-size:1.2rem">${escapeAdmin(r.emoji || '📝')}</span>
+      <input value="${escapeAttr(r.english)}" data-en-id="${r.id}" data-f="english"
+             style="flex:1 1 140px;min-width:120px" aria-label="English" />
+      <input value="${escapeAttr(r.phonetic || '')}" data-en-id="${r.id}" data-f="phonetic"
+             style="flex:1 1 100px;min-width:90px" aria-label="Phonetic" />
+      <input value="${escapeAttr(r.cantonese || '')}" data-en-id="${r.id}" data-f="cantonese"
+             style="flex:1 1 90px;min-width:80px" aria-label="Cantonese" />
+      <span style="color:#6b7280;font-size:.75rem;font-weight:700">
+        ${r.type === 'sentence' ? 'scenario' : 'L' + r.level}
+      </span>
+      <button class="btn btn-outline btn-sm" onclick="saveEnWord(${r.id})">Save</button>
+      <button class="btn btn-outline btn-sm" onclick="deleteEnWord(${r.id})"
+              style="color:#c1121f">✕</button>
+    </div>`).join('')
+    + (rows.length > shown.length
+      ? `<p class="admin-hint">Showing the first ${shown.length} of ${rows.length}. Narrow the search to see the rest.</p>`
+      : '');
+}
+
+/**
+ * The name inputs for one category or scenario.
+ *
+ * All five languages, because /en is a four-language page: en-app.js falls back
+ * to name_en for Filipino and Bahasa, so a row missing those two would quietly
+ * serve English to a Filipino reader with no way for the operator to fix it.
+ * Placeholders carry the language name, which keeps the row compact without a
+ * label column.
+ */
+function enNameInputs(kind, row) {
+  const attr = kind === 'cat' ? 'data-cat-id' : 'data-scen-id';
+  const fields = [
+    ['name_en', 'English', 130],
+    ['name_zh', '中文', 90],
+    ['name_yue', '廣東話', 90],
+    ['name_fil', 'Filipino', 100],
+    ['name_id', 'Bahasa', 90],
+  ];
+  return fields.map(([f, label, w]) =>
+    `<input value="${escapeAttr(row[f] || '')}" ${attr}="${row.id}" data-f="${f}"
+            placeholder="${label}" aria-label="${label} name"
+            style="flex:1 1 ${w}px;min-width:78px" />`).join('');
+}
+
+function renderEnTaxonomy() {
+  const cats = document.getElementById('en-cat-list');
+  const scens = document.getElementById('en-scen-list');
+  if (!cats || !scens || !EN_CONTENT) return;
+
+  cats.innerHTML = EN_CONTENT.categories.map((c) => `
+    <div class="admin-vocab-row" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span style="font-size:1.2rem">${escapeAdmin(c.icon)}</span>
+      ${enNameInputs('cat', c)}
+      <button class="btn btn-outline btn-sm" onclick="saveEnCategory(${c.id})">Save</button>
+    </div>`).join('');
+
+  scens.innerHTML = EN_CONTENT.scenarios.map((s) => `
+    <div class="admin-vocab-row" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span style="font-size:1.2rem">${escapeAdmin(s.icon)}</span>
+      ${enNameInputs('scen', s)}
+      <button class="btn btn-outline btn-sm" onclick="saveEnScenario(${s.id})">Save</button>
+    </div>`).join('');
+}
+
+/** Collect the inputs for one row and PUT only the fields it owns. */
+function enRowPatch(attr, id) {
+  const patch = {};
+  document.querySelectorAll(`input[${attr}="${id}"]`).forEach((el) => {
+    patch[el.dataset.f] = el.value;
+  });
+  return patch;
+}
+
+async function saveEnWord(id) {
+  try {
+    await apiPut(`/api/admin/en/vocabulary/${id}`, enRowPatch('data-en-id', id));
+    await renderEnContent();
+  } catch (e) { alert('Could not save: ' + e.message); }
+}
+
+async function deleteEnWord(id) {
+  const row = (EN_CONTENT.vocabulary || []).find((r) => r.id === id);
+  if (!confirm(`Delete "${row ? row.english : id}"? Progress recorded against it is removed too.`)) return;
+  try {
+    await apiDelete(`/api/admin/en/vocabulary/${id}`);
+    await renderEnContent();
+  } catch (e) { alert('Could not delete: ' + e.message); }
+}
+
+async function saveEnCategory(id) {
+  try {
+    await apiPut(`/api/admin/en/categories/${id}`, enRowPatch('data-cat-id', id));
+    await renderEnContent();
+  } catch (e) { alert('Could not save: ' + e.message); }
+}
+
+async function saveEnScenario(id) {
+  try {
+    await apiPut(`/api/admin/en/scenarios/${id}`, enRowPatch('data-scen-id', id));
+    await renderEnContent();
+  } catch (e) { alert('Could not save: ' + e.message); }
+}
+
+function startNewEnWord() {
+  const box = document.getElementById('en-new-word');
+  if (!box || !EN_CONTENT) return;
+  box.innerHTML = `
+    <div class="admin-vocab-row" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px">
+      <input id="new-en-english" placeholder="English word" style="flex:1 1 140px" />
+      <input id="new-en-phonetic" placeholder="Phonetic" style="flex:1 1 110px" />
+      <input id="new-en-cantonese" placeholder="粵語" style="flex:1 1 90px" />
+      <input id="new-en-emoji" placeholder="📝" maxlength="4" style="width:64px" />
+      <select id="new-en-category">
+        ${EN_CONTENT.categories.map((c) => `<option value="${c.id}">${c.icon} ${escapeAdmin(c.name_en)}</option>`).join('')}
+      </select>
+      <select id="new-en-level">
+        <option value="1">Level 1</option><option value="2">Level 2</option><option value="3">Level 3</option>
+      </select>
+      <button class="btn btn-outline btn-sm" onclick="createEnWord()">Add</button>
+      <button class="btn btn-outline btn-sm" onclick="document.getElementById('en-new-word').innerHTML=''">Cancel</button>
+    </div>`;
+}
+
+async function createEnWord() {
+  const v = (id) => (document.getElementById(id) || {}).value || '';
+  if (!v('new-en-english').trim()) { alert('An English word is required.'); return; }
+  try {
+    await apiPost('/api/admin/en/vocabulary', {
+      english: v('new-en-english'),
+      phonetic: v('new-en-phonetic'),
+      cantonese: v('new-en-cantonese'),
+      emoji: v('new-en-emoji') || '📝',
+      category_id: Number(v('new-en-category')) || null,
+      level: Number(v('new-en-level')) || 1,
+      type: 'word',
+    });
+    document.getElementById('en-new-word').innerHTML = '';
+    await renderEnContent();
+  } catch (e) { alert('Could not add: ' + e.message); }
+}
+
+/** A tiny stat tile — the same shape .stats-grid expects elsewhere. */
+// One number, one label. Uses the .stat-card classes the rest of the admin
+// already styles, so the new tabs look like the Reports tab instead of a bare
+// line of text with the number jammed against its own caption.
+function statCard(value, label) {
+  return `<div class="stat-card"><div class="stat-number">${escapeAdmin(String(value))}</div>`
+    + `<div class="stat-label">${escapeAdmin(label)}</div></div>`;
+}
+
+function escapeAdmin(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+  ));
+}
+const escapeAttr = escapeAdmin;
 
 // ---- Init ------------------------------------------------------------------
 

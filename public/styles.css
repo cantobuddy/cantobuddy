@@ -1163,6 +1163,141 @@ body {
   line-height: 1.35;
 }
 
+/* ---- Home: rotating promo banners ---------------------------------------
+   Four slides that take turns: games, culture, outings, living. One visible at
+   a time, a swipe or a dot to move, and a timer that the operator sets (default
+   5s) via /api/home-banners.
+
+   The track is a flex row translated by whole slides, so the browser does the
+   animation on the compositor and the slides stay real, crawlable links. That
+   matters here: a carousel that swaps innerHTML would give Google one banner
+   and hide the other three from it entirely. */
+.home-banners { margin-top: 18px; }
+
+.hb-viewport {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  /* The slides are as tall as their content, but a FIXED min-height keeps the
+     page from jumping as slides with longer copy take their turn. */
+  min-height: 118px;
+  box-shadow: 0 8px 22px rgba(31, 41, 55, .13);
+  touch-action: pan-y;
+}
+
+.hb-track {
+  display: flex;
+  transition: transform .42s cubic-bezier(.4, .05, .2, 1);
+  will-change: transform;
+}
+
+.hb-slide {
+  flex: 0 0 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 18px 18px 16px;
+  text-decoration: none;
+  color: #fff;
+  min-height: 118px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* A soft light bloom in the corner so the flat gradient does not read as a
+   plain colour block. Purely decorative, so it is hidden from AT. */
+.hb-slide::after {
+  content: '';
+  position: absolute;
+  right: -30px; top: -50px;
+  width: 150px; height: 150px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .14);
+  pointer-events: none;
+}
+
+.hb-slide:active { filter: brightness(.96); }
+
+.hb-emoji {
+  flex: 0 0 auto;
+  font-size: 2rem;
+  line-height: 1;
+  width: 54px; height: 54px;
+  display: grid; place-items: center;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, .18);
+  backdrop-filter: blur(2px);
+}
+
+.hb-text { min-width: 0; flex: 1 1 auto; }
+.hb-title {
+  display: block;
+  font-size: 1.02rem;
+  font-weight: 800;
+  letter-spacing: .1px;
+  margin-bottom: 3px;
+}
+.hb-sub {
+  display: block;
+  font-size: .8rem;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, .9);
+}
+.hb-arrow {
+  flex: 0 0 auto;
+  font-size: 1.1rem;
+  opacity: .85;
+}
+
+/* One gradient per subject, so the carousel reads as four different places
+   rather than four colours of the same card. */
+.hb-games   { background: linear-gradient(135deg, #4c3fd6, #7b5cf0 60%, #9d7bf7); }
+.hb-culture { background: linear-gradient(135deg, #b21f2d, #d8402f 55%, #e8734a); }
+.hb-outings { background: linear-gradient(135deg, #0f6f7a, #159a86 55%, #2fb98c); }
+.hb-living  { background: linear-gradient(135deg, #a05a12, #c9781d 55%, #e0a13a); }
+
+.hb-dots {
+  display: flex;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.hb-dot {
+  width: 8px; height: 8px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: var(--c-border, #d8dfe8);
+  cursor: pointer;
+  transition: width .22s ease, background .22s ease;
+}
+.hb-dot.on {
+  width: 22px;
+  background: var(--c-primary, #2b6cf0);
+}
+/* A 8px dot is not a tap target. The visible dot stays small; the button grows
+   an invisible ring around it, the same trick the header circles use. */
+.hb-dot { position: relative; }
+.hb-dot::before {
+  content: '';
+  position: absolute;
+  inset: -9px -5px;
+  border-radius: inherit;
+}
+
+@media (max-width: 380px) {
+  .hb-emoji { width: 46px; height: 46px; font-size: 1.7rem; }
+  .hb-title { font-size: .95rem; }
+  .hb-sub { font-size: .76rem; }
+}
+
+/* Anyone who asked the system to calm animations gets an instant swap, no
+   automatic advance, and no slide transition. */
+@media (prefers-reduced-motion: reduce) {
+  .hb-track { transition: none; }
+}
+
 /* ---- Home: Today in Hong Kong -------------------------------------------
    The content-first Home (2026-11-04). Four REAL articles with a real title,
    summary and (for an outing) a real photograph, instead of four buttons that
@@ -4118,6 +4253,28 @@ a.game-tile:active { transform: scale(0.96); background: var(--c-primary-tint); 
 
 /* ---- Admin vocab list ---- */
 .admin-list { display: grid; gap: 8px; }
+
+/* One labelled control on a line — used by the Banners and English tabs. */
+.admin-field-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 10px 0;
+}
+.admin-field-row > label { flex: 0 0 auto; }
+.admin-field-row input,
+.admin-field-row select {
+  padding: 9px 11px;
+  border: 2px solid var(--c-border);
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  background: var(--c-surface);
+  color: var(--c-text);
+}
+.admin-field-row input:focus,
+.admin-field-row select:focus { outline: none; border-color: var(--c-primary); }
 
 .admin-vocab-row {
   background: var(--c-surface);

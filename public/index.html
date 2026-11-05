@@ -257,6 +257,26 @@
       <p class="hero-desc"><strong data-i18n="home.bannerBold">334 everyday words &amp; phrases with audio</strong><span data-i18n="home.bannerRest"> — plus Chinese culture and useful tips. Learn at your own pace.</span></p>
     </a>
 
+    <!-- ---- Rotating promo banners --------------------------------------
+         Four doorways — games, culture, outings, living — that rotate on a
+         timer so each gets a turn at the top without a wall of cards.
+
+         The ORDER, the SPEED and WHICH ONES SHOW are all operator settings
+         (/api/home-banners), not markup: this element is empty on purpose and
+         filled by renderHomeBanners() in app.js. That is also why the copy is
+         not in the HTML — each slide's words come from the i18n table, so the
+         four translations live together and cannot drift.
+
+         An empty response leaves this hidden. That is a real state (the
+         operator can switch every banner off), not an error. -->
+    <section class="home-banners hidden" id="home-banners"
+             aria-roledescription="carousel" aria-label="Explore CantoBuddy">
+      <div class="hb-viewport">
+        <div class="hb-track" id="hb-track"></div>
+      </div>
+      <div class="hb-dots" id="hb-dots"></div>
+    </section>
+
     <!-- ---- Returning-learner cards ------------------------------------
          Both are filled by JS and both are EMPTY for a device that has never
          practised, so a first-time visitor sees exactly the screen that

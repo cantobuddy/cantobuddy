@@ -7,7 +7,7 @@
 // Bump this whenever index.html / app.js / i18n.js / styles.css / the icons
 // change. The app shell is cached cache-first, so without a version bump
 // installed PWAs would keep serving the previous build from cache.
-const CACHE = 'cantobuddy-v136';
+const CACHE = 'cantobuddy-v137';
 
 // Which paths are server-rendered SEO documents rather than app-shell assets.
 // Kept as one matcher so it can be asserted against `LANG_PREFIX` in seo.js —
@@ -21,6 +21,18 @@ const SEO_NETWORK_FIRST = /^\/(learn|words|level|guide|discover|stories|privacy|
    Extensionless paths are documents; paths with a file extension stay on the
    app-shell cache-first branch. */
 const PLACE_ASSET = /^\/places\/[^/]+\.[a-z0-9]+$/i;
+
+/* The English track: /en and the three files it is built from.
+   Same reasoning as the SEO families above, and the same failure it caused.
+   /en is not in APP_SHELL, so it used to fall through to the cache-first branch
+   and get cached on first visit. That is fine until en.html or en-app.js
+   changes — which the deploy guard does not watch, because they are not shell
+   files — and then every returning visitor keeps the old page. It matters here
+   in a way it does not for a static shell: /en now carries the page-view
+   beacon, so a pinned old copy means those visitors are never counted and the
+   operator's traffic report under-reports for exactly the people who come back.
+   Network first, cache as the offline fallback. */
+const EN_TRACK = /^\/en(\.html|\/|$)|^\/en-[a-z0-9-]+\.(js|css)$/i;
 
 const APP_SHELL = [
   '/',
@@ -137,6 +149,7 @@ self.addEventListener('fetch', (event) => {
   // `ROUTE_FAMILIES` and asserts this matcher covers them all, so a new
   // family cannot ship without this line.
   if ((SEO_NETWORK_FIRST.test(url.pathname) && !PLACE_ASSET.test(url.pathname)) ||
+      EN_TRACK.test(url.pathname) ||
       url.pathname === '/sitemap.xml' || url.pathname === '/robots.txt') {
     event.respondWith(fetch(req).catch(() => caches.match(req)));
     return;

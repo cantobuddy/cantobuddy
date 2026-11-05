@@ -76,6 +76,13 @@
       <button class="admin-tab" data-tab="feedback" onclick="switchTab('feedback')">💬 Feedback<span
         id="admin-feedback-badge" class="tab-badge" style="display:none"></span></button>
       <button class="admin-tab" data-tab="posts" onclick="switchTab('posts')">📰 Posts</button>
+      <!-- Banners: what the Home page advertises, in what order, and for how
+           long. Sits beside Posts because both are "what a visitor sees first". -->
+      <button class="admin-tab" data-tab="banners" onclick="switchTab('banners')">🖼️ Banners</button>
+      <!-- Learn English: its traffic and its content. A separate tab rather than
+           a section of Reports because it is a different site with a different
+           audience, and its numbers must not be read as the main app's. -->
+      <button class="admin-tab" data-tab="english" onclick="switchTab('english')">🇬🇧 English</button>
       <!-- Push notifications: a separate surface from Posts because broadcasting
            goes to opted-in browser subscribers (learners), not the Discover feed. -->
       <button class="admin-tab" data-tab="push" onclick="switchTab('push')">🔔 Push</button>
@@ -326,6 +333,92 @@
       </div>
 
       <div id="admin-posts-list" class="admin-list"></div>
+    </div>
+
+    <!-- ---- banners tab ---- -->
+    <!-- What the Home page advertises. Three controls and nothing else: how long
+         each banner holds, which ones are in rotation, and their order. The
+         words are NOT editable here on purpose — each banner's copy is
+         translated in all four languages in i18n.js, and a free-text field here
+         would ship an English-only banner to Chinese, Filipino and Indonesian
+         readers. -->
+    <div id="tab-banners" class="admin-tab-content">
+      <div class="admin-toolbar">
+        <h3>Home banners</h3>
+        <button class="btn btn-outline btn-sm" onclick="renderAdminBanners()">↻ Refresh</button>
+      </div>
+      <p class="admin-hint">
+        The four promo banners on Home rotate on a timer. Switch one off and it
+        stops appearing immediately; reorder them and the first one becomes the
+        one a new visitor sees first. Changes apply to every visitor on their
+        next page load.
+      </p>
+
+      <div class="admin-field-row">
+        <label for="banner-seconds"><strong>Seconds per banner</strong></label>
+        <input id="banner-seconds" type="number" min="2" max="60" step="1" value="5"
+               style="max-width:110px" onchange="saveBannerSeconds()" />
+        <span class="admin-hint" style="margin:0">2–60 seconds. 5 is the default.</span>
+      </div>
+
+      <div id="admin-banners-list" class="admin-list" style="margin-top:14px"></div>
+      <p class="admin-hint" id="admin-banners-stamp"></p>
+    </div>
+
+    <!-- ---- english tab ---- -->
+    <!-- The English track (/en): its traffic, then its content. Kept out of
+         Reports because these numbers are a different site with a different
+         audience — mixing them into the main app's totals would make both
+         unreadable. -->
+    <div id="tab-english" class="admin-tab-content">
+      <div class="admin-toolbar">
+        <h3>Learn English</h3>
+        <button class="btn btn-outline btn-sm" onclick="renderAdminEnglish()">↻ Refresh</button>
+      </div>
+      <p class="admin-hint">
+        <code>/en</code> is the separate track for elderly Cantonese speakers who
+        want everyday English. Its visitors are counted by the same anonymous
+        page-view beacon as the landing pages: which page was read, never who
+        read it.
+      </p>
+
+      <h4 class="admin-subhead">Traffic</h4>
+      <div class="chip-group" id="en-report-range">
+        <button class="chip" data-days="7" onclick="setEnReportDays(7)">7 days</button>
+        <button class="chip active" data-days="30" onclick="setEnReportDays(30)">30 days</button>
+        <button class="chip" data-days="90" onclick="setEnReportDays(90)">90 days</button>
+      </div>
+      <div id="en-traffic-totals" class="stats-grid"></div>
+      <div id="en-traffic-chart" class="report-chart"></div>
+      <div id="en-traffic-notes" class="report-notes"></div>
+      <div id="en-top-paths" class="admin-list"></div>
+
+      <h4 class="admin-subhead">Content &amp; engagement</h4>
+      <div id="en-content-totals" class="stats-grid"></div>
+      <p class="admin-hint">
+        Engagement is per device, not per person: it answers "are people
+        answering, and are they right?", never "who are they".
+      </p>
+
+      <h4 class="admin-subhead">Words and sentences</h4>
+      <p class="admin-hint">
+        Every word the English track teaches. Editing one changes it for every
+        learner on their next visit — there is no draft state here, because this
+        is a list of vocabulary, not an article.
+      </p>
+      <div class="admin-field-row" style="gap:8px;flex-wrap:wrap">
+        <select id="en-filter-category" onchange="renderEnVocabulary()" style="max-width:220px"></select>
+        <input id="en-filter-text" type="search" placeholder="Search English or Cantonese…"
+               oninput="renderEnVocabulary()" style="max-width:260px" />
+        <button class="btn btn-outline btn-sm" onclick="startNewEnWord()">＋ Add word</button>
+      </div>
+      <div id="en-new-word"></div>
+      <div id="en-vocab-list" class="admin-list" style="margin-top:12px"></div>
+
+      <h4 class="admin-subhead">Categories and scenarios</h4>
+      <p class="admin-hint">The headings a learner browses by. Names are shown in all four languages.</p>
+      <div id="en-cat-list" class="admin-list"></div>
+      <div id="en-scen-list" class="admin-list" style="margin-top:10px"></div>
     </div>
 
     <!-- ---- push tab ---- -->

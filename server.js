@@ -1415,6 +1415,49 @@ app.post('/api/visit', (req, res) => {
 });
 
 /**
+ * GET /api/home-banners — what the Home carousel should show, and how fast.
+ *
+ * Public and tiny: a list of slugs plus one number. The copy for each banner is
+ * NOT here, it lives in the client's i18n table, so this response stays
+ * language-independent and the four translations can never drift apart.
+ *
+ * Returns `{ seconds, banners: [] }` — an empty list is a valid answer and
+ * means the operator has switched every banner off. The client must treat that
+ * as "hide the carousel", not as "show everything".
+ */
+app.get('/api/home-banners', (req, res) => {
+  res.set('Cache-Control', 'public, max-age=60');
+  res.json(store.getPublicBanners());
+});
+
+/**
+ * GET /api/admin/banners — every banner, including the switched-off ones.
+ * The public route hides those; the operator needs them to switch them back on.
+ */
+app.get('/api/admin/banners', requireAdmin, (req, res) => {
+  res.json(store.getBannerConfig());
+});
+
+/**
+ * PUT /api/admin/banners — save rotation speed, ordering and on/off.
+ *
+ * Body: { seconds?: number, order?: string[], enabled?: { slug: bool } }
+ * Every field is optional so the admin can send only what it changed.
+ */
+app.put('/api/admin/banners', requireAdmin, (req, res) => {
+  const b = req.body || {};
+  try {
+    res.json(store.saveBannerConfig({
+      seconds: b.seconds,
+      order: b.order,
+      enabled: b.enabled,
+    }));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
  * POST /api/feedback — a helper or an employer writes to the operator.
  *
  * Public by necessity: a helper has no account, and asking her to make one
@@ -2308,6 +2351,66 @@ app.delete('/api/en/progress', (req, res) => {
   if (!device) return res.status(400).json({ error: 'device required' });
   en.deleteEnProgress(device);
   res.json({ ok: true });
+});
+
+// ---- English track: operator view -------------------------------------------
+// Two halves, because "manage the English site" means two different things:
+// how many people come to it (traffic), and what they find when they do
+// (content). Both are operator-only.
+
+/**
+ * GET /api/admin/en/report?days=30
+ *
+ * Traffic for /en. Views come from visit_daily, which the beacon on the page
+ * writes — anonymous, per path, per day. Engagement comes from en_progress,
+ * which is per device: it answers "are people answering, and are they right?",
+ * not "who are they".
+ */
+app.get('/api/admin/en/report', requireAdmin, (req, res) => {
+  const days = Math.min(365, Math.max(1, Number(req.query.days) || 30));
+  res.json({
+    days,
+    traffic: store.pathTraffic('/en', days),
+    content: en.enContentSummary(),
+  });
+});
+
+/** GET /api/admin/en/content — everything the editor needs to list. */
+app.get('/api/admin/en/content', requireAdmin, (req, res) => {
+  res.json({
+    categories: en.listEnCategories(),
+    scenarios: en.listEnScenarios(),
+    vocabulary: en.listEnWords({}),
+  });
+});
+
+app.post('/api/admin/en/vocabulary', requireAdmin, (req, res) => {
+  const row = en.createEnVocab(req.body || {});
+  if (!row) return res.status(400).json({ error: 'An English word or sentence is required.' });
+  res.json(row);
+});
+
+app.put('/api/admin/en/vocabulary/:id', requireAdmin, (req, res) => {
+  const row = en.updateEnVocab(req.params.id, req.body || {});
+  if (!row) return res.status(404).json({ error: 'Not found.' });
+  res.json(row);
+});
+
+app.delete('/api/admin/en/vocabulary/:id', requireAdmin, (req, res) => {
+  if (!en.deleteEnVocab(req.params.id)) return res.status(404).json({ error: 'Not found.' });
+  res.json({ ok: true });
+});
+
+app.put('/api/admin/en/categories/:id', requireAdmin, (req, res) => {
+  const row = en.updateEnCategory(req.params.id, req.body || {});
+  if (!row) return res.status(404).json({ error: 'Not found.' });
+  res.json(row);
+});
+
+app.put('/api/admin/en/scenarios/:id', requireAdmin, (req, res) => {
+  const row = en.updateEnScenario(req.params.id, req.body || {});
+  if (!row) return res.status(404).json({ error: 'Not found.' });
+  res.json(row);
 });
 
 app.get('/portal', (req, res) => res.type('html').send(seo.portalPage()));

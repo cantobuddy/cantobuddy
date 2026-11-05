@@ -418,6 +418,16 @@ body {
 .site-btn:hover { border-color: var(--c-primary); }
 .site-btn:active { transform: scale(0.92); }
 .site-btn:focus-visible { outline: 2px solid var(--c-primary); outline-offset: 2px; }
+/* The Facebook page is the one header control that leaves the site, so it gets
+   Facebook's own blue on hover — the same cue the footer pill uses. Restrained
+   at rest: it should sit in the row, not shout over the app's own controls.
+   The mark is a solid "f" (viewBox 320x512) rather than a hairline outline:
+   at 19px the outline version read as a faint scratch next to the filled bell
+   and bust glyphs. preserveAspectRatio letterboxes it, so the box grows a
+   little to keep the letter at the neighbours' optical weight. */
+.site-btn-fb:hover { border-color: #1877f2; color: #1877f2; }
+.site-btn-fb:focus-visible { outline-color: #1877f2; }
+.site-btn-fb svg { width: 21px; height: 21px; }
 /* Notification toggle in the header: mirrors the language picker's spot. The bell
    reflects live state — filled/active when subscribed, muted when blocked. */
 #notif-btn[aria-pressed="true"] {

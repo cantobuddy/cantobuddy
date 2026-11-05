@@ -131,37 +131,127 @@
   .pbar i { display: block; height: 100%; background: var(--primary); width: 0; }
   .player.done { border-color: var(--primary); background: var(--primary-tint); }
 
-  /* ---- board ---------------------------------------------------------- */
+  /* ---- board ----------------------------------------------------------
+     Rebuilt 2026-11-05. The old board was a white grid on a black 3px frame:
+     readable but flat, and every non-given cell looked identical no matter
+     what was selected. The rules below give it three things it lacked —
+     a soft card surface, a visible "this is where you are" state (row, column
+     and box peers plus every cell holding the same digit), and a real
+     completion state so the end of a puzzle is unmistakable. */
   .board {
     --n: 9;
-    width: min(94vw, 384px); margin: 0 auto; background: var(--ink);
-    border: 3px solid var(--ink); border-radius: 8px; overflow: hidden;
-    display: grid; grid-template-columns: repeat(var(--n), 1fr); gap: 1px;
+    --line: #c9d4e4;      /* the light grid between cells */
+    --line-bold: #8fa2bd; /* the heavier line between boxes */
+    width: min(94vw, 384px); margin: 0 auto;
+    background: var(--line);
+    border: 2px solid var(--line-bold);
+    border-radius: 16px; overflow: hidden;
+    display: grid; grid-template-columns: repeat(var(--n), 1fr); gap: 2px;
+    box-shadow: 0 10px 26px rgba(31, 41, 55, .13), 0 2px 6px rgba(31, 41, 55, .08);
     touch-action: manipulation; user-select: none;
+    transition: box-shadow .35s ease;
   }
   .cell {
     aspect-ratio: 1 / 1; background: var(--surface); display: grid; place-items: center;
-    font-size: clamp(14px, 5vw, 26px); font-weight: 700; color: var(--primary);
-    cursor: pointer; position: relative;
+    font-size: clamp(15px, 5.4vw, 27px); font-weight: 700; color: var(--primary);
+    cursor: pointer; position: relative; transition: background .12s ease, color .12s ease;
   }
-  .cell.given { color: var(--given); font-weight: 800; background: #f0f3f8; cursor: default; }
-  .cell.peers { background: #eef3fb; }
-  .cell.sel { background: var(--primary-tint); box-shadow: inset 0 0 0 2px var(--primary); }
-  .cell.wrong { color: var(--wrong); }
-  .cell.box-r { box-shadow: inset -2px 0 0 var(--ink); }
-  .cell.box-b { box-shadow: inset 0 -2px 0 var(--ink); }
-  .cell.box-r.box-b { box-shadow: inset -2px 0 0 var(--ink), inset 0 -2px 0 var(--ink); }
-  .cell.box-r.sel, .cell.box-b.sel { box-shadow: inset 0 0 0 2px var(--primary), inset -2px 0 0 var(--ink); }
+  .cell.given { color: var(--given); font-weight: 800; background: #eef2f7; cursor: default; }
+  /* Peers: the row, column and box of the selected cell. Applied by
+     renderBoard(); the class existed in the old sheet but nothing ever set it,
+     so selecting a cell told the player nothing. */
+  .cell.peer { background: #f2f6fd; }
+  .cell.peer.given { background: #e6ecf5; }
+  /* Same digit as the selection — the single most useful highlight in Sudoku:
+     it answers "where else is this number?" without moving your eyes. */
+  .cell.same { background: #dce9ff; color: #1a55c4; }
+  .cell.same.given { background: #cfdffa; color: #173f8f; }
+  .cell.sel {
+    background: #bcd6ff; color: #123f8c;
+    box-shadow: inset 0 0 0 2px var(--primary);
+  }
+  .cell.sel.given { background: #b3cdf7; }
+  /* Wrong: the value is never stored, so the cell is EMPTY when this fires —
+     the old rule only recoloured text that did not exist, which is why a
+     mistake produced no visible feedback at all. Flash the surface instead. */
+  .cell.wrong {
+    background: #ffe3e3 !important; color: var(--wrong) !important;
+    animation: cellShake .32s ease;
+  }
+  .cell.box-r { box-shadow: inset -2px 0 0 var(--line-bold); }
+  .cell.box-b { box-shadow: inset 0 -2px 0 var(--line-bold); }
+  .cell.box-r.box-b { box-shadow: inset -2px 0 0 var(--line-bold), inset 0 -2px 0 var(--line-bold); }
+  .cell.box-r.sel, .cell.box-b.sel, .cell.box-r.box-b.sel {
+    box-shadow: inset 0 0 0 2px var(--primary), inset -2px 0 0 var(--line-bold), inset 0 -2px 0 var(--line-bold);
+  }
+  /* The moment the last cell lands. A staggered tint sweep reads as "finished"
+     far better than an instant colour swap, and it is short enough that the
+     result popup does not have to wait long for it. */
+  .board.solved { box-shadow: 0 0 0 3px rgba(47, 191, 113, .45), 0 12px 30px rgba(47, 191, 113, .3); }
+  .board.solved .cell { background: #e9f9f0; color: #146c3c; }
+  .board.solved .cell.given { background: #d9f2e5; color: #0f5730; }
+  .board.solved .cell { animation: cellPop .34s ease both; }
+  @keyframes cellPop {
+    0%   { transform: scale(1); }
+    45%  { transform: scale(1.12); background: #b9eccd; }
+    100% { transform: scale(1); }
+  }
+  @keyframes cellShake {
+    0%, 100% { transform: translateX(0); }
+    25%      { transform: translateX(-3px); }
+    75%      { transform: translateX(3px); }
+  }
 
-  .pad { width: min(94vw, 384px); margin: 14px auto 0; display: grid; gap: 8px; }
-  .pad-nums { grid-template-columns: repeat(5, 1fr); }
-  .num {
-    padding: 14px 0; border: 2px solid var(--border); border-radius: 12px; background: var(--surface);
-    font-size: 1.2rem; font-weight: 800; color: var(--ink); cursor: pointer;
+  /* The "you finished" strip. Sits ABOVE the board so it is readable even
+     while the result popup is up, and stays after the popup is dismissed —
+     the board itself also turns green, so the state is obvious either way. */
+  .solved-banner {
+    width: min(94vw, 384px); margin: 0 auto 10px;
+    display: flex; align-items: center; gap: 10px;
+    background: linear-gradient(135deg, #e8f9ef, #d5f2e3);
+    border: 2px solid #2fbf71; border-radius: 14px;
+    padding: 11px 14px; color: #146c3c; font-weight: 800; font-size: .95rem;
+    animation: bannerIn .38s cubic-bezier(.2, .9, .3, 1.2) both;
   }
-  .num:active { transform: scale(0.96); background: var(--primary-tint); }
+  .solved-banner .sb-ico { font-size: 1.35rem; line-height: 1; }
+  .solved-banner .sb-txt { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .solved-banner .sb-sub { font-size: .74rem; font-weight: 600; color: #2c7a55; }
+  @keyframes bannerIn {
+    from { opacity: 0; transform: translateY(-8px) scale(.97); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  /* ---- number pad ------------------------------------------------------
+     `--cols` is set by renderPad() to the digit count (4, 6 or 5), so a 4×4
+     puzzle no longer leaves a dead fifth column. Buttons are 56px tall: the
+     old 59px-tall-but-67px-wide strip was fine, the problem was that 4×4 and
+     6×6 pads looked like a broken grid. */
+  .pad { width: min(94vw, 384px); margin: 14px auto 0; display: grid; gap: 9px; }
+  .pad-nums { grid-template-columns: repeat(var(--cols, 5), 1fr); }
+  .num {
+    position: relative; min-height: 56px; padding: 8px 0 6px;
+    border: 2px solid var(--border); border-radius: 14px; background: var(--surface);
+    font-size: 1.35rem; font-weight: 800; color: var(--ink); cursor: pointer;
+    box-shadow: 0 3px 8px rgba(31, 41, 55, .06);
+    transition: transform .09s ease, background .15s ease, border-color .15s ease;
+  }
+  .num:active { transform: scale(.95); background: var(--primary-tint); border-color: var(--primary); }
+  /* How many of this digit are still missing. Removes the mental arithmetic
+     and dims the key once the digit is complete. */
+  .num .left {
+    position: absolute; top: 3px; right: 6px;
+    font-size: .62rem; font-weight: 700; color: var(--muted); line-height: 1;
+  }
+  .num.done { opacity: .42; }
+  .num.done .left { color: #2fbf71; }
   .pad-tools { grid-template-columns: 1fr 1fr; }
-  .tool { padding: 12px; border-radius: 12px; border: 2px solid var(--border); background: var(--surface); font-weight: 700; color: var(--ink); cursor: pointer; }
+  .tool {
+    min-height: 50px; padding: 12px; border-radius: 14px;
+    border: 2px solid var(--border); background: var(--surface);
+    font-weight: 700; color: var(--ink); cursor: pointer; font-size: .95rem;
+    box-shadow: 0 3px 8px rgba(31, 41, 55, .06);
+  }
+  .tool:active { transform: scale(.97); background: var(--primary-tint); }
   .tool.hint { color: var(--primary); border-color: var(--primary); }
 
   /* ---- chat ----------------------------------------------------------- */
@@ -243,6 +333,13 @@
     </div>
     <div class="stat-row" id="statRow"></div>
     <div class="players hidden" id="players"></div>
+    <!-- Shown the instant every cell is correctly filled, above the board so it
+         is readable even while the result popup is up. role=status makes a
+         screen reader announce the win without moving focus. -->
+    <div class="solved-banner hidden" id="solvedBanner" role="status" aria-live="polite">
+      <span class="sb-ico" aria-hidden="true">✅</span>
+      <span class="sb-txt"><span id="sbTitle"></span><span class="sb-sub" id="sbSub"></span></span>
+    </div>
     <div class="board" id="board"></div>
     <div class="pad pad-nums" id="padNums"></div>
     <div class="pad pad-tools" id="padTools"></div>
@@ -288,6 +385,7 @@ var DICT = {
       progress: 'Progress', mistakes: 'Mistakes', time: 'Time', players: 'Players',
       waiting: 'Waiting for players… tap Start when ready', hostStart: 'Start game',
       solved: 'Solved!', youWon: 'You won!', winner: 'Winner: ', rematch: 'Play again',
+      allFilled: 'All {total} cells filled · {time}',
       newPuzzle: 'New puzzle', backHome: '← Games', leave: 'Leave',
       clear: 'Clear', hint: 'Hint', send: 'Send', say: 'Say something…',
       wrong: 'Not correct — try another number', soloOnly: 'Hints are for playing alone',
@@ -306,6 +404,7 @@ var DICT = {
       progress: 'Progreso', mistakes: 'Mali', time: 'Oras', players: 'Mga manlalaro',
       waiting: 'Hintay ng kalaro… pindutin ang Start kapag ready', hostStart: 'Simulan',
       solved: 'Ayos!', youWon: 'Nanalo ka!', winner: 'Panalo: ', rematch: 'Laruin ulit',
+      allFilled: 'Napuno ang lahat ng {total} kahon · {time}',
       newPuzzle: 'Bago puzzle', backHome: '← Mga Laro', leave: 'Umalis',
       clear: 'Burahin', hint: 'Tulong', send: 'Sugo', say: 'Magsabi…',
       wrong: 'Mali — subukan ang ibang numero', soloOnly: 'Ang tulong ay para sa mag-isa',
@@ -324,6 +423,7 @@ var DICT = {
       progress: '进度', mistakes: '错误', time: '时间', players: '玩家',
       waiting: '等待玩家……准备好了点开始', hostStart: '开始游戏',
       solved: '完成！', youWon: '你赢了！', winner: '获胜者：', rematch: '再来一局',
+      allFilled: '全部 {total} 格已填好 · {time}',
       newPuzzle: '新题目', backHome: '← 游戏', leave: '离开',
       clear: '清除', hint: '提示', send: '发送', say: '说点什么…',
       wrong: '不对——换个数字试试', soloOnly: '提示只供单人玩',
@@ -342,6 +442,7 @@ var DICT = {
       progress: 'Progres', mistakes: 'Salah', time: 'Waktu', players: 'Pemain',
       waiting: 'Tunggu pemain… klik Mulai bila siap', hostStart: 'Mulai',
       solved: 'Selesai!', youWon: 'Kamu menang!', winner: 'Pemenang: ', rematch: 'Main lagi',
+      allFilled: 'Semua {total} kotak terisi · {time}',
       newPuzzle: 'Soal baru', backHome: '← Game', leave: 'Keluar',
       clear: 'Hapus', hint: 'Petunjuk', send: 'Kirim', say: 'Bilang sesuatu…',
       wrong: 'Salah — coba angka lain', soloOnly: 'Petunjuk hanya untuk main sendiri',
@@ -429,6 +530,28 @@ var DICT = {
     else if (kind === 'win') { tone(523, 0, 0.15, 'triangle', 0.07); tone(659, 0.13, 0.15, 'triangle', 0.07); tone(784, 0.26, 0.3, 'triangle', 0.08); }
     else if (kind === 'pop') { tone(520, 0, 0.08, 'sine', 0.05); }
   }
+
+  /**
+   * Start the audio graph on the first real gesture.
+   *
+   * This is why "sound when filled" appeared broken: sfx('tick') is reached
+   * from the .then() of the /api/action request, not from the tap itself. By
+   * then the browser's user-activation window has closed, so the AudioContext
+   * is born suspended and every tone is silently dropped — worst on iOS Safari,
+   * which never resumes it later. Creating and resuming the context inside a
+   * genuine pointerdown (plus one inaudible blip to force the graph to start)
+   * makes every later tone audible.
+   */
+  function unlockAudio() {
+    if (!soundOn) return;
+    var ctx = ac();
+    if (!ctx) return;
+    if (ctx.state === 'suspended') { try { ctx.resume(); } catch (e) { /* no-op */ } }
+    try { tone(2, 0, 0.012, 'sine', 0.0002); } catch (e) { /* no-op */ }
+  }
+  ['pointerdown', 'touchstart', 'keydown', 'click'].forEach(function (evt) {
+    document.addEventListener(evt, unlockAudio, { once: true, passive: true });
+  });
   function renderSoundIcon() {
     var el = $('soundIcon'); if (!el) return;
     el.innerHTML = soundOn ? ICON_SOUND_ON : ICON_SOUND_OFF;
@@ -466,6 +589,7 @@ var DICT = {
     chatPrimed = false;
     lastChatLen = 0;
     resultShown = false;
+    if (resultTimer) { clearTimeout(resultTimer); resultTimer = null; }
     if ($('chatBtn')) $('chatBtn').classList.remove('has-unread');
   }
 
@@ -638,11 +762,20 @@ var DICT = {
           toast(t('wrong'));
           sfx('wrong');
         } else if (r.ok && r.data && r.data.correct === true) {
+          // Clear the red flag for THIS cell. Without it a cell that was ever
+          // wrong stayed red for the rest of the round, even after the right
+          // digit went in — and because .wrong paints with !important, it also
+          // punched a red hole through the green finish state.
+          delete wrongFlash[index];
+          renderBoard();
           sfx('tick');
         }
       });
   }
-  function sendClear(index) { api('/games/sudoku/api/action', { token: session.token, type: 'clear', index: index }); }
+  function sendClear(index) {
+    delete wrongFlash[index];
+    api('/games/sudoku/api/action', { token: session.token, type: 'clear', index: index });
+  }
   function sendHint(index) {
     api('/games/sudoku/api/action', { token: session.token, type: 'hint', index: index })
       .then(function (r) { if (!r.ok) toast(t('soloOnly')); else sfx('tick'); });
@@ -658,6 +791,8 @@ var DICT = {
     $('room').classList.add('hidden');
     $('menu').classList.remove('hidden');
     $('overlay').classList.add('hidden');
+    if ($('solvedBanner')) $('solvedBanner').classList.add('hidden');
+    if (resultTimer) { clearTimeout(resultTimer); resultTimer = null; }
     if (evSource) { evSource.close(); evSource = null; }
   }
 
@@ -728,6 +863,7 @@ var DICT = {
       $('board').classList.add('hidden');
       $('padNums').classList.add('hidden');
       $('padTools').classList.add('hidden');
+      if ($('solvedBanner')) $('solvedBanner').classList.add('hidden');
       // host sees start
       if (S.you.isHost) {
         $('padTools').classList.remove('hidden');
@@ -746,14 +882,82 @@ var DICT = {
       $('padTools').classList.remove('hidden');
       renderBoard();
       renderPad();
-      if (S.state === 'ended') showResult();
+      paintSolvedBanner();
+      if (S.state === 'ended') scheduleResult();
     }
   }
 
+  /**
+   * The "you finished" strip above the board.
+   *
+   * Driven by the board itself rather than by `state`, so it appears on the
+   * same frame as the last digit instead of waiting for the server's next SSE
+   * tick — that round trip was the gap where a player could finish a puzzle and
+   * see nothing happen.
+   */
+  function paintSolvedBanner() {
+    var el = $('solvedBanner');
+    if (!el) return;
+    var done = isSolved();
+    el.classList.toggle('hidden', !done);
+    if (!done) return;
+    var total = S.n * S.n - S.givens;
+    var elapsed = S.startedAt ? Math.max(0, Math.floor((S.serverNow - S.startedAt) / 1000)) : 0;
+    $('sbTitle').textContent = t('solved');
+    $('sbSub').textContent = t('allFilled')
+      .replace('{total}', total)
+      .replace('{time}', fmtTime(elapsed));
+  }
+
+  /**
+   * Show the result popup a beat after the win, not on the same frame.
+   *
+   * The popup is a full-screen scrim, so showing it immediately meant the
+   * player never actually saw the finished board — the thing they had just
+   * spent minutes filling. A short delay lets the green sweep play, then the
+   * popup arrives over an obviously-complete board. Guarded by `resultTimer`
+   * because SSE can deliver the ended state more than once.
+   */
+  var resultTimer = null;
+  function scheduleResult() {
+    if (resultTimer || resultShown) return;
+    resultTimer = setTimeout(function () {
+      resultTimer = null;
+      showResult();
+    }, 620);
+  }
+
+  /**
+   * Paint the grid.
+   *
+   * Beyond the digits themselves this now marks three things the old board did
+   * not: the peers of the selected cell (its row, column and box), every cell
+   * holding the same digit as the selection, and the finished state. Those
+   * highlights are the difference between "a grid of numbers" and a board that
+   * answers "where am I?" and "where else is this 7?" at a glance.
+   */
   function renderBoard() {
     var board = $('board');
     board.style.setProperty('--n', S.n);
     var n = S.n, br = S.br, bc = S.bc;
+
+    var solved = isSolved();
+    board.classList.toggle('solved', solved);
+    // A finished board has nothing left to point at: drop the selection ring
+    // and any lingering red so the green sweep is unbroken.
+    if (solved) { wrongFlash = {}; selected = -1; }
+
+    // Peers + same-digit sets are only meaningful while a cell is selected,
+    // and they are pointless once the board is finished (everything is green).
+    var selRow = -1, selCol = -1, selVal = 0, selBoxR = -1, selBoxC = -1;
+    if (selected >= 0 && !solved) {
+      selRow = Math.floor(selected / n);
+      selCol = selected % n;
+      selVal = S.board[selected] || 0;
+      selBoxR = Math.floor(selRow / br) * br;
+      selBoxC = Math.floor(selCol / bc) * bc;
+    }
+
     var cells = '';
     for (var i = 0; i < n * n; i++) {
       var r = Math.floor(i / n), c = i % n;
@@ -761,25 +965,66 @@ var DICT = {
       var val = S.board[i];
       if (S.puzzle[i] !== 0) cls += ' given';
       else if (val !== 0) cls += ' filled';
+
+      if (selected >= 0 && i !== selected && !solved) {
+        var inRow = r === selRow, inCol = c === selCol;
+        var inBox = r >= selBoxR && r < selBoxR + br && c >= selBoxC && c < selBoxC + bc;
+        // Same digit wins over peer: it is the stronger signal of the two.
+        if (selVal && val === selVal) cls += ' same';
+        else if (inRow || inCol || inBox) cls += ' peer';
+      }
+
       if (i === selected) cls += ' sel';
       if (wrongFlash[i]) cls += ' wrong';
       if ((c + 1) % bc === 0 && c !== n - 1) cls += ' box-r';
       if ((r + 1) % br === 0 && r !== n - 1) cls += ' box-b';
-      cells += '<div class="' + cls + '" data-i="' + i + '">' + (val !== 0 ? val : '') + '</div>';
+
+      // Stagger the finish sweep so it reads as a wave rather than a flip.
+      var delay = solved ? ' style="animation-delay:' + Math.min(i * 22, 700) + 'ms"' : '';
+      cells += '<div class="' + cls + '" data-i="' + i + '"' + delay + '>' + (val !== 0 ? val : '') + '</div>';
     }
     board.innerHTML = cells;
+
     Array.prototype.forEach.call(board.querySelectorAll('.cell'), function (el) {
       var idx = Number(el.getAttribute('data-i'));
       if (S.puzzle[idx] !== 0) return; // given not selectable
-      el.addEventListener('click', function () { selected = idx; wrongFlash = {}; renderBoard(); });
+      el.addEventListener('click', function () {
+        if (solved) return;
+        selected = idx; wrongFlash = {}; renderBoard();
+      });
     });
   }
 
+  /** True only when every non-given cell holds its correct value. The server
+   *  is the authority on the win (it owns `state`), but the board needs a
+   *  purely visual answer too, so the green state appears the instant the last
+   *  digit lands rather than waiting for the next SSE tick. */
+  function isSolved() {
+    if (!S || !S.board || !S.puzzle) return false;
+    for (var i = 0; i < S.board.length; i++) {
+      if (S.puzzle[i] === 0 && S.board[i] === 0) return false;
+    }
+    return true;
+  }
+
   function renderPad() {
+    // How many of each digit are still missing. A digit appears exactly `n`
+    // times in a finished grid, so the count is n minus what is on the board.
+    var placed = {};
+    for (var i = 0; i < S.board.length; i++) {
+      var bv = S.board[i];
+      if (bv) placed[bv] = (placed[bv] || 0) + 1;
+    }
+
     var nums = '';
     for (var v = 1; v <= S.n; v++) {
-      nums += '<button class="num" data-v="' + v + '">' + v + '</button>';
+      var left = Math.max(0, S.n - (placed[v] || 0));
+      nums += '<button class="num' + (left === 0 ? ' done' : '') + '" data-v="' + v + '">'
+        + v + '<span class="left" aria-hidden="true">' + left + '</span></button>';
     }
+    // 4 and 6 are their own tidy rows; 9 wraps to 5 + 4 like a phone keypad.
+    var cols = S.n <= 4 ? S.n : (S.n === 6 ? 3 : 5);
+    $('padNums').style.setProperty('--cols', cols);
     $('padNums').innerHTML = nums;
     Array.prototype.forEach.call($('padNums').querySelectorAll('.num'), function (b) {
       b.addEventListener('click', function () {

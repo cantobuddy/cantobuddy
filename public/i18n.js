@@ -159,7 +159,7 @@ const I18N = {
     // Culture and News, because a story is a thing to read like any other, and
     // because a seventh bottom-nav tab does not fit a 320px phone.
     'discover.tabStories': 'Stories',
-    'discover.storiesLead': 'Real stories written by helpers, in their own language — daily life, home, and what happened along the way.',
+    'discover.storiesLead': 'Real stories from helpers in Hong Kong — shared by them or retold from published reports, with sources named.',
     'discover.storiesEmpty': 'No stories have been published yet. Yours could be the first.',
     'discover.storiesLoadFailed': 'Could not load the stories. Please try again.',
 
@@ -281,6 +281,7 @@ const I18N = {
     'story.anonymous': 'Anonymous',
     'story.writtenIn': 'Written in',
     'story.glossTitle': 'In English',
+    'story.source': 'Source',
     'story.notFound': 'That story is not available.',
     'story.backToStories': '← All stories',
     'story.needTitle': 'Please write a title.',
@@ -828,7 +829,7 @@ const I18N = {
     // Culture and News, because a story is a thing to read like any other, and
     // because a seventh bottom-nav tab does not fit a 320px phone.
     'discover.tabStories': 'Mga Kuwento',
-    'discover.storiesLead': 'Totoong kuwento ng mga helper, sa sarili nilang wika — pang-araw-araw na buhay, tahanan, at mga nangyari.',
+    'discover.storiesLead': 'Totoong kuwento mula sa mga helper sa Hong Kong — ibinahagi nila o muling isinalaysay mula sa ulat na nalathala, na may pinagmulan.',
     'discover.storiesEmpty': 'Wala pang nailathalang kuwento. Baka sa iyo ang mauna.',
     'discover.storiesLoadFailed': 'Hindi ma-load ang mga kuwento. Subukan muli.',
 
@@ -940,6 +941,7 @@ const I18N = {
     'story.anonymous': 'Hindi nagpakilala',
     'story.writtenIn': 'Nakasulat sa',
     'story.glossTitle': 'Sa Ingles',
+    'story.source': 'Pinagmulan',
     'story.notFound': 'Hindi available ang kuwentong iyon.',
     'story.backToStories': '← Lahat ng kuwento',
     'story.needTitle': 'Mangyaring maglagay ng pamagat.',
@@ -1464,7 +1466,7 @@ const I18N = {
     // Culture and News, because a story is a thing to read like any other, and
     // because a seventh bottom-nav tab does not fit a 320px phone.
     'discover.tabStories': '家佣故事',
-    'discover.storiesLead': '家佣亲笔写下的真实故事，用她们自己的语言——日常、家乡，以及一路上的经历。',
+    'discover.storiesLead': '来自香港家佣的真实故事——由她们分享，或根据已刊发报道改写，均注明来源。',
     'discover.storiesEmpty': '目前还没有已发布的故事。你的故事可以是第一篇。',
     'discover.storiesLoadFailed': '故事加载失败，请重试。',
 
@@ -1576,6 +1578,7 @@ const I18N = {
     'story.anonymous': '匿名',
     'story.writtenIn': '语言',
     'story.glossTitle': '英文版',
+    'story.source': '来源',
     'story.notFound': '这篇故事暂不可用。',
     'story.backToStories': '← 全部故事',
     'story.needTitle': '请填写标题。',
@@ -2099,7 +2102,7 @@ const I18N = {
     // Culture and News, because a story is a thing to read like any other, and
     // because a seventh bottom-nav tab does not fit a 320px phone.
     'discover.tabStories': 'Kisah',
-    'discover.storiesLead': 'Kisah nyata dari para asisten rumah tangga, dalam bahasa mereka sendiri — kehidupan sehari-hari, kampung halaman, dan apa yang terjadi.',
+    'discover.storiesLead': 'Kisah nyata dari para asisten di Hong Kong — dibagikan langsung atau diceritakan kembali dari laporan terbitan, dengan sumber yang disebutkan.',
     'discover.storiesEmpty': 'Belum ada kisah yang diterbitkan. Kisahmu bisa menjadi yang pertama.',
     'discover.storiesLoadFailed': 'Gagal memuat kisah. Coba lagi.',
 
@@ -2211,6 +2214,7 @@ const I18N = {
     'story.anonymous': 'Tanpa nama',
     'story.writtenIn': 'Ditulis dalam',
     'story.glossTitle': 'Dalam bahasa Inggris',
+    'story.source': 'Sumber',
     'story.notFound': 'Kisah itu tidak tersedia.',
     'story.backToStories': '← Semua kisah',
     'story.needTitle': 'Mohon tulis judulnya.',

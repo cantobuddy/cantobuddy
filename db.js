@@ -33,6 +33,12 @@ const { SEED_STICKERS } = require('./stickers');
 // column it fills.
 const newsCategory = require('./news-category');
 
+// Editorial "real stories": sourced retellings of published reports about real
+// domestic helpers. These are NOT rows in the moderated `stories` table — see
+// the note at the top of real-stories.js — so requiring this module here does
+// not create a moderation bypass. It only feeds the three public read paths.
+const { REAL_STORIES, REAL_STORY_CARDS, REAL_STORY_SLUGS } = require('./real-stories');
+
 // ---------------------------------------------------------------------------
 // Hong Kong time
 //
@@ -4885,7 +4891,12 @@ function uniqueStorySlug(base) {
   let slug = root;
   let n = 1;
   for (;;) {
-    if (!S.getPublishedStoryBySlug.get(slug) && !S.getStoryIdBySlug.get(slug)) return slug;
+    // The editorial slugs are reserved too. GET /api/stories/:slug checks them
+    // first, so a submission that took one would be permanently unreadable —
+    // the reader would keep returning the published retelling instead.
+    if (!REAL_STORY_SLUGS.has(slug)
+      && !S.getPublishedStoryBySlug.get(slug)
+      && !S.getStoryIdBySlug.get(slug)) return slug;
     n += 1;
     slug = `${root}-${n}`;
   }
@@ -4925,14 +4936,33 @@ function createStory({ learner_id = null, title, body, lang = 'en', topic = 'dai
   return S.getStoryForModeration.get(Number(info.lastInsertRowid));
 }
 
-/** The public list: published only, newest first, no learner identity. */
+/**
+ * The public list: published community stories PLUS the editorial real stories.
+ *
+ * Only the READ side is merged. The moderation queue, the admin CRUD, a
+ * learner's "my stories" and every write path still see the `stories` table
+ * alone, so an editorial row can never be approved, rejected, edited or
+ * attributed to a helper. Both sources have the same public card shape.
+ *
+ * Sorted by published_at descending, like the SQL it joins. Fetching `n` DB
+ * rows and then slicing to `n` is deliberate: with editorial rows present we
+ * may read a few community rows that do not make the final page, but we can
+ * never return more than the caller asked for.
+ */
 function listPublishedStories({ limit = 50 } = {}) {
-  return S.listPublishedStories.all(Math.max(1, Math.min(Number(limit) || 50, 200)));
+  const n = Math.max(1, Math.min(Number(limit) || 50, 200));
+  const rows = S.listPublishedStories.all(n);
+  return [...rows, ...REAL_STORY_CARDS]
+    .sort((a, b) => String(b.published_at || '').localeCompare(String(a.published_at || '')))
+    .slice(0, n);
 }
 
 /** One published story by slug, or null. A pending or rejected story is null. */
 function getPublishedStoryBySlug(slug) {
-  return S.getPublishedStoryBySlug.get(String(slug || '')) || null;
+  const key = String(slug || '');
+  const editorial = REAL_STORIES.find((s) => s.slug === key);
+  if (editorial) return editorial;
+  return S.getPublishedStoryBySlug.get(key) || null;
 }
 
 /** The moderation queue. A null/unknown status means every state, pending first. */
@@ -5013,9 +5043,16 @@ function listStoriesByLearner(learnerId, { limit = 50 } = {}) {
   return S.listStoriesByLearner.all(Number(learnerId), Math.max(1, Math.min(Number(limit) || 50, 200)));
 }
 
-/** Published slugs and their dates, for the sitemap. */
+/** Published slugs and their dates, for the sitemap. Editorial pages are real
+ *  URLs (rendered by seo.js), so they belong here or Google would never find
+ *  them and /stories would be an orphan. */
 function listPublishedStorySlugs() {
-  return S.listPublishedStorySlugs.all();
+  return [
+    ...S.listPublishedStorySlugs.all(),
+    ...REAL_STORIES.map((s) => ({
+      slug: s.slug, published_at: s.published_at, updated_at: s.updated_at,
+    })),
+  ].sort((a, b) => String(b.published_at || '').localeCompare(String(a.published_at || '')));
 }
 
 // ---- Living: supportive passages about life in Hong Kong --------------------

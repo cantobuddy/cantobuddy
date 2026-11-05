@@ -5754,6 +5754,12 @@ function renderStoryPage(story) {
        </div>`
     : '';
 
+  // Editorial retellings are sourced; a helper's own submission has no
+  // source_url and shows nothing here. Same rule as the server-rendered page.
+  const source = story.source_url
+    ? `<p class="story-source">${escapeHtml(t('story.source'))}: <a href="${escapeHtml(story.source_url)}" target="_blank" rel="noopener noreferrer nofollow">${escapeHtml(story.source_name)} — ${escapeHtml(story.source_title)} — ${escapeHtml(story.source_date)}</a></p>`
+    : '';
+
   host.innerHTML = `
     <div class="post-hero">
       <div class="post-hero-icon">📖</div>
@@ -5763,6 +5769,7 @@ function renderStoryPage(story) {
     </div>
     <div class="post-content">${storyParagraphs(story.body)}</div>
     ${gloss}
+    ${source}
     ${shareRowHtml([
       { label: t('share.chatBtn'), icon: WHATSAPP_ICON_SVG, onclick: `shareStory('${story.slug}', 'chat')`, variant: 'wa' },
       { label: t('share.pictureBtn'), icon: '🖼️', onclick: `shareStory('${story.slug}')` },

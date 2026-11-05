@@ -1321,6 +1321,10 @@ p.news-note{color:var(--muted);font-size:13px;margin-top:12px}
    able to tell at a glance where her words end and someone else's begin. */
 .story-gloss{margin-top:38px;padding-top:22px;border-top:1px solid var(--line)}
 .story-gloss h2{margin-top:0}
+/* Editorial retellings carry a clickable source. It is set apart from the
+   story text so a reader can always tell where the reporting came from. */
+.story-source{margin-top:32px;padding-top:18px;border-top:1px solid var(--line);font-size:.9rem;line-height:1.65;opacity:.9}
+.story-source a{color:inherit;text-decoration:underline;text-underline-offset:2px}
 @media(max-width:560px){
   td.jy{display:none}
   .cta-card{flex-direction:column;align-items:flex-start}
@@ -2806,7 +2810,7 @@ const DISCOVER_UI = {
     news: 'News from home and Hong Kong',
     newsLede: 'News from the Philippines, Indonesia and Hong Kong. Each item is a short summary with a link to the full story.',
     stories: 'Stories from helpers',
-    storiesLede: 'Real stories written by domestic helpers in their own language — their daily life, where they come from, and what happened along the way.',
+    storiesLede: 'Real stories from helpers in Hong Kong — shared by them or retold from published reports, with the source named on every story.',
     empty: 'Nothing here yet — check back soon.',
     source: 'Source',
     readOriginal: 'Read the full story',
@@ -2823,7 +2827,7 @@ const DISCOVER_UI = {
     news: 'Balita sa tahanan at Hong Kong',
     newsLede: 'Balita mula sa Pilipinas, Indonesia at Hong Kong. Maikling buod ang bawat isa, may link sa buong balita.',
     stories: 'Mga kuwento ng mga helper',
-    storiesLede: 'Totoong kuwento ng mga helper sa Hong Kong, nakasulat sa sarili nilang wika — ang pang-araw-araw na buhay, ang pinanggalingan, at ang mga nangyari sa daan.',
+    storiesLede: 'Totoong kuwento mula sa mga helper sa Hong Kong — ibinahagi nila o muling isinalaysay mula sa ulat na nalathala, na may nakasaad na pinagmulan.',
     empty: 'Wala pa rito — bumalik mamaya.',
     source: 'Pinagmulan',
     readOriginal: 'Basahin ang buong balita',
@@ -2840,7 +2844,7 @@ const DISCOVER_UI = {
     news: '家乡与香港新闻',
     newsLede: '来自菲律宾、印尼和香港的新闻。每条都是简短摘要，并附完整报道的链接。',
     stories: '家佣的故事',
-    storiesLede: '香港家佣写下的真实故事，用她们自己的语言——日常生活、家乡，以及一路上的经历。',
+    storiesLede: '来自香港家佣的真实故事——由她们分享，或根据已刊发报道改写，每篇均注明来源。',
     empty: '这里还没有内容，请稍后再来。',
     source: '来源',
     readOriginal: '阅读完整报道',
@@ -2857,7 +2861,7 @@ const DISCOVER_UI = {
     news: 'Berita kampung halaman dan Hong Kong',
     newsLede: 'Berita dari Indonesia, Filipina, dan Hong Kong. Setiap item adalah ringkasan singkat dengan tautan ke berita lengkapnya.',
     stories: 'Kisah dari para asisten',
-    storiesLede: 'Kisah nyata dari para asisten rumah tangga di Hong Kong, ditulis dalam bahasa mereka sendiri — kehidupan sehari-hari, kampung halaman, dan apa yang terjadi di sepanjang jalan.',
+    storiesLede: 'Kisah nyata dari para asisten di Hong Kong — dibagikan langsung atau diceritakan kembali dari laporan terbitan, dengan sumber disebutkan pada setiap kisah.',
     empty: 'Belum ada apa-apa di sini — cek lagi nanti.',
     source: 'Sumber',
     readOriginal: 'Baca berita lengkapnya',
@@ -2884,11 +2888,12 @@ const DISCOVER_UI = {
 const STORIES_UI = {
   en: {
     title: 'Stories',
-    lede: 'Real stories from domestic helpers in Hong Kong — their daily life, where they come from, and what happened along the way. Each one is written in the helper\'s own language and read here exactly as she wrote it.',
+    lede: 'Real stories from domestic helpers in Hong Kong — daily life, family, and what happened along the way. Some are shared here by the helpers who wrote them; others are carefully retold from published reports, with the original source named on every story.',
     empty: 'No stories have been published yet. If you would like to share yours, open the app and tap Stories.',
     anonymous: 'Anonymous',
     writtenIn: 'Written in',
     gloss: 'In English',
+    source: 'Source',
     backToStories: 'All stories',
     shareYours: 'Share your story',
     shareYoursBody: 'Your story can help another helper feel less alone. Write it in your own language — it will be read by us first, then shared here if it is published.',
@@ -2897,11 +2902,12 @@ const STORIES_UI = {
   },
   fil: {
     title: 'Mga Kuwento',
-    lede: 'Totoong kuwento mula sa mga helper sa Hong Kong — ang pang-araw-araw na buhay, ang pinanggalingan, at ang mga nangyari sa daan. Ang bawat isa ay nakasulat sa sariling wika ng helper at binabasa rito nang eksakto kung paano niya ito isinulat.',
+    lede: 'Totoong kuwento mula sa mga helper sa Hong Kong — pang-araw-araw na buhay, pamilya, at mga nangyari sa daan. Ang ilan ay ibinahagi mismo ng mga helper na sumulat; ang iba ay muling isinalaysay mula sa mga ulat na nalathala, at nakasaad ang pinagmulan sa bawat kuwento.',
     empty: 'Wala pang nai-publish na kuwento. Kung gusto mong ibahagi ang sa iyo, buksan ang app at pindutin ang Mga Kuwento.',
     anonymous: 'Hindi nagpakilala',
     writtenIn: 'Nakasulat sa',
     gloss: 'Sa Ingles',
+    source: 'Pinagmulan',
     backToStories: 'Lahat ng kuwento',
     shareYours: 'Ibahagi ang kuwento mo',
     shareYoursBody: 'Malaki ang maitutulong ng kuwento mo para hindi mag-isa ang kapwa helper. Isulat ito sa sarili mong wika — babasahin muna namin, at ilalathala rito kapag naaprubahan.',
@@ -2910,11 +2916,12 @@ const STORIES_UI = {
   },
   zh: {
     title: '家佣故事',
-    lede: '来自香港家佣的真实故事——日常生活、家乡背景，以及一路上发生的事。每一篇都以她自己的语言写成，在这里原样呈现。',
+    lede: '来自香港家佣的真实故事——日常生活、家人，以及一路上的经历。有些由家佣本人写下并分享；有些根据已刊发的报道改写，每篇都注明原始来源。',
     empty: '目前还没有已发布的故事。想分享你的故事，请打开应用并点击「故事」。',
     anonymous: '匿名',
     writtenIn: '语言',
     gloss: '英文版',
+    source: '来源',
     backToStories: '全部故事',
     shareYours: '分享你的故事',
     shareYoursBody: '你的故事可以让另一位家佣感到不那么孤单。请用你自己的语言写——我们会先读一遍，通过后才在这里分享。',
@@ -2923,11 +2930,12 @@ const STORIES_UI = {
   },
   id: {
     title: 'Kisah',
-    lede: 'Kisah nyata dari para asisten rumah tangga di Hong Kong — kehidupan sehari-hari, asal-usul, dan apa yang terjadi di sepanjang jalan. Setiap kisah ditulis dalam bahasa asli penulisnya dan dibaca di sini persis seperti yang ia tulis.',
+    lede: 'Kisah nyata dari para asisten rumah tangga di Hong Kong — kehidupan sehari-hari, keluarga, dan apa yang terjadi di sepanjang jalan. Sebagian dibagikan langsung oleh para asisten yang menuliskannya; sebagian lain diceritakan kembali dari laporan yang telah diterbitkan, dengan sumber aslinya disebutkan pada setiap kisah.',
     empty: 'Belum ada kisah yang diterbitkan. Jika ingin membagikan kisahmu, buka aplikasi dan ketuk Kisah.',
     anonymous: 'Tanpa nama',
     writtenIn: 'Ditulis dalam',
     gloss: 'Dalam bahasa Inggris',
+    source: 'Sumber',
     backToStories: 'Semua kisah',
     shareYours: 'Bagikan kisahmu',
     shareYoursBody: 'Kisahmu bisa membuat sesama asisten rumah tangga merasa tidak sendirian. Tulislah dalam bahasamu sendiri — kami akan membacanya lebih dulu, lalu membagikannya di sini jika disetujui.',
@@ -3138,9 +3146,17 @@ ${extraSections}
 <h2 class="disc-h2">${esc(ui.news)}</h2>
 <p class="lede">${esc(ui.newsLede)}</p>
 ${news.length ? newsTopicSections(news, lang, prefix) : `<p class="lede">${esc(ui.empty)}</p>`}
-${
+  ${
     stories.length
-      ? `${section(ui.stories, ui.storiesLede, stories.slice(0, 24))}\n${more(storiesUi.backToStories, `${prefix}/stories`)}`
+      // NOT section(): that helper maps postCardLi, which links to
+      // /discover/<slug>. A story lives at /stories/<slug>, so with a populated
+      // shelf those cards would all have been dead links. It was invisible
+      // while the shelf was empty. storyCardLi is hoisted, so using it here is
+      // fine even though it is declared further down the file.
+      ? `<h2 class="disc-h2">${esc(ui.stories)}</h2>
+<p class="lede">${esc(ui.storiesLede)}</p>
+<ul class="guide-list">\n${stories.slice(0, 24).map((s) => storyCardLi(s, storiesUi, prefix)).join('\n')}\n</ul>
+${more(storiesUi.backToStories, `${prefix}/stories`)}`
       : more(ui.stories, `${prefix}/stories`)
   }
 ${ctaCard(lang)}
@@ -3815,10 +3831,10 @@ ${list}
   }[lang];
 
   const description = {
-    en: 'Real life stories written by domestic helpers in Hong Kong — daily life, home, and what happened along the way. Read them in the language they were written in.',
-    fil: 'Totoong kuwento ng buhay na isinulat ng mga helper sa Hong Kong — pang-araw-araw, tahanan, at mga nangyari. Basahin sa wikang ginamit nila.',
-    zh: '由香港家佣亲笔写下的真实生活故事——日常、家乡，以及一路上的经历。以她们原本的语言阅读。',
-    id: 'Kisah hidup nyata yang ditulis oleh asisten rumah tangga di Hong Kong — kehidupan sehari-hari, kampung halaman, dan apa yang terjadi. Baca dalam bahasa aslinya.',
+    en: 'Real stories from domestic helpers in Hong Kong — daily life, family and what happened along the way. Written by helpers or retold from published reports, each with its source named.',
+    fil: 'Totoong kuwento mula sa mga helper sa Hong Kong — pang-araw-araw na buhay, pamilya, at mga nangyari. Isinulat ng mga helper o muling isinalaysay mula sa ulat na nalathala, bawat isa ay may nakasaad na pinagmulan.',
+    zh: '来自香港家佣的真实生活故事——日常、家人，以及一路上的经历。由家佣亲笔撰写，或根据已刊发报道改写，每篇均注明来源。',
+    id: 'Kisah nyata dari para asisten rumah tangga di Hong Kong — kehidupan sehari-hari, keluarga, dan perjalanan hidup. Ditulis oleh para asisten atau diceritakan kembali dari laporan terbitan, masing-masing dengan sumber yang disebutkan.',
   }[lang];
 
   const jsonLd = {
@@ -3874,6 +3890,12 @@ function renderStory(lang, slug) {
 </div>`
     : '';
 
+  // Editorial retellings link back to the published reporting. A community
+  // submission has no source_url, so this stays empty for her own words.
+  const sourceBlock = story.source_url
+    ? `<p class="story-source">${esc(ui.source || 'Source')}: <a href="${esc(story.source_url)}" target="_blank" rel="noopener noreferrer nofollow">${esc(story.source_name)} — ${esc(story.source_title)} — ${esc(story.source_date)}</a></p>`
+    : '';
+
   const body = `
 ${crumbs(lang, [
     { label: ui.title, href: `${prefix}/stories` },
@@ -3884,6 +3906,7 @@ ${crumbs(lang, [
 <p class="updated">${meta}</p>
 ${storyParagraphs(story.body)}
 ${glossBlock}
+${sourceBlock}
 </article>
 <p class="updated"><a href="${prefix}/stories">${esc(ui.backToStories)}</a></p>
 ${ctaCard(lang)}

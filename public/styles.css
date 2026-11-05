@@ -3960,6 +3960,24 @@ a.game-tile:active { transform: scale(0.96); background: var(--c-primary-tint); 
   border-top: 1px solid var(--c-border);
 }
 .story-gloss h2 { font-size: 1rem; margin-bottom: 10px; color: var(--c-text-soft); }
+/* An editorial retelling is not a helper's own submission: it is our summary
+   of published reporting. The clickable source is set apart from the story
+   text, below the gloss, so a reader can always see where the facts came from.
+   A community story has no source_url and renders no such block. */
+.story-source {
+  margin-top: 26px;
+  padding-top: 16px;
+  border-top: 1px solid var(--c-border);
+  font-size: 0.86rem;
+  line-height: 1.6;
+  color: var(--c-text-soft);
+  overflow-wrap: anywhere;
+}
+.story-source a {
+  color: var(--c-primary-dark);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
 .story-back { margin-top: 26px; text-align: center; }
 .btn-link {
   background: none;

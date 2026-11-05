@@ -1421,92 +1421,106 @@ function featuredCardHtml(item) {
 }
 
 /**
- * The rotating promo banners.
+ * The hero carousel.
  *
- * WHAT IS SERVER-DRIVEN AND WHAT IS NOT. The operator controls three things —
- * which banners show, in what order, and how many seconds each gets — and those
- * come from /api/home-banners. Everything else (the words, the emoji, the
- * colour, the link) is fixed here, because each banner is a designed thing, not
- * a text box: a title typed into an admin form could not be translated into the
- * four languages this app ships in, and would silently be English-only.
+ * The five slides — the Learn Cantonese hero plus games, culture, outings and
+ * living — are STATIC MARKUP in index.html. This module does not build them.
+ * It only applies the operator's three settings from /api/home-banners: which
+ * promos show, in what order, and how many seconds each gets.
  *
- * The slides are real <a> elements laid out side by side and moved with a
- * transform, NOT swapped through innerHTML. That keeps all four links in the
- * DOM at once, so a crawler sees every doorway rather than whichever slide
- * happened to be showing.
+ * That inversion is deliberate. The old version built the banners from JS, so
+ * a slow or blocked API hid the whole carousel. Here the hero is in the HTML
+ * source: it renders on the first paint, survives a failed fetch, and is the
+ * one crawlable /learn link. Settings are an enhancement, not a dependency.
+ *
+ * The slides sit side by side and move with a transform, never swapped through
+ * innerHTML, so every doorway stays a crawlable <a> in all four languages.
  */
-const HOME_BANNERS = {
-  games:   { emoji: '🎮', href: '/?view=games',    cls: 'hb-games' },
-  culture: { emoji: '🏮', href: '/?view=discover', cls: 'hb-culture' },
-  outings: { emoji: '🗺️', href: '/places',         cls: 'hb-outings' },
-  living:  { emoji: '🏠', href: '/?view=living',   cls: 'hb-living' },
-};
+const HOME_BANNERS = ['games', 'culture', 'outings', 'living'];
 
 const homeBanners = {
   loaded: false,
-  slugs: [],
+  slugs: null, // null = use the authored order (offline or a failed fetch)
   seconds: 5,
   index: 0,
   timer: null,
   paused: false,
 };
 
-/** Fetch the operator's settings once, then paint. Called from init() and from
- *  every language change (the words are translated, the settings are not). */
+/** The slides actually in the rotation, in DOM order. Disabled ones are
+ *  display:none, so they take no space and are never landed on by a dot. */
+function visibleBannerSlides() {
+  const track = document.getElementById('hb-track');
+  return track
+    ? Array.prototype.slice.call(track.children).filter((el) => !el.classList.contains('hb-off'))
+    : [];
+}
+
+/** Fetch the operator's settings once. Called from init() and on every
+ *  language change; only the dot labels need re-translating, the slides are
+ *  static and are handled by applyTranslations(). */
 async function renderHomeBanners() {
-  const box = document.getElementById('home-banners');
-  if (!box) return;
+  if (!document.getElementById('home-banners')) return;
 
   if (!homeBanners.loaded) {
     try {
       const r = await fetch('/api/home-banners', { headers: { Accept: 'application/json' } });
       if (!r.ok) throw new Error('banners ' + r.status);
       const d = await r.json();
-      homeBanners.slugs = Array.isArray(d.banners) ? d.banners : [];
+      homeBanners.slugs = Array.isArray(d.banners)
+        ? d.banners.filter((s) => HOME_BANNERS.includes(s))
+        : null;
       const secs = Number(d.seconds);
       homeBanners.seconds = Number.isFinite(secs) && secs > 0 ? secs : 5;
-      homeBanners.loaded = true;
     } catch (err) {
-      // Decoration, not content: a failed fetch must leave Home exactly as it
-      // was rather than showing an empty coloured box.
-      box.classList.add('hidden');
-      return;
+      // Decoration, not content. Keep the full authored deck at the default
+      // speed rather than hiding the hero because an optional request failed.
+      homeBanners.slugs = null;
+      homeBanners.seconds = 5;
     }
+    homeBanners.loaded = true;
   }
   paintHomeBanners();
 }
 
 function paintHomeBanners() {
-  const box = document.getElementById('home-banners');
   const track = document.getElementById('hb-track');
   const dots = document.getElementById('hb-dots');
-  if (!box || !track || !dots) return;
+  if (!track || !dots) return;
 
-  // Unknown slugs are dropped rather than rendered blank: a slug the client
-  // does not know the copy for would otherwise be an empty coloured strip.
-  const slugs = homeBanners.slugs.filter((s) => HOME_BANNERS[s]);
-  if (!slugs.length) {
-    box.classList.add('hidden');
-    stopBannerTimer();
-    return;
-  }
+  // De-duplicate and ignore unknown slugs: a repeated slug must not become
+  // two slides, and a slug with no markup must not become an empty one.
+  const wanted = [];
+  (homeBanners.slugs || HOME_BANNERS).forEach((s) => {
+    if (HOME_BANNERS.includes(s) && !wanted.includes(s)) wanted.push(s);
+  });
 
-  track.innerHTML = slugs.map((slug) => {
-    const m = HOME_BANNERS[slug];
-    return `<a class="hb-slide ${m.cls}" href="${m.href}" data-banner="${slug}">`
-      + `<span class="hb-emoji" aria-hidden="true">${m.emoji}</span>`
-      + `<span class="hb-text">`
-      + `<span class="hb-title">${escapeHtml(t('banner.' + slug + '.title'))}</span>`
-      + `<span class="hb-sub">${escapeHtml(t('banner.' + slug + '.sub'))}</span>`
-      + `</span>`
-      + `<span class="hb-arrow" aria-hidden="true">›</span></a>`;
-  }).join('');
+  const promos = Array.prototype.slice.call(track.querySelectorAll('.hb-promo'));
+  promos.forEach((el) => {
+    const on = wanted.includes(el.dataset.banner);
+    el.classList.toggle('hb-off', !on);
+    el.setAttribute('aria-hidden', on ? 'false' : 'true');
+    if (on) el.removeAttribute('tabindex');
+    else el.tabIndex = -1;
+  });
 
-  dots.innerHTML = slugs.map((slug, i) => {
+  // Append the enabled promos in the operator's order. The hero is never
+  // moved: it is always slide 1, the first thing a new visitor sees. Disabled
+  // slides are display:none, so their DOM position has no effect on the track.
+  wanted.forEach((slug) => {
+    const el = promos.find((p) => p.dataset.banner === slug);
+    if (el) track.appendChild(el);
+  });
+
+  const visible = visibleBannerSlides();
+  if (homeBanners.index >= visible.length) homeBanners.index = 0;
+
+  dots.innerHTML = visible.map((el, i) => {
     const label = t('banner.showN').replace('{n}', String(i + 1));
     return `<button class="hb-dot${i === homeBanners.index ? ' on' : ''}" type="button"`
       + ` data-i="${i}" aria-label="${escapeHtml(label)}"></button>`;
   }).join('');
+  dots.style.display = visible.length < 2 ? 'none' : '';
 
   Array.prototype.forEach.call(dots.querySelectorAll('.hb-dot'), (b) => {
     b.addEventListener('click', () => {
@@ -1516,10 +1530,7 @@ function paintHomeBanners() {
   });
 
   attachBannerSwipe(track);
-
-  if (homeBanners.index >= slugs.length) homeBanners.index = 0;
   applyBannerTransform();
-  box.classList.remove('hidden');
   restartBannerTimer();
 }
 
@@ -1533,7 +1544,7 @@ function applyBannerTransform() {
 }
 
 function goBanner(i) {
-  const n = document.querySelectorAll('#hb-track .hb-slide').length;
+  const n = visibleBannerSlides().length;
   if (!n) return;
   homeBanners.index = ((i % n) + n) % n;
   applyBannerTransform();
@@ -1545,10 +1556,9 @@ function stopBannerTimer() {
 
 function restartBannerTimer() {
   stopBannerTimer();
-  const n = document.querySelectorAll('#hb-track .hb-slide').length;
   // One banner is not a carousel. Also honour a reduced-motion preference:
   // automatically moving content is exactly what that setting asks you not to do.
-  if (n < 2) return;
+  if (visibleBannerSlides().length < 2) return;
   if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const ms = Math.max(2000, homeBanners.seconds * 1000);
   homeBanners.timer = setInterval(() => {
@@ -1588,9 +1598,32 @@ function attachBannerSwipe(track) {
     restartBannerTimer();
   });
   box.addEventListener('pointercancel', () => { bannerDrag = null; homeBanners.paused = false; });
-  // Keyboard users get the same courtesy as a hovering mouse.
-  box.addEventListener('focusin', () => { homeBanners.paused = true; });
-  box.addEventListener('focusout', () => { homeBanners.paused = false; restartBannerTimer(); });
+  // Keyboard users get the same courtesy as a hovering mouse — but a DOT is
+  // the control for the carousel, not something to read. A real mouse click
+  // focuses the button (programmatic .click() does not, which is why this
+  // stayed hidden in tests): pausing on it froze rotation forever after the
+  // first tap on a dot.
+  box.addEventListener('focusin', (e) => {
+    if (e.target.classList.contains('hb-dot')) return;
+    homeBanners.paused = true;
+  });
+  box.addEventListener('focusout', (e) => {
+    if (e.target.classList.contains('hb-dot')) return;
+    homeBanners.paused = false;
+    restartBannerTimer();
+  });
+
+  // On a real mouse, stop while she is reading. Guarded by (hover:hover): a
+  // touch screen fires compat mouseenter on tap but never mouseleave, which
+  // would otherwise freeze the carousel forever on the phone.
+  if (window.matchMedia && window.matchMedia('(hover: hover)').matches) {
+    box.addEventListener('mouseenter', () => { homeBanners.paused = true; });
+    box.addEventListener('mouseleave', () => {
+      if (bannerDrag) return;
+      homeBanners.paused = false;
+      restartBannerTimer();
+    });
+  }
 }
 
 // A tab in the background is not being read; stop advancing and resume where

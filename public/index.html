@@ -235,44 +235,102 @@
          the whole paragraph. Screen readers get "Start learning, link" and meet
          the heading separately. data-i18n-attr keeps the label translated
          without touching the contents. -->
-    <a class="hero" id="hero" href="/learn"
-       onclick="if(window.gtag)gtag('event','begin_learn',{source:'home_hero'}); goCategories(); return false;"
-       data-i18n="home.heroCta" data-i18n-attr="aria-label" aria-label="Start learning">
-      <!-- Trust chip. The one fact that decides whether a helper gives this app
-           a second minute is that it costs nothing — so it is the first thing on
-           the page rather than a line in a footer. -->
-      <span class="hero-chip" data-i18n="home.bannerChip">100% free for helpers</span>
-      <!-- The banner copy is the marketing hero, and it is now the PERMANENT
-           hero rather than a first-visit-only swap. It used to be applied by a
-           script that checked localStorage and rewrote innerHTML, which meant
-           returning visitors — the ones most likely to recommend the app — saw
-           the plain red block instead, and no crawler ever saw the banner words
-           at all because they only existed after JS ran.
-           It is static markup now, so it is translated by data-i18n like every
-           other string (the old script hard-coded English into all four
-           languages) and it is in the HTML source for Google to read.
-           The <strong> carries its own key: applyTranslations() sets
-           textContent, so a data-i18n on the <p> would delete the bold span. -->
-      <h1 class="hero-title"><span data-i18n="home.bannerTitle">Learn Cantonese.</span> <span class="hero-sub" data-i18n="home.bannerSub">Understand the culture. Feel at home.</span></h1>
-      <p class="hero-desc"><strong data-i18n="home.bannerBold">334 everyday words &amp; phrases with audio</strong><span data-i18n="home.bannerRest"> — plus Chinese culture and useful tips. Learn at your own pace.</span></p>
-    </a>
+    <!-- ---- HERO CAROUSEL -----------------------------------------------
+         The Learn Cantonese hero and the four promo banners are ONE rotating
+         deck now. They used to be two things: a big illustrated hero, then a
+         thin strip of coloured cards underneath it that nobody noticed. Every
+         promo is a full-size illustrated banner with its own character scene,
+         so it gets the same space and the same picture family as the hero.
 
-    <!-- ---- Rotating promo banners --------------------------------------
-         Four doorways — games, culture, outings, living — that rotate on a
-         timer so each gets a turn at the top without a wall of cards.
+         ALL FIVE SLIDES ARE STATIC MARKUP. Two reasons, both about failure:
+           1. Google reads this file. A carousel whose slides are built in JS
+              gives a crawler one doorway and hides the other four; here every
+              slide is a real <a> in the HTML source.
+           2. If /api/home-banners is slow, offline or blocked, the deck still
+              works in its authored order. The operator's settings are an
+              enhancement, not a dependency of the hero rendering at all.
+         JS only reorders, hides and translates the track — it never rewrites
+         copy. The words are data-i18n keys, so all four languages travel
+         together and a banner can never ship English-only.
 
-         The ORDER, the SPEED and WHICH ONES SHOW are all operator settings
-         (/api/home-banners), not markup: this element is empty on purpose and
-         filled by renderHomeBanners() in app.js. That is also why the copy is
-         not in the HTML — each slide's words come from the i18n table, so the
-         four translations live together and cannot drift.
-
-         An empty response leaves this hidden. That is a real state (the
-         operator can switch every banner off), not an error. -->
-    <section class="home-banners hidden" id="home-banners"
+         The hero is ALWAYS the first slide and cannot be switched off: it is
+         the primary route into learning and the one crawlable /learn link. -->
+    <section class="home-banners" id="home-banners"
              aria-roledescription="carousel" aria-label="Explore CantoBuddy">
       <div class="hb-viewport">
-        <div class="hb-track" id="hb-track"></div>
+        <div class="hb-track" id="hb-track">
+
+          <a class="hero hb-slide" id="hero" href="/learn" data-banner="hero"
+             onclick="if(window.gtag)gtag('event','begin_learn',{source:'home_hero'}); goCategories(); return false;"
+             data-i18n="home.heroCta" data-i18n-attr="aria-label" aria-label="Start learning">
+            <!-- Trust chip. The one fact that decides whether a helper gives
+                 this app a second minute is that it costs nothing. -->
+            <span class="hero-chip" data-i18n="home.bannerChip">100% free for helpers</span>
+            <!-- Static markup, so it is translated by data-i18n and readable
+                 by Google without JS. The <strong> carries its own key:
+                 applyTranslations() sets textContent, so a key on the <p>
+                 would delete the bold span. -->
+            <h1 class="hero-title"><span data-i18n="home.bannerTitle">Learn Cantonese.</span> <span class="hero-sub" data-i18n="home.bannerSub">Understand the culture. Feel at home.</span></h1>
+            <p class="hero-desc"><strong data-i18n="home.bannerBold">334 everyday words &amp; phrases with audio</strong><span data-i18n="home.bannerRest"> — plus Chinese culture and useful tips. Learn at your own pace.</span></p>
+          </a>
+
+          <a class="hb-slide hb-promo hb-games" href="/?view=games" data-banner="games">
+            <picture class="hb-art" aria-hidden="true">
+              <source srcset="/banner-games.webp" type="image/webp" />
+              <img src="/banner-games.jpg" alt="" decoding="async" />
+            </picture>
+            <span class="hb-wash" aria-hidden="true"></span>
+            <span class="hb-copy">
+              <span class="hb-chip" data-i18n="banner.games.chip">Games &amp; puzzles</span>
+              <span class="hb-title" data-i18n="banner.games.title">Play a game</span>
+              <span class="hb-sub" data-i18n="banner.games.sub">Sudoku, UNO, Big Two — free, no sign-up</span>
+              <span class="hb-cta"><span data-i18n="banner.games.cta">Play a game now</span><b aria-hidden="true">→</b></span>
+            </span>
+          </a>
+
+          <a class="hb-slide hb-promo hb-culture" href="/?view=discover" data-banner="culture">
+            <picture class="hb-art" aria-hidden="true">
+              <source srcset="/banner-culture.webp" type="image/webp" />
+              <img src="/banner-culture.jpg" alt="" decoding="async" />
+            </picture>
+            <span class="hb-wash" aria-hidden="true"></span>
+            <span class="hb-copy">
+              <span class="hb-chip" data-i18n="banner.culture.chip">Hong Kong culture</span>
+              <span class="hb-title" data-i18n="banner.culture.title">Understand Hong Kong</span>
+              <span class="hb-sub" data-i18n="banner.culture.sub">Festivals, etiquette and everyday culture</span>
+              <span class="hb-cta"><span data-i18n="banner.culture.cta">Explore Hong Kong</span><b aria-hidden="true">→</b></span>
+            </span>
+          </a>
+
+          <a class="hb-slide hb-promo hb-outings" href="/places" data-banner="outings">
+            <picture class="hb-art" aria-hidden="true">
+              <source srcset="/banner-outings.webp" type="image/webp" />
+              <img src="/banner-outings.jpg" alt="" decoding="async" />
+            </picture>
+            <span class="hb-wash" aria-hidden="true"></span>
+            <span class="hb-copy">
+              <span class="hb-chip" data-i18n="banner.outings.chip">Your rest day</span>
+              <span class="hb-title" data-i18n="banner.outings.title">Plan your rest day</span>
+              <span class="hb-sub" data-i18n="banner.outings.sub">17 outings with photos, fares and directions</span>
+              <span class="hb-cta"><span data-i18n="banner.outings.cta">See the places</span><b aria-hidden="true">→</b></span>
+            </span>
+          </a>
+
+          <a class="hb-slide hb-promo hb-living" href="/?view=living" data-banner="living">
+            <picture class="hb-art" aria-hidden="true">
+              <source srcset="/banner-living.webp" type="image/webp" />
+              <img src="/banner-living.jpg" alt="" decoding="async" />
+            </picture>
+            <span class="hb-wash" aria-hidden="true"></span>
+            <span class="hb-copy">
+              <span class="hb-chip" data-i18n="banner.living.chip">Real stories</span>
+              <span class="hb-title" data-i18n="banner.living.title">Stories from helpers</span>
+              <span class="hb-sub" data-i18n="banner.living.sub">Real advice from women living the same life</span>
+              <span class="hb-cta"><span data-i18n="banner.living.cta">Read the stories</span><b aria-hidden="true">→</b></span>
+            </span>
+          </a>
+
+        </div>
       </div>
       <div class="hb-dots" id="hb-dots"></div>
     </section>

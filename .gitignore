@@ -38,6 +38,14 @@ tools/
 # real change is impossible to spot.
 ui-preview/
 
+# Source artwork from image generation. The app loads the cropped, compressed
+# WebP/JPEG derivatives in public/; these multi-megabyte originals are kept
+# locally for re-editing but are never deployed.
+generated-images/
+
+# Scratch copies of sitemap/HTML snapshots from the SEO verification runs.
+.tmp-verify/
+
 # Local secrets — the GitHub deploy token lives here, never in the repo
 .env
 .env.*

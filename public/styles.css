@@ -4011,6 +4011,12 @@ a.game-tile:active { transform: scale(0.96); background: var(--c-primary-tint); 
 .admin-header { background: #1d3557; }
 
 .admin-header .logo-text { color: #fff; }
+/* The admin/portal wordmark is now a real home link, not a dead <div>. Keep the
+   lockup looking exactly as it did: no underline, no browser link colour, and
+   a visible focus ring for keyboard users on the navy header. */
+.admin-header a.logo { color: inherit; text-decoration: none; }
+.admin-header a.logo:hover .logo-text { text-decoration: underline; text-underline-offset: 3px; }
+.admin-header a.logo:focus-visible { outline: 2px solid #fff; outline-offset: 4px; border-radius: 8px; }
 .admin-header .admin-link { color: rgba(255,255,255,0.8); }
 .admin-header .admin-link:hover { background: rgba(255,255,255,0.1); color: #fff; }
 

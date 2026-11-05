@@ -2617,6 +2617,28 @@ const I18N = {
 let _lang = localStorage.getItem(LANG_STORAGE_KEY) || 'en';
 if (!LANG_CODES.includes(_lang)) _lang = 'en';
 
+/* A server-rendered page links home as `/?lang=id` so the app opens in the
+   language she was just reading. Apply it ONCE, remember it, then remove the
+   marker from the address bar: leaving `?lang=` there would silently undo a
+   language she picks herself on the next reload. Every OTHER parameter is
+   kept — `?view=` is how games and Outings route back into the app.
+   This runs before app.js, so init()'s applyTranslations() paints the right
+   language on the first frame with no flash of English. */
+(function applyUrlLanguage() {
+  let params;
+  try { params = new URLSearchParams(location.search); } catch (e) { return; }
+  const wanted = params.get('lang');
+  if (!wanted) return;
+  if (LANG_CODES.includes(wanted)) {
+    _lang = wanted;
+    try { localStorage.setItem(LANG_STORAGE_KEY, _lang); } catch (e) { /* storage blocked */ }
+  }
+  params.delete('lang');
+  const qs = params.toString();
+  const clean = location.pathname + (qs ? '?' + qs : '') + (location.hash || '');
+  try { history.replaceState(null, '', clean); } catch (e) { /* ignore */ }
+})();
+
 /** Translate a key. Falls back to English, then to the key itself. */
 function t(key) {
   if (I18N[_lang] && I18N[_lang][key] != null) return I18N[_lang][key];

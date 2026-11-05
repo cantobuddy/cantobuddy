@@ -512,6 +512,29 @@ function catName(cat, lang) {
 /** The URL prefix for a language tree. English is the root, deliberately. */
 const LANG_PREFIX = { en: '', fil: '/fil', zh: '/zh', id: '/id' };
 
+/**
+ * Where the top-left wordmark and the "Open app" button must lead: the app's
+ * HOME page, not the language tree the reader happens to be standing in.
+ *
+ * The old default was `LANG_PREFIX[lang]` — `/id`, `/fil`, `/zh`. Those bare
+ * prefixes are 301 redirects to `<prefix>/learn`, so on the vocabulary hub
+ * (the page nearly every search visitor lands on) clicking the logo bounced
+ * straight back to the same URL and looked completely dead. A translated SEO
+ * tree has no home page of its own; `/` is the only home there is.
+ *
+ * `?lang=` carries the reader's language across the boundary so an Indonesian
+ * page does not dump her into an English interface. public/i18n.js applies it
+ * once, remembers it, then strips it from the address bar — leaving it there
+ * would silently undo a language she picks herself on the next reload. English
+ * needs no marker because it is already the app's default.
+ *
+ * Callers that ARE their own app (the /en English track) pass an explicit
+ * brandHref/ctaHref and are unaffected.
+ */
+function appHomeHref(lang) {
+  return lang && lang !== 'en' ? `/?lang=${encodeURIComponent(lang)}` : '/';
+}
+
 // Employer-facing landing page and the footer link that points at it. The page
 // itself lives on the portal (see renderEmployerLanding / portalPage), not on a
 // route this module registers, because it is the portal shell with content
@@ -1476,8 +1499,8 @@ function page(o) {
 <body>
 <header class="site">
   <div class="wrap">
-  <a class="brand" href="${esc(o.brandHref || LANG_PREFIX[lang] || '/')}"><span class="em">🦜</span>CantoBuddy</a>
-  <a class="cta" href="${esc(o.ctaHref || '/')}">${esc(L[lang].openApp)}</a>
+  <a class="brand" href="${esc(o.brandHref || appHomeHref(lang))}" aria-label="CantoBuddy — ${esc(L[lang].home || 'Home')}"><span class="em">🦜</span>CantoBuddy</a>
+  <a class="cta" href="${esc(o.ctaHref || appHomeHref(lang))}">${esc(L[lang].openApp)}</a>
   </div>
 </header>
 <main>

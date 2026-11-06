@@ -170,6 +170,34 @@
       <div id="admin-visitor-chart" class="report-chart"></div>
       <div id="admin-visitor-notes" class="report-notes"></div>
 
+      <!-- W1.1 — the ONE funnel. One screen, five steps, split by language and
+           by acquisition source. Deliberately a panel inside Reports rather
+           than a twelfth admin tab: the whole point of Wave 1 is to make the
+           existing surfaces legible, not to add another one. -->
+      <h4 class="admin-subhead">Funnel — one vocabulary, both surfaces</h4>
+      <p class="admin-hint">
+        Where visitors stop between arriving and answering their first quiz. The
+        app and the search pages use the SAME five step names, so a reader who
+        lands on an article and then opens the app is counted once, not twice.
+        Counts are distinct devices per step per Hong Kong day; the report stores
+        no learner, no device id and no page path. Shared phones and in-app
+        browsers make every figure directional, not an absolute user count.
+        <strong>No numeric target has been set yet</strong> — see
+        <code>proposal/W1-BASELINE.md</code>; targets come only after 14 days.
+      </p>
+      <div class="chip-group" id="admin-funnel-range">
+        <button class="chip" data-days="7" onclick="setFunnelDays(7)">7 days</button>
+        <button class="chip active" data-days="14" onclick="setFunnelDays(14)">14 days</button>
+        <button class="chip" data-days="30" onclick="setFunnelDays(30)">30 days</button>
+      </div>
+      <div id="admin-funnel-conversion" class="admin-list"></div>
+      <div class="chip-group" id="admin-funnel-breakdown-tabs">
+        <button class="chip active" data-breakdown="lang" onclick="setFunnelBreakdown('lang')">By language</button>
+        <button class="chip" data-breakdown="source" onclick="setFunnelBreakdown('source')">By source</button>
+      </div>
+      <div id="admin-funnel-breakdown" class="admin-list"></div>
+      <div id="admin-funnel-stamp" class="report-notes"></div>
+
       <h4 class="admin-subhead">Activity</h4>
       <div class="chip-group" id="admin-report-range">
         <button class="chip" data-days="7" onclick="setReportDays(7)">7 days</button>
@@ -245,6 +273,7 @@
         <a class="btn btn-outline btn-sm" href="/api/admin/report.csv?type=practice_only">Practice only</a>
         <a class="btn btn-outline btn-sm" href="/api/admin/report.csv?type=games">Games by game</a>
         <a class="btn btn-outline btn-sm" href="/api/admin/report.csv?type=games_players">Games summary</a>
+        <a class="btn btn-outline btn-sm" href="/api/admin/report.csv?type=funnel">Funnel (14d baseline)</a>
       </div>
     </div>
 

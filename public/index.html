@@ -983,6 +983,7 @@
       <a href="/about">About</a>
       <a href="/contact">Contact</a>
       <a href="/terms">Terms</a>
+      <a href="/disclaimer">Disclaimer</a>
       <!-- The project's Facebook page. Same URL as FACEBOOK_URL in seo.js —
            this is a static file so it cannot require that module. rel="me" is
            the machine-readable ownership claim that matches ORG_LD.sameAs;
@@ -1203,6 +1204,13 @@
      fetch so the credit survives offline, which is when the picture is already
      on the screen and the photographer is still owed the name. -->
 <script src="/places/credits.js"></script>
+<!-- W1.1 — the ONE funnel client. Loaded BEFORE app.js (classic scripts run
+     in document order) so app.js can call cbFunnel() during boot. seo.js loads
+     this exact same file on all 159 server-rendered pages, so the SPA and the
+     search pages share one vocabulary, one device identity and one per-day
+     dedupe key. It is in APP_SHELL, so the cache version must be bumped when
+     this file changes. -->
+<script src="/funnel-client.js"></script>
 <script src="/app.js"></script>
 <!-- The illustrated hero used to be swapped in by a script here that read
      localStorage and rewrote the hero's innerHTML. It is plain markup in the

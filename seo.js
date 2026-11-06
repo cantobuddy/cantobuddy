@@ -243,6 +243,21 @@ const GA_SNIPPET = [
   '</script>',
 ].join('\n  ');
 
+/**
+ * W1.1 — the ONE funnel client, on every server-rendered page.
+ *
+ * `defer` so it never blocks first paint (these pages are read on mid-range
+ * Android over metered data). public/index.html loads the SAME file for the
+ * SPA, which is the point: one vocabulary, one per-device-per-day dedupe key,
+ * one shared localStorage identity across the whole origin. A reader who lands
+ * on a search page and then opens the app is ONE landing_view, not two.
+ *
+ * The inline visit beacon below still queues an early landing_view through
+ * `window.__cbFunnelQ` in case this script has not executed yet; the client
+ * drains that queue on load, and its own boot() is deduped against it.
+ */
+const FUNNEL_SNIPPET = '<script src="/funnel-client.js" defer></script>';
+
 
 // ---------------------------------------------------------------------------
 // Small helpers
@@ -1409,6 +1424,14 @@ const VISIT_BEACON = `<script>
         keepalive: true
       });
     }
+    // W1.1: the SAME visit is also the first funnel step. funnel-client.js is
+    // deferred, so it may not have executed yet — stash the call for it to
+    // drain on load. Its per-device-per-HK-day dedupe means this can never
+    // double-count against the client's own boot(), nor against a later open
+    // of the SPA on this same origin.
+    var fx = ['landing_view'];
+    if (typeof window.cbFunnel === 'function') window.cbFunnel.apply(null, fx);
+    else (window.__cbFunnelQ = window.__cbFunnelQ || []).push(fx);
   } catch (e) {}
 })();
 </script>`;
@@ -1473,6 +1496,7 @@ function page(o) {
   ${GOOGLE_VERIFICATION ? `<meta name="google-site-verification" content="${esc(GOOGLE_VERIFICATION)}" />` : ''}
   ${ADSENSE_SNIPPET}
   ${GA_SNIPPET}
+  ${FUNNEL_SNIPPET}
   ${alt}
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="CantoBuddy" />
@@ -1496,11 +1520,11 @@ function page(o) {
   <style>${PAGE_CSS}</style>
   <script type="application/ld+json">${JSON.stringify(o.jsonLd || {})}</script>
 </head>
-<body>
+<body data-seo-page="1">
 <header class="site">
   <div class="wrap">
   <a class="brand" href="${esc(o.brandHref || appHomeHref(lang))}" aria-label="CantoBuddy — ${esc(L[lang].home || 'Home')}"><span class="em">🦜</span>CantoBuddy</a>
-  <a class="cta" href="${esc(o.ctaHref || appHomeHref(lang))}">${esc(L[lang].openApp)}</a>
+  <a class="cta" data-funnel-cta href="${esc(o.ctaHref || appHomeHref(lang))}">${esc(L[lang].openApp)}</a>
   </div>
 </header>
 <main>
@@ -1521,6 +1545,7 @@ ${o.body}
        &nbsp;·&nbsp; <a href="/about">About</a>
        &nbsp;·&nbsp; <a href="/contact">Contact</a>
        &nbsp;·&nbsp; <a href="/terms">Terms</a>
+       &nbsp;·&nbsp; <a href="/disclaimer">Disclaimer</a>
        &nbsp;·&nbsp; <a href="/cantonese-for-domestic-helpers">For helpers</a>
        &nbsp;·&nbsp; <a href="/cantonese-food-phrases">Food phrases</a>
        &nbsp;·&nbsp; <a href="/cantonese-for-elderly-learners">Elderly learners</a>
@@ -2476,7 +2501,7 @@ ${faqHtml}
 
     <p class="pl-cta"><a class="cta" href="#auth-form">Sign in to the employer portal</a></p>
     <p class="pl-more"><a href="${guide}">Read the full guide: getting your helper started →</a></p>
-    <p class="pl-more"><a href="/about">About CantoBuddy</a> · <a href="/contact">Contact</a> · <a href="/terms">Terms</a></p>
+    <p class="pl-more"><a href="/about">About CantoBuddy</a> · <a href="/contact">Contact</a> · <a href="/terms">Terms</a> · <a href="/disclaimer">Disclaimer</a></p>
   </div>
 </section>`;
 }
@@ -4670,6 +4695,7 @@ ${alts}
   add('/about', '0.4', 'yearly', null, SITE_STRUCTURE_DATE);
   add('/contact', '0.4', 'yearly', null, SITE_STRUCTURE_DATE);
   add('/terms', '0.3', 'yearly', null, SITE_STRUCTURE_DATE);
+  add('/disclaimer', '0.3', 'yearly', null, SITE_STRUCTURE_DATE);
 
   // Stories — the shared shelf of helper-written stories.
   //
@@ -5156,6 +5182,62 @@ ${crumbs('en', [{ label: 'Terms of use' }])}
   });
 }
 
+/**
+ * /disclaimer — the fourth publisher page.
+ *
+ * The AdSense rejection note listed /disclaimer as a 404 alongside /about and
+ * /contact; the earlier remediation added three of the four and left this one
+ * out. It is not a duplicate of /terms: the terms govern USE of the app, this
+ * page bounds the CLAIMS the site makes — no professional advice, no government
+ * affiliation, no endorsement from the sources it cites, and no advertising
+ * relationship disguised as editorial.
+ *
+ * English only, same reason as the other three. Every sentence below is one the
+ * code and the site layout can support; there is no invented legal entity, no
+ * made-up regulator and no promise a reviewer could test and find false.
+ */
+function renderDisclaimer() {
+  const body = `
+${crumbs('en', [{ label: 'Disclaimer' }])}
+<article>
+<h1>Disclaimer</h1>
+<p class="lede">CantoBuddy is a free practice app, not an authority. This page sets out what the guides on this site are, what they are not, and who actually decides the questions they discuss.</p>
+
+<h2>General information, not professional advice</h2>
+<p>The guides cover everyday subjects that come up in a Hong Kong household: employment rights, statutory holidays, minimum wage, rest days, health, medication, housing and transport. They are written carefully and checked against primary sources, but they are <strong>general information only</strong>. They are not legal advice, medical advice, financial advice or immigration advice, and using them does not create a professional relationship of any kind.</p>
+<p>Nothing here substitutes for your employment contract, the advice of a doctor or pharmacist, or an answer from the body that actually decides the question. Where a decision matters — a visa condition, a dose, a day off, a payment — the guide links to that body and its answer is the one that counts. If a guide and an official source disagree, follow the official source and <a href="/contact">tell us</a> so the guide can be corrected.</p>
+
+<h2>No government or commercial affiliation</h2>
+<p>CantoBuddy is an independent project with one maintainer. It is <strong>not affiliated with, endorsed by, or operated by</strong> the Government of the Hong Kong SAR, the Labour Department, the Immigration Department, any hospital or utility, any employer, or any employment agency. The Hong Kong Free Press, SCMP and other publications are cited as sources of reporting, not as partners.</p>
+<p>Names of official bodies, publications and companies appear only to identify where a fact came from or where to get the authoritative answer. A link to an external site is a reference, not a recommendation, and never implies that the linked organisation endorses CantoBuddy. We are not paid to feature any agency, employer, product or service, and there is no sponsored content on this site.</p>
+
+<h2>Language and accuracy</h2>
+<p>Cantonese is not one fixed thing. A word that is right in one household can sound unusual in another, and Jyutping romanisation, English meanings and Filipino or Indonesian translations are approximations chosen for everyday use, not certified translations. The app is a practice aid for a learner, not an authority on how a particular family speaks, and it must not be used as a certified translation for a contract, a medical instruction or an official form.</p>
+<p>Vocabulary and guides are written and checked by hand. Mistakes and out-of-date details are still possible. Dates are reviewed against the current year, but rules change between reviews; check the linked official source before relying on any figure. If you find an error, the <a href="/contact">contact form</a> goes straight to the maintainer.</p>
+
+<h2>External links and sources</h2>
+<p>Guides link out to the official sites that hold the underlying rules. We do not control those sites, they can change or disappear without notice, and we are not responsible for their content, availability or privacy practices. Links to sources are opened with <code>noopener noreferrer nofollow</code> so a reference cannot be mistaken for an endorsement or take over the page you were reading.</p>
+
+<h2>Advertising</h2>
+<p>Hosting and audio cost money, and advertising helps pay for it. Ads on this website are served by Google through AdSense; the publisher identifier is declared in <a href="/ads.txt">ads.txt</a>. Ads are <strong>not</strong> targeted using anything a learner tells the app — there is no account, no email address and no learner profile to target with, and the <a href="/privacy">privacy policy</a> sets out exactly what is collected. An advertisement appearing beside a guide is not an endorsement of that product by CantoBuddy, and the presence or absence of an ad slot is Google's decision, not an editorial one.</p>
+
+<h2>Availability and liability</h2>
+<p>The app is provided as it is, free of charge, with no account and no warranty. We aim to keep it online and correct but do not guarantee either; features and content may change or be withdrawn. To the extent the law allows, CantoBuddy is not liable for a decision made, a cost incurred or a loss suffered because someone relied on a guide instead of the official source, nor for any result — including progress in learning — that the app does not promise.</p>
+
+<h2>Questions and related pages</h2>
+<p>Who publishes this site is explained on the <a href="/about">About page</a>; the rules for using it are in the <a href="/terms">terms of use</a>; what is and is not collected is in the <a href="/privacy">privacy policy</a>. Anything this page does not answer goes through the <a href="/contact">contact form</a>.</p>
+<p class="updated">Last reviewed: November 2026</p>
+</article>`;
+
+  return publisherPage({
+    title: 'Disclaimer',
+    description:
+      'CantoBuddy disclaimer: guides are general information, not legal, medical or financial advice; no government or agency affiliation; how ads and sources work.',
+    path: '/disclaimer',
+    body,
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Mounting
 // ---------------------------------------------------------------------------
@@ -5309,6 +5391,9 @@ function mount(app) {
   app.get('/about', (req, res) => html(res, renderAbout()));
   app.get('/contact', (req, res) => html(res, renderContact(req.query.sent === '1')));
   app.get('/terms', (req, res) => html(res, renderTerms()));
+  // The rejection note named /disclaimer as a 404 too. It is a plain GET here,
+  // so the generic trailing-slash 301 in server.js covers /disclaimer/ as well.
+  app.get('/disclaimer', (req, res) => html(res, renderDisclaimer()));
 
   // --- English track (/en) SEO siblings of the /en SPA ---
   app.get('/en/learn', (req, res) => {

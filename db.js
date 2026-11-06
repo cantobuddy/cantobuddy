@@ -38,6 +38,9 @@ const newsCategory = require('./news-category');
 // the note at the top of real-stories.js — so requiring this module here does
 // not create a moderation bypass. It only feeds the three public read paths.
 const { REAL_STORIES, REAL_STORY_CARDS, REAL_STORY_SLUGS } = require('./real-stories');
+// W1.1: the single funnel vocabulary, shared with server.js and seo.js so the
+// rollup, the endpoint and the client can never disagree about a step name.
+const { FUNNEL_STEPS, FUNNEL_AUX_EVENTS, normalizeLang, normalizeSource, funnelDays } = require('./funnel');
 
 // ---------------------------------------------------------------------------
 // Hong Kong time
@@ -446,6 +449,32 @@ db.exec(`
     UNIQUE(day, path)
   );
   CREATE INDEX IF NOT EXISTS idx_visit_daily_day ON visit_daily(day);
+
+  /* W1.1 — the ONE funnel, as an aggregate rollup.
+
+     Deliberately even less identifying than learner_daily: there is NO
+     learner_id, NO public_id, NO path and NO IP here. A row is a count of
+     devices that reached one named step on one Hong Kong day, in one UI
+     language, from one bounded acquisition channel. Because the client
+     dedupes each step per device per day (see public/funnel-client.js), the
+     UNIQUE key turns a burst of reloads into one row rather than a spike.
+
+     This is what makes "conversion by language and by source" answerable
+     without building a per-person event history — a product decision this
+     project has repeatedly declined to make (see the visit_daily note above).
+     The auxiliary open_app_click shares the table but is not a funnel step.
+  */
+  CREATE TABLE IF NOT EXISTS funnel_daily (
+    id     INTEGER PRIMARY KEY,
+    day    TEXT NOT NULL,
+    step   TEXT NOT NULL,
+    lang   TEXT NOT NULL DEFAULT 'en',
+    source TEXT NOT NULL DEFAULT '(direct)',
+    events INTEGER NOT NULL DEFAULT 0,
+    UNIQUE(day, step, lang, source)
+  );
+  CREATE INDEX IF NOT EXISTS idx_funnel_daily_day ON funnel_daily(day);
+  CREATE INDEX IF NOT EXISTS idx_funnel_daily_step ON funnel_daily(step);
 
   /* The rotating promo banners on Home.
 
@@ -2271,6 +2300,31 @@ const S = {
     INSERT INTO visit_daily (day, path, views) VALUES (?, ?, ?)
     ON CONFLICT(day, path) DO UPDATE SET views = views + excluded.views
   `),
+
+  /* ---- W1.1 funnel ------------------------------------------------------ */
+  // One row per (day, step, lang, source). `events = events + 1` rather than
+  // an INSERT per tap, so a busy device-day still costs one row.
+  upsertFunnelDaily: db.prepare(`
+    INSERT INTO funnel_daily (day, step, lang, source, events) VALUES (?, ?, ?, ?, 1)
+    ON CONFLICT(day, step, lang, source) DO UPDATE SET events = events + 1
+  `),
+  funnelTotals: db.prepare(`
+    SELECT step, SUM(events) AS n FROM funnel_daily
+    WHERE day >= ? GROUP BY step
+  `),
+  funnelByLang: db.prepare(`
+    SELECT lang, step, SUM(events) AS n FROM funnel_daily
+    WHERE day >= ? GROUP BY lang, step ORDER BY lang, step
+  `),
+  funnelBySource: db.prepare(`
+    SELECT source, step, SUM(events) AS n FROM funnel_daily
+    WHERE day >= ? GROUP BY source, step ORDER BY source, step
+  `),
+  funnelSeries: db.prepare(`
+    SELECT day, step, SUM(events) AS n FROM funnel_daily
+    WHERE day >= ? GROUP BY day, step ORDER BY day, step
+  `),
+  funnelFirstDay: db.prepare('SELECT MIN(day) AS day FROM funnel_daily'),
 
   /* ---- home banners ---------------------------------------------------- */
   // Every row, in display order. The public route filters to enabled ones; the
@@ -4130,6 +4184,120 @@ function recordPageView(path, count = 1) {
   const day = hktDate(Date.now());
   S.upsertVisitDaily.run(day, clean, n);
   return { day, path: clean };
+}
+
+// ---------------------------------------------------------------------------
+// W1.1 — the one funnel
+// ---------------------------------------------------------------------------
+
+/**
+ * Add ONE event to the aggregate rollup.
+ *
+ * `count` is deliberately not a parameter, and neither is a device id, a path
+ * or a timestamp. The caller supplies only an allow-listed step name plus the
+ * two dimensions the report breaks down by; everything else is decided here.
+ * That is the whole anti-abuse posture: the worst a caller can do is inflate a
+ * count on a free app, and it cannot write history backwards or store a string
+ * of its choosing.
+ */
+function recordFunnelEvent({ step, lang, source }) {
+  if (!FUNNEL_STEPS.includes(step) && !FUNNEL_AUX_EVENTS.includes(step)) return null;
+  const day = hktDate(Date.now());
+  const l = normalizeLang(lang);
+  const s = normalizeSource(source);
+  S.upsertFunnelDaily.run(day, step, l, s);
+  return { day, step, lang: l, source: s };
+}
+
+/**
+ * The 14-day funnel, split every way the baseline needs.
+ *
+ * `series` is gap-filled exactly like the visitor trend: a day with no events
+ * is DATA, not a missing row, and drawing a line across it would lie about a
+ * quiet period. All figures are directional — see proposal/W1-BASELINE.md.
+ */
+function getFunnelReport(days = 14) {
+  const n = funnelDays(days, 14);
+  const today = hktDate(Date.now());
+  const from = hktDate(Date.now() - (n - 1) * 86400000);
+
+  const zero = () => Object.fromEntries(FUNNEL_STEPS.map((s) => [s, 0]));
+  const totals = zero();
+  for (const r of S.funnelTotals.all(from)) {
+    if (Object.prototype.hasOwnProperty.call(totals, r.step)) totals[r.step] = Number(r.n);
+  }
+  const aux = {};
+  for (const r of S.funnelTotals.all(from)) {
+    if (FUNNEL_AUX_EVENTS.includes(r.step)) aux[r.step] = Number(r.n);
+  }
+  for (const ev of FUNNEL_AUX_EVENTS) if (aux[ev] === undefined) aux[ev] = 0;
+
+  const pct = (a, b) => (b > 0 ? Math.round((a / b) * 1000) / 10 : null);
+  const landing = totals[FUNNEL_STEPS[0]];
+  const conversion = FUNNEL_STEPS.map((step, i) => ({
+    step,
+    count: totals[step],
+    pctOfLanding: pct(totals[step], landing),
+    pctOfPrevious: i === 0 ? 100 : pct(totals[step], totals[FUNNEL_STEPS[i - 1]]),
+  }));
+
+  /** Pivot a GROUP BY query into one row per dimension value. */
+  function pivot(rows, key) {
+    const map = new Map();
+    for (const r of rows) {
+      const k = String(r[key] || '(direct)');
+      if (!map.has(k)) map.set(k, zero());
+      if (Object.prototype.hasOwnProperty.call(map.get(k), r.step)) {
+        map.get(k)[r.step] = Number(r.n);
+      }
+    }
+    return [...map.entries()]
+      .map(([k, counts]) => ({
+        [key]: k,
+        ...counts,
+        activationPct: pct(counts.first_quiz_answer, counts.landing_view),
+      }))
+      .sort((a, b) => b.landing_view - a.landing_view || String(a[key]).localeCompare(String(b[key])));
+  }
+
+  const byLang = pivot(S.funnelByLang.all(from), 'lang');
+  const bySource = pivot(S.funnelBySource.all(from), 'source');
+
+  const byDay = new Map();
+  for (const r of S.funnelSeries.all(from)) {
+    const d = String(r.day);
+    if (!byDay.has(d)) byDay.set(d, zero());
+    if (Object.prototype.hasOwnProperty.call(byDay.get(d), r.step)) byDay.get(d)[r.step] = Number(r.n);
+  }
+  const series = [];
+  for (let i = n - 1; i >= 0; i--) {
+    const day = hktDate(Date.now() - i * 86400000);
+    series.push({ day, ...(byDay.get(day) || zero()) });
+  }
+
+  const first = S.funnelFirstDay.get();
+  const firstDay = first && first.day ? String(first.day) : null;
+  const elapsed = firstDay
+    ? Math.floor((Date.parse(today + 'T00:00:00Z') - Date.parse(firstDay + 'T00:00:00Z')) / 86400000) + 1
+    : 0;
+
+  return {
+    days: n,
+    from,
+    today,
+    generated_at: new Date().toISOString(),
+    steps: FUNNEL_STEPS.slice(),
+    auxEvents: FUNNEL_AUX_EVENTS.slice(),
+    totals,
+    aux,
+    conversion,
+    byLang,
+    bySource,
+    series,
+    firstDay,
+    daysCollected: elapsed,
+    baselineReady: elapsed >= 14,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -6306,6 +6474,10 @@ module.exports = {
   getVisitorReport,
   getGameReport,
   REPORT_RANGES,
+
+  // W1.1 — one funnel, one vocabulary. Aggregate counts only; no PII.
+  recordFunnelEvent,
+  getFunnelReport,
 
   // Feedback inbox — helper submissions are anonymous by design.
   createFeedback,

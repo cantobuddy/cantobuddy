@@ -7,7 +7,7 @@
 // Bump this whenever index.html / app.js / i18n.js / styles.css / the icons
 // change. The app shell is cached cache-first, so without a version bump
 // installed PWAs would keep serving the previous build from cache.
-const CACHE = 'cantobuddy-v141';
+const CACHE = 'cantobuddy-v142';
 
 // Which paths are server-rendered SEO documents rather than app-shell assets.
 // Kept as one matcher so it can be asserted against `LANG_PREFIX` in seo.js —
@@ -40,6 +40,11 @@ const APP_SHELL = [
   '/styles.css',
   '/app.js',
   '/i18n.js',
+  // W1.1 — the ONE funnel client. Both index.html and every server-rendered
+  // page load this, and app.js calls it during boot. A stale copy here would
+  // leave returning visitors on the OLD event names while the server has the
+  // new allow-list — a silent hole in the baseline. Bump CACHE with it.
+  '/funnel-client.js',
   // Outings: the place data and the photograph credits. Both are local and
   // small, and a place page that cannot credit its photographer offline is a
   // licence problem, not a cosmetic one.

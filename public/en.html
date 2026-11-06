@@ -32,6 +32,22 @@
          crossorigin="anonymous"></script>
   <meta name="google-adsense-account" content="ca-pub-6845142564408798" />
 
+  <!-- Google Analytics 4 (W1.5). The SAME measurement id as seo.js GA_SNIPPET
+       and public/index.html, hardcoded in all three places so a fresh deploy
+       cannot make one of them drift. /en is served by express.static for /en,
+       so it shadows every server-rendered page and has to carry its own tag:
+       before this, every /en visit was an analytics blind spot.
+       The W1 funnel client is deliberately NOT loaded here. /en is a separate
+       learning track with its own device identity and database; merging its
+       traffic into the Cantonese funnel would corrupt the W1.2 baseline. -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-877054DW3X"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-877054DW3X');
+  </script>
+
   <link rel="manifest" href="/manifest.json" />
   <link rel="icon" href="/favicon.ico" sizes="any" />
   <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
@@ -364,6 +380,20 @@
     .en-nav button .ic svg { width: 24px; height: 24px; display: block; }
     .en-nav button.active { color: var(--red); }
     .en-hidden { display: none !important; }
+    /* Publisher / policy links (W1.5). /en is a static file that express.static
+       serves, so it never inherits the server-rendered footer in seo.js.
+       Without this, an AdSense reviewer who lands on /en has no way to reach
+       the privacy policy or the pages that say who publishes the site. It sits
+       at the end of normal flow, above the fixed bottom nav (body already
+       reserves 84px of padding for that nav), so it cannot be covered. */
+    .en-policy {
+      max-width: 760px; margin: 8px auto 0; padding: 18px 16px 24px;
+      border-top: 1px solid var(--line); text-align: center;
+      font-size: 14px; line-height: 2; color: var(--muted);
+    }
+    .en-policy-label { display: block; margin-bottom: 2px; font-size: 13px; font-weight: 600; }
+    .en-policy a { color: var(--muted); text-decoration: underline; }
+    .en-policy a:hover { color: var(--red); }
     /* Voice chooser (top menu) */
     .en-voice-btn {
       border: 1px solid rgba(255,255,255,0.6); background: transparent; color: #fff;
@@ -550,6 +580,18 @@
       <div id="progress-body"></div>
     </section>
   </main>
+
+  <!-- W1.5: policy / publisher links for the English track. These are the four
+       server-rendered pages plus /privacy; they are English-only publisher
+       identity, so the labels are intentionally not translated. -->
+  <footer class="en-policy">
+    <span class="en-policy-label">CantoBuddy 學英文 · CantoBuddy</span>
+    <a href="/privacy">Privacy</a> &nbsp;·&nbsp;
+    <a href="/about">About</a> &nbsp;·&nbsp;
+    <a href="/contact">Contact</a> &nbsp;·&nbsp;
+    <a href="/terms">Terms</a> &nbsp;·&nbsp;
+    <a href="/disclaimer">Disclaimer</a>
+  </footer>
 
   <nav class="en-nav" id="en-nav">
     <button data-view="home" class="active" onclick="enNavigate('home')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v9h14v-9"/></svg></span><span id="nav-home">主頁</span></button>

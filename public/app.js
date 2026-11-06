@@ -388,6 +388,9 @@ function speak(text, btn) {
   }
 
   window.speechSynthesis.speak(u);
+  // W1.1: an audio play is the third funnel step. Only reached when the
+  // browser really supports speech synthesis and we actually spoke.
+  funnelStep('first_audio_play');
 }
 
 // ---- Voice picker UI -------------------------------------------------------
@@ -1368,6 +1371,25 @@ function renderHomeDiscoverPromo() {
 function trackEvent(name, params) {
   try {
     if (typeof window.gtag === 'function') window.gtag('event', name, params || {});
+  } catch (_) { /* no analytics, no problem */ }
+}
+
+/**
+ * W1.1 — record one step of the ONE funnel.
+ *
+ * The names here are NOT invented locally: cbFunnel() refuses anything outside
+ * the allow-list in funnel.js, and sends the SAME name to GA4 and to
+ * /api/funnel. The per-device-per-HK-day dedupe lives in funnel-client.js,
+ * shared with the 159 static pages, so calling this on every tap costs one row
+ * per day rather than one row per tap.
+ *
+ * `trackEvent` above stays for feature-specific events (home_content_click,
+ * begin_learn, …). Only the five named funnel steps go through here; mixing
+ * the two would make the conversion table unreadable.
+ */
+function funnelStep(name) {
+  try {
+    if (typeof window.cbFunnel === 'function') window.cbFunnel(name);
   } catch (_) { /* no analytics, no problem */ }
 }
 
@@ -2389,6 +2411,8 @@ function renderVocabList() {
   // "Words viewed" is words put in front of her by a browse list — the honest
   // reading of this screen. It is a count, never a record of which words.
   bumpActivity('words_viewed', items.length);
+  // W1.1: she is looking at real words, which is the second funnel step.
+  funnelStep('first_word_view');
 
   wrap.innerHTML = items
     .map(
@@ -2536,6 +2560,7 @@ function openVocabModal(id) {
   // far more meaningful than a page view, and the signal that tells the
   // operator someone is practising without ever taking a quiz.
   bumpActivity('cards_opened');
+  funnelStep('first_word_view');
   const cat = STATE.categories.find((c) => c.id === v.category_id);
   const modal = document.getElementById('vocab-modal');
   modal.querySelector('.modal-card').innerHTML = `
@@ -3150,6 +3175,9 @@ function answerQuiz(btn) {
   // very next screen still counts as an attempt.
   q.answeredCount++;
   persistProgress(false);
+  // W1.1: the fourth funnel step is an actual answered question, not a quiz
+  // opened and abandoned. `answerQuiz` is the only place an answer is recorded.
+  funnelStep('first_quiz_answer');
 
   // Next button
   const isLast = q.index === q.questions.length - 1;

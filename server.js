@@ -23,6 +23,11 @@ const { createSweeper } = require('./push-sweep');
 // English track (/en) — isolated data layer for elderly learners. Separate DB
 // file (cantobuddy-en.db) so the Cantonese site and its database are untouched.
 const en = require('./en');
+// W1.1 — one funnel, one vocabulary. db.js also requires this module; it is
+// pure constants and normalisers, so sharing it cannot open a second DB.
+const {
+  ALLOWED_EVENTS, FUNNEL_STEPS, normalizeLang, normalizeSource, funnelDays,
+} = require('./funnel');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -337,6 +342,19 @@ const livingRateLimit = makeRateLimit({
   windowMs: 5 * 60 * 1000,
   max: Number(process.env.LIVING_RATE_MAX) || 15,
   message: (m) => `You are posting too quickly. Try again in ${m} minute${m === 1 ? '' : 's'}.`,
+});
+
+/**
+ * The funnel beacon is the lightest public write there is, but it IS public.
+ * A legitimate device sends at most ~6 events a day; 120/hour leaves room for
+ * a household on shared NAT and for a test harness (which can raise the cap
+ * through the env var) while stopping a script from filling the report with
+ * junk. The client's per-day dedupe is the primary brake; this is the backstop.
+ */
+const funnelRateLimit = makeRateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: Number(process.env.FUNNEL_RATE_MAX) || 120,
+  message: () => 'Too many events from this connection. Try again later.',
 });
 
 // ---------------------------------------------------------------------------
@@ -1415,6 +1433,56 @@ app.post('/api/visit', (req, res) => {
 });
 
 /**
+ * POST /api/funnel — W1.1, the ONE funnel.
+ *
+ * Before this there were two measurement worlds: GA4 events named by whichever
+ * feature shipped them, and an anonymous page-view beacon on the static pages.
+ * Neither carried a language or an acquisition source, so the operator could
+ * not answer "do readers arriving from Google in Filipino ever reach a quiz?"
+ *
+ * This endpoint is deliberately NARROW, using the same trust model as
+ * /api/visit:
+ *   - the event name MUST be one of six allow-listed constants;
+ *   - there is NO client-supplied count (one request = one event);
+ *   - lang and source are normalised into finite buckets, never stored raw;
+ *   - the device token is validated and then DISCARDED — it is not written to
+ *     any table here, so the report contains no PII whatsoever;
+ *   - a request without a plausible device id is ignored (204), because a
+ *     search crawler or a script without a browser is not a funnel visitor.
+ *
+ * `page` is accepted for GA4 parity but is never stored: which page a person
+ * read is deliberately not something this rollup remembers about anyone.
+ *
+ * The five step names are the five names GA4 receives from the client, the five
+ * the admin Funnel panel shows and the five in funnel.js. One vocabulary.
+ */
+app.post('/api/funnel', funnelRateLimit, (req, res) => {
+  const b = req.body || {};
+  const event = String(b.event || '').trim();
+  if (!ALLOWED_EVENTS.includes(event)) {
+    return res.status(400).json({ error: 'Unknown event.' });
+  }
+
+  // Same shape and length bounds as the device minted by funnel-client.js and
+  // the SEO beacon. Nothing about it is persisted.
+  const pid = String(b.public_id || '').trim();
+  if (!/^[A-Za-z0-9_-]{8,64}$/.test(pid)) return res.status(204).end();
+
+  try {
+    store.recordFunnelEvent({
+      step: event,
+      lang: normalizeLang(b.lang),
+      source: normalizeSource(b.source),
+    });
+  } catch (err) {
+    // A missed count is a missing statistic, not a broken lesson. Never let
+    // analytics turn into a failed request the client would retry forever.
+    console.warn('Could not record funnel event:', err.message);
+  }
+  return res.status(204).end();
+});
+
+/**
  * GET /api/home-banners — what the Home carousel should show, and how fast.
  *
  * Public and tiny: a list of slugs plus one number. The copy for each banner is
@@ -2150,6 +2218,22 @@ app.get('/api/admin/report', requireAdmin, (req, res) => {
 });
 
 /**
+ * GET /api/admin/report/funnel?days=14 — the W1.1 funnel, admin only.
+ *
+ * Separate from /api/admin/report for the same reason the games report is:
+ * it reads a different table and answers a different question. The main report
+ * is "what happened"; this one is "where did people stop".
+ *
+ * Default 14 days because that is the baseline window in W1.2. It is clamped
+ * to 1..90 in funnel.js, so neither a typo nor a probe can make the query scan
+ * the whole table.
+ */
+app.get('/api/admin/report/funnel', requireAdmin, (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.json(store.getFunnelReport(funnelDays(req.query.days, 14)));
+});
+
+/**
  * GET /api/admin/report/games — who plays, alone or together, and how often.
  *
  * Separate from /api/admin/report because it answers a different question and
@@ -2251,6 +2335,29 @@ const CSV_EXPORTS = {
       g.soloGames, g.groupGames, g.soloPlayers, g.groupPlayers, g.biggestTable,
     ]),
   },
+  /* W1.1 funnel. One long-format file rather than four small ones: the
+     operator pastes this whole table into proposal/W1-BASELINE.md after the
+     14-day window, so totals, language splits, source splits and the daily
+     series have to travel together and stay in the same shape. */
+  funnel: {
+    header: ['section', 'key', 'step', 'count', 'pct_of_landing'],
+    rows: () => {
+      const f = store.getFunnelReport(14);
+      const out = [];
+      const push = (section, key, step, count, p) =>
+        out.push([section, key, step, count, p === null || p === undefined ? '' : p]);
+      for (const c of f.conversion) push('total', 'all', c.step, c.count, c.pctOfLanding);
+      for (const r of f.byLang) for (const s of f.steps) {
+        push('language', r.lang, s, r[s], r.activationPct !== null && s === 'first_quiz_answer' ? r.activationPct : '');
+      }
+      for (const r of f.bySource) for (const s of f.steps) {
+        push('source', r.source, s, r[s], r.activationPct !== null && s === 'first_quiz_answer' ? r.activationPct : '');
+      }
+      for (const d of f.series) for (const s of f.steps) push('series', d.day, s, d[s], '');
+      for (const [ev, n] of Object.entries(f.aux)) push('auxiliary', ev, ev, n, '');
+      return out;
+    },
+  },
   games_players: {
     header: ['metric', 'value'],
     rows: () => {
@@ -2280,7 +2387,7 @@ const CSV_EXPORTS = {
 
 /**
  * GET /api/admin/report.csv?type=employers|helpers|daily|summary|visitors|
- *     practice_only|games|games_players
+ *     practice_only|games|games_players|funnel
  *
  * Built on the server rather than in the browser so the file arrives with a
  * filename and the right encoding, and so the numbers in the export are the

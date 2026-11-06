@@ -22,6 +22,11 @@ const ADMIN = {
   // never approved is a story nobody ever reads.
   stories: null,
   storyFilter: 'pending',
+  // W1.1 funnel. Fixed at 14 days by default because that is the baseline
+  // window in W1.2 — it is NOT tied to the 7/30/90 chips of the main report.
+  funnel: null,
+  funnelDays: 14,
+  funnelBreakdown: 'lang',
 };
 
 // ---- API helpers -----------------------------------------------------------
@@ -868,7 +873,114 @@ function setPracticeMetric(metric) {
   renderPracticeChart((ADMIN.report && ADMIN.report.visitors) || {});
 }
 
+// ---- W1.1 funnel -----------------------------------------------------------
+//
+// One screen, five steps, split by language and by acquisition source. Kept
+// separate from renderAdminReport() so a slow funnel query cannot hold up the
+// rest of the Reports tab, and so the "↻ Refresh" button refreshes both.
+
+const FUNNEL_HEAD_STYLE = 'text-align:left;padding:6px 8px;border-bottom:1px solid #dfe3e8;font-weight:600';
+const FUNNEL_CELL_STYLE = 'padding:6px 8px;border-bottom:1px solid #eef1f4';
+
+function funnelPct(p) {
+  return p === null || p === undefined ? '—' : `${p}%`;
+}
+
+function funnelConversionHtml(f) {
+  const max = Math.max(1, ...f.conversion.map((c) => c.count));
+  const rows = f.conversion.map((c) => {
+    const w = Math.round((100 * c.count) / max);
+    return `<tr>
+      <td style="${FUNNEL_CELL_STYLE}"><code>${escapeHtml(c.step)}</code></td>
+      <td style="${FUNNEL_CELL_STYLE}">${c.count}</td>
+      <td style="${FUNNEL_CELL_STYLE}">${funnelPct(c.pctOfLanding)}</td>
+      <td style="${FUNNEL_CELL_STYLE}">${funnelPct(c.pctOfPrevious)}</td>
+      <td style="${FUNNEL_CELL_STYLE};width:32%"><span style="display:block;height:9px;border-radius:5px;background:#1565C0;width:${w}%"></span></td>
+    </tr>`;
+  }).join('');
+  return `<table style="width:100%;border-collapse:collapse;font-size:13px">
+    <thead><tr>
+      <th style="${FUNNEL_HEAD_STYLE}">Step</th>
+      <th style="${FUNNEL_HEAD_STYLE}">Devices</th>
+      <th style="${FUNNEL_HEAD_STYLE}">Of landings</th>
+      <th style="${FUNNEL_HEAD_STYLE}">Of previous</th>
+      <th style="${FUNNEL_HEAD_STYLE}"></th>
+    </tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function funnelBreakdownHtml(f) {
+  const key = ADMIN.funnelBreakdown;
+  const rows = key === 'source' ? f.bySource : f.byLang;
+  if (!rows.length) {
+    return '<div class="progress-empty">No funnel events recorded yet. This fills in as soon as someone loads the app or a landing page.</div>';
+  }
+  const body = rows.map((r) => `<tr>
+    <td style="${FUNNEL_CELL_STYLE}">${escapeHtml(String(r[key]))}</td>
+    <td style="${FUNNEL_CELL_STYLE}">${r.landing_view}</td>
+    <td style="${FUNNEL_CELL_STYLE}">${r.first_word_view}</td>
+    <td style="${FUNNEL_CELL_STYLE}">${r.first_audio_play}</td>
+    <td style="${FUNNEL_CELL_STYLE}">${r.first_quiz_answer}</td>
+    <td style="${FUNNEL_CELL_STYLE}">${funnelPct(r.activationPct)}</td>
+  </tr>`).join('');
+  return `<table style="width:100%;border-collapse:collapse;font-size:13px">
+    <thead><tr>
+      <th style="${FUNNEL_HEAD_STYLE}">${key === 'source' ? 'Source' : 'Language'}</th>
+      <th style="${FUNNEL_HEAD_STYLE}">Landing</th>
+      <th style="${FUNNEL_HEAD_STYLE}">Word</th>
+      <th style="${FUNNEL_HEAD_STYLE}">Audio</th>
+      <th style="${FUNNEL_HEAD_STYLE}">Quiz</th>
+      <th style="${FUNNEL_HEAD_STYLE}">Activation</th>
+    </tr></thead><tbody>${body}</tbody></table>`;
+}
+
+function renderFunnelBreakdown() {
+  const el = document.getElementById('admin-funnel-breakdown');
+  if (!el) return;
+  el.innerHTML = ADMIN.funnel ? funnelBreakdownHtml(ADMIN.funnel)
+    : '<div class="progress-empty">Loading…</div>';
+}
+
+function setFunnelDays(days) {
+  ADMIN.funnelDays = Number(days) || 14;
+  document.querySelectorAll('#admin-funnel-range .chip').forEach((c) => {
+    c.classList.toggle('active', Number(c.dataset.days) === ADMIN.funnelDays);
+  });
+  renderFunnel();
+}
+
+function setFunnelBreakdown(b) {
+  ADMIN.funnelBreakdown = b === 'source' ? 'source' : 'lang';
+  document.querySelectorAll('#admin-funnel-breakdown-tabs .chip').forEach((c) => {
+    c.classList.toggle('active', c.dataset.breakdown === ADMIN.funnelBreakdown);
+  });
+  renderFunnelBreakdown();
+}
+
+async function renderFunnel() {
+  const convEl = document.getElementById('admin-funnel-conversion');
+  const stampEl = document.getElementById('admin-funnel-stamp');
+  if (!convEl) return;
+  convEl.innerHTML = '<div class="progress-empty">Loading…</div>';
+  renderFunnelBreakdown();
+  try {
+    const f = await apiGet(`/api/admin/report/funnel?days=${ADMIN.funnelDays}`);
+    ADMIN.funnel = f;
+    convEl.innerHTML = funnelConversionHtml(f);
+    renderFunnelBreakdown();
+    const clicks = Object.entries(f.aux || {}).map(([k, v]) => `${k}: ${v}`).join(' · ');
+    stampEl.innerHTML = `Generated ${new Date(f.generated_at).toLocaleString()} · ` +
+      `${f.daysCollected} of 14 baseline days collected · ` +
+      `<strong>${f.baselineReady ? 'baseline window complete' : 'still collecting — no targets set'}</strong>` +
+      (clicks ? `<br>${escapeHtml(clicks)} (auxiliary, not a funnel step)` : '');
+  } catch (err) {
+    convEl.innerHTML = '<div class="progress-empty">Could not load the funnel.</div>';
+    if (stampEl) stampEl.innerHTML = '';
+  }
+}
+
 async function renderAdminReport() {
+  // Fire-and-forget: the funnel has its own endpoint and its own loading state.
+  renderFunnel();
   const totalsEl = document.getElementById('admin-report-totals');
   const chartEl = document.getElementById('admin-report-chart');
   const notesEl = document.getElementById('admin-report-notes');

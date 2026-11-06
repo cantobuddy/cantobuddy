@@ -3456,6 +3456,9 @@ a.game-tile:active { transform: scale(0.96); background: var(--c-primary-tint); 
 }
 
 .nav-btn.active { color: var(--c-primary); }
+/* The Daily Tools tab is a real <a href="/tools">, not a <button> like the
+   other five. Without this it inherits the browser's link underline. */
+.bottom-nav a.nav-btn { text-decoration: none; }
 .nav-icon {
   font-size: 1.3rem;
   /* Fixed-height flex box so the emoji icons and the SVG share glyph all sit
@@ -3991,15 +3994,18 @@ a.game-tile:active { transform: scale(0.96); background: var(--c-primary-tint); 
   cursor: pointer;
 }
 
-/* Six tabs share 390px (~65px each). The widest labels — Filipino
-   "Pagsusulit" and "Tuklasin" — are right at that limit, so labels never wrap
-   and the type steps down a notch on the narrowest phones. */
+/* Six tabs share 390px (~65px each) since Daily Tools joined. The widest
+   labels — Filipino "Pagsusulit", "Tuklasin" and "Kagamitan" — are right at
+   that limit, so labels never wrap and the type steps down a notch on the
+   narrowest phones. Measured by tools/nav-shot.js at 320/360/390px. */
 .nav-btn > span:not(.nav-icon) { white-space: nowrap; }
 @media (max-width: 400px) {
   /* 0.64rem was 10.24px — the smallest text in the app. 0.7rem is the floor
-     that still lets the longest Filipino labels (Pagsusulit, Tuklasin) fit
-     five tabs across 320px without wrapping. */
-  .nav-btn { font-size: 0.7rem; padding: 8px 2px 6px; }
+     that still lets the longest Filipino labels fit WITHOUT wrapping. Six tabs
+     need every pixel, so horizontal padding goes to zero here rather than
+     shrinking the type further: the icon and label are centred flex children,
+     so dropping it costs nothing visually and buys ~4px per tab at 320px. */
+  .nav-btn { font-size: 0.7rem; padding: 8px 0 6px; }
 }
 
 /* ===========================================================================

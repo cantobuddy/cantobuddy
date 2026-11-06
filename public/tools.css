@@ -122,7 +122,12 @@ a.logo:hover .logo-text { color: var(--c-primary-dark); }
 }
 .btn-ghost:hover { border-color: var(--c-primary); background: var(--c-primary-tint); }
 
-.t-field { display: flex; flex-direction: column; gap: 6px; }
+/* min-width:0 matters on iOS Safari. A native date input has a large intrinsic
+   min-content width and a grid item defaults to min-width:auto, so the field
+   refuses to shrink and pushes the neighbouring column over it (seen on a real
+   iPhone at 390px). The contract form is also single-column on phones now —
+   a date picker wants the full width, not half of it. */
+.t-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .t-field > span {
   font-size: 0.83rem;
   font-weight: 700;
@@ -146,6 +151,8 @@ a.logo:hover .logo-text { color: var(--c-primary-dark); }
   padding: 11px 12px;
   min-height: var(--tap);
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 .t-field input:focus,
 .t-field select:focus,
@@ -379,9 +386,12 @@ a.logo:hover .logo-text { color: var(--c-primary-dark); }
 /* ===========================================================================
    TOOL 3 — Contract & Visa Countdown
    =========================================================================== */
+/* Mobile-first: ONE column. Four full-width fields stack cleanly, and no
+   native date control ever has to fight a sibling for ~150px. Two columns
+   only come back at >=560px, where each field gets ~300px (see below). */
 .contract-form {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 12px;
   margin-bottom: 18px;
 }
@@ -523,8 +533,12 @@ a.logo:hover .logo-text { color: var(--c-primary-dark); }
 @media (max-width: 380px) {
   .tool-tab { font-size: 0.7rem; }
   .cal-cell .cal-hol-name { display: none; }
-  .contract-form { grid-template-columns: 1fr; }
 }
 @media (min-width: 560px) {
   .countdown-cards { grid-template-columns: 1fr 1fr; }
+  /* Two columns are safe once each field has ~300px. Reserve two lines for
+     every label so the "Visa expiry (optional — ...)" copy, which wraps to
+     three lines, cannot push its input lower than the one beside it. */
+  .contract-form { grid-template-columns: 1fr 1fr; }
+  .contract-form .t-field > span { min-height: 2.6em; }
 }

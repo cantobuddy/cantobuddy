@@ -40,6 +40,8 @@ const I18N = {
     'nav.feedback': 'Feedback',
     'nav.share': 'Share',
     'nav.discover': 'Discover',
+    // Last bottom-nav tab. Short on purpose: six tabs share 320px.
+    'nav.tools': 'Tools',
     // The Games hub — a tab, a list of games, and the way back out of one.
     // UNO itself lives at /games/uno (a real page, see #view-games in index.html)
     // and speaks the same four languages through its own dictionary.
@@ -727,6 +729,7 @@ const I18N = {
     'nav.feedback': 'Puna',
     'nav.share': 'Ibahagi',
     'nav.discover': 'Tuklasin',
+    'nav.tools': 'Kagamitan',
     // Ang Games hub — isang tab, isang listahan ng laro, at ang daan pabalik.
     'games.backHome': '← Simula',
     'games.title': 'Mga Laro',
@@ -1364,6 +1367,7 @@ const I18N = {
     'nav.feedback': '反馈',
     'nav.share': '分享',
     'nav.discover': '发现',
+    'nav.tools': '工具',
     // 游戏页——一个标签页、一份游戏列表，以及从游戏里回来的路。
     'games.backHome': '← 首页',
     'games.title': '游戏',
@@ -2000,6 +2004,7 @@ const I18N = {
     'nav.feedback': 'Masukan',
     'nav.share': 'Bagikan',
     'nav.discover': 'Jelajah',
+    'nav.tools': 'Alat',
     // Hub Game — satu tab, daftar game, dan jalan kembali dari dalam game.
     'games.backHome': '← Beranda',
     'games.title': 'Game',

@@ -8,12 +8,14 @@
 // change. The app shell is cached cache-first, so without a version bump
 // installed PWAs would keep serving the previous build from cache.
 //
-// /tools, /tools.css and /tools.js were ADDED to APP_SHELL without a bump:
-// adding a path does not invalidate any existing cached response, and editing
-// this file is itself an SW update, so install re-runs addAll on the new list.
-// A bump is still required whenever a tools.* file is later EDITED, because
-// those three are served cache-first from this versioned cache.
-const CACHE = 'cantobuddy-v142';
+// v143 — 2026-11-07. This release EDITS cached shell files: index.html (the
+// sixth bottom-nav tab), i18n.js (nav.tools in four languages), styles.css
+// (six-tab spacing) and tools.html / tools.css (the contract form overlap fix).
+// All five are served cache-first, so without a version bump an installed PWA
+// would keep the old nav and the overlapping form forever. The v142 release
+// only ADDED new APP_SHELL paths, which needed no bump; editing existing ones
+// does. Bump again on every later edit to any APP_SHELL file.
+const CACHE = 'cantobuddy-v143';
 
 // Which paths are server-rendered SEO documents rather than app-shell assets.
 // Kept as one matcher so it can be asserted against `LANG_PREFIX` in seo.js —

@@ -4688,6 +4688,13 @@ ${alts}
   // written for the person who is not the learner.
   add('/portal', '0.8', 'monthly', null, SITE_STRUCTURE_DATE);
 
+  // Daily Tools — the four offline-first utilities for helpers. One English
+  // URL only, like /portal: the page has no language tree yet, so advertising
+  // four alternates would point three of them at an untranslated document.
+  // Priority below /learn because the vocabulary is the site's primary job,
+  // but above the publisher pages because people do search for these tools.
+  add('/tools', '0.7', 'monthly', null, SITE_STRUCTURE_DATE);
+
   // Publisher identity. AdSense would not approve a site that had none of
   // these, and a reader deciding whether to trust a privacy policy wants to
   // know who wrote it. Low priority because nobody searches for them — they

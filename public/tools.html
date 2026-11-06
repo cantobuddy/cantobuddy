@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="CantoBuddy Daily Tools for domestic helpers in Hong Kong — recipe translator with Cantonese audio, holiday & leave tracker, contract & visa countdown, and an emergency support directory. Free, no sign-up." />
+  <title>Daily Tools — CantoBuddy</title>
+  <link rel="canonical" href="https://cantobuddy.com/tools" />
+
+  <!-- Social preview -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="CantoBuddy" />
+  <meta property="og:title" content="Daily Tools for Domestic Helpers in Hong Kong" />
+  <meta property="og:description" content="Recipe translator with Cantonese audio, holiday & leave tracker, contract & visa countdown, and an emergency support directory." />
+  <meta property="og:url" content="https://cantobuddy.com/tools" />
+  <meta property="og:image" content="https://cantobuddy.com/og-home.jpg" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <!-- Google Analytics (same property as the rest of the site) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-877054DW3X"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-877054DW3X');
+  </script>
+
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/tools.css" />
+</head>
+<body>
+
+  <!-- ============================ HEADER ============================ -->
+  <header class="app-header">
+    <div class="header-inner">
+      <a class="logo" href="/" aria-label="CantoBuddy home">
+        <span class="logo-emoji">🦜</span>
+        <span class="logo-text">CantoBuddy</span>
+      </a>
+      <div class="header-right">
+        <span class="tools-pill">Daily Tools</span>
+      </div>
+    </div>
+  </header>
+
+  <main id="app" class="app-main">
+
+    <!-- ============================ INTRO ============================ -->
+    <section class="tools-hero">
+      <h1>Tools for everyday life in Hong Kong</h1>
+      <p>Built for domestic helpers — cook with confidence, track your rest days,
+         never miss a visa date, and know who to call in an emergency. Everything
+         here works offline and stays private on your phone.</p>
+    </section>
+
+    <!-- ============================ TOOL TABS ============================ -->
+    <nav class="tool-tabs" aria-label="Daily tools">
+      <button class="tool-tab active" data-tool="recipe" onclick="showTool('recipe')">
+        <span class="tool-tab-ic">🍲</span> Recipe
+      </button>
+      <button class="tool-tab" data-tool="leave" onclick="showTool('leave')">
+        <span class="tool-tab-ic">📅</span> Leave
+      </button>
+      <button class="tool-tab" data-tool="contract" onclick="showTool('contract')">
+        <span class="tool-tab-ic">🛂</span> Contract
+      </button>
+      <button class="tool-tab" data-tool="emergency" onclick="showTool('emergency')">
+        <span class="tool-tab-ic">📞</span> Emergency
+      </button>
+    </nav>
+
+    <!-- ===================== TOOL 1: RECIPE TRANSLATOR ===================== -->
+    <section id="tool-recipe" class="tool-panel">
+      <div class="tool-head">
+        <h2>🍲 Elderly-Care Recipe Translator</h2>
+        <p class="tool-sub">Type a dish in English or Bahasa. Get the Cantonese name,
+           how to say it, and tap to hear it — so you can tell your employer or an
+           elder exactly what you are cooking.</p>
+      </div>
+
+      <div class="search-row">
+        <input id="recipe-search" type="search" autocomplete="off"
+               placeholder="e.g. congee, ayam, steamed fish…"
+               oninput="searchRecipes(this.value)" aria-label="Search a dish" />
+      </div>
+
+      <div id="recipe-chips" class="chips"></div>
+
+      <div id="recipe-results" class="recipe-results"></div>
+
+      <p class="tool-note">Audio uses your phone's built-in Cantonese voice. If it
+         sounds like Mandarin, open your device text-to-speech settings and add a
+         Cantonese (香港 / yue) voice. Dictionary is a starter set — more dishes
+         are easy to add.</p>
+    </section>
+
+    <!-- ===================== TOOL 2: HOLIDAY & LEAVE TRACKER ===================== -->
+    <section id="tool-leave" class="tool-panel" hidden>
+      <div class="tool-head">
+        <h2>📅 Holiday &amp; Leave Tracker</h2>
+        <p class="tool-sub">Hong Kong statutory holidays are marked for you. Add your
+           weekly rest day and any leave you take, and the calendar keeps your record
+           private on this phone.</p>
+      </div>
+
+      <div class="leave-settings">
+        <label class="t-field">
+          <span>Your weekly rest day</span>
+          <select id="rest-day" onchange="saveLeavePrefs()">
+            <option value="0">Sunday</option>
+            <option value="1">Monday</option>
+            <option value="2">Tuesday</option>
+            <option value="3">Wednesday</option>
+            <option value="4">Thursday</option>
+            <option value="5">Friday</option>
+            <option value="6">Saturday</option>
+          </select>
+        </label>
+        <div class="leave-actions">
+          <button class="btn btn-ghost" onclick="addLeaveToday()">＋ Mark today as leave</button>
+          <button class="btn btn-ghost" onclick="clearLeave()">Clear my leave</button>
+        </div>
+      </div>
+
+      <div class="cal-head">
+        <button class="cal-nav" onclick="changeMonth(-1)" aria-label="Previous month">‹</button>
+        <strong id="cal-title">Month</strong>
+        <button class="cal-nav" onclick="changeMonth(1)" aria-label="Next month">›</button>
+      </div>
+
+      <div class="cal-weekdays">
+        <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+      </div>
+      <div id="cal-grid" class="cal-grid"></div>
+
+      <ul class="cal-legend">
+        <li><span class="dot dot-holiday"></span> Statutory holiday</li>
+        <li><span class="dot dot-rest"></span> Your rest day</li>
+        <li><span class="dot dot-leave"></span> Leave taken</li>
+        <li><span class="dot dot-today"></span> Today</li>
+      </ul>
+
+      <p id="leave-summary" class="tool-note"></p>
+    </section>
+
+    <!-- ===================== TOOL 3: CONTRACT & VISA COUNTDOWN ===================== -->
+    <section id="tool-contract" class="tool-panel" hidden>
+      <div class="tool-head">
+        <h2>🛂 Contract &amp; Visa Countdown</h2>
+        <p class="tool-sub">A private dashboard. Enter your dates once — your phone
+           remembers them and warns you before key deadlines. Nothing is sent to
+           any server.</p>
+      </div>
+
+      <div class="contract-form">
+        <label class="t-field">
+          <span>Contract start date</span>
+          <input id="contract-start" type="date" onchange="saveContract()" />
+        </label>
+        <label class="t-field">
+          <span>Contract length</span>
+          <select id="contract-len" onchange="saveContract()">
+            <option value="12">12 months</option>
+            <option value="24" selected>24 months</option>
+            <option value="36">36 months</option>
+          </select>
+        </label>
+        <label class="t-field">
+          <span>Passport expiry <em>(optional)</em></span>
+          <input id="passport-exp" type="date" onchange="saveContract()" />
+        </label>
+        <label class="t-field">
+          <span>Visa expiry <em>(optional — leave blank to use contract end)</em></span>
+          <input id="visa-exp" type="date" onchange="saveContract()" />
+        </label>
+        <button class="btn btn-ghost" onclick="clearContract()">Clear my details</button>
+      </div>
+
+      <div id="contract-empty" class="contract-empty">
+        Add your contract start date to see your countdowns.
+      </div>
+
+      <div id="contract-cards" class="countdown-cards"></div>
+
+      <div id="contract-reminders" class="reminders"></div>
+
+      <div id="notify-banner" class="notify-banner" hidden></div>
+
+      <p class="tool-note">Typical Hong Kong rule: an employment visa is tied to the
+         contract, so the visa expiry usually matches the contract end date. Renew
+         your passport at least 6 months before it expires. These are reminders,
+         not legal advice — confirm with the Immigration Department.</p>
+    </section>
+
+    <!-- ===================== TOOL 4: EMERGENCY DIRECTORY ===================== -->
+    <section id="tool-emergency" class="tool-panel" hidden>
+      <div class="tool-head">
+        <h2>📞 Emergency &amp; Support Directory</h2>
+        <p class="tool-sub">One tap to call. Keep this page saved to your home screen
+           so it is there when you need it.</p>
+      </div>
+
+      <div id="emergency-list" class="emergency-list"></div>
+
+      <p class="tool-note">Please double-check each number on the organisation's
+         official website before relying on it — this list is a starting point, and
+         hotlines can change.</p>
+    </section>
+
+  </main>
+
+  <!-- ============================ BOTTOM NAV ============================ -->
+  <nav class="bottom-nav">
+    <a class="nav-btn" href="/">
+      <span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 11 12 4l8 7M6 10v9h12v-9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="nav-label">Home</span>
+    </a>
+    <a class="nav-btn" href="/learn">
+      <span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 6C10 4.8 7 4.4 4 4.6V19c3-.2 6 .2 8 1.4M12 6c2-1.2 5-1.6 8-1.4V19c-3-.2-6 .2-8 1.4M12 6v14.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></svg></span><span class="nav-label">Learn</span>
+    </a>
+    <a class="nav-btn" href="/?view=quiz-select">
+      <span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9.4 9.3a2.6 2.6 0 1 1 3.7 2.4c-.9.5-1.1 1-1.1 1.8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="17.2" r="1.15" fill="currentColor"/></svg></span><span class="nav-label">Quiz</span>
+    </a>
+    <a class="nav-btn" href="/discover">
+      <span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3 12h18M12 3c2.5 2.6 2.5 15.4 0 18M12 3c-2.5 2.6-2.5 15.4 0 18" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></span><span class="nav-label">Discover</span>
+    </a>
+    <a class="nav-btn" href="/?view=games">
+      <span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7.5 8h9a4.5 4.5 0 0 1 4.4 3.6c.5 2.4-1 4.4-3.2 4.4H6.3A3.3 3.3 0 0 1 3 13.1c0-1 .5-1.9 1.3-2.6L6 9.6c.5-.7 1.2-1.1 1.5-1.1z" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 12H5.5M6.75 10.5v3M16.5 10.5v3M15 12h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span><span class="nav-label">Games</span>
+    </a>
+  </nav>
+
+  <script src="/tools.js" defer></script>
+</body>
+</html>

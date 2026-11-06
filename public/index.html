@@ -377,6 +377,9 @@
            onclick="trackEvent('home_content_click',{channel:'living',source:'home_see_all'}); navigate('discover'); showChannel('living'); return false;"><span data-i18n="home.featuredAllLiving">All living guides</span> <span class="home-featured-count" data-count="living"></span></a>
         <a href="/places"
            onclick="trackEvent('home_content_click',{channel:'places',source:'home_see_all'}); navigate('discover'); showChannel('places'); return false;"><span data-i18n="home.featuredAllOutings">All days out</span> <span class="home-featured-count" data-count="outings"></span></a>
+        <!-- A real page, not an in-app view: the tools are a standalone document
+             so they keep working even when the SPA shell cannot boot. -->
+        <a href="/tools" onclick="if(window.gtag)gtag('event','tools_entry',{source:'home_links'});">🛠️ Daily Tools</a>
       </nav>
     </section>
 
@@ -964,6 +967,11 @@
            "when am I off?", so it gets a footer link beside the guide rather than
            being buried inside it. -->
       <a href="/guide/statutory-holidays-for-domestic-helpers" data-i18n="footer.holidays">Statutory holidays for domestic helpers 2026 &amp; 2027</a>
+      <!-- Daily Tools: four offline utilities (recipe translator, leave tracker,
+           contract countdown, emergency directory). Plain English label like
+           About/Contact — the page itself is English-only for now, so tagging
+           it data-i18n would promise translations that do not exist yet. -->
+      <a href="/tools">🛠️ Daily Tools</a>
       <a href="/level/1" data-i18n="home.beginner">Beginner</a>
       <a href="/level/2" data-i18n="home.intermediate">Intermediate</a>
       <a href="/level/3" data-i18n="home.advanced">Advanced</a>

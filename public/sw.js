@@ -7,6 +7,12 @@
 // Bump this whenever index.html / app.js / i18n.js / styles.css / the icons
 // change. The app shell is cached cache-first, so without a version bump
 // installed PWAs would keep serving the previous build from cache.
+//
+// /tools, /tools.css and /tools.js were ADDED to APP_SHELL without a bump:
+// adding a path does not invalidate any existing cached response, and editing
+// this file is itself an SW update, so install re-runs addAll on the new list.
+// A bump is still required whenever a tools.* file is later EDITED, because
+// those three are served cache-first from this versioned cache.
 const CACHE = 'cantobuddy-v142';
 
 // Which paths are server-rendered SEO documents rather than app-shell assets.
@@ -40,6 +46,17 @@ const APP_SHELL = [
   '/styles.css',
   '/app.js',
   '/i18n.js',
+  // Daily Tools. Pre-cached on purpose: these four utilities are local-only
+  // (recipe lookup, holiday/leave calendar, contract countdown, emergency
+  // numbers) and keep all their data in localStorage, so a helper with no
+  // data allowance must still be able to open them. They are also in the
+  // cache-first branch below, which is why an edit REQUIRES a CACHE bump —
+  // otherwise an installed PWA pins the old emergency numbers forever, and
+  // a stale hotline is worse than no hotline. Network-first was rejected for
+  // the same reason /games was: it would break offline entirely.
+  '/tools',
+  '/tools.css',
+  '/tools.js',
   // W1.1 — the ONE funnel client. Both index.html and every server-rendered
   // page load this, and app.js calls it during boot. A stale copy here would
   // leave returning visitors on the OLD event names while the server has the

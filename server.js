@@ -154,6 +154,10 @@ app.use((req, res, next) => {
   } else if (path === '/index.html') {
     // The shell file is served by express.static; the canonical URL is `/`.
     target = '/';
+  } else if (path === '/tools.html') {
+    // The Daily Tools page is also served by express.static; the canonical
+    // URL is `/tools`. One indexable URL, same rule as /index.html above.
+    target = '/tools';
   }
   if (!target) return next();
   // Preserve the query string so a shared campaign link is not truncated.
@@ -2518,6 +2522,18 @@ app.put('/api/admin/en/scenarios/:id', requireAdmin, (req, res) => {
   const row = en.updateEnScenario(req.params.id, req.body || {});
   if (!row) return res.status(404).json({ error: 'Not found.' });
   res.json(row);
+});
+
+// ---------------------------------------------------------------------------
+// Daily Tools — four offline-first utilities for helpers (recipe translator,
+// holiday & leave tracker, contract/visa countdown, emergency directory).
+// A standalone page in public/, kept out of the SPA so it works with no app.js
+// boot and cannot be broken by a change to the learner view router.
+// ---------------------------------------------------------------------------
+app.get('/tools', (req, res) => {
+  res.type('html');
+  res.setHeader('Cache-Control', 'public, max-age=300');
+  res.sendFile(path.join(__dirname, 'public', 'tools.html'));
 });
 
 app.get('/portal', (req, res) => res.type('html').send(seo.portalPage()));

@@ -3625,6 +3625,13 @@ a.game-tile:active { transform: scale(0.96); background: var(--c-primary-tint); 
   box-shadow: 0 1px 3px var(--c-shadow);
 }
 
+/* Operator-hidden Discover tab. Mirrors the nav `data-nav-hidden` rule: app.js
+   tags a disabled channel with this attribute, and the HTML remains the fallback
+   (no attribute) when the override fetch fails. */
+.discover-tab[data-discover-hidden] {
+  display: none !important;
+}
+
 .discover-note {
   color: var(--c-text-soft);
   font-size: 0.85rem;

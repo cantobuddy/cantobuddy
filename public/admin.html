@@ -82,6 +82,10 @@
       <!-- Navigation: the icons in the ⋯ More sheet and the six bottom tabs.
            Sits beside Banners because both answer "where can a visitor go?" -->
       <button class="admin-tab" data-tab="navigation" onclick="switchTab('navigation')">🧭 Navigation</button>
+      <!-- Discover channels: the five tabs inside the Discover screen. Sits beside
+           Navigation because both answer "where can a visitor go, and in what
+           order?" — but this one is the in-page Discover menu, not the chrome. -->
+      <button class="admin-tab" data-tab="discover" onclick="switchTab('discover')">🗂️ Discover</button>
       <!-- Learn English: its traffic and its content. A separate tab rather than
            a section of Reports because it is a different site with a different
            audience, and its numbers must not be read as the main app's. -->
@@ -453,6 +457,25 @@
       <div id="admin-nav-bottom" class="admin-list"></div>
 
       <p class="admin-hint" id="admin-nav-stamp"></p>
+    </div>
+
+    <!-- ---- discover tab ---- -->
+    <div id="tab-discover" class="admin-tab-content">
+      <div class="admin-toolbar">
+        <h3>Discover channels</h3>
+        <button class="btn btn-outline btn-sm" onclick="renderAdminDiscover()">↻ Refresh</button>
+      </div>
+      <p class="admin-hint">
+        Reorder or hide the five <strong>Discover</strong> tabs: Culture, Outings,
+        Living, News, Stories. Tick a box to show a tab; use ↑ / ↓ to move it.
+        The <strong>first enabled tab is the one a visitor sees first</strong> on the
+        Discover screen, so hiding Culture simply promotes the next one rather than
+        dead-ending the view. Changes save immediately and apply on the next page
+        load — and the Home Discover promo cards follow the same order and
+        visibility.
+      </p>
+      <div id="admin-discover-list" class="admin-list"></div>
+      <p class="admin-hint" id="admin-discover-stamp"></p>
     </div>
 
     <!-- ---- english tab ---- -->

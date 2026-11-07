@@ -138,6 +138,7 @@ function switchTab(tab) {
   if (tab === 'push') renderAdminPush();
   if (tab === 'banners') renderAdminBanners();
   if (tab === 'navigation') renderAdminNavigation();
+  if (tab === 'discover') renderAdminDiscover();
   if (tab === 'english') renderAdminEnglish();
 }
 
@@ -2287,6 +2288,17 @@ const NAV_META = {
   tools:         { emoji: '🧰',   label: 'Tools',    note: '/tools · Daily Tools' },
 };
 
+// Discover channel meta — the five tabs inside the Discover screen. Labels come
+// from the same keys the app uses (discover.tab*), so the four languages cannot
+// drift; this is only the icon + a one-line note for the admin row.
+const DISCOVER_META = {
+  culture: { emoji: '🏛️', label: 'Culture',  note: 'HK life, food, festivals' },
+  places:  { emoji: '🗺️', label: 'Outings',  note: 'Free days out' },
+  living:  { emoji: '🏠', label: 'Living',   note: 'Life in HK' },
+  news:    { emoji: '📰', label: 'News',     note: 'From home' },
+  stories: { emoji: '📖', label: 'Stories',  note: 'Helper stories' },
+};
+
 let NAV_CFG = null;
 
 async function renderAdminNavigation() {
@@ -2379,6 +2391,97 @@ async function moveNavItem(group, id, dir) {
   try {
     NAV_CFG = await apiPut('/api/admin/navigation', { [group]: payload });
     await renderAdminNavigation();
+  } catch (e) {
+    alert('Could not reorder: ' + e.message);
+  }
+}
+
+// ---- Discover channels -----------------------------------------------------
+// One list (no pinned row, unlike the bottom nav): every channel is reorderable
+// and hideable, and the first enabled one is the default the visitor lands on.
+let DISCOVER_CFG = null;
+
+async function renderAdminDiscover() {
+  const listEl = document.getElementById('admin-discover-list');
+  if (!listEl) return;
+  try {
+    DISCOVER_CFG = await apiGet('/api/admin/discover-channels');
+    const draw = (rows) => rows.map((row, i) => {
+      const id = row.id;
+      const m = DISCOVER_META[id] || { emoji: '🔘', label: id, note: '' };
+      const on = row.enabled !== false;
+      const upDisabled = i === 0;
+      const downDisabled = i === rows.length - 1;
+      const note = on
+        ? (i === 0 ? 'first tab a visitor sees' : 'Shown')
+        : 'Hidden from the menu';
+      return `<div class="admin-vocab-row" style="display:flex;align-items:center;gap:12px;opacity:${on ? 1 : .55}">
+        <input type="checkbox" ${on ? 'checked' : ''}
+               id="disc-on-${id}"
+               onchange="toggleDiscoverChannel('${id}', this.checked)"
+               style="width:20px;height:20px;flex:0 0 auto" />
+        <label for="disc-on-${id}" style="flex:1 1 auto;min-width:0;cursor:pointer">
+          <strong>${m.emoji} ${m.label}</strong>
+          <small style="display:block;color:#6b7280;font-weight:600">
+            ${note} · position ${i + 1} · ${m.note}
+          </small>
+        </label>
+        <button class="btn btn-outline btn-sm" ${upDisabled ? 'disabled' : ''}
+                style="${upDisabled ? 'opacity:.4;cursor:not-allowed' : ''}"
+                onclick="moveDiscoverChannel('${id}', -1)" aria-label="Move ${m.label} up">↑</button>
+        <button class="btn btn-outline btn-sm" ${downDisabled ? 'disabled' : ''}
+                style="${downDisabled ? 'opacity:.4;cursor:not-allowed' : ''}"
+                onclick="moveDiscoverChannel('${id}', 1)" aria-label="Move ${m.label} down">↓</button>
+      </div>`;
+    }).join('');
+
+    listEl.innerHTML = draw(DISCOVER_CFG);
+
+    const shown = DISCOVER_CFG.filter((r) => r.enabled !== false).length;
+    const first = DISCOVER_CFG.find((r) => r.enabled !== false);
+    const stamp = document.getElementById('admin-discover-stamp');
+    if (stamp) {
+      stamp.textContent = `${shown} of ${DISCOVER_CFG.length} Discover tabs shown · `
+        + `default tab: ${first ? (DISCOVER_META[first.id] || {}).label || first.id : '(all hidden)'} · `
+        + `saved ${new Date().toLocaleTimeString()}`;
+    }
+  } catch (e) {
+    listEl.innerHTML = `<div class="admin-empty">Could not load Discover channels: ${e.message}</div>`;
+  }
+}
+
+async function toggleDiscoverChannel(id, on) {
+  if (!DISCOVER_CFG) return;
+  const payload = DISCOVER_CFG.map((r) => ({
+    id: r.id,
+    enabled: r.id === id ? !!on : r.enabled !== false,
+  }));
+  try {
+    DISCOVER_CFG = await apiPut('/api/admin/discover-channels', { channels: payload });
+    await renderAdminDiscover();
+  } catch (e) {
+    alert('Could not change that tab: ' + e.message);
+    await renderAdminDiscover();
+  }
+}
+
+async function moveDiscoverChannel(id, dir) {
+  if (!DISCOVER_CFG) return;
+  const rows = DISCOVER_CFG;
+  const order = rows.map((r) => r.id);
+  const from = order.indexOf(id);
+  const to = from + dir;
+  if (from < 0 || to < 0 || to >= order.length) return;
+  order.splice(to, 0, order.splice(from, 1)[0]);
+  // Send the full rows, not just the ids: an order-only update must not wipe the
+  // on/off choices the operator made on other items in the same list.
+  const payload = order.map((nid) => {
+    const row = rows.find((r) => r.id === nid);
+    return { id: nid, enabled: row ? row.enabled !== false : true };
+  });
+  try {
+    DISCOVER_CFG = await apiPut('/api/admin/discover-channels', { channels: payload });
+    await renderAdminDiscover();
   } catch (e) {
     alert('Could not reorder: ' + e.message);
   }

@@ -1582,6 +1582,45 @@ app.put('/api/admin/navigation', requireAdmin, (req, res) => {
 });
 
 /**
+ * GET /api/discover-channels — the order and visibility of the Discover tabs.
+ *
+ * Public, tiny, language-independent: an ordered array of { id, enabled }.
+ * Hidden ids ARE included (with enabled:false) so the client can distinguish
+ * "switched off" from "not in this config yet". no-store — the admin promises a
+ * change applies on the visitor's next page load, and a 60s cache would make
+ * that a minute late. The service worker keeps a network-first copy so an
+ * offline visitor falls back to the last good config.
+ *
+ * The client treats a failed fetch as "keep the authored HTML order" — the
+ * markup already carries the correct default order, so this response is only an
+ * override.
+ */
+app.get('/api/discover-channels', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.json(store.getPublicDiscoverChannels());
+});
+
+/** GET /api/admin/discover-channels — every channel incl. the hidden ones. */
+app.get('/api/admin/discover-channels', requireAdmin, (req, res) => {
+  res.json(store.getDiscoverConfig());
+});
+
+/**
+ * PUT /api/admin/discover-channels — save the ordered list.
+ * Body: { channels?: [{id, enabled}] }
+ * An array of bare id strings is accepted as an order-only update. Unknown /
+ * duplicate ids are discarded server-side and missing ids keep their place.
+ */
+app.put('/api/admin/discover-channels', requireAdmin, (req, res) => {
+  const b = req.body || {};
+  try {
+    res.json(store.saveDiscoverConfig({ channels: b.channels }));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
  * POST /api/feedback — a helper or an employer writes to the operator.
  *
  * Public by necessity: a helper has no account, and asking her to make one

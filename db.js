@@ -4517,6 +4517,100 @@ function saveNavigationConfig({ more, bottom } = {}) {
 }
 
 // ---------------------------------------------------------------------------
+// Discover channel order + visibility (operator-controlled)
+// ---------------------------------------------------------------------------
+// The five Discover tabs: Culture, Outings, Living, News, Stories. The operator
+// can reorder AND hide them; the first ENABLED tab is the default a visitor
+// sees on the Discover screen (so a hidden Culture does not dead-end the view).
+// There is deliberately no pinned tab — unlike the bottom bar there is no single
+// way-back that must survive a bad config — and every channel is democratically
+// movable. Stored as ONE JSON array in app_settings; the constant list IS the
+// default and readDiscoverConfig() re-validates on every read, so a missing,
+// hand-edited or older value can never ship an unknown id or drop a channel.
+// No seed: the whitelist is the default, exactly like the navigation config.
+
+const DISCOVER_CHANNEL_IDS = Object.freeze([
+  'culture', 'places', 'living', 'news', 'stories',
+]);
+
+const DISCOVER_SETTING_KEY = 'discover_channels';
+
+/**
+ * Turn an untrusted list into a complete, deduplicated, whitelisted list.
+ * `previous` supplies the on/off state for ids that arrive as bare strings —
+ * an order-only request must not silently switch everything back on.
+ */
+function normalizeDiscoverList(input, previous) {
+  const prevEnabled = new Map(
+    (Array.isArray(previous) ? previous : [])
+      .filter((r) => r && typeof r.id === 'string')
+      .map((r) => [r.id, r.enabled !== false])
+  );
+  const rows = [];
+  const seen = new Set();
+  if (Array.isArray(input)) {
+    for (const item of input) {
+      const isObj = item && typeof item === 'object';
+      const id = typeof item === 'string' ? item : (isObj ? item.id : null);
+      if (typeof id !== 'string' || !DISCOVER_CHANNEL_IDS.includes(id) || seen.has(id)) continue;
+      const on = !isObj || item.enabled === undefined
+        ? (prevEnabled.has(id) ? prevEnabled.get(id) : true)
+        : !!item.enabled;
+      seen.add(id);
+      rows.push({ id, enabled: on });
+    }
+  }
+  // Anything omitted keeps a stable place at the end — a partial request can
+  // never make a channel disappear from the admin list.
+  for (const id of DISCOVER_CHANNEL_IDS) {
+    if (seen.has(id)) continue;
+    seen.add(id);
+    rows.push({ id, enabled: true });
+  }
+  return rows;
+}
+
+/** Re-validate on every read, so a stale or hand-edited value is harmless. */
+function readDiscoverConfig() {
+  let saved = null;
+  const row = S.getSetting.get(DISCOVER_SETTING_KEY);
+  if (row) { try { saved = JSON.parse(row.value); } catch { saved = null; } }
+  const arr = Array.isArray(saved)
+    ? saved
+    : (saved && Array.isArray(saved.channels) ? saved.channels : null);
+  return normalizeDiscoverList(arr, []);
+}
+
+/**
+ * Public and tiny: the ordered ids plus one boolean each. Hidden ids ARE
+ * included (with enabled:false) so the client can tell "the operator switched
+ * this off" apart from "this id is not in the config at all". Mirrors the
+ * navigation route's rationale.
+ */
+function getPublicDiscoverChannels() {
+  return readDiscoverConfig();
+}
+
+/** What the admin needs: every channel, including the hidden ones. */
+function getDiscoverConfig() {
+  return readDiscoverConfig();
+}
+
+/**
+ * Save the ordered list.
+ *   Body: { channels?: [{id, enabled}] }
+ * Accepts an array of bare id strings as an order-only update.
+ */
+function saveDiscoverConfig({ channels } = {}) {
+  const current = readDiscoverConfig();
+  const next = channels === undefined
+    ? current
+    : normalizeDiscoverList(channels, current);
+  S.setSetting.run(DISCOVER_SETTING_KEY, JSON.stringify(next), new Date().toISOString());
+  return readDiscoverConfig();
+}
+
+// ---------------------------------------------------------------------------
 // Traffic for one part of the site (used by the English-track report)
 // ---------------------------------------------------------------------------
 
@@ -6589,6 +6683,9 @@ module.exports = {
   getPublicNavigation,
   getNavigationConfig,
   saveNavigationConfig,
+  getPublicDiscoverChannels,
+  getDiscoverConfig,
+  saveDiscoverConfig,
   pathTraffic,
   listEmployersForLearner,
   listLearnersForEmployer,

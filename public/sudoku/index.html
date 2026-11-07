@@ -190,12 +190,14 @@
   .board.solved { box-shadow: 0 0 0 3px rgba(47, 191, 113, .45), 0 12px 30px rgba(47, 191, 113, .3); }
   .board.solved .cell { background: #e9f9f0; color: #146c3c; }
   .board.solved .cell.given { background: #d9f2e5; color: #0f5730; }
-  .board.solved .cell { animation: cellPop .34s ease both; }
+  .board.solved .cell { animation: cellPop .55s ease both; }
   @keyframes cellPop {
     0%   { transform: scale(1); }
-    45%  { transform: scale(1.12); background: #b9eccd; }
+    45%  { transform: scale(1.14); background: #7fe0a8; color: #064f29; box-shadow: 0 0 14px rgba(47,191,113,.55); }
     100% { transform: scale(1); }
   }
+  .solved-banner:not(.hidden) { cursor: pointer; }
+  .solved-banner:not(.hidden):hover { filter: brightness(1.03); }
   @keyframes cellShake {
     0%, 100% { transform: translateX(0); }
     25%      { transform: translateX(-3px); }
@@ -361,6 +363,7 @@
     <p id="ovRecord" class="recline hidden"></p>
     <button class="btn btn-primary" id="ovAgain"></button>
     <button class="btn btn-ghost" id="ovHome" style="margin-top:10px"></button>
+    <button class="btn btn-ghost" id="ovBoard" style="margin-top:10px"></button>
   </div>
 </div>
 <div class="toast" id="toast"></div>
@@ -386,7 +389,7 @@ var DICT = {
       waiting: 'Waiting for players… tap Start when ready', hostStart: 'Start game',
       solved: 'Solved!', youWon: 'You won!', winner: 'Winner: ', rematch: 'Play again',
       allFilled: 'All {total} cells filled · {time}',
-      newPuzzle: 'New puzzle', backHome: '← Games', leave: 'Leave',
+      newPuzzle: 'New puzzle', backHome: '← Games', leave: 'Leave', seeBoard: 'See the board',
       clear: 'Clear', hint: 'Hint', send: 'Send', say: 'Say something…',
       wrong: 'Not correct — try another number', soloOnly: 'Hints are for playing alone',
       roomNotFound: 'Room not found. Check the code.', needName: 'Please enter a name.',
@@ -405,7 +408,7 @@ var DICT = {
       waiting: 'Hintay ng kalaro… pindutin ang Start kapag ready', hostStart: 'Simulan',
       solved: 'Ayos!', youWon: 'Nanalo ka!', winner: 'Panalo: ', rematch: 'Laruin ulit',
       allFilled: 'Napuno ang lahat ng {total} kahon · {time}',
-      newPuzzle: 'Bago puzzle', backHome: '← Mga Laro', leave: 'Umalis',
+      newPuzzle: 'Bago puzzle', backHome: '← Mga Laro', leave: 'Umalis', seeBoard: 'Tingnan ang board',
       clear: 'Burahin', hint: 'Tulong', send: 'Sugo', say: 'Magsabi…',
       wrong: 'Mali — subukan ang ibang numero', soloOnly: 'Ang tulong ay para sa mag-isa',
       roomNotFound: 'Hindi mahanap ang kuwarto. I-check ang code.', needName: 'Ilagay ang pangalan.',
@@ -424,7 +427,7 @@ var DICT = {
       waiting: '等待玩家……准备好了点开始', hostStart: '开始游戏',
       solved: '完成！', youWon: '你赢了！', winner: '获胜者：', rematch: '再来一局',
       allFilled: '全部 {total} 格已填好 · {time}',
-      newPuzzle: '新题目', backHome: '← 游戏', leave: '离开',
+      newPuzzle: '新题目', backHome: '← 游戏', leave: '离开', seeBoard: '查看棋盘',
       clear: '清除', hint: '提示', send: '发送', say: '说点什么…',
       wrong: '不对——换个数字试试', soloOnly: '提示只供单人玩',
       roomNotFound: '找不到房间，请检查房间码。', needName: '请输入名字。',
@@ -443,7 +446,7 @@ var DICT = {
       waiting: 'Tunggu pemain… klik Mulai bila siap', hostStart: 'Mulai',
       solved: 'Selesai!', youWon: 'Kamu menang!', winner: 'Pemenang: ', rematch: 'Main lagi',
       allFilled: 'Semua {total} kotak terisi · {time}',
-      newPuzzle: 'Soal baru', backHome: '← Game', leave: 'Keluar',
+      newPuzzle: 'Soal baru', backHome: '← Game', leave: 'Keluar', seeBoard: 'Lihat papan',
       clear: 'Hapus', hint: 'Petunjuk', send: 'Kirim', say: 'Bilang sesuatu…',
       wrong: 'Salah — coba angka lain', soloOnly: 'Petunjuk hanya untuk main sendiri',
       roomNotFound: 'Ruang tak ditemukan. Cek kodenya.', needName: 'Masukkan nama.',
@@ -531,6 +534,30 @@ var DICT = {
     else if (kind === 'pop') { tone(520, 0, 0.08, 'sine', 0.05); }
   }
 
+  // A short, rising celebration melody played the instant the board is solved,
+  // so the music is heard during the colour sweep — not after the result popup
+  // hides the board. Timed to roughly cover the 5s celebration.
+  function winMusic() {
+    if (!soundOn) return;
+    var notes = [
+      [523.25, 0.00, 0.28],  // C5
+      [659.25, 0.30, 0.28],  // E5
+      [783.99, 0.60, 0.28],  // G5
+      [1046.50, 0.90, 0.42], // C6
+      [880.00, 1.35, 0.26],  // A5
+      [1046.50, 1.65, 0.42], // C6
+      [1318.51, 2.10, 0.50], // E6
+      [1046.50, 2.70, 0.40], // C6
+      [1318.51, 3.15, 0.70], // E6
+      [1567.98, 3.90, 0.70]  // G6
+    ];
+    notes.forEach(function (n) { tone(n[0], n[1], n[2], 'triangle', 0.07); });
+    tone(130.81, 0.00, 0.55, 'sine', 0.05); // soft bass under the melody
+    tone(196.00, 0.60, 0.55, 'sine', 0.05);
+    tone(261.63, 1.20, 0.85, 'sine', 0.05);
+    tone(392.00, 2.10, 1.20, 'sine', 0.05);
+  }
+
   /**
    * Start the audio graph on the first real gesture.
    *
@@ -566,6 +593,7 @@ var DICT = {
   var chatPrimed = false;   // the first state is history, not news
   var lastChatLen = 0;
   var resultShown = false;  // the win chime plays once per round
+  var musicPlayed = false;  // the win melody plays once per round
 
   // Fill the language-dependent chrome of the room topbar. Called from
   // buildMenu() so it is ready before the room is ever shown, and again after a
@@ -589,6 +617,7 @@ var DICT = {
     chatPrimed = false;
     lastChatLen = 0;
     resultShown = false;
+    musicPlayed = false;
     if (resultTimer) { clearTimeout(resultTimer); resultTimer = null; }
     if ($('chatBtn')) $('chatBtn').classList.remove('has-unread');
   }
@@ -766,9 +795,10 @@ var DICT = {
           // wrong stayed red for the rest of the round, even after the right
           // digit went in — and because .wrong paints with !important, it also
           // punched a red hole through the green finish state.
-          delete wrongFlash[index];
-          renderBoard();
-          sfx('tick');
+        delete wrongFlash[index];
+        renderBoard();
+        if (isSolved()) paintSolvedBanner();
+        sfx('tick');
         }
       });
   }
@@ -901,6 +931,8 @@ var DICT = {
     var done = isSolved();
     el.classList.toggle('hidden', !done);
     if (!done) return;
+    if (!musicPlayed) { musicPlayed = true; winMusic(); }
+    el.title = t('seeBoard');
     var total = S.n * S.n - S.givens;
     var elapsed = S.startedAt ? Math.max(0, Math.floor((S.serverNow - S.startedAt) / 1000)) : 0;
     $('sbTitle').textContent = t('solved');
@@ -921,10 +953,13 @@ var DICT = {
   var resultTimer = null;
   function scheduleResult() {
     if (resultTimer || resultShown) return;
+    // A solved board gets the full ~5s celebration (colour sweep + melody)
+    // before the result popup arrives; a finished-but-lost board skips it.
+    var wait = isSolved() ? 5000 : 1400;
     resultTimer = setTimeout(function () {
       resultTimer = null;
       showResult();
-    }, 620);
+    }, wait);
   }
 
   /**
@@ -980,7 +1015,7 @@ var DICT = {
       if ((r + 1) % br === 0 && r !== n - 1) cls += ' box-b';
 
       // Stagger the finish sweep so it reads as a wave rather than a flip.
-      var delay = solved ? ' style="animation-delay:' + Math.min(i * 22, 700) + 'ms"' : '';
+      var delay = solved ? ' style="animation-delay:' + Math.min(i * 55, 4500) + 'ms"' : '';
       cells += '<div class="' + cls + '" data-i="' + i + '"' + delay + '>' + (val !== 0 ? val : '') + '</div>';
     }
     board.innerHTML = cells;
@@ -1053,7 +1088,7 @@ var DICT = {
   function showResult() {
     var ov = $('overlay');
     ov.classList.remove('hidden');
-    if (!resultShown) { resultShown = true; sfx('win'); }
+    if (!resultShown) { resultShown = true; }
     if (S.solo) {
       $('ovEmoji').textContent = '🎉';
       $('ovTitle').textContent = t('youSolved');
@@ -1079,6 +1114,7 @@ var DICT = {
     }
     $('ovAgain').textContent = S.solo ? t('newPuzzle') : t('rematch');
     $('ovHome').textContent = t('backHome');
+    $('ovBoard').textContent = t('seeBoard');
     var elapsed = S.startedAt ? Math.max(0, Math.floor((S.serverNow - S.startedAt) / 1000)) : 0;
     CB.scores.record(CB.gameId(), ($('nameInput').value || '').trim(), elapsed, { solo: !!S.solo, time: elapsed, mistakes: (S.you && S.you.mistakes) || 0, level: level, levelLabel: t(level) });
     $('ovAgain').onclick = function () {
@@ -1088,6 +1124,7 @@ var DICT = {
       ov.classList.add('hidden');
     };
     $('ovHome').onclick = function () { showMenu(); buildMenu(); };
+    $('ovBoard').onclick = function () { ov.classList.add('hidden'); };
   }
 
   function escapeHtml(s) {
@@ -1117,6 +1154,11 @@ var DICT = {
     localStorage.setItem('sudoku.sound', soundOn ? 'on' : 'off');
     renderSoundIcon();
     if (soundOn) sfx('tick');
+  });
+  // Tapping the win strip (while the result popup is dismissed) brings the
+  // result back, so "See the board" is never a dead end.
+  $('solvedBanner').addEventListener('click', function () {
+    if (resultShown) $('overlay').classList.remove('hidden');
   });
   $('chatBtn').addEventListener('click', function () {
     chatOpen = !chatOpen;

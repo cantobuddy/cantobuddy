@@ -113,6 +113,10 @@ const STATE = {
   // current list are on screen (the pager — see NEWS_PAGE_SIZE).
   discover: {
     channel: 'culture',
+    // Ordered [{id, enabled}] from /api/discover-channels, or null until the
+    // boot fetch resolves. renderHomeDiscoverPromo and applyDiscoverOrder read
+    // this; null means "use the authored HTML order" (the fallback).
+    allChannels: null,
     category: null,
     region: null,
     posts: { culture: null, news: null },
@@ -825,6 +829,10 @@ async function init() {
     renderHomeFestival();
     renderHomeDailyCulture();
     renderHomeDiscoverPromo();
+    // Apply the operator's Discover tab order/visibility. Fired after the
+    // initial render so the Home promo + Discover row can be corrected from the
+    // saved config; a failed fetch leaves the authored HTML order untouched.
+    applyDiscoverOrder().catch((err) => console.error('Discover order failed:', err));
   renderHomeGamesPromo();
   renderGamesHub();
 
@@ -1325,19 +1333,26 @@ async function renderHomeDailyCulture() {
   }
 }
 
-/** Three Discover channel cards on the home screen. */
+/**
+ * The Home Discover promo grid mirrors the menu: same five channels, same order,
+ * same visibility. The operator's choice is authoritative, so we read it from
+ * STATE.discover.allChannels (set by applyDiscoverOrder()); that value falls back
+ * to the authored HTML order when the API has not loaded yet or fails offline.
+ */
 function renderHomeDiscoverPromo() {
   const wrap = document.getElementById('home-discover-promo');
   if (!wrap) return;
-  const channels = [
-    { key: 'culture', emoji: '🏛️', label: t('discover.tabCulture'), desc: t('discover.cultureLead') },
-    { key: 'news',    emoji: '📰', label: t('discover.tabNews'),    desc: t('discover.newsLead') },
-    { key: 'living', emoji: '🏠', label: t('discover.tabLiving'), desc: t('discover.livingLead') },
-    // Outings earns a card here rather than living only behind the tab: a day
-    // off is a plan she makes in advance, and the one screen she opens on a
-    // Sunday morning is Home.
-    { key: 'places', emoji: '🗺️', label: t('discover.tabPlaces'), desc: t('discover.placesLead') },
-  ];
+  const META = {
+    culture: { emoji: '🏛️', label: t('discover.tabCulture'), desc: t('discover.cultureLead') },
+    places:  { emoji: '🗺️', label: t('discover.tabPlaces'),  desc: t('discover.placesLead') },
+    living:  { emoji: '🏠', label: t('discover.tabLiving'),  desc: t('discover.livingLead') },
+    news:    { emoji: '📰', label: t('discover.tabNews'),     desc: t('discover.newsLead') },
+    stories: { emoji: '📖', label: t('discover.tabStories'),  desc: t('discover.storiesLead') },
+  };
+  // Only the ENABLED channels, in the operator's order.
+  const channels = (STATE.discover.allChannels || DISCOVER_CHANNELS_DEFAULT)
+    .filter((c) => c.enabled !== false && META[c.id])
+    .map((c) => ({ key: c.id, ...META[c.id] }));
   wrap.innerHTML =
     `<h4 class="home-section-title">${escapeHtml(t('discover.title'))}</h4>` +
     `<div class="discover-promo-grid">` +
@@ -1348,6 +1363,87 @@ function renderHomeDiscoverPromo() {
         <span class="discover-promo-desc">${escapeHtml(c.desc)}</span>
       </button>`).join('') +
     `</div>`;
+}
+
+/**
+ * The default Discover order (also the authored HTML order and the DB default),
+ * used as the fallback before /api/discover-channels resolves or if it fails.
+ */
+const DISCOVER_CHANNELS_DEFAULT = [
+  { id: 'culture', enabled: true },
+  { id: 'places',  enabled: true },
+  { id: 'living',  enabled: true },
+  { id: 'news',    enabled: true },
+  { id: 'stories', enabled: true },
+];
+
+/**
+ * Apply the operator's Discover tab order + visibility to the live page.
+ *
+ * Mirrors nav-order.js: the HTML buttons are the fallback, this fetch is only an
+ * override. We reorder the real .discover-tab nodes (so onclick / data-i18n /
+ * listeners travel with them) and tag disabled ones with data-discover-hidden
+ * (a display:none !important rule). We also cache the ordered list on
+ * STATE.discover.allChannels so renderHomeDiscoverPromo() can mirror it, and we
+ * make the first ENABLED tab the default the visitor lands on.
+ *
+ * A failed fetch (offline / API down) keeps the authored HTML order: allChannels
+ * stays null and renderHomeDiscoverPromo() falls back to DISCOVER_CHANNELS_DEFAULT.
+ */
+async function applyDiscoverOrder() {
+  let cfg = null;
+  try {
+    const res = await fetch('/api/discover-channels', { cache: 'no-store' });
+    if (res.ok) {
+      const list = await res.json();
+      if (Array.isArray(list) && list.length) cfg = list;
+    }
+  } catch { /* offline: keep authored order */ }
+
+  if (!cfg) cfg = DISCOVER_CHANNELS_DEFAULT;
+  STATE.discover.allChannels = cfg;
+
+  const row = document.querySelector('.discover-tabs');
+  if (row) {
+    const byId = {};
+    row.querySelectorAll('.discover-tab').forEach((b) => { byId[b.dataset.channel] = b; });
+    const frag = document.createDocumentFragment();
+    cfg.forEach((c) => {
+      const btn = byId[c.id];
+      if (!btn) return;
+      if (c.enabled === false) btn.setAttribute('data-discover-hidden', '');
+      else btn.removeAttribute('data-discover-hidden');
+      frag.appendChild(btn); // re-append in the operator's order
+    });
+    row.appendChild(frag);
+  }
+
+  // Default channel = first enabled tab. If the current one is hidden, switch.
+  const firstEnabled = cfg.find((c) => c.enabled !== false);
+  if (firstEnabled) {
+    if (!STATE.discover.channel || (STATE.discover.channel !== firstEnabled.id && isDiscoverChannelHidden(STATE.discover.channel))) {
+      STATE.discover.channel = firstEnabled.id;
+      const active = document.querySelector(`.discover-tab[data-channel="${firstEnabled.id}"]`);
+      if (active) {
+        document.querySelectorAll('.discover-tab').forEach((b) => b.classList.remove('active'));
+        active.classList.add('active');
+      }
+    }
+  }
+
+  // Keep the Home promo grid in sync if it is already on screen.
+  if (document.getElementById('home-discover-promo')) renderHomeDiscoverPromo();
+  // And the Discover view itself, if it is the active view.
+  const discoverView = document.getElementById('view-discover');
+  if (discoverView && discoverView.classList.contains('active')) renderDiscover();
+}
+
+/** A hidden channel is one absent from the enabled set. */
+function isDiscoverChannelHidden(id) {
+  const cfg = STATE.discover.allChannels;
+  if (!cfg) return false;
+  const c = cfg.find((x) => x.id === id);
+  return !c || c.enabled === false;
 }
 
 /* ---------------------------------------------------------------------------

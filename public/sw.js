@@ -19,11 +19,19 @@
 // deployed. v143 was the last live cache. Bump again on every later edit to
 // any APP_SHELL file.
 //
-// v146: the Discover menu lost its Outings tab (Culture / News / Living now),
-// so index.html changed. The admin Banners tab also changed, but /admin is
-// network-first and deliberately NOT in APP_SHELL — it is never served from
-// this cache, so it needs no bump of its own.
-const CACHE = 'cantobuddy-v146';
+// v146 — 2026-11-07. The Discover menu lost its Outings tab (Culture / News /
+// Living) and the admin Banners page gained the two fixed slides, so index.html,
+// admin.html and admin.js changed. /admin is network-first and NOT in APP_SHELL,
+// so only the index.html edit forced the bump.
+//
+// v147 — this release (2026-11-07). The Discover menu is restored to FIVE tabs
+// in operator order — Culture, Outings, Living, News, Stories — AND the order /
+// visibility of those tabs is now admin-controlled (new /api/discover-channels +
+// the admin Discover tab). That touches index.html (the tab row), app.js
+// (applyDiscoverOrder + renderHomeDiscoverPromo), styles.css (the hide rule) and
+// admin.html / admin.js (the admin tab). All four app-shell files changed, so the
+// bump is required; /admin stays network-first and needs none of its own.
+const CACHE = 'cantobuddy-v147';
 
 // Which paths are server-rendered SEO documents rather than app-shell assets.
 // Kept as one matcher so it can be asserted against `LANG_PREFIX` in seo.js —

@@ -2094,35 +2094,103 @@ async function classifyNewsPosts() {
 }
 
 // ---- Home banners ----------------------------------------------------------
-// The four promo banners on Home. The operator controls three things — how long
-// each holds, which are in rotation, and their order — and nothing else: the
-// words live in the client's i18n table so they stay translated in all four
-// languages. See the note in the Banners tab markup.
+// The Home deck is SIX slides, but only FOUR of them are the operator's to
+// change. The list below therefore has two parts:
+//
+//   - two FIXED slides (the Learn Cantonese hero, then Daily Tools) that no
+//     visitor-facing setting may move or remove, and
+//   - four PROMOS (games, culture, outings, living) that the operator can
+//     switch off and reorder.
+//
+// The admin page used to list only the four promos, so an operator comparing
+// it with the live homepage saw two banners "missing" — but they were not
+// missing from the deck, they were missing from the LIST. The fixed slides
+// are now shown, in deck order, with the positions they actually occupy.
+//
+// The operator controls three things for the promos — how long each holds,
+// which are in rotation, and their order — and nothing else: the words live
+// in the client's i18n table so they stay translated in all four languages.
+// See the note in the Banners tab markup.
 //
 // Every control saves IMMEDIATELY and re-reads the server's answer rather than
 // trusting local state. That is deliberate: order is renumbered 0..n-1 on the
 // server, so the response is the only honest picture of what the app will show.
 
+// The hrefs here are the REAL destinations of the slides, so an operator
+// reading this page can open the same thing a visitor would. (The Living
+// slide goes to /stories — the server-rendered shelf — not to ?view=living.)
 const BANNER_META = {
+  hero:    { emoji: '🦜', label: 'Learn Cantonese', href: '/learn' },
+  tools:   { emoji: '🧰', label: 'Daily Tools',     href: '/tools' },
   games:   { emoji: '🎮', label: 'Games',   href: '/?view=games' },
   culture: { emoji: '🏮', label: 'Culture', href: '/?view=discover' },
   outings: { emoji: '🗺️', label: 'Outings', href: '/places' },
-  living:  { emoji: '🏠', label: 'Living',  href: '/?view=living' },
+  living:  { emoji: '🏠', label: 'Living',  href: '/stories' },
 };
+
+// The two slides that are part of the deck but not operator-controlled.
+// `note` says WHY they cannot move, so the row does not read as a control
+// that has gone missing.
+const FIXED_BANNERS = [
+  { slug: 'hero',  note: 'Always first' },
+  { slug: 'tools', note: 'Pinned second' },
+];
 
 let BANNER_CFG = null;
 
 async function renderAdminBanners() {
   const list = document.getElementById('admin-banners-list');
+  const fixed = document.getElementById('admin-banners-fixed');
   if (!list) return;
   try {
     BANNER_CFG = await apiGet('/api/admin/banners');
     const secs = document.getElementById('banner-seconds');
     if (secs) secs.value = BANNER_CFG.seconds;
 
+    const enabled = BANNER_CFG.banners.filter((b) => b.enabled).length;
+    // The live deck is the hero, then Daily Tools, then every promo still in
+    // rotation — EXCEPT that switching off all four promos takes Daily Tools
+    // with them and leaves the hero alone (see paintHomeBanners in app.js).
+    // So Daily Tools is only on the deck while at least one promo is.
+    const toolsOn = enabled > 0;
+    const slides = toolsOn ? FIXED_BANNERS.length + enabled : 1;
+
+    // The fixed slides. They are drawn as read-only rows — no checkbox, no
+    // arrows — because there is no server call that could move them. The
+    // position numbers are the DECK positions (hero is 1, Daily Tools is 2),
+    // so this block and the promo block below read as one continuous deck.
+    if (fixed) {
+      fixed.innerHTML = FIXED_BANNERS.map((f) => {
+        const m = BANNER_META[f.slug] || { emoji: '🖼️', label: f.slug, href: '' };
+        const on = f.slug !== 'tools' || toolsOn;
+        const note = f.slug === 'tools' && !toolsOn
+          ? 'Off while every promo is off'
+          : f.note;
+        return `<div class="admin-vocab-row" style="display:flex;align-items:center;gap:12px;opacity:${on ? 1 : .55}">
+          <span style="flex:0 0 auto;width:20px;text-align:center;font-size:1rem"
+                aria-hidden="true" title="Fixed in the deck">🔒</span>
+          <div style="flex:1 1 auto;min-width:0">
+            <strong>${m.emoji} ${m.label}</strong>
+            <small style="display:block;color:#6b7280;font-weight:600">
+              ${note} · ${on ? `deck position ${f.slug === 'hero' ? 1 : 2}` : 'not on the deck'} · <code>${m.href}</code>
+            </small>
+          </div>
+          <span class="admin-vocab-tag" style="flex:0 0 auto">${on ? 'Always on' : 'Hidden'}</span>
+        </div>`;
+      }).join('');
+    }
+
+    // The promos. The position number is the LIVE deck position — the slide
+    // index a visitor's carousel dot shows — not a slot in the config. That
+    // means a promo that is switched off has no position at all (it is not on
+    // the deck), and unticking one renumbers the promos below it, exactly as
+    // the carousel does. The arrows still reorder within the promo group;
+    // the fixed slides above are not part of that group and cannot be passed.
+    let slot = FIXED_BANNERS.length;
     list.innerHTML = BANNER_CFG.banners.map((b, i) => {
       const m = BANNER_META[b.slug] || { emoji: '🖼️', label: b.slug, href: '' };
       const on = b.enabled;
+      const pos = on ? ++slot : null;
       return `<div class="admin-vocab-row" style="display:flex;align-items:center;gap:12px;opacity:${on ? 1 : .55}">
         <input type="checkbox" ${on ? 'checked' : ''} id="banner-on-${b.slug}"
                onchange="toggleBanner('${b.slug}', this.checked)"
@@ -2130,7 +2198,7 @@ async function renderAdminBanners() {
         <label for="banner-on-${b.slug}" style="flex:1 1 auto;min-width:0;cursor:pointer">
           <strong>${m.emoji} ${m.label}</strong>
           <small style="display:block;color:#6b7280;font-weight:600">
-            ${on ? 'In rotation' : 'Hidden'} · position ${i + 1} · <code>${m.href}</code>
+            ${on ? `In rotation · deck position ${pos}` : 'Hidden · not on the deck'} · <code>${m.href}</code>
           </small>
         </label>
         <button class="btn btn-outline btn-sm" ${i === 0 ? 'disabled' : ''}
@@ -2140,12 +2208,13 @@ async function renderAdminBanners() {
       </div>`;
     }).join('');
 
-    const enabled = BANNER_CFG.banners.filter((b) => b.enabled).length;
     document.getElementById('admin-banners-stamp').textContent =
-      `${enabled} of ${BANNER_CFG.banners.length} in rotation · `
+      `${enabled} of ${BANNER_CFG.banners.length} promos in rotation · `
+      + `${slides} slide${slides === 1 ? '' : 's'} on the deck · `
       + `${BANNER_CFG.seconds}s each · saved ${new Date().toLocaleTimeString()}`;
   } catch (e) {
     list.innerHTML = `<div class="admin-empty">Could not load banners: ${e.message}</div>`;
+    if (fixed) fixed.innerHTML = '';
   }
 }
 

@@ -373,18 +373,27 @@
          words are NOT editable here on purpose — each banner's copy is
          translated in all four languages in i18n.js, and a free-text field here
          would ship an English-only banner to Chinese, Filipino and Indonesian
-         readers. -->
+         readers.
+
+         The deck is SIX slides: two FIXED ones (the Learn Cantonese hero and
+         Daily Tools) plus the four PROMOS the operator can switch and
+         reorder. The fixed two are listed too — they used to be absent from
+         this page, which made the admin look like it was missing banners
+         that were in fact on the homepage all along. -->
     <div id="tab-banners" class="admin-tab-content">
       <div class="admin-toolbar">
         <h3>Home banners</h3>
         <button class="btn btn-outline btn-sm" onclick="renderAdminBanners()">↻ Refresh</button>
       </div>
       <p class="admin-hint">
-        The Home hero is one rotating deck: the <strong>Learn Cantonese</strong>
-        banner is always first, followed by the four illustrated promo banners
-        below. Switch one off and it stops appearing immediately; reorder them
-        to change what comes after the hero. Changes apply to every visitor on
-        their next page load. If all four are off, the hero simply stays put.
+        The Home hero is one rotating deck of <strong>six slides</strong>. The
+        <strong>Learn Cantonese</strong> banner is always first and
+        <strong>Daily Tools</strong> is always pinned second — neither can be
+        switched off or moved. The four illustrated promo banners below are
+        yours: switch one off and it stops appearing immediately; reorder them
+        to change what comes after Daily Tools. Changes apply to every visitor
+        on their next page load. If all four promos are off, the deck falls
+        back to the Learn Cantonese banner alone.
       </p>
 
       <div class="admin-field-row">
@@ -394,7 +403,11 @@
         <span class="admin-hint" style="margin:0">2–60 seconds. 5 is the default.</span>
       </div>
 
-      <div id="admin-banners-list" class="admin-list" style="margin-top:14px"></div>
+      <h4 class="admin-subhead" style="margin-top:18px">Always on</h4>
+      <div id="admin-banners-fixed" class="admin-list"></div>
+
+      <h4 class="admin-subhead" style="margin-top:22px">Promos — switch and reorder</h4>
+      <div id="admin-banners-list" class="admin-list"></div>
       <p class="admin-hint" id="admin-banners-stamp"></p>
     </div>
 

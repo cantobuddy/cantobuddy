@@ -18,7 +18,12 @@
 // v144 was the previous local bump for the banner/date work; it was never
 // deployed. v143 was the last live cache. Bump again on every later edit to
 // any APP_SHELL file.
-const CACHE = 'cantobuddy-v145';
+//
+// v146: the Discover menu lost its Outings tab (Culture / News / Living now),
+// so index.html changed. The admin Banners tab also changed, but /admin is
+// network-first and deliberately NOT in APP_SHELL — it is never served from
+// this cache, so it needs no bump of its own.
+const CACHE = 'cantobuddy-v146';
 
 // Which paths are server-rendered SEO documents rather than app-shell assets.
 // Kept as one matcher so it can be asserted against `LANG_PREFIX` in seo.js —

@@ -2129,12 +2129,12 @@ const BANNER_META = {
   living:  { emoji: '🏠', label: 'Living',  href: '/stories' },
 };
 
-// The two slides that are part of the deck but not operator-controlled.
-// `note` says WHY they cannot move, so the row does not read as a control
-// that has gone missing.
+// The only slide that is part of the deck but not operator-controlled. `note`
+// says WHY it cannot move, so the row does not read as a control that has gone
+// missing. (Daily Tools used to be pinned here too, but it is now a normal,
+// switchable/reorderable promo in the home_banners table.)
 const FIXED_BANNERS = [
-  { slug: 'hero',  note: 'Always first' },
-  { slug: 'tools', note: 'Pinned second' },
+  { slug: 'hero', note: 'Always first' },
 ];
 
 let BANNER_CFG = null;
@@ -2149,34 +2149,29 @@ async function renderAdminBanners() {
     if (secs) secs.value = BANNER_CFG.seconds;
 
     const enabled = BANNER_CFG.banners.filter((b) => b.enabled).length;
-    // The live deck is the hero, then Daily Tools, then every promo still in
-    // rotation — EXCEPT that switching off all four promos takes Daily Tools
-    // with them and leaves the hero alone (see paintHomeBanners in app.js).
-    // So Daily Tools is only on the deck while at least one promo is.
-    const toolsOn = enabled > 0;
-    const slides = toolsOn ? FIXED_BANNERS.length + enabled : 1;
+    // The live deck is the hero, then every promo still in rotation (Daily
+    // Tools now included as a normal promo). So the total is hero + enabled
+    // promos, and switching off every promo leaves just the hero.
+    const slides = 1 + enabled;
 
     // The fixed slides. They are drawn as read-only rows — no checkbox, no
     // arrows — because there is no server call that could move them. The
-    // position numbers are the DECK positions (hero is 1, Daily Tools is 2),
-    // so this block and the promo block below read as one continuous deck.
+    // position number is the DECK position (hero is 1), so this block and the
+    // promo block below read as one continuous deck.
     if (fixed) {
       fixed.innerHTML = FIXED_BANNERS.map((f) => {
         const m = BANNER_META[f.slug] || { emoji: '🖼️', label: f.slug, href: '' };
-        const on = f.slug !== 'tools' || toolsOn;
-        const note = f.slug === 'tools' && !toolsOn
-          ? 'Off while every promo is off'
-          : f.note;
-        return `<div class="admin-vocab-row" style="display:flex;align-items:center;gap:12px;opacity:${on ? 1 : .55}">
+        const pos = FIXED_BANNERS.indexOf(f) + 1;
+        return `<div class="admin-vocab-row" style="display:flex;align-items:center;gap:12px;opacity:1">
           <span style="flex:0 0 auto;width:20px;text-align:center;font-size:1rem"
                 aria-hidden="true" title="Fixed in the deck">🔒</span>
           <div style="flex:1 1 auto;min-width:0">
             <strong>${m.emoji} ${m.label}</strong>
             <small style="display:block;color:#6b7280;font-weight:600">
-              ${note} · ${on ? `deck position ${f.slug === 'hero' ? 1 : 2}` : 'not on the deck'} · <code>${m.href}</code>
+              ${f.note} · deck position ${pos} · <code>${m.href}</code>
             </small>
           </div>
-          <span class="admin-vocab-tag" style="flex:0 0 auto">${on ? 'Always on' : 'Hidden'}</span>
+          <span class="admin-vocab-tag" style="flex:0 0 auto">Always on</span>
         </div>`;
       }).join('');
     }

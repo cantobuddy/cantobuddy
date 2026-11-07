@@ -1639,12 +1639,9 @@ function paintHomeBanners() {
     if (HOME_BANNERS.includes(s) && !wanted.includes(s)) wanted.push(s);
   });
 
-  // Pin Daily Tools to the first promotion slot. The API lists only the four
-  // switchable promos, so once settings load the tools slide would otherwise
-  // be marked off. An explicitly EMPTY list means "hide the whole promotion
-  // deck", and in that case even the pinned slide stays off (hero only).
-  const deckOn = homeBanners.slugs === null || homeBanners.slugs.length > 0;
-  if (deckOn && !wanted.includes('tools')) wanted.unshift('tools');
+  // Daily Tools is now a normal promo row in the home_banners table, so the API
+  // already returns it (when enabled) in the operator's chosen order. No special
+  // pinning is needed — it behaves exactly like the other promos below.
 
   const promos = Array.prototype.slice.call(track.querySelectorAll('.hb-promo'));
   promos.forEach((el) => {

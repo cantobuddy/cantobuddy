@@ -1656,11 +1656,32 @@ const SEED_BANNERS = ['games', 'culture', 'outings', 'living'];
 const DEFAULT_ROTATE_SECONDS = 5;
 
 function seedBannersIfNeeded() {
+  const now = new Date().toISOString();
+
+  // The four original promos. Unchanged from before: a fresh install gets them
+  // in this order, and an existing install keeps whatever the operator set,
+  // because INSERT OR IGNORE keys on the slug and never touches a row that is
+  // already there.
   const ins = db.prepare(
     'INSERT OR IGNORE INTO home_banners (slug, enabled, sort_order, updated_at) VALUES (?, 1, ?, ?)'
   );
-  const now = new Date().toISOString();
   SEED_BANNERS.forEach((slug, i) => ins.run(slug, i, now));
+
+  // Daily Tools used to be a hard-pinned "always on" slide, outside the
+  // home_banners table. It is now an operator-controlled promo like the others.
+  // On a database that has no tools row yet — a fresh install, or one carried
+  // over from before the change — add it at the FRONT and nudge the existing
+  // rows down one slot. That makes Tools the first promo while preserving the
+  // operator's chosen relative order of the other four. Idempotent: if the row
+  // already exists (fresh seed above, or an operator who already moved it), the
+  // whole block is skipped and their arrangement is left exactly as it is.
+  const hasTools = db.prepare('SELECT 1 FROM home_banners WHERE slug = ?').get('tools');
+  if (!hasTools) {
+    db.prepare('UPDATE home_banners SET sort_order = sort_order + 1 WHERE slug != ?').run('tools');
+    db.prepare(
+      'INSERT INTO home_banners (slug, enabled, sort_order, updated_at) VALUES (?, 1, 0, ?)'
+    ).run('tools', now);
+  }
 
   // The speed is a setting, not a banner property: one number for the whole
   // carousel. Inserted once so an operator who chose 9 seconds keeps it.

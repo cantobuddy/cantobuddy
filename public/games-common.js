@@ -312,11 +312,141 @@
   };
 
   /* ---------------- auto-run once the DOM is ready ---------------- */
+  /* ---------------- weekly tournament ---------------- */
+  // The "Sunday Tournament" is a leaderboard clustered to the HKT Sat–Sun window
+  // (see db.js getTournamentCurrent). This module draws a compact banner — the
+  // featured game, the live top players, "your rank", and a WhatsApp share — and
+  // mounts itself wherever a #tournament-banner element exists on a game page.
+  function randomToken(bytes) {
+    bytes = bytes || 18;
+    var buf = new Uint8Array(bytes);
+    (window.crypto || window.msCrypto).getRandomValues(buf);
+    var out = '';
+    for (var i = 0; i < buf.length; i++) out += ('0' + buf[i].toString(16)).slice(-2);
+    return out;
+  }
+  function escapeHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  CB.tournament = {
+    KEY: 'cb_device',
+    deviceId: function () {
+      try {
+        var id = localStorage.getItem(this.KEY);
+        if (!id) { id = 'dev_' + randomToken(18); localStorage.setItem(this.KEY, id); }
+        return id;
+      } catch (e) { return ''; }
+    },
+    fetchCurrent: function () {
+      return fetch('/api/tournaments/current')
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .catch(function () { return null; });
+    },
+    // A WhatsApp deep link that drops the group straight into the featured game.
+    shareUrl: function (game, label) {
+      var url = location.origin + '/games/' + (game || gameId()) + '/';
+      var txt = (label || "Join me for this week's CantoBuddy tournament! ") + url;
+      return 'https://wa.me/?text=' + encodeURIComponent(txt);
+    },
+    ensureStyles: function () {
+      if (document.getElementById('cbTourneyStyle')) return;
+      var css =
+        '.cb-tn{padding:12px 14px;margin:14px 0;border:1px solid #e3e8ef;border-radius:14px;' +
+        'background:linear-gradient(135deg,#fff7e9,#fff);box-shadow:0 1px 2px rgba(18,33,47,.05)}' +
+        '.cb-tn-head{font-weight:700;font-size:14px;color:#7a4a00;margin-bottom:8px}' +
+        '.cb-tn-live{display:inline-block;margin-left:6px;font-size:10px;font-weight:800;' +
+        'letter-spacing:.06em;color:#fff;background:#e0532a;padding:1px 6px;border-radius:6px;vertical-align:middle}' +
+        '.cb-tn-closed{display:inline-block;margin-left:6px;font-size:10px;font-weight:700;color:#8a93a0}' +
+        '.cb-tn-list{list-style:none;margin:0;padding:0}' +
+        '.cb-tn-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f3ede0}' +
+        '.cb-tn-row:last-child{border-bottom:0}' +
+        '.cb-tn-me{background:#fff3d6;border-radius:8px;padding-left:4px;padding-right:4px}' +
+        '.cb-tn-rank{width:20px;height:20px;flex:0 0 auto;border-radius:50%;background:#ffd479;' +
+        'color:#5a3a00;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center}' +
+        '.cb-tn-name{flex:1 1 auto;min-width:0;font-weight:600;color:#12212f;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
+        '.cb-tn-wins{color:#7a4a00;font-weight:700;font-size:12px}' +
+        '.cb-tn-empty{color:#8a93a0;font-style:italic;padding:6px 0}' +
+        '.cb-tn-you{margin-top:8px;font-weight:700;color:#1f7a3d;font-size:13px}' +
+        '.cb-tn-share{margin-top:10px;width:100%;border:0;border-radius:10px;padding:9px 12px;' +
+        'background:#25d366;color:#fff;font-weight:700;font-size:13px;cursor:pointer}' +
+        '.cb-tn-share:hover{background:#1ebe5b}';
+      var st = document.createElement('style');
+      st.id = 'cbTourneyStyle';
+      st.textContent = css;
+      (document.head || document.documentElement).appendChild(st);
+    },
+    render: function (el, t) {
+      var self = this;
+      var me = this.deviceId();
+      el.innerHTML = '';
+      var head = document.createElement('div');
+      head.className = 'cb-tn-head';
+      head.innerHTML = '🏆 Weekly Showdown — ' + escapeHtml(t.week.game) +
+        (t.week.status === 'open'
+          ? ' <span class="cb-tn-live">LIVE</span>'
+          : ' <span class="cb-tn-closed">closed</span>');
+      el.appendChild(head);
+
+      var list = document.createElement('ol');
+      list.className = 'cb-tn-list';
+      (t.leaderboard || []).slice(0, 5).forEach(function (r, i) {
+        var li = document.createElement('li');
+        li.className = 'cb-tn-row' + (me && r.publicId === me ? ' cb-tn-me' : '');
+        li.innerHTML = '<span class="cb-tn-rank">' + (i + 1) + '</span>' +
+          '<span class="cb-tn-name">' + escapeHtml(r.name) + '</span>' +
+          '<span class="cb-tn-wins">' + r.wins + 'W</span>';
+        list.appendChild(li);
+      });
+      if (!t.leaderboard || !t.leaderboard.length) {
+        var empty = document.createElement('li');
+        empty.className = 'cb-tn-empty';
+        empty.textContent = 'No results yet — be the first!';
+        list.appendChild(empty);
+      }
+      el.appendChild(list);
+
+      if (me) {
+        var idx = (t.leaderboard || []).findIndex(function (r) { return r.publicId === me; });
+        if (idx >= 0) {
+          var you = document.createElement('div');
+          you.className = 'cb-tn-you';
+          you.textContent = "You're ranked #" + (idx + 1) + ' this week';
+          el.appendChild(you);
+        }
+      }
+
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'cb-tn-share';
+      btn.textContent = 'Share to group chat';
+      btn.addEventListener('click', function () {
+        window.open(self.shareUrl(t.week.game, 'This week on CantoBuddy: ' + t.week.game + ' tournament! '), '_blank', 'noopener');
+      });
+      el.appendChild(btn);
+    },
+    mount: function (el) {
+      if (!el) return;
+      this.ensureStyles();
+      el.className = (el.className || '').replace(/\bcb-tn\b/g, '').trim() + ' cb-tn';
+      el.innerHTML = '<div class="cb-tn-empty">Loading this week’s tournament…</div>';
+      var self = this;
+      this.fetchCurrent().then(function (t) {
+        if (!t) { el.innerHTML = ''; return; }
+        self.render(el, t);
+      });
+    }
+  };
+
   function init() {
     var gid = gameId();
     var input = document.getElementById('nameInput');
     if (input) CB.name.attach(input);
     CB.scores.refresh(gid, CB.name.get());
+    var tn = document.getElementById('tournament-banner');
+    if (tn) CB.tournament.mount(tn);
     if (input) {
       var re = function () { CB.scores.refresh(gid, CB.name.get()); };
       input.addEventListener('input', re);

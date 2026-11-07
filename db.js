@@ -834,6 +834,18 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_game_results_device ON game_results(public_id, game);
   CREATE INDEX IF NOT EXISTS idx_game_results_game   ON game_results(game, created_at);
+
+  CREATE TABLE IF NOT EXISTS tournament_badges (
+    id           INTEGER PRIMARY KEY,
+    week_start   TEXT NOT NULL,   -- HKT Saturday 00:00, the weekend key (ISO UTC)
+    game         TEXT NOT NULL,
+    public_id    TEXT NOT NULL,
+    display_name TEXT NOT NULL DEFAULT '',
+    rank         INTEGER NOT NULL,
+    label        TEXT NOT NULL,
+    created_at   TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_badges_week ON tournament_badges(week_start, game);
 `);
 
 // ---------------------------------------------------------------------------
@@ -2944,6 +2956,37 @@ const S = {
      GROUP BY game
   `),
 
+  // --- Weekend tournaments: a leaderboard clustered by the HKT Sat–Sun window,
+  //     plus the top-3 badges awarded when a weekend closes. ---
+  // `created_at` is an ISO-8601 UTC string, so a string comparison against the
+  // window boundaries (also UTC) is a correct time test with no date parsing.
+  weekendLeaderboard: db.prepare(`
+    SELECT public_id, MAX(display_name) AS display_name,
+           COALESCE(SUM(won), 0) AS wins, COUNT(*) AS played
+      FROM game_results
+     WHERE game = ? AND created_at >= ? AND created_at < ?
+     GROUP BY public_id
+     ORDER BY wins DESC, played ASC, public_id
+     LIMIT ?
+  `),
+  // Has this weekend already been awarded? Drives the idempotent badge grant so
+  // a badge is minted exactly once no matter how many times the leaderboard is
+  // viewed after the window closes.
+  badgesForWeek: db.prepare(`
+    SELECT public_id, display_name, rank, label
+      FROM tournament_badges
+     WHERE week_start = ? AND game = ?
+     ORDER BY rank ASC
+  `),
+  badgeExistsForWeek: db.prepare(`
+    SELECT 1 FROM tournament_badges WHERE week_start = ? AND game = ? LIMIT 1
+  `),
+  insertBadge: db.prepare(`
+    INSERT INTO tournament_badges
+      (week_start, game, public_id, display_name, rank, label, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `),
+
   // --- Living: supportive passages about life in Hong Kong ---
   listLivingPosts: db.prepare(`
     SELECT id, slug, category, sub_key, icon,
@@ -3304,6 +3347,135 @@ function gameRecordsForDevices(publicIds, game) {
   `).all(game, ...ids);
   for (const r of rows) map.set(r.public_id, { wins: Number(r.wins) || 0, played: Number(r.played) || 0 });
   return map;
+}
+
+// ---------------------------------------------------------------------------
+// Weekend tournaments
+//
+// A "Sunday Tournament" is NOT a separate game or a live room — the games are
+// local/async, so a tournament is a leaderboard clustered by the HKT Sat–Sun
+// window, with one featured game per week. The featured game rotates determin-
+// istically by week (UNO → Big Two → Sudoku), so no admin UI or scheduler is
+// needed for the MVP. Results are read straight from `game_results`; nothing is
+// written except the once-per-weekend top-3 badges.
+// ---------------------------------------------------------------------------
+
+// The three games that take part in the rotation. (GAME_KEYS also lists
+// wordmatch/chinesechecker, which are not part of the weekly tournament.)
+const TOURNAMENT_GAMES = ['uno', 'bigtwo', 'sudoku'];
+// A fixed Saturday used only to anchor the week index so the rotation is stable
+// across servers and restarts. 2026-01-03 is a Saturday.
+const TOURNAMENT_EPOCH = Date.UTC(2026, 0, 3);
+
+/**
+ * The HKT Sat–Sun window that contains (or, midweek, most recently contained)
+ * `refMs`. Returns UTC-ms boundaries; the window is [start, start + 2 days),
+ * i.e. Saturday 00:00 HKT through Sunday 23:59:59 HKT. `status` is 'open' only
+ * while `refMs` is actually inside the window.
+ */
+function hktWeekendWindow(refMs) {
+  const shifted = refMs + HKT_OFFSET_MS; // HKT wall clock, read as if UTC
+  const d = new Date(shifted);
+  const dow = d.getUTCDay(); // 0=Sun … 6=Sat
+  let daysFromSat;
+  if (dow === 6) daysFromSat = 0;        // Saturday: this weekend, today
+  else if (dow === 0) daysFromSat = -1;  // Sunday: yesterday was the Saturday
+  else daysFromSat = -(dow + 1);         // Mon–Fri: back to last Saturday
+  const satStartShifted = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + daysFromSat, 0, 0, 0);
+  const satStart = satStartShifted - HKT_OFFSET_MS; // real UTC ms for Sat 00:00 HKT
+  const start = new Date(satStart).toISOString();
+  const endExclusive = new Date(satStart + 2 * DAY_MS).toISOString();
+  const status = refMs >= satStart && refMs < satStart + 2 * DAY_MS ? 'open' : 'closed';
+  return { satStart, start, endExclusive, status };
+}
+
+/** The featured game for a given Saturday-start UTC-ms, rotating weekly. */
+function featuredGameForWeek(satStartMs) {
+  const weekIndex = Math.floor((satStartMs - TOURNAMENT_EPOCH) / (7 * DAY_MS));
+  return TOURNAMENT_GAMES[((weekIndex % TOURNAMENT_GAMES.length) + TOURNAMENT_GAMES.length) % TOURNAMENT_GAMES.length];
+}
+
+function leaderboardRowToView(r) {
+  const name = (r.display_name || '').trim();
+  return {
+    publicId: r.public_id,
+    name: name || ('Player #' + String(r.public_id).slice(-4)),
+    named: !!name,
+    wins: Number(r.wins) || 0,
+    played: Number(r.played) || 0,
+  };
+}
+
+function getWeekendLeaderboard(game, startIso, endExclusiveIso, limit = 10) {
+  if (!TOURNAMENT_GAMES.includes(game)) return [];
+  const rows = S.weekendLeaderboard.all(game, startIso, endExclusiveIso, limit);
+  return rows.map(leaderboardRowToView);
+}
+
+/**
+ * Idempotent top-3 badge grant for a closed weekend. Returns the badges whether
+ * they were just minted or already existed, so the leaderboard view can show
+ * "last week's champions" without ever double-awarding.
+ */
+function awardWeekBadges(weekStartIso, game, startIso, endExclusiveIso) {
+  if (S.badgeExistsForWeek.get(weekStartIso, game)) {
+    return S.badgesForWeek.all(weekStartIso, game).map((b) => ({
+      publicId: b.public_id, name: b.display_name || ('Player #' + String(b.public_id).slice(-4)),
+      rank: b.rank, label: b.label,
+    }));
+  }
+  const MEDALS = ['🥇', '🥈', '🥉'];
+  const top = getWeekendLeaderboard(game, startIso, endExclusiveIso, 3);
+  const nowIso = new Date().toISOString();
+  const out = [];
+  top.forEach((row, i) => {
+    const label = `${MEDALS[i] || '🏅'} ${row.name}`;
+    S.insertBadge.run(weekStartIso, game, row.publicId, row.named ? row.name : '', i + 1, label, nowIso);
+    out.push({ publicId: row.publicId, name: row.name, rank: i + 1, label });
+  });
+  return out;
+}
+
+/**
+ * The tournament state for "now": the primary weekend (open if we are in it,
+ * otherwise the most recently completed one) with its live-or-final
+ * leaderboard, the relevant badges, and a teaser for the next weekend.
+ */
+function getTournamentCurrent(nowMs = Date.now()) {
+  const w = hktWeekendWindow(nowMs);
+  const game = featuredGameForWeek(w.satStart);
+  const leaderboard = getWeekendLeaderboard(game, w.start, w.endExclusive, 10);
+
+  let badges = [];
+  if (w.status === 'closed') {
+    // The weekend is done — mint/show its own champions.
+    badges = awardWeekBadges(w.start, game, w.start, w.endExclusive);
+  } else {
+    // We are inside the window: show last weekend's champions as "previous".
+    const prev = hktWeekendWindow(w.satStart - DAY_MS); // last Saturday
+    const prevGame = featuredGameForWeek(prev.satStart);
+    badges = awardWeekBadges(prev.start, prevGame, prev.start, prev.endExclusive);
+  }
+
+  const nextSat = w.satStart + 7 * DAY_MS;
+  const next = hktWeekendWindow(nextSat);
+  const nextGame = featuredGameForWeek(nextSat);
+
+  return {
+    week: {
+      weekStart: w.start,
+      game,
+      status: w.status,
+      window: { start: w.start, end: w.endExclusive },
+    },
+    leaderboard,
+    badges,
+    next: {
+      weekStart: next.start,
+      game: nextGame,
+      window: { start: next.start, end: next.endExclusive },
+    },
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -6791,6 +6963,13 @@ module.exports = {
   gameRecordsForDevice,
   gameRecordsForDevices,
   GAME_KEYS,
+  // Weekend tournaments — leaderboard + rotating featured game + badges.
+  getTournamentCurrent,
+  hktWeekendWindow,
+  featuredGameForWeek,
+  getWeekendLeaderboard,
+  awardWeekBadges,
+  TOURNAMENT_GAMES,
   getStoryForModeration,
   getStoryCounts,
   setStoryStatus,

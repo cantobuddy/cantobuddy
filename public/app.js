@@ -829,6 +829,7 @@ async function init() {
     renderHomeFestival();
     renderHomeDailyCulture();
     renderHomeDiscoverPromo();
+    renderSundayShowdown();
     // Apply the operator's Discover tab order/visibility. Fired after the
     // initial render so the Home promo + Discover row can be corrected from the
     // saved config; a failed fetch leaves the authored HTML order untouched.
@@ -866,6 +867,7 @@ function rerenderForLanguage() {
   renderHomeFeatured();
   renderHomeDiscoverPromo();
   renderHomeGamesPromo();
+  renderSundayShowdown();
   renderGamesHub();
   renderCategoryChips();
   renderQuizTypes();
@@ -1617,6 +1619,167 @@ async function renderHomeBanners() {
     homeBanners.loaded = true;
   }
   paintHomeBanners();
+}
+
+/**
+ * The home "Sunday Showdown" highlight: a compact card showing this weekend's
+ * featured tournament game, the live leaderboard, and last weekend's champions.
+ * Reuses the .cb-tn-* styles that games-common.js also injects on the game
+ * pages — but games-common.js is NOT loaded on the home page, so we inject the
+ * same style block here (guarded by the shared #cbTourneyStyle id so it is never
+ * duplicated if both run).
+ */
+function ensureTourneyStyles() {
+  if (document.getElementById('cbTourneyStyle')) return;
+  const css =
+    '.cb-tn{padding:12px 14px;margin:14px 0;border:1px solid #e3e8ef;border-radius:14px;' +
+    'background:linear-gradient(135deg,#fff7e9,#fff);box-shadow:0 1px 2px rgba(18,33,47,.05)}' +
+    '.cb-tn-head{font-weight:700;font-size:14px;color:#7a4a00;margin-bottom:8px}' +
+    '.cb-tn-live{display:inline-block;margin-left:6px;font-size:10px;font-weight:800;' +
+    'letter-spacing:.06em;color:#fff;background:#e0532a;padding:1px 6px;border-radius:6px;vertical-align:middle}' +
+    '.cb-tn-closed{display:inline-block;margin-left:6px;font-size:10px;font-weight:700;color:#8a93a0}' +
+    '.cb-tn-sub{font-size:12px;color:#5b6573;margin:-4px 0 8px}' +
+    '.cb-tn-list{list-style:none;margin:0;padding:0}' +
+    '.cb-tn-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f3ede0}' +
+    '.cb-tn-row:last-child{border-bottom:0}' +
+    '.cb-tn-me{background:#fff3d6;border-radius:8px;padding-left:4px;padding-right:4px}' +
+    '.cb-tn-rank{width:20px;height:20px;flex:0 0 auto;border-radius:50%;background:#ffd479;' +
+    'color:#5a3a00;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center}' +
+    '.cb-tn-name{flex:1 1 auto;min-width:0;font-weight:600;color:#12212f;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
+    '.cb-tn-wins{color:#7a4a00;font-weight:700;font-size:12px}' +
+    '.cb-tn-empty{color:#8a93a0;font-style:italic;padding:6px 0}' +
+    '.cb-tn-you{margin-top:8px;font-weight:700;color:#1f7a3d;font-size:13px}' +
+    '.cb-tn-champs{margin-top:10px;padding-top:8px;border-top:1px solid #f3ede0}' +
+    '.cb-tn-champs-h{font-size:11px;font-weight:700;color:#8a6a2a;margin-bottom:4px;letter-spacing:.03em}' +
+    '.cb-tn-badge{display:inline-block;margin:2px 4px 2px 0;font-size:12px;background:#fff3d6;border-radius:8px;padding:2px 8px}' +
+    '.cb-tn-actions{display:flex;gap:8px;margin-top:10px}' +
+    '.cb-tn-play{flex:1 1 auto;border:0;border-radius:10px;padding:9px 12px;background:#7a4a00;color:#fff;' +
+    'font-weight:700;font-size:13px;text-align:center;text-decoration:none;cursor:pointer}' +
+    '.cb-tn-play:hover{background:#663d00}' +
+    '.cb-tn-share{border:0;border-radius:10px;padding:9px 12px;background:#25d366;color:#fff;' +
+    'font-weight:700;font-size:13px;cursor:pointer}' +
+    '.cb-tn-share:hover{background:#1ebe5b}';
+  const st = document.createElement('style');
+  st.id = 'cbTourneyStyle';
+  st.textContent = css;
+  (document.head || document.documentElement).appendChild(st);
+}
+
+function escapeTourneyHtml(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+async function renderSundayShowdown() {
+  const el = document.getElementById('sunday-showdown');
+  if (!el) return;
+  // Default hidden; only revealed when there is something worth showing.
+  el.hidden = true;
+  try {
+    const r = await fetch('/api/tournaments/current', { headers: { Accept: 'application/json' } });
+    if (!r.ok) throw new Error('tournament ' + r.status);
+    const t = await r.json();
+    if (!t || !t.week || !t.week.game) return;
+
+    const lb = Array.isArray(t.leaderboard) ? t.leaderboard : [];
+    const badges = Array.isArray(t.badges) ? t.badges : [];
+    const open = t.week.status === 'open';
+    if (!open && lb.length === 0 && badges.length === 0) return; // nothing to surface yet
+
+    ensureTourneyStyles();
+    el.innerHTML = '';
+    el.hidden = false;
+
+    const me = STATE.deviceId;
+    const game = t.week.game;
+
+    const card = document.createElement('div');
+    card.className = 'cb-tn';
+    el.appendChild(card);
+
+    const head = document.createElement('div');
+    head.className = 'cb-tn-head';
+    head.innerHTML = '🏆 Sunday Showdown — ' + escapeTourneyHtml(game) +
+      (open ? ' <span class="cb-tn-live">LIVE</span>' : ' <span class="cb-tn-closed">closed</span>');
+    card.appendChild(head);
+
+    const sub = document.createElement('div');
+    sub.className = 'cb-tn-sub';
+    sub.textContent = open
+      ? 'Play ' + game + ' any time Sat–Sun. Top 3 this weekend earn a badge!'
+      : 'Last weekend’s ' + game + ' is closed — here are the champions.';
+    card.appendChild(sub);
+
+    const list = document.createElement('ol');
+    list.className = 'cb-tn-list';
+    lb.slice(0, 5).forEach(function (row, i) {
+      const li = document.createElement('li');
+      li.className = 'cb-tn-row' + (me && row.publicId === me ? ' cb-tn-me' : '');
+      li.innerHTML = '<span class="cb-tn-rank">' + (i + 1) + '</span>' +
+        '<span class="cb-tn-name">' + escapeTourneyHtml(row.name) + '</span>' +
+        '<span class="cb-tn-wins">' + row.wins + 'W</span>';
+      list.appendChild(li);
+    });
+    if (!lb.length) {
+      const empty = document.createElement('li');
+      empty.className = 'cb-tn-empty';
+      empty.textContent = 'No results yet — be the first!';
+      list.appendChild(empty);
+    }
+    card.appendChild(list);
+
+    if (me) {
+      const idx = lb.findIndex(function (row) { return row.publicId === me; });
+      if (idx >= 0) {
+        const you = document.createElement('div');
+        you.className = 'cb-tn-you';
+        you.textContent = "You're ranked #" + (idx + 1) + ' this week';
+        card.appendChild(you);
+      }
+    }
+
+    if (badges.length) {
+      const champs = document.createElement('div');
+      champs.className = 'cb-tn-champs';
+      const h = document.createElement('div');
+      h.className = 'cb-tn-champs-h';
+      h.textContent = '🏅 Last weekend’s champions';
+      champs.appendChild(h);
+      badges.slice(0, 3).forEach(function (b) {
+        const span = document.createElement('span');
+        span.className = 'cb-tn-badge';
+        span.textContent = b.label || ('#' + b.rank);
+        champs.appendChild(span);
+      });
+      card.appendChild(champs);
+    }
+
+    const actions = document.createElement('div');
+    actions.className = 'cb-tn-actions';
+
+    const play = document.createElement('a');
+    play.className = 'cb-tn-play';
+    play.href = '/games/' + encodeURIComponent(game) + '/';
+    play.textContent = 'Play ' + game + ' →';
+    actions.appendChild(play);
+
+    const share = document.createElement('button');
+    share.type = 'button';
+    share.className = 'cb-tn-share';
+    share.textContent = 'Share';
+    share.addEventListener('click', function () {
+      const url = location.origin + '/games/' + game + '/';
+      const txt = 'This week on CantoBuddy: ' + game + ' tournament! ' + url;
+      window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank', 'noopener');
+    });
+    actions.appendChild(share);
+
+    card.appendChild(actions);
+  } catch (err) {
+    // Optional highlight — never block the home page on a failed fetch.
+    el.hidden = true;
+  }
 }
 
 function paintHomeBanners() {

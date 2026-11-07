@@ -1780,6 +1780,21 @@ app.get('/api/games/record', (req, res) => {
 });
 
 /**
+ * The live weekly "Sunday Tournament" state: this weekend's featured game, the
+ * current leaderboard (clustered to the HKT Sat–Sun window), the relevant
+ * badges, and a teaser for next weekend. Public and cacheable for a minute — it
+ * changes at most once a day, and a board that is a minute stale is harmless.
+ */
+app.get('/api/tournaments/current', (req, res) => {
+  try {
+    res.set('Cache-Control', 'public, max-age=60');
+    res.json(store.getTournamentCurrent(Date.now()));
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load the tournament.' });
+  }
+});
+
+/**
  * A device's own learning statistics — streaks, activity over time, and how she
  * does on each kind of quiz.
  *

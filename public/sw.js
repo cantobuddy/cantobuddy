@@ -31,7 +31,7 @@
 // (applyDiscoverOrder + renderHomeDiscoverPromo), styles.css (the hide rule) and
 // admin.html / admin.js (the admin tab). All four app-shell files changed, so the
 // bump is required; /admin stays network-first and needs none of its own.
-const CACHE = 'cantobuddy-v148';
+const CACHE = 'cantobuddy-v149';
 
 // Which paths are server-rendered SEO documents rather than app-shell assets.
 // Kept as one matcher so it can be asserted against `LANG_PREFIX` in seo.js —

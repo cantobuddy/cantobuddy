@@ -70,6 +70,15 @@
    tools/hidden-attribute-test.js rather than left to memory. */
 [hidden] { display: none !important; }
 
+/* Operator-hidden navigation items. nav-order.js uses a SEPARATE attribute
+   rather than `hidden` because app.js owns #install-btn's `hidden` flag:
+   syncInstallEntry() sets and clears it on boot and on every language change,
+   so an admin "hide" written to `hidden` would be undone the next time that
+   function ran. This needs !important for exactly the reason above — .nav-btn
+   is display:flex and .site-btn is display:inline-flex, both of which beat a
+   UA rule. Both index.html and tools.html load this stylesheet. */
+[data-nav-hidden] { display: none !important; }
+
 html { -webkit-text-size-adjust: 100%; font-size: 16px; }
 
 body {
@@ -1019,7 +1028,7 @@ body {
 
    The track is a flex row translated by whole slides, so the browser does the
    animation on the compositor. The slides are real <a> links in STATIC HTML,
-   so a crawler sees all five and a visitor whose JS fails still gets the hero.
+   so a crawler sees all six and a visitor whose JS fails still gets the hero.
 
    Warm paper colours replace the old black overlays. The text occupies the
    left reading panel on desktop; on a phone the bright picture sits above it.
@@ -1169,6 +1178,59 @@ body {
 .hb-outings { --hb-paper: #edf8f0; --hb-accent: #22694f; }
 .hb-living { --hb-paper: #fff0f2; --hb-accent: #a43c5b; }
 
+/* ---- Daily Tools: the one slide with NO illustrated hero -----------------
+   Blue is the fifth paper colour so the new entry point reads as a different
+   kind of thing from Games/Culture/Outings/Stories. The "scene" is four tiny
+   tool cards drawn in CSS: zero image requests, zero new assets, and the
+   labels translate with the rest of the deck instead of being baked into a
+   picture. The tiles sit where the illustration would go — right on desktop,
+   in the top picture band on a phone. */
+.hb-tools {
+  --hb-paper: #e9f4fa;
+  --hb-accent: #17607f;
+  background: radial-gradient(ellipse at 82% 48%, #d9edf9 0%, var(--hb-paper) 62%);
+}
+.hb-tools-art {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: block;
+  pointer-events: none;
+}
+.hb-tools-grid {
+  position: absolute;
+  right: 5%;
+  top: 50%;
+  transform: translateY(-50%);
+  display: grid;
+  grid-template-columns: repeat(2, clamp(92px, 12vw, 150px));
+  gap: 14px;
+}
+.hb-tool-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 7px;
+  min-width: 0;
+  padding: 14px 15px;
+  border: 1px solid rgba(23, 96, 127, .14);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, .92);
+  box-shadow: 0 10px 24px rgba(23, 96, 127, .12);
+}
+.hb-tool-tile i { font-style: normal; font-size: 1.7rem; line-height: 1; }
+.hb-tool-tile small {
+  font-size: .74rem;
+  font-weight: 750;
+  line-height: 1.25;
+  color: #36596a;
+  overflow-wrap: anywhere;
+}
+.hb-tool-tile:nth-child(1) { transform: rotate(-3deg); }
+.hb-tool-tile:nth-child(2) { transform: rotate(2deg); }
+.hb-tool-tile:nth-child(3) { transform: rotate(2deg); }
+.hb-tool-tile:nth-child(4) { transform: rotate(-2deg); }
+
 /* A little language moment makes the hero about learning, not just a poster. */
 .hb-phrase {
   position: absolute;
@@ -1210,6 +1272,32 @@ body {
   .hb-cta { margin-top: 17px; min-height: 46px; padding: 9px 11px 9px 16px; font-size: .87rem; }
   .hb-phrase { left: 17px; right: auto; top: 17px; padding: 9px 14px; transform: rotate(-5deg); }
   .hb-phrase strong { font-size: 1.35rem; }
+}
+/* Daily Tools uses the same 205px picture band as the illustrated slides,
+   but fills it with a single row of four small tool tiles instead of art. */
+@media (max-width: 620px) {
+  .hb-tools-art { height: 205px; bottom: auto; }
+  .hb-tools-grid {
+    position: static;
+    transform: none;
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    gap: 7px;
+    padding: 28px 18px 0;
+  }
+  .hb-tool-tile {
+    flex: 1 1 0;
+    min-width: 0;
+    align-items: center;
+    text-align: center;
+    gap: 5px;
+    padding: 10px 4px;
+    border-radius: 13px;
+  }
+  .hb-tool-tile:nth-child(n) { transform: none; }
+  .hb-tool-tile i { font-size: 1.3rem; }
+  .hb-tool-tile small { font-size: .6rem; }
 }
 @media (max-width: 360px) {
   .home-banners .hb-slide { padding-left: 18px; padding-right: 18px; }

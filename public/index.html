@@ -145,50 +145,62 @@
            sheet, where a bare 38px circle is not enough of a signpost. They
            reuse the SAME i18n keys as each control's title, so there is no new
            copy to translate. -->
+      <!-- Every child carries a data-nav-id. nav-order.js reorders / hides
+           these from /api/navigation, which the operator controls in the admin
+           Navigation tab. The authored order below IS the default and the
+           no-JS / offline fallback — in particular Learn English is LAST. The
+           ids are whitelisted in db.js (NAV_MORE_IDS), so keep the two in step. -->
       <div class="header-extra" id="header-extra">
         <!-- For employers. Public cross-link to the employer portal, drawn as
              an inline SVG bust so it reads as "the employer" on every device. -->
-        <a href="/portal" class="site-btn" title="For employers" aria-label="For employers"
+        <a href="/portal" class="site-btn" data-nav-id="employers" title="For employers" aria-label="For employers"
            data-i18n="header.employerSite" data-i18n-attr="title" data-i18n-aria="1"><svg class="site-glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7.6" r="3.6"/><path d="M5.1 20.4c0-3.6 3.1-5.9 6.9-5.9s6.9 2.3 6.9 5.9"/><path d="M9.5 14.9 12 18.3l2.5-3.4"/></svg><span class="he-label" data-i18n="header.employerSite">For employers</span></a>
-        <!-- Learn English. Cross-link to the English track for the elderly
-             learner (/en). Icon-only on desktop like the other header controls;
-             the bilingual title + he-label carry the meaning on every device. -->
-        <a href="/en" class="site-btn" title="學英文 · Learn English" aria-label="學英文 · Learn English" style="font-size:1.2rem;text-decoration:none;"><span aria-hidden="true">🇬🇧</span><span class="he-label">學英文 · Learn English</span></a>
         <!-- Language. Opens the language modal. The sheet label is the short
              form (header.langShort); the title/aria keep "Change language" so the
              tooltip stays descriptive. -->
-        <button id="lang-btn" class="lang-btn" onclick="openLangModal()" title="Change language" aria-label="Change language" aria-haspopup="dialog"><span class="lang-cur">EN</span><span class="he-label" data-i18n="header.langShort">Language</span></button>
+        <button id="lang-btn" class="lang-btn" data-nav-id="language" onclick="openLangModal()" title="Change language" aria-label="Change language" aria-haspopup="dialog"><span class="lang-cur">EN</span><span class="he-label" data-i18n="header.langShort">Language</span></button>
         <!-- Practice voice. Opens the voice modal; short label header.voiceShort. -->
-        <button id="voice-btn" class="voice-btn" onclick="openVoiceModal()" title="Choose practice voice" aria-label="Choose practice voice"
+        <button id="voice-btn" class="voice-btn" data-nav-id="voice" onclick="openVoiceModal()" title="Choose practice voice" aria-label="Choose practice voice"
                 data-i18n="header.voiceTitle" data-i18n-attr="title" data-i18n-aria="1"><span class="voice-cur">👩</span><span class="he-label" data-i18n="header.voiceShort">Practice voice</span></button>
         <!-- Notification on/off, sitting right beside the language picker so it is
              configured in the same place. Driven by window.CBPush (push-client.js):
              tap to toggle; the bell glyph + aria-pressed show the live state. The
              .he-label is the word shown inside the More sheet on small screens. -->
-        <button id="notif-btn" class="site-btn" type="button" onclick="CBPush.toggle()" title="Notifications" aria-label="Notifications" aria-pressed="false" data-i18n="header.notif" data-i18n-attr="title" data-i18n-aria="1"><span id="notif-glyph">🔔</span><span class="he-label" data-i18n="header.notif">Notifications</span></button>
+        <button id="notif-btn" class="site-btn" data-nav-id="notifications" type="button" onclick="CBPush.toggle()" title="Notifications" aria-label="Notifications" aria-pressed="false" data-i18n="header.notif" data-i18n-attr="title" data-i18n-aria="1"><span id="notif-glyph">🔔</span><span class="he-label" data-i18n="header.notif">Notifications</span></button>
         <!-- Facebook. The official CantoBuddy page, opening in a new tab. Sits
              right before Feedback so "where can I follow you?" is one tap from
              anywhere. rel="me" marks it as this site's own profile, which is
              what lets the link count as verification rather than a share. -->
-        <a href="https://www.facebook.com/profile.php?id=61595817612067" class="site-btn site-btn-fb"
+        <a href="https://www.facebook.com/profile.php?id=61595817612067" class="site-btn site-btn-fb" data-nav-id="facebook"
            target="_blank" rel="me noopener noreferrer"
            title="CantoBuddy on Facebook" aria-label="CantoBuddy on Facebook"
            data-i18n="header.facebook" data-i18n-attr="title" data-i18n-aria="1"><svg viewBox="0 0 320 512" aria-hidden="true" focusable="false" fill="currentColor"><path d="M279.14 288l14.22-92.66h-88.91v-60.13c0-25.35 12.42-50.06 52.24-50.06h40.42V6.26S260.43 0 225.36 0c-73.22 0-121.08 44.38-121.08 124.72v70.62H22.89V288h81.39v224h100.17V288z"/></svg><span class="he-label" data-i18n="header.facebook">Facebook</span></a>
         <!-- Feedback. Moved here from the bottom nav so it stays one tap from
              anywhere without costing a bottom-bar slot. Opens the feedback dialog. -->
-        <button id="topfeedback-btn" class="site-btn" type="button" onclick="openFeedbackModal()" title="Feedback" aria-label="Feedback" data-i18n="nav.feedback" data-i18n-attr="title" data-i18n-aria="1"><span class="fb-glyph" aria-hidden="true">💬</span><span class="he-label" data-i18n="nav.feedback">Feedback</span></button>
+        <button id="topfeedback-btn" class="site-btn" data-nav-id="feedback" type="button" onclick="openFeedbackModal()" title="Feedback" aria-label="Feedback" data-i18n="nav.feedback" data-i18n-attr="title" data-i18n-aria="1"><span class="fb-glyph" aria-hidden="true">💬</span><span class="he-label" data-i18n="nav.feedback">Feedback</span></button>
         <!-- Share. Opens the Share page. -->
-        <button class="site-btn" onclick="navigate('share')" title="Share CantoBuddy" aria-label="Share CantoBuddy"
+        <button class="site-btn" data-nav-id="share" onclick="navigate('share')" title="Share CantoBuddy" aria-label="Share CantoBuddy"
                 data-i18n="header.shareSite" data-i18n-attr="title" data-i18n-aria="1"><span data-share-icon></span><span class="he-label" data-i18n="header.shareSite">Share</span></button>
         <!-- "Add to home screen".
              Hidden by default (`hidden` attribute) and revealed by
              syncInstallEntry() in app.js ONLY when all of these hold: the install
              is actually possible on this device, she has not already installed
              it, and she has not already answered. That is why it is not styled
-             like a call to action — for most visitors it does not exist. -->
-        <button id="install-btn" class="site-btn" hidden onclick="openInstallModal()"
+             like a call to action — for most visitors it does not exist.
+             nav-order.js hides admin-disabled items with data-nav-hidden, NOT
+             with `hidden`, precisely so it cannot fight syncInstallEntry here. -->
+        <button id="install-btn" class="site-btn" data-nav-id="install" hidden onclick="openInstallModal()"
                 title="Add to home screen" aria-label="Add to home screen"
                 data-i18n="header.install" data-i18n-attr="title" data-i18n-aria="1">⬇︎<span class="he-label" data-i18n="header.install">Install</span></button>
+        <!-- Learn English. LAST in the More sheet (asked for 2026-11-07): it is
+             a cross-link to the separate /en track for a different audience,
+             not something a helper needs on an ordinary visit. It used to sit
+             second, immediately under "For employers", where it pushed the
+             everyday controls down. Icon-only on desktop like the others; the
+             bilingual title + he-label carry the meaning inside the sheet.
+             Deliberately after the install prompt, which is hidden by default
+             and only appears on a device that can actually install the app. -->
+        <a href="/en" class="site-btn" data-nav-id="english" title="學英文 · Learn English" aria-label="學英文 · Learn English" style="font-size:1.2rem;text-decoration:none;"><span aria-hidden="true">🇬🇧</span><span class="he-label">學英文 · Learn English</span></a>
       </div>
       <!-- Deliberately NOT data-i18n: this label is dynamic (the helper's name,
            or "Set your name" when she has none), and updateLearnerBadge() in
@@ -236,15 +248,17 @@
          the heading separately. data-i18n-attr keeps the label translated
          without touching the contents. -->
     <!-- ---- HERO CAROUSEL -----------------------------------------------
-         The Learn Cantonese hero and the four promo banners are ONE rotating
+         The Learn Cantonese hero and the five promo banners are ONE rotating
          deck now. They used to be two things: a big illustrated hero, then a
          thin strip of coloured cards underneath it that nobody noticed. Every
-         promo is a full-size illustrated banner with its own character scene,
-         so it gets the same space and the same picture family as the hero.
+         promo is a full-size banner with its own scene, so it gets the same
+         space as the hero. Daily Tools is the one exception to the illustrated
+         rule: its "scene" is four CSS-drawn tool tiles, not a photograph, so
+         the new page can join the deck without waiting for new artwork.
 
-         ALL FIVE SLIDES ARE STATIC MARKUP. Two reasons, both about failure:
+         ALL SIX SLIDES ARE STATIC MARKUP. Two reasons, both about failure:
            1. Google reads this file. A carousel whose slides are built in JS
-              gives a crawler one doorway and hides the other four; here every
+              gives a crawler one doorway and hides the other five; here every
               slide is a real <a> in the HTML source.
            2. If /api/home-banners is slow, offline or blocked, the deck still
               works in its authored order. The operator's settings are an
@@ -270,6 +284,34 @@
               <span class="hb-cta"><span data-i18n="home.heroCta">Start learning</span><b aria-hidden="true">→</b></span>
             </div>
             <span class="hb-phrase" aria-hidden="true"><strong>唔該</strong><span>m4 goi1</span><small data-i18n="home.bannerPhraseMeaning">Thank you</small></span>
+          </a>
+
+          <!-- Daily Tools. SECOND, immediately after the Learn hero: these four
+               utilities are the reason to come back every day, so the entry
+               point gets the first promotion slot rather than the last one.
+               It is a permanent doorway (like the hero), not one of the four
+               operator-switchable promos — see HOME_BANNERS in app.js.
+
+               No illustration here on purpose. The four tiles below are drawn
+               in CSS, so the slide ships with no image request, no new asset
+               and no English-only text baked into a picture. The tile labels
+               are data-i18n keys, like every other word in the deck. -->
+          <a class="hb-slide hb-promo hb-tools" href="/tools" data-banner="tools"
+             onclick="if(window.gtag)gtag('event','tools_entry',{source:'home_banner'});">
+            <span class="hb-tools-art" aria-hidden="true">
+              <span class="hb-tools-grid">
+                <span class="hb-tool-tile"><i>🍲</i><small data-i18n="banner.tools.tile1">Recipes</small></span>
+                <span class="hb-tool-tile"><i>📅</i><small data-i18n="banner.tools.tile2">Rest days</small></span>
+                <span class="hb-tool-tile"><i>🗓️</i><small data-i18n="banner.tools.tile3">Visa dates</small></span>
+                <span class="hb-tool-tile"><i>🆘</i><small data-i18n="banner.tools.tile4">Emergency</small></span>
+              </span>
+            </span>
+            <span class="hb-copy">
+              <span class="hb-chip" data-i18n="banner.tools.chip">New · Daily Tools</span>
+              <span class="hb-title" data-i18n="banner.tools.title">Tools for every day</span>
+              <span class="hb-sub" data-i18n="banner.tools.sub">Recipes in Cantonese, rest days, visa dates and emergency numbers — free, offline and private.</span>
+              <span class="hb-cta"><span data-i18n="banner.tools.cta">Open Daily Tools</span><b aria-hidden="true">→</b></span>
+            </span>
           </a>
 
           <a class="hb-slide hb-promo hb-games" href="/?view=games" data-banner="games">
@@ -1010,8 +1052,12 @@
 </footer>
 
 <!-- ============================ BOTTOM NAV ============================ -->
+<!-- Each tab carries a data-nav-id so the admin Navigation tab can reorder and
+     hide it. tools.html uses the SAME six ids — keep the two in step. Home is
+     pinned first server-side and cannot be hidden. The authored order here is
+     the no-JS / offline fallback. -->
 <nav class="bottom-nav">
-  <button class="nav-btn active" data-view="home" onclick="navigate('home')">
+  <button class="nav-btn active" data-nav-id="home" data-view="home" onclick="navigate('home')">
     <span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 11 12 4l8 7M6 10v9h12v-9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="nav-label" data-i18n="nav.home">Home</span>
   </button>
   <!-- Learn opens the CATEGORIES page, not the word list. The category is the
@@ -1019,7 +1065,7 @@
        list is the answer to it, so the list is the second step rather than the
        first. See the note on #view-categories for why this replaced a chip row
        inside Browse. -->
-  <button class="nav-btn" data-view="categories" onclick="goCategories()">
+  <button class="nav-btn" data-nav-id="learn" data-view="categories" onclick="goCategories()">
     <span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 6C10 4.8 7 4.4 4 4.6V19c3-.2 6 .2 8 1.4M12 6c2-1.2 5-1.6 8-1.4V19c-3-.2-6 .2-8 1.4M12 6v14.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></svg></span><span class="nav-label" data-i18n="nav.learn">Learn</span>
   </button>
   <!-- Quiz. A real tab, not just the Home "Start Quiz" button: it opens the
@@ -1029,19 +1075,19 @@
        its slot; the bar was five tabs until Daily Tools joined as the sixth
        (2026-11-07). Run tools/nav-shot.js after any label change — it prints
        the spare pixels per label per width. -->
-  <button class="nav-btn" data-view="quiz-select" onclick="goQuizSelect()">
+  <button class="nav-btn" data-nav-id="quiz" data-view="quiz-select" onclick="goQuizSelect()">
     <span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9.4 9.3a2.6 2.6 0 1 1 3.7 2.4c-.9.5-1.1 1-1.1 1.8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="17.2" r="1.15" fill="currentColor"/></svg></span><span class="nav-label" data-i18n="nav.quiz">Quiz</span>
   </button>
   <!-- Discover. Two channels — culture and news — behind one tab, and a third
        since Stories joined them. -->
-  <button class="nav-btn" data-view="discover" onclick="navigate('discover')">
+  <button class="nav-btn" data-nav-id="discover" data-view="discover" onclick="navigate('discover')">
     <span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3 12h18M12 3c2.5 2.6 2.5 15.4 0 18M12 3c-2.5 2.6-2.5 15.4 0 18" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></span><span class="nav-label" data-i18n="nav.discover">Discover</span>
   </button>
   <!-- Games. A hub, not a single game: UNO is the first one playable and the
        page is built to hold the next ones beside it. The screen it opens is
        #view-games; the game itself is a real page at /games/uno, because a card
        table wants the whole viewport and its own server-sent events stream. -->
-  <button class="nav-btn" data-view="games" onclick="navigate('games')">
+  <button class="nav-btn" data-nav-id="games" data-view="games" onclick="navigate('games')">
     <!-- "New" tag. A nav bar is scanned, not read, so a brand-new tab is easy to
          walk straight past. The badge lives INSIDE .nav-icon and is positioned
          off its top-right corner, because anchoring it to the button let it
@@ -1057,7 +1103,7 @@
        The bar is now six tabs — tools/nav-shot.js measures every label at
        320/360/390px in all four languages, and the <=400px rule in styles.css
        steps the type down so the longest Filipino label still fits. -->
-  <a class="nav-btn" href="/tools" onclick="if(window.gtag)gtag('event','tools_entry',{source:'bottom_nav'});">
+  <a class="nav-btn" data-nav-id="tools" href="/tools" onclick="if(window.gtag)gtag('event','tools_entry',{source:'bottom_nav'});">
     <span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3.5 8.5h17a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-17a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1z" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M9 8.5V6.8a1.8 1.8 0 0 1 1.8-1.8h2.4A1.8 1.8 0 0 1 15 6.8v1.7M2.5 13.2h19M10.3 13.2v1.8a.7.7 0 0 0 .7.7h2a.7.7 0 0 0 .7-.7v-1.8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="nav-label" data-i18n="nav.tools">Tools</span>
   </a>
 </nav>
@@ -1240,5 +1286,10 @@
 <!-- Opt-in push notifications (also loaded by the SEO landing pages). Self-
      contained, so it works whether or not app.js is present. -->
 <script src="/push-client.js" defer></script>
+<!-- Operator-controlled navigation order. defer, so it runs after app.js has
+     booted and applied translations; it MOVES existing nodes rather than
+     rebuilding them, so the two never fight. It is in APP_SHELL and in the
+     deploy manifest — a 404 here silently falls back to the authored order. -->
+<script src="/nav-order.js" defer></script>
 </body>
 </html>

@@ -4390,6 +4390,133 @@ function saveBannerConfig({ seconds, order, enabled } = {}) {
 }
 
 // ---------------------------------------------------------------------------
+// Navigation ordering — the "..." More sheet and the bottom tab bar
+// ---------------------------------------------------------------------------
+
+/*
+ * The operator asked (2026-11-07) to reorder the icons in the More sheet and
+ * the tabs in the bottom bar without a deploy. Both lists are FIXED SETS of
+ * ids, just like the banners: each id is a real control with translated copy
+ * and an existing click handler in index.html, so a request that invents an
+ * id cannot create anything the client could render.
+ *
+ * The id lists are also the DEFAULT ORDER. "Learn English" is deliberately
+ * last in NAV_MORE_IDS — that is the placement the operator asked for in the
+ * same message. "home" is pinned first in the bottom bar and cannot be hidden:
+ * a learner with no way back to Home is a dead end, not a configuration.
+ *
+ * Stored as ONE JSON value in app_settings rather than two new tables. This
+ * setting is one document read on every page load; a row per item would add a
+ * migration and a join for no benefit. There is deliberately NO seed: the
+ * constant lists ARE the default, and readNavConfig() re-validates whatever is
+ * stored on every read. That means a missing, hand-edited or older value can
+ * never ship an unknown id, lose a control, or unpin Home — and an operator's
+ * saved order still survives every restart because nothing overwrites it.
+ */
+
+const NAV_MORE_IDS = Object.freeze([
+  'employers', 'language', 'voice', 'notifications', 'facebook',
+  'feedback', 'share', 'install', 'english',
+]);
+const NAV_BOTTOM_IDS = Object.freeze([
+  'home', 'learn', 'quiz', 'discover', 'games', 'tools',
+]);
+const NAV_PINNED_BOTTOM = 'home';
+const NAV_SETTING_KEY = 'navigation_config';
+
+/**
+ * Turn an untrusted list into a complete, deduplicated, whitelisted list.
+ * `previous` supplies the on/off state for ids that arrive as bare strings —
+ * an order-only request must not silently switch everything back on.
+ */
+function normalizeNavList(input, allowed, pinned, previous) {
+  const prevEnabled = new Map(
+    (Array.isArray(previous) ? previous : [])
+      .filter((r) => r && typeof r.id === 'string')
+      .map((r) => [r.id, r.enabled !== false])
+  );
+  const rows = [];
+  const seen = new Set();
+  if (pinned) {
+    rows.push({ id: pinned, enabled: true });   // always on, always first
+    seen.add(pinned);
+  }
+  if (Array.isArray(input)) {
+    for (const item of input) {
+      const isObj = item && typeof item === 'object';
+      const id = typeof item === 'string' ? item : (isObj ? item.id : null);
+      if (typeof id !== 'string' || !allowed.includes(id) || seen.has(id)) continue;
+      const on = !isObj || item.enabled === undefined
+        ? (prevEnabled.has(id) ? prevEnabled.get(id) : true)
+        : !!item.enabled;
+      seen.add(id);
+      rows.push({ id, enabled: on });
+    }
+  }
+  // Anything omitted keeps a stable place at the end — a partial request can
+  // never make a control disappear from the admin list.
+  for (const id of allowed) {
+    if (seen.has(id)) continue;
+    seen.add(id);
+    rows.push({ id, enabled: true });
+  }
+  return rows;
+}
+
+/** Re-validate on every read, so a stale or hand-edited value is harmless. */
+function readNavConfig() {
+  let saved = null;
+  const row = S.getSetting.get(NAV_SETTING_KEY);
+  if (row) { try { saved = JSON.parse(row.value); } catch { saved = null; } }
+  const obj = saved && typeof saved === 'object' ? saved : {};
+  return {
+    more: normalizeNavList(obj.more, NAV_MORE_IDS, null, []),
+    bottom: normalizeNavList(obj.bottom, NAV_BOTTOM_IDS, NAV_PINNED_BOTTOM, []),
+  };
+}
+
+/**
+ * Public and tiny: the ordered ids plus one boolean each. No copy, no labels —
+ * the words live in i18n.js / the HTML, so the four languages cannot drift.
+ *
+ * Unlike the banners route this returns HIDDEN ids too. It has to: the client
+ * needs to tell "the operator switched this off" apart from "this id is not in
+ * the config at all" (a control shipped in a later deploy than the stored
+ * setting). With an enabled-only list, absence is ambiguous and a brand-new
+ * tab would be silently hidden until someone opened the admin. There is
+ * nothing to conceal here anyway — every one of these controls is already in
+ * the shipped HTML.
+ */
+function getPublicNavigation() {
+  return readNavConfig();
+}
+
+/** What the admin needs: every item, including the hidden ones. */
+function getNavigationConfig() {
+  return readNavConfig();
+}
+
+/**
+ * Apply both lists at once.
+ *   Body: { more?: [{id, enabled}], bottom?: [{id, enabled}] }
+ * Each group is optional; an omitted group is left exactly as it was. Arrays
+ * of bare id strings are accepted as an order-only update.
+ */
+function saveNavigationConfig({ more, bottom } = {}) {
+  const current = readNavConfig();
+  const next = {
+    more: more === undefined
+      ? current.more
+      : normalizeNavList(more, NAV_MORE_IDS, null, current.more),
+    bottom: bottom === undefined
+      ? current.bottom
+      : normalizeNavList(bottom, NAV_BOTTOM_IDS, NAV_PINNED_BOTTOM, current.bottom),
+  };
+  S.setSetting.run(NAV_SETTING_KEY, JSON.stringify(next), new Date().toISOString());
+  return readNavConfig();
+}
+
+// ---------------------------------------------------------------------------
 // Traffic for one part of the site (used by the English-track report)
 // ---------------------------------------------------------------------------
 
@@ -6459,6 +6586,9 @@ module.exports = {
   getPublicBanners,
   getBannerConfig,
   saveBannerConfig,
+  getPublicNavigation,
+  getNavigationConfig,
+  saveNavigationConfig,
   pathTraffic,
   listEmployersForLearner,
   listLearnersForEmployer,

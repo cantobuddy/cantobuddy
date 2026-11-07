@@ -128,7 +128,9 @@ a.logo:hover .logo-text { color: var(--c-primary-dark); }
    iPhone at 390px). The contract form is also single-column on phones now —
    a date picker wants the full width, not half of it. */
 .t-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.t-field > span {
+/* The label text only — .t-date is also a <span> child but is a control box,
+   not a label, and must not inherit the bold small label type. */
+.t-field > span:not(.t-date) {
   font-size: 0.83rem;
   font-weight: 700;
   color: var(--c-text);
@@ -139,7 +141,6 @@ a.logo:hover .logo-text { color: var(--c-primary-dark); }
   color: var(--c-text-soft);
   font-size: 0.76rem;
 }
-.t-field input[type="date"],
 .t-field select,
 .search-row input {
   font-family: var(--font-en);
@@ -154,7 +155,65 @@ a.logo:hover .logo-text { color: var(--c-primary-dark); }
   min-width: 0;
   max-width: 100%;
 }
-.t-field input:focus,
+
+/* iOS Safari renders input[type=date] with a NATIVE control whose own
+   min-content width (and, with a Chinese locale, the long "2026年11月7日"
+   text) ignores width:100% / min-width:0 on the input. The result on a real
+   iPhone: the painted rounded box was ~25px wider than the select beside it
+   and poked through the white card's right border.
+
+   So the input no longer owns its box. This wrapper owns the border, padding,
+   radius and background, and clips anything the native control paints beyond
+   them. Inside, the input has NO padding and NO border — with those gone,
+   content-box vs border-box no longer changes its width, and overflow:hidden
+   is the final guarantee that the visible edge can never exceed the card. */
+.t-date {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  min-height: var(--tap);
+  padding: 0 12px;
+  overflow: hidden;
+  background: var(--c-surface);
+  border: 1.5px solid var(--c-border);
+  border-radius: 10px;
+}
+.t-date input[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  flex: 1 1 0;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  min-height: calc(var(--tap) - 3px);
+  padding: 0;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  outline: none;
+  background: transparent;
+  color: var(--c-text);
+  font-family: var(--font-en);
+  font-size: 0.95rem;
+  line-height: 1.4;
+  text-align: left;
+}
+/* WebKit's shadow date field keeps a -webkit-min-content width of its own. */
+.t-date input[type="date"]::-webkit-datetime-edit,
+.t-date input[type="date"]::-webkit-date-and-time-value {
+  min-width: 0;
+  text-align: left;
+}
+.t-date:focus-within {
+  outline: 2px solid var(--c-primary);
+  outline-offset: 1px;
+  border-color: var(--c-primary);
+}
 .t-field select:focus,
 .search-row input:focus {
   outline: 2px solid var(--c-primary);

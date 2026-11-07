@@ -1452,10 +1452,18 @@ function featuredCardHtml(item) {
 /**
  * The hero carousel.
  *
- * The five slides — the Learn Cantonese hero plus games, culture, outings and
- * living — are STATIC MARKUP in index.html. This module does not build them.
- * It only applies the operator's three settings from /api/home-banners: which
- * promos show, in what order, and how many seconds each gets.
+ * The six slides — the Learn Cantonese hero, the pinned Daily Tools entry
+ * point, and the four operator-controlled promos — are STATIC MARKUP in
+ * index.html. This module does not build them. It only applies the operator's
+ * three settings from /api/home-banners: which promos show, in what order,
+ * and how many seconds each gets.
+ *
+ * Daily Tools is NOT operator-controlled. It sits immediately after the hero
+ * for the same reason the hero cannot be switched off: it is a permanent
+ * doorway to the page a helper needs on an ordinary working day, and the
+ * point of putting it in the deck is that she cannot miss it. The API still
+ * controls the four promos that follow. If the operator switches ALL of those
+ * off, the deck correctly falls back to the hero alone.
  *
  * That inversion is deliberate. The old version built the banners from JS, so
  * a slow or blocked API hid the whole carousel. Here the hero is in the HTML
@@ -1465,7 +1473,7 @@ function featuredCardHtml(item) {
  * The slides sit side by side and move with a transform, never swapped through
  * innerHTML, so every doorway stays a crawlable <a> in all four languages.
  */
-const HOME_BANNERS = ['games', 'culture', 'outings', 'living'];
+const HOME_BANNERS = ['tools', 'games', 'culture', 'outings', 'living'];
 
 const homeBanners = {
   loaded: false,
@@ -1534,6 +1542,13 @@ function paintHomeBanners() {
   (homeBanners.slugs || HOME_BANNERS).forEach((s) => {
     if (HOME_BANNERS.includes(s) && !wanted.includes(s)) wanted.push(s);
   });
+
+  // Pin Daily Tools to the first promotion slot. The API lists only the four
+  // switchable promos, so once settings load the tools slide would otherwise
+  // be marked off. An explicitly EMPTY list means "hide the whole promotion
+  // deck", and in that case even the pinned slide stays off (hero only).
+  const deckOn = homeBanners.slugs === null || homeBanners.slugs.length > 0;
+  if (deckOn && !wanted.includes('tools')) wanted.unshift('tools');
 
   const promos = Array.prototype.slice.call(track.querySelectorAll('.hb-promo'));
   promos.forEach((el) => {

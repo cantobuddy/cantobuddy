@@ -1530,6 +1530,58 @@ app.put('/api/admin/banners', requireAdmin, (req, res) => {
 });
 
 /**
+ * GET /api/navigation — the order and visibility of the More sheet and the
+ * bottom tab bar.
+ *
+ * Public, tiny and language-independent: two ordered arrays of
+ *   { id, enabled } — e.g. { more: [...], bottom: [...] }.
+ * Hidden ids ARE included (with enabled:false) so the client can distinguish
+ * "switched off" from "not in this config yet". The words and icons are NOT
+ * here: they are real controls in index.html / tools.html with their own i18n
+ * keys, so an operator setting can never ship an English-only label to the
+ * other three languages. Ids are whitelisted in db.js; Home is pinned first.
+ *
+ * no-store, unlike /api/home-banners: the admin promises the change applies on
+ * the visitor's NEXT page load, and a 60s HTTP cache would make that a minute
+ * late. The service worker still keeps a network-first copy in Cache Storage,
+ * so an offline visitor falls back to the last good config rather than losing
+ * the override entirely.
+ *
+ * The client treats a failed fetch as "keep the authored HTML order". That is
+ * the no-JS / offline fallback: the markup is already correct and complete,
+ * and this response is only an override.
+ */
+app.get('/api/navigation', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.json(store.getPublicNavigation());
+});
+
+/**
+ * GET /api/admin/navigation — every item including the hidden ones, so the
+ * operator can switch them back on.
+ */
+app.get('/api/admin/navigation', requireAdmin, (req, res) => {
+  res.json(store.getNavigationConfig());
+});
+
+/**
+ * PUT /api/admin/navigation — save both lists.
+ *
+ * Body: { more?: [{id, enabled}], bottom?: [{id, enabled}] }
+ * Every field is optional so the admin can send only the list it changed.
+ * Unknown / duplicate ids are discarded server-side, and Home is forced back
+ * to first-and-visible whatever the request claims.
+ */
+app.put('/api/admin/navigation', requireAdmin, (req, res) => {
+  const b = req.body || {};
+  try {
+    res.json(store.saveNavigationConfig({ more: b.more, bottom: b.bottom }));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
  * POST /api/feedback — a helper or an employer writes to the operator.
  *
  * Public by necessity: a helper has no account, and asking her to make one

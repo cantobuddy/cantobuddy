@@ -137,6 +137,7 @@ function switchTab(tab) {
   });
   if (tab === 'push') renderAdminPush();
   if (tab === 'banners') renderAdminBanners();
+  if (tab === 'navigation') renderAdminNavigation();
   if (tab === 'english') renderAdminEnglish();
 }
 
@@ -2182,6 +2183,133 @@ async function moveBanner(slug, dir) {
   try {
     BANNER_CFG = await apiPut('/api/admin/banners', { order });
     await renderAdminBanners();
+  } catch (e) {
+    alert('Could not reorder: ' + e.message);
+  }
+}
+
+// ---- Navigation ordering ---------------------------------------------------
+// Two independent fixed sets — the ⋯ More sheet and the bottom tab bar. Mirrors
+// the Banners module: every control saves IMMEDIATELY and re-reads the server's
+// answer, because db.js re-validates the lists (dedupe, whitelist, pin Home) and
+// that response is the only honest picture of what learners will see.
+//
+// These labels are OPERATOR labels for the admin site, English-only on purpose.
+// Learner-facing words stay in i18n.js / the HTML, so a field here cannot ship
+// an English-only label to the other three languages.
+
+const NAV_META = {
+  // ⋯ More sheet — the order here is documentation, not configuration.
+  employers:     { emoji: '🧑‍💼', label: 'For employers',  note: '/portal' },
+  language:      { emoji: '🌐',   label: 'Language',       note: 'Change language' },
+  voice:         { emoji: '👩',   label: 'Practice voice', note: 'Voice picker' },
+  notifications: { emoji: '🔔',   label: 'Notifications',  note: 'Push on/off' },
+  facebook:      { emoji: '👍',   label: 'Facebook',       note: 'Official page' },
+  feedback:      { emoji: '💬',   label: 'Feedback',       note: 'Feedback dialog' },
+  share:         { emoji: '📤',   label: 'Share',          note: 'Share page' },
+  install:       { emoji: '⬇︎',   label: 'Install',        note: 'Also needs a device that can install' },
+  english:       { emoji: '🇬🇧',   label: 'Learn English',  note: '/en · last by default' },
+  // Bottom tabs.
+  home:          { emoji: '🏠',   label: 'Home',     note: 'Pinned first · always visible' },
+  learn:         { emoji: '📖',   label: 'Learn',    note: 'Categories' },
+  quiz:          { emoji: '❓',   label: 'Quiz',     note: 'Quiz selector' },
+  discover:      { emoji: '🌏',   label: 'Discover', note: 'Culture, news, stories' },
+  games:         { emoji: '🎮',   label: 'Games',    note: 'Games hub' },
+  tools:         { emoji: '🧰',   label: 'Tools',    note: '/tools · Daily Tools' },
+};
+
+let NAV_CFG = null;
+
+async function renderAdminNavigation() {
+  const moreEl = document.getElementById('admin-nav-more');
+  const bottomEl = document.getElementById('admin-nav-bottom');
+  if (!moreEl || !bottomEl) return;
+  try {
+    NAV_CFG = await apiGet('/api/admin/navigation');
+
+    // `draw` is shared: the only difference between the two lists is that the
+    // bottom bar has a pinned Home row, which can be neither hidden nor moved.
+    const draw = (group, rows) => rows.map((row, i) => {
+      const id = row.id;
+      const m = NAV_META[id] || { emoji: '🔘', label: id, note: '' };
+      const pinned = group === 'bottom' && id === 'home';
+      const on = pinned ? true : row.enabled;
+      // In the bottom bar, position 2 cannot move up either: Home owns slot 1
+      // and the server would silently put it back, which reads as a broken ↑.
+      const upDisabled = pinned || i === 0 || (group === 'bottom' && i === 1);
+      const downDisabled = pinned || i === rows.length - 1;
+      return `<div class="admin-vocab-row" style="display:flex;align-items:center;gap:12px;opacity:${on ? 1 : .55}">
+        <input type="checkbox" ${on ? 'checked' : ''} ${pinned ? 'disabled' : ''}
+               id="nav-on-${group}-${id}"
+               onchange="toggleNavItem('${group}', '${id}', this.checked)"
+               style="width:20px;height:20px;flex:0 0 auto" />
+        <label for="nav-on-${group}-${id}" style="flex:1 1 auto;min-width:0;cursor:pointer">
+          <strong>${m.emoji} ${m.label}</strong>
+          <small style="display:block;color:#6b7280;font-weight:600">
+            ${pinned ? 'Pinned first' : (on ? 'Shown' : 'Hidden')} · position ${i + 1} · ${m.note}
+          </small>
+        </label>
+        <button class="btn btn-outline btn-sm" ${upDisabled ? 'disabled' : ''}
+                style="${upDisabled ? 'opacity:.4;cursor:not-allowed' : ''}"
+                onclick="moveNavItem('${group}', '${id}', -1)" aria-label="Move ${m.label} up">↑</button>
+        <button class="btn btn-outline btn-sm" ${downDisabled ? 'disabled' : ''}
+                style="${downDisabled ? 'opacity:.4;cursor:not-allowed' : ''}"
+                onclick="moveNavItem('${group}', '${id}', 1)" aria-label="Move ${m.label} down">↓</button>
+      </div>`;
+    }).join('');
+
+    moreEl.innerHTML = draw('more', NAV_CFG.more);
+    bottomEl.innerHTML = draw('bottom', NAV_CFG.bottom);
+
+    const shownMore = NAV_CFG.more.filter((r) => r.enabled).length;
+    const shownBottom = NAV_CFG.bottom.filter((r) => r.enabled).length;
+    const stamp = document.getElementById('admin-nav-stamp');
+    if (stamp) {
+      stamp.textContent = `${shownMore} of ${NAV_CFG.more.length} More icons · `
+        + `${shownBottom} of ${NAV_CFG.bottom.length} bottom tabs · `
+        + `saved ${new Date().toLocaleTimeString()}`;
+    }
+  } catch (e) {
+    moreEl.innerHTML = `<div class="admin-empty">Could not load navigation: ${e.message}</div>`;
+    bottomEl.innerHTML = '';
+  }
+}
+
+async function toggleNavItem(group, id, on) {
+  if (!NAV_CFG) return;
+  const payload = NAV_CFG[group].map((r) => ({
+    id: r.id,
+    enabled: r.id === id ? !!on : r.enabled,
+  }));
+  try {
+    NAV_CFG = await apiPut('/api/admin/navigation', { [group]: payload });
+    await renderAdminNavigation();
+  } catch (e) {
+    alert('Could not change that item: ' + e.message);
+    await renderAdminNavigation();
+  }
+}
+
+async function moveNavItem(group, id, dir) {
+  if (!NAV_CFG) return;
+  const rows = NAV_CFG[group];
+  const order = rows.map((r) => r.id);
+  const from = order.indexOf(id);
+  const to = from + dir;
+  if (from < 0 || to < 0 || to >= order.length) return;
+  // Home is pinned. Refuse locally rather than sending a request the server
+  // will normalise back to the same order, which looks like a dead button.
+  if (group === 'bottom' && (to === 0 || order[from] === 'home' || order[to] === 'home')) return;
+  order.splice(to, 0, order.splice(from, 1)[0]);
+  // Send the full rows, not just the ids: an order-only update must not wipe
+  // the on/off choices the operator made on other items in the same list.
+  const payload = order.map((nid) => {
+    const row = rows.find((r) => r.id === nid);
+    return { id: nid, enabled: row ? row.enabled : true };
+  });
+  try {
+    NAV_CFG = await apiPut('/api/admin/navigation', { [group]: payload });
+    await renderAdminNavigation();
   } catch (e) {
     alert('Could not reorder: ' + e.message);
   }

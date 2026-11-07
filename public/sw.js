@@ -8,14 +8,17 @@
 // change. The app shell is cached cache-first, so without a version bump
 // installed PWAs would keep serving the previous build from cache.
 //
-// v143 — 2026-11-07. This release EDITS cached shell files: index.html (the
-// sixth bottom-nav tab), i18n.js (nav.tools in four languages), styles.css
-// (six-tab spacing) and tools.html / tools.css (the contract form overlap fix).
-// All five are served cache-first, so without a version bump an installed PWA
-// would keep the old nav and the overlapping form forever. The v142 release
-// only ADDED new APP_SHELL paths, which needed no bump; editing existing ones
-// does. Bump again on every later edit to any APP_SHELL file.
-const CACHE = 'cantobuddy-v143';
+// v145 — 2026-11-07. This release EDITS index.html, styles.css and tools.html
+// (the pinned Daily Tools banner, the second iOS date-input fix, Learn English
+// moved last, and data-nav-id on every More-sheet icon and bottom tab) AND ADDS
+// /nav-order.js, the client that applies the operator's navigation order. All
+// of those are served cache-first, so without a version bump an installed PWA
+// would keep the old header and the old six-tab bar forever — including on
+// /tools, where the bar is the only way back into the app.
+// v144 was the previous local bump for the banner/date work; it was never
+// deployed. v143 was the last live cache. Bump again on every later edit to
+// any APP_SHELL file.
+const CACHE = 'cantobuddy-v145';
 
 // Which paths are server-rendered SEO documents rather than app-shell assets.
 // Kept as one matcher so it can be asserted against `LANG_PREFIX` in seo.js —
@@ -64,6 +67,12 @@ const APP_SHELL = [
   // leave returning visitors on the OLD event names while the server has the
   // new allow-list — a silent hole in the baseline. Bump CACHE with it.
   '/funnel-client.js',
+  // Operator-controlled navigation order. Loaded by index.html AND tools.html;
+  // a stale copy would pin the old tab/header order on one page but not the
+  // other, so the two would disagree until the PWA was reinstalled. Cache-first
+  // like the rest of the shell: /api/navigation is already network-first with an
+  // offline fallback, so the CONFIG stays fresh independently of this file.
+  '/nav-order.js',
   // Outings: the place data and the photograph credits. Both are local and
   // small, and a place page that cannot credit its photographer offline is a
   // licence problem, not a cosmetic one.

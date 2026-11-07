@@ -79,6 +79,9 @@
       <!-- Banners: what the Home page advertises, in what order, and for how
            long. Sits beside Posts because both are "what a visitor sees first". -->
       <button class="admin-tab" data-tab="banners" onclick="switchTab('banners')">🖼️ Banners</button>
+      <!-- Navigation: the icons in the ⋯ More sheet and the six bottom tabs.
+           Sits beside Banners because both answer "where can a visitor go?" -->
+      <button class="admin-tab" data-tab="navigation" onclick="switchTab('navigation')">🧭 Navigation</button>
       <!-- Learn English: its traffic and its content. A separate tab rather than
            a section of Reports because it is a different site with a different
            audience, and its numbers must not be read as the main app's. -->
@@ -393,6 +396,50 @@
 
       <div id="admin-banners-list" class="admin-list" style="margin-top:14px"></div>
       <p class="admin-hint" id="admin-banners-stamp"></p>
+    </div>
+
+    <!-- ---- navigation tab ---- -->
+    <!-- Two independent lists, both FIXED SETS of real controls. The operator
+         chooses order and visibility only: the words and icons live in the HTML
+         (with i18n keys in the learner app), so a free-text field here could not
+         ship anything but an English-only label. Home is pinned: a learner with
+         no way back to Home is a dead end, not a configuration.
+
+         Both index.html AND tools.html carry the same bottom-tab ids, so a
+         change here is consistent between the app and the standalone Tools
+         page. Changes apply on each visitor's next page load. -->
+    <div id="tab-navigation" class="admin-tab-content">
+      <div class="admin-toolbar">
+        <h3>Navigation</h3>
+        <button class="btn btn-outline btn-sm" onclick="renderAdminNavigation()">↻ Refresh</button>
+      </div>
+      <p class="admin-hint">
+        Reorder or hide the icons in the <strong>⋯ More sheet</strong> (top right)
+        and the tabs in the <strong>bottom bar</strong>. Tick a box to show an
+        item; use ↑ / ↓ to move it. Changes save immediately and apply to every
+        visitor on their next page load — including the standalone Daily Tools
+        page. <strong>Home is always first and cannot be hidden.</strong>
+      </p>
+
+      <h4 class="admin-subhead">⋯ More sheet</h4>
+      <p class="admin-hint" style="margin-top:0">
+        This is the sheet that opens from the ⋯ button on a phone; on a desktop
+        it is the row of icons at the top right. "Learn English" is last by
+        default because it is a link to a different audience, not an everyday
+        control. <strong>Install</strong> is also device-controlled: the app only
+        shows it when installing is actually possible, even when it is ticked
+        here.
+      </p>
+      <div id="admin-nav-more" class="admin-list"></div>
+
+      <h4 class="admin-subhead" style="margin-top:22px">Bottom tabs</h4>
+      <p class="admin-hint" style="margin-top:0">
+        The tab bar is measured to the pixel at 320px in four languages. Hiding
+        a tab gives the remaining ones more room; it never changes their labels.
+      </p>
+      <div id="admin-nav-bottom" class="admin-list"></div>
+
+      <p class="admin-hint" id="admin-nav-stamp"></p>
     </div>
 
     <!-- ---- english tab ---- -->

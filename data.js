@@ -3342,6 +3342,190 @@ const SEED_POSTS = [
 <h2>😄 Satu aturan</h2>
 <p>Jangan makan mooncake terakhir di kaleng tanpa bertanya. Ini setara menghabiskan susu di kantor. Tak ada yang bilang, dan semua orang memperhatikan.</p>`,
   },
+
+  {
+    slug: 'hk-living-cost-helper-vs-local',
+    channel: 'culture',
+    icon: '💰',
+    status: 'published',
+    published_at: '2026-11-07T09:00:00.000Z',
+    title_en: 'Living Costs in Hong Kong: A Helper Package vs an Ordinary Local Life',
+    title_zh: '在香港生活要花多少錢：外傭「包食包住」vs 普通香港人',
+    summary_en: 'Your salary looks small next to an office worker but you also get a free room and free meals. Here is the real math in plain numbers, plus the pros and cons of each side.',
+    summary_zh: '你的收入比上班族少，但你免費有房有飯食。以下用實際數字比較，並列出雙方的優缺點。',
+    body_en: `<h2>💰 The helper's "package"</h2>
+<p>By law, a foreign domestic helper in Hong Kong earns at least the Minimum Allowable Wage — <strong>HK$5,220 a month</strong> (since 2 October 2026). But that number is only half the story. Your contract also says your employer must give you:</p>
+<ul>
+  <li>a <strong>free place to live</strong> (your own room in their home), and</li>
+  <li><strong>free food</strong> — or, if they do not cook for you, a food allowance of at least <strong>HK$1,236 a month</strong>.</li>
+</ul>
+<p>So your real "package" is roughly <strong>cash salary + a room + your meals</strong>. Because the two biggest costs — rent and food — are already paid for you, almost all of your cash is <em>yours</em> to save or send home.</p>
+
+<h2>🏙️ An ordinary local's life</h2>
+<p>Now picture a regular Hong Kong worker who does NOT live with their boss. They pay for everything themselves. A modest single person typically spends about:</p>
+<ul>
+  <li><strong>Rent:</strong> a small flat HK$13,000–18,000; even a bed in a shared flat runs HK$10,000–18,000</li>
+  <li><strong>Food:</strong> cooking at home plus the odd meal out, HK$4,000–6,500</li>
+  <li><strong>Transport:</strong> MTR and bus monthly pass, HK$600–1,200</li>
+  <li><strong>Utilities + internet:</strong> HK$1,000–2,500</li>
+</ul>
+<p>Add it up and a careful single person needs about <strong>HK$20,000–30,000 a month</strong> just to live simply. A more comfortable life easily passes HK$35,000.</p>
+
+<h2>✅ Helper — the good side</h2>
+<ul>
+  <li>Your room and meals are free, so your cash salary is almost all disposable.</li>
+  <li>You can save or send a large share of your income home every month.</li>
+  <li>Housing and food are guaranteed by contract — no surprise rent rises.</li>
+  <li>You are protected by Hong Kong labour law (rest days, minimum wage, holidays).</li>
+</ul>
+
+<h2>⚠️ Helper — the hard side</h2>
+<ul>
+  <li>The cash salary is low compared with an office job.</li>
+  <li>You live where you work — little privacy, and work and home are the same place.</li>
+  <li>Long or unclear hours; hard to switch off.</li>
+  <li>Your visa is tied to one employer, so moving out on your own is not simple.</li>
+</ul>
+
+<h2>✅ Ordinary local — the good side</h2>
+<ul>
+  <li>Freedom and privacy: your own space, your own rules.</li>
+  <li>You choose where to live and what to eat.</li>
+  <li>Higher earning potential if you climb the career ladder.</li>
+</ul>
+
+<h2>⚠️ Ordinary local — the hard side</h2>
+<ul>
+  <li>Everything is on you — rent, food, bills, transport.</li>
+  <li>Rent alone can eat nearly half the budget.</li>
+  <li>Hong Kong is one of the most expensive cities in the world to rent in.</li>
+  <li>The stress of a high cost of living with no safety net.</li>
+</ul>
+
+<h2>🧮 The real score</h2>
+<p>It is not "who earns more" but <strong>who keeps more</strong>. A helper's HK$5,220 may look tiny next to a local earning HK$30,000 — but after the local pays rent and food, they may keep less disposable cash than you do. The free room and free meals are real money; they are just invisible on a payslip.</p>
+<p>Neither life is better — they are simply different trades. Knowing the math helps you appreciate your package, and understand the family you work for a little better too.</p>`,
+    body_zh: `<h2>💰 外傭的「人工配套」</h2>
+<p>根據法例，香港外傭每月最低工資至少為 <strong>港幣5,220元</strong>（2026年10月2日起）。但這個數字只講了一半。你的合約還規定僱主必須提供：</p>
+<ul>
+  <li>一個<strong>免費住所</strong>（在你家的房間），以及</li>
+  <li><strong>免費膳食</strong>——若僱主不提供膳食，則要給至少 <strong>每月港幣1,236元</strong> 的膳食津貼。</li>
+</ul>
+<p>所以你的真正「配套」大約是 <strong>現金人工 + 一個房間 + 每日膳食</strong>。因為最大的兩項開支——租金和伙食——已經有人付，你袋中的現金幾乎全部可以儲起或寄回家。</p>
+
+<h2>🏙️ 普通香港人的生活</h2>
+<p>試想像一個不住在老闆家的普通香港打工仔，他要自己付所有開支。一個節儉的單身人士通常每月約花：</p>
+<ul>
+  <li><strong>租金：</strong>細單位港幣13,000–18,000元；即使是合租床位也要港幣10,000–18,000元</li>
+  <li><strong>伙食：</strong>自己煮加偶爾出街，港幣4,000–6,500元</li>
+  <li><strong>交通：</strong>港鐵及巴士月票，港幣600–1,200元</li>
+  <li><strong>水電上網：</strong>港幣1,000–2,500元</li>
+</ul>
+<p>加起來，一個慳儉的單身人士每月也要約 <strong>港幣20,000–30,000元</strong> 才能簡單過活；想過得舒服輕易超過港幣35,000元。</p>
+
+<h2>✅ 外傭——好的一面</h2>
+<ul>
+  <li>房間和膳食免費，所以人工幾乎全部可動用。</li>
+  <li>每月可以把很大一部分收入儲起或寄回家。</li>
+  <li>住和食由合約保證，不怕租金突然加價。</li>
+  <li>受香港《僱傭條例》保障（休息日、最低工資、法定假期）。</li>
+</ul>
+
+<h2>⚠️ 外傭——難的一面</h2>
+<ul>
+  <li>現金人工比辦公室工作低。</li>
+  <li>住處即工作地點，私隱少，工作和生活不分家。</li>
+  <li>工時長或模糊，很難「收工」。</li>
+  <li>簽證綁住一個僱主，想自己搬出並不容易。</li>
+</ul>
+
+<h2>✅ 普通香港人——好的一面</h2>
+<ul>
+  <li>自由與私隱：自己的空間，自己的規矩。</li>
+  <li>自己選住哪、吃什麼。</li>
+  <li>若事業向上，收入潛力更高。</li>
+</ul>
+
+<h2>⚠️ 普通香港人——難的一面</h2>
+<ul>
+  <li>所有開支自己扛——租金、伙食、水電、交通。</li>
+  <li>單是租金已可佔去預算近一半。</li>
+  <li>香港是全球租金最高的城市之一。</li>
+  <li>沒有安全網又要應付高昂生活費，壓力大。</li>
+</ul>
+
+<h2>🧮 真正的計算</h2>
+<p>重點不是「邊個賺得多」，而是<strong>邊個剩得多</strong>。外傭的港幣5,220元看似比月入港幣30,000元的本地人少很多——但本地人付完租金和伙食後，剩落袋的現金可能比你還少。免費的房間和膳食都是真金白銀，只是不會出現在糧單上。</p>
+<p>兩種生活無分好壞，只是不同的取捨。懂得這筆數，你會更珍惜自己的配套，也更明白所服務的一家人。</p>`,
+  },
+
+  {
+    slug: 'hk-districts-rich-cheap-fun',
+    channel: 'culture',
+    icon: '🗺️',
+    status: 'published',
+    published_at: '2026-11-07T09:30:00.000Z',
+    title_en: 'Hong Kong Neighbourhoods: From Gold to Grit (and Where Your Money Stretches)',
+    title_zh: '香港各區大不同：有錢區與平民區（其實平區更好玩）',
+    summary_en: 'Some districts are rich, some are working-class but cheaper and often more fun. A light-hearted tour of where to wander on your day off, and how to enjoy the fancy views for free.',
+    summary_zh: '有些區很富，有些區很草根——但越平的區往往越好玩。輕鬆帶你逛各區，教你休息日點樣免費睇靚景。',
+    body_en: `<h2>💎 The rich heart: Central, Admiralty, Mid-Levels</h2>
+<p>Central is where the money wears a suit. Skyscrapers, banks, and rents of HK$18,000–30,000 for a tiny flat. But here is the trick: the <strong>Mid-Levels Escalator</strong> — the longest covered escalator in the world — is free to ride, and <strong>Hong Kong Park</strong> is a calm green escape at the top, also free. Rich views, zero cost.</p>
+
+<h2>🌆 Tsim Sha Tsui and the harbour</h2>
+<p>Across the water, TST gives you the postcard harbour for free: the <strong>Avenue of Stars</strong>, the museums (many free on Wednesdays), and the nightly <strong>Symphony of Lights</strong> at 8pm — a free light show over Victoria Harbour. Sit on the promenade, no ticket needed.</p>
+
+<h2>🛍️ Causeway Bay and Wan Chai</h2>
+<p>Bright, loud, and built for spending. Fun to walk through once; your wallet will thank you for just looking. Wan Chai mixes old tong lau buildings with expat bars — characterful, if pricey.</p>
+
+<h2>🍜 Mong Kok: busy, neon, and cheap</h2>
+<p>Mong Kok is the busiest district in the city — a glorious mess of neon, the <strong>Ladies Market</strong>, street food, and some of the cheapest eats around (rent here is a gentler HK$9,000–14,000). Perfect for a rest-day wander: grab a skewer, browse the stalls, soak up the chaos.</p>
+
+<h2>🥢 Sham Shui Po: proof that working-class equals best budget fun</h2>
+<p>Sham Shui Po is one of the most working-class, affordable districts in Hong Kong — and arguably the most fun on a budget. <strong>Gourmet Street</strong> packs local eateries into a few blocks; you can eat like a king for pocket change. It is also the kingdom of egg waffles, fabric shops, and retro electronics. Rent here can be as low as HK$7,000–12,000. Poor on paper, rich in flavour.</p>
+
+<h2>🍲 Kowloon City and the New Territories</h2>
+<p>Kowloon City is famous for cheap, honest Thai and Vietnamese food and old-school charm. Venture further to the <strong>New Territories</strong> or the outlying islands (Cheung Chau, Lamma) and prices drop further still — beaches, hikes, and quiet that the city centre cannot offer.</p>
+
+<h2>🚢 The budget hacks everyone should know</h2>
+<ul>
+  <li><strong>Star Ferry</strong> across the harbour: about HK$3–4 — cheaper than the MTR and a far better view.</li>
+  <li>The <strong>Ding Ding tram</strong> (Hong Kong Island): a flat HK$3 fare, the slowest sightseeing ride in town.</li>
+  <li>Many <strong>museums are free on Wednesdays</strong>; the harbour light show is always free at 8pm.</li>
+  <li>The MTR costs the same everywhere — rich district or poor, the train fare does not change.</li>
+</ul>
+
+<h2>🧭 The takeaway</h2>
+<p>What changes from district to district is rent and shop prices — not the sea, the mountains, the tram, or the ferry. So you can enjoy the rich views for free, and spend your money where it counts: on the cheap, joyful food of places like Sham Shui Po. On your next day off, skip the mall and ride the Star Ferry to a neighbourhood that costs less and laughs more.</p>`,
+    body_zh: `<h2>💎 有錢心臟地帶：中環、金鐘、半山</h2>
+<p>中環是金錢穿西裝的地方。摩天大廈、銀行，細單位租金動輒港幣18,000–30,000元。但秘訣是：<strong>半山自動扶梯</strong>——全球最長的有蓋扶梯——免費搭；頂端的<strong>香港公園</strong>是寧靜的綠色避風塘，同樣免費。靚景，零成本。</p>
+
+<h2>🌆 尖沙咀與維港</h2>
+<p>對岸的尖沙咀讓你免費看明信片般的維港景：<strong>星光大道</strong>、博物館（很多星期三免費）、以及每晚8點的<strong>幻彩詠香江</strong>——維港上空的免費燈光秀。坐在海濱長廊，不用門票。</p>
+
+<h2>🛍️ 銅鑼灣與灣仔</h2>
+<p>光亮、喧鬧、為消費而建。逛一次很有趣；你的錢包會感謝你只看不買。灣仔混合舊唐樓與外籍人士酒吧——有性格，但偏貴。</p>
+
+<h2>🍜 旺角：繁忙、霓虹、平靚正</h2>
+<p>旺角是全城最繁忙的區域——霓虹、<strong>女人街</strong>、街頭小食，以及全港數一數二的便宜美食（這裡租金較親民，港幣9,000–14,000元）。最適合休息日閒逛：串一串燒賣、睇吓地攤、感受這份混亂。</p>
+
+<h2>🥢 深水埗：證明「平民區」=「最抵玩」</h2>
+<p>深水埗是香港最草根、最平易的區域之一，卻可能是預算有限時最好玩的地方。<strong>美食街</strong>把地道食店擠進幾條街；少少錢就吃到撐。這裡也是雞蛋仔、布疋店和復古電器的王國。租金可以低至港幣7,000–12,000元。紙面上窮，味道上富。</p>
+
+<h2>🍲 九龍城與新界</h2>
+<p>九龍城以便宜實惠的泰國菜、越南菜和老香港風味聞名。再遠一點去<strong>新界</strong>或離島（長洲、南丫島），物價更低——海灘、行山、鬧市沒有的寧靜。</p>
+
+<h2>🚢 人人都應識的慳錢貼士</h2>
+<ul>
+  <li><strong>天星小輪</strong>過海：約港幣3–4元——比港鐵便宜，景更靚。</li>
+  <li><strong>叮叮車</strong>（港島）：統一港幣3元，全城最慢的觀光車。</li>
+  <li>很多<strong>博物館星期三免費</strong>；幻彩詠香江每晚8點永遠免費。</li>
+  <li>港鐵無論富區窮區，車費一樣。</li>
+</ul>
+
+<h2>🧭 重點</h2>
+<p>不同區分別在租金和物價——而不是海、山、電車或渡輪。所以你可以免費享受「有錢區」的靚景，把錢花在深水埗那種便宜又開心的食物上。下個休息日，跳過商場，搭天星小輪去一個更平、更愛笑的社區吧。</p>`,
+  },
 ];
 
 // ---------------------------------------------------------------------------

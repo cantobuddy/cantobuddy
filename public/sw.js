@@ -31,7 +31,16 @@
 // (applyDiscoverOrder + renderHomeDiscoverPromo), styles.css (the hide rule) and
 // admin.html / admin.js (the admin tab). All four app-shell files changed, so the
 // bump is required; /admin stays network-first and needs none of its own.
-const CACHE = 'cantobuddy-v149';
+//
+// v148/v149 — 2026-11-07. Sunday Tournament: the home card + per-game banners
+// (app.js, index.html, games-common.js and three game index.html pages all
+// changed), plus the db/server endpoints for the weekend leaderboard.
+//
+// v150 — this release (2026-11-08). Daily Word Challenge: a new home card in
+// app.js and a new #daily-challenge section in index.html. Both are cache-first
+// APP_SHELL files, so the bump is required. The per-device API is no-store and
+// network-first, so it needs no cache entry of its own.
+const CACHE = 'cantobuddy-v150';
 
 // Which paths are server-rendered SEO documents rather than app-shell assets.
 // Kept as one matcher so it can be asserted against `LANG_PREFIX` in seo.js —

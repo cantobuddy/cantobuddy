@@ -830,6 +830,7 @@ async function init() {
     renderHomeDailyCulture();
     renderHomeDiscoverPromo();
     renderSundayShowdown();
+    renderDailyChallenge();
     // Apply the operator's Discover tab order/visibility. Fired after the
     // initial render so the Home promo + Discover row can be corrected from the
     // saved config; a failed fetch leaves the authored HTML order untouched.
@@ -868,6 +869,7 @@ function rerenderForLanguage() {
   renderHomeDiscoverPromo();
   renderHomeGamesPromo();
   renderSundayShowdown();
+  renderDailyChallenge();
   renderGamesHub();
   renderCategoryChips();
   renderQuizTypes();
@@ -1776,6 +1778,212 @@ async function renderSundayShowdown() {
     actions.appendChild(share);
 
     card.appendChild(actions);
+  } catch (err) {
+    // Optional highlight — never block the home page on a failed fetch.
+    el.hidden = true;
+  }
+}
+
+/**
+ * The "Daily Word Challenge" — a bite-sized, one-question micro-quiz with its
+ * OWN streak (separate from the practice streak in the returning-learner card).
+ * The word is deterministic per HKT day from the server, so every reload shows
+ * the same question; the four options are shuffled with a stable, date-seeded
+ * shuffle so the order does not jump around on refresh.
+ *
+ * games-common.js is NOT loaded on the home page, so the .cb-dc-* styles are
+ * injected here (guarded by #cbDailyStyle so a second render cannot duplicate).
+ */
+function ensureDailyStyles() {
+  if (document.getElementById('cbDailyStyle')) return;
+  const css =
+    '.cb-dc{padding:14px 15px;margin:14px 0;border:1px solid #d9e7dc;border-radius:14px;' +
+    'background:linear-gradient(135deg,#eefaf1,#fff);box-shadow:0 1px 2px rgba(18,33,47,.05)}' +
+    '.cb-dc-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}' +
+    '.cb-dc-title{font-weight:800;font-size:14px;color:#1f6b3a}' +
+    '.cb-dc-streak{font-size:12px;font-weight:800;color:#a8500a;background:#fff0d6;' +
+    'padding:3px 9px;border-radius:10px;white-space:nowrap}' +
+    '.cb-dc-prompt{font-size:13px;color:#5b6573;margin-bottom:2px}' +
+    '.cb-dc-word{font-size:19px;font-weight:800;color:#12212f;margin-bottom:12px;line-height:1.35}' +
+    '.cb-dc-emoji{font-size:22px;vertical-align:middle;margin-right:6px}' +
+    '.cb-dc-opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}' +
+    '.cb-dc-opt{border:1px solid #d3e2d6;background:#fff;border-radius:10px;padding:10px 8px;' +
+    'font-size:15px;font-weight:700;color:#12212f;cursor:pointer;line-height:1.3;min-height:44px;' +
+    'transition:background .12s,border-color .12s}' +
+    '.cb-dc-opt:hover:not(:disabled){background:#f0faf3;border-color:#8fc9a3}' +
+    '.cb-dc-opt:disabled{cursor:default}' +
+    '.cb-dc-opt.right{background:#d9f5e1;border-color:#2fa35c;color:#12682f}' +
+    '.cb-dc-opt.wrong{background:#fdeaea;border-color:#e08a8a;color:#a02a2a}' +
+    '.cb-dc-feedback{margin-top:10px;font-size:13px;font-weight:700;min-height:18px}' +
+    '.cb-dc-feedback.ok{color:#1f7a3d}' +
+    '.cb-dc-feedback.no{color:#a8500a}' +
+    '.cb-dc-answer{margin-top:8px;font-size:14px;color:#12212f;display:flex;align-items:center;' +
+    'gap:8px;flex-wrap:wrap}' +
+    '.cb-dc-jyutping{color:#7a4a00;font-style:italic;font-size:12px}' +
+    '.cb-dc-hear{border:0;border-radius:8px;background:#1f6b3a;color:#fff;font-size:12px;' +
+    'font-weight:700;padding:5px 10px;cursor:pointer}' +
+    '.cb-dc-hear:hover{background:#18552e}' +
+    '.cb-dc-foot{margin-top:10px;font-size:11px;color:#8a93a0}' +
+    '@media(max-width:360px){.cb-dc-opts{grid-template-columns:1fr}}';
+  const st = document.createElement('style');
+  st.id = 'cbDailyStyle';
+  st.textContent = css;
+  (document.head || document.documentElement).appendChild(st);
+}
+
+// Stable, date-seeded shuffle: same day -> same option order on every reload.
+function dailyShuffle(arr, seedStr) {
+  const a = arr.slice();
+  let s = 5381;
+  for (let i = 0; i < seedStr.length; i++) s = ((s * 33) ^ seedStr.charCodeAt(i)) >>> 0;
+  for (let i = a.length - 1; i > 0; i--) {
+    s = (s * 1103515245 + 12345) >>> 0;
+    const j = s % (i + 1);
+    const tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+  }
+  return a;
+}
+
+async function renderDailyChallenge() {
+  const el = document.getElementById('daily-challenge');
+  if (!el) return;
+  el.hidden = true;
+  try {
+    const pid = STATE.deviceId ? encodeURIComponent(STATE.deviceId) : '';
+    // no-store: this response carries this device's own streak / completedToday,
+    // so a cached copy would show a finished challenge as still unanswered.
+    const r = await fetch('/api/daily-challenge' + (pid ? '?public_id=' + pid : ''),
+      { headers: { Accept: 'application/json' }, cache: 'no-store' });
+    if (!r.ok) throw new Error('daily-challenge ' + r.status);
+    const d = await r.json();
+    if (!d || !d.word || !Array.isArray(d.options) || d.options.length < 2) return;
+
+    ensureDailyStyles();
+    el.innerHTML = '';
+    el.hidden = false;
+
+    const card = document.createElement('div');
+    card.className = 'cb-dc';
+    el.appendChild(card);
+
+    const word = d.word;
+    const streak = d.streak || { current: 0, longest: 0 };
+
+    const head = document.createElement('div');
+    head.className = 'cb-dc-head';
+    head.innerHTML = '<span class="cb-dc-title">🎯 Daily Word Challenge</span>' +
+      '<span class="cb-dc-streak">🔥 ' + (streak.current || 0) + ' day' +
+      (streak.current === 1 ? '' : 's') + ' · best ' + (streak.longest || 0) + '</span>';
+    card.appendChild(head);
+
+    const prompt = document.createElement('div');
+    prompt.className = 'cb-dc-prompt';
+    prompt.textContent = 'Which is the Cantonese for…';
+    card.appendChild(prompt);
+
+    const wordLine = document.createElement('div');
+    wordLine.className = 'cb-dc-word';
+    wordLine.innerHTML = '<span class="cb-dc-emoji">' + escapeHtml(word.emoji || '📝') + '</span>' +
+      escapeHtml(meaning(word));
+    card.appendChild(wordLine);
+
+    const opts = document.createElement('div');
+    opts.className = 'cb-dc-opts';
+    card.appendChild(opts);
+
+    const feedback = document.createElement('div');
+    feedback.className = 'cb-dc-feedback';
+    card.appendChild(feedback);
+
+    const answer = document.createElement('div');
+    answer.className = 'cb-dc-answer';
+    answer.hidden = true;
+    card.appendChild(answer);
+
+    function reveal(correct, chosenId) {
+      Array.prototype.forEach.call(opts.querySelectorAll('.cb-dc-opt'), (b) => {
+        b.disabled = true;
+        const id = Number(b.dataset.id);
+        if (id === word.id) b.classList.add('right');
+        else if (id === chosenId) b.classList.add('wrong');
+      });
+      feedback.className = 'cb-dc-feedback ' + (correct ? 'ok' : 'no');
+      feedback.textContent = correct
+        ? '✓ Correct! Come back tomorrow for a new word.'
+        : 'Not quite — here is the right one. See you tomorrow!';
+      answer.hidden = false;
+      answer.innerHTML = '<b>' + escapeHtml(word.cantonese) + '</b>' +
+        '<span class="cb-dc-jyutping">' + escapeHtml(word.jyutping || '') + '</span>';
+      const hear = document.createElement('button');
+      hear.type = 'button';
+      hear.className = 'cb-dc-hear';
+      hear.textContent = '🔊 Hear it';
+      hear.addEventListener('click', function () { speak(word.cantonese, hear); });
+      answer.appendChild(hear);
+    }
+
+    // Already finished today: show the answered state without letting her
+    // answer again (a reload must not silently re-award the day).
+    if (d.completedToday) {
+      dailyShuffle(d.options, d.date).forEach((o) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'cb-dc-opt';
+        b.dataset.id = o.id;
+        b.textContent = o.cantonese;
+        b.disabled = true;
+        if (o.id === word.id) b.classList.add('right');
+        opts.appendChild(b);
+      });
+      feedback.className = 'cb-dc-feedback ok';
+      feedback.textContent = "✓ Done for today — you're on a " +
+        (streak.current || 1) + '-day streak. New word tomorrow!';
+      answer.hidden = false;
+      answer.innerHTML = '<b>' + escapeHtml(word.cantonese) + '</b>' +
+        '<span class="cb-dc-jyutping">' + escapeHtml(word.jyutping || '') + '</span>';
+      const hear2 = document.createElement('button');
+      hear2.type = 'button';
+      hear2.className = 'cb-dc-hear';
+      hear2.textContent = '🔊 Hear it';
+      hear2.addEventListener('click', function () { speak(word.cantonese, hear2); });
+      answer.appendChild(hear2);
+      return;
+    }
+
+    dailyShuffle(d.options, d.date).forEach((o) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'cb-dc-opt';
+      b.dataset.id = o.id;
+      b.textContent = o.cantonese;
+      b.addEventListener('click', async function () {
+        if (b.disabled) return;
+        const correct = Number(o.id) === Number(word.id);
+        // Reveal immediately — the network is a courtesy, not a gate. The streak
+        // is saved server-side and will be correct on the next load either way.
+        reveal(correct, Number(o.id));
+        Array.prototype.forEach.call(opts.querySelectorAll('.cb-dc-opt'), (x) => { x.disabled = true; });
+        try {
+          const updated = await apiPost('/api/daily-challenge', {
+            public_id: STATE.deviceId,
+            word_id: word.id,
+            correct: correct ? 1 : 0,
+          });
+          if (updated && updated.streak) {
+            const badge = head.querySelector('.cb-dc-streak');
+            if (badge) badge.textContent = '🔥 ' + (updated.streak.current || 0) +
+              ' day' + (updated.streak.current === 1 ? '' : 's') + ' · best ' +
+              (updated.streak.longest || 0);
+          }
+        } catch (e) { /* already revealed; the day is idempotent server-side */ }
+      });
+      opts.appendChild(b);
+    });
+
+    const foot = document.createElement('div');
+    foot.className = 'cb-dc-foot';
+    foot.textContent = 'One word a day · keep your streak alive';
+    card.appendChild(foot);
   } catch (err) {
     // Optional highlight — never block the home page on a failed fetch.
     el.hidden = true;

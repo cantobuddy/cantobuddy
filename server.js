@@ -1794,6 +1794,47 @@ app.get('/api/tournaments/current', (req, res) => {
   }
 });
 
+// The Daily Word Challenge: a deterministic word for the HKT day, plus this
+// device's own challenge streak. public_id is read from the query so the home
+// card can show "your streak" and "completed today" without exposing anything
+// sensitive — it is just the anonymous device token.
+app.get('/api/daily-challenge', (req, res) => {
+  try {
+    const publicId = (req.query.public_id || '').toString().trim();
+    // PER-DEVICE response (streak + completedToday). It must NOT be cached:
+    // a shared cache would hand one helper another's streak, and the browser
+    // would serve the pre-answer copy on reload, making a finished challenge
+    // look unanswered. The deterministic word is cheap to recompute.
+    res.set('Cache-Control', 'no-store');
+    res.json(store.getDailyChallenge(publicId || null, Date.now()));
+  } catch (e) {
+    res.status(500).json({ error: 'Could not load today’s word.' });
+  }
+});
+
+// Record a completion. Idempotent per device per HKT day (the DB UNIQUE index
+// drops a duplicate), so a double-tap or a reload cannot inflate the streak.
+app.post('/api/daily-challenge', (req, res) => {
+  try {
+    const body = req.body || {};
+    const publicId = (body.public_id || '').toString().trim();
+    const wordId = Number(body.word_id);
+    if (!publicId || !Number.isFinite(wordId) || wordId <= 0) {
+      return res.status(400).json({ error: 'public_id and word_id are required.' });
+    }
+    const day = store.getDailyChallenge(publicId, Date.now()).date;
+    store.recordDailyChallenge({
+      publicId,
+      wordId,
+      correct: body.correct ? 1 : 0,
+      day,
+    });
+    res.json(store.getDailyChallenge(publicId, Date.now()));
+  } catch (e) {
+    res.status(500).json({ error: 'Could not save your challenge.' });
+  }
+});
+
 /**
  * A device's own learning statistics — streaks, activity over time, and how she
  * does on each kind of quiz.

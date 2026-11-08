@@ -382,6 +382,12 @@
          .cb-tn-* styles (also injected by games-common.js on the game pages). -->
     <section id="sunday-showdown" class="home-card" hidden></section>
 
+    <!-- ---- Daily Word Challenge ---------------------------------------------
+         Filled by renderDailyChallenge() in app.js. A bite-sized micro-quiz:
+         one deterministic word per HKT day, four options, and this device's own
+         🔥 challenge streak. Reuses the .cb-dc-* styles injected in app.js. -->
+    <section id="daily-challenge" class="home-card" hidden></section>
+
     <!-- ---- Returning-learner cards ------------------------------------
          Both are filled by JS and both are EMPTY for a device that has never
          practised, so a first-time visitor sees exactly the screen that

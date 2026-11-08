@@ -846,6 +846,25 @@ db.exec(`
     created_at   TEXT NOT NULL
   );
   CREATE INDEX IF NOT EXISTS idx_badges_week ON tournament_badges(week_start, game);
+
+  /* The "Daily Word Challenge" — a bite-sized micro-quiz with its OWN streak,
+     deliberately separate from the practice streak in getLearnerStats (which is
+     built from quiz credit_events). A helper can finish the daily word without
+     doing a full quiz, and that still counts as a day on this streak. One row
+     per device per HKT day; the UNIQUE constraint is what makes the daily
+     completion idempotent. word_id points at vocabulary.id. */
+  CREATE TABLE IF NOT EXISTS daily_challenge (
+    id          INTEGER PRIMARY KEY,
+    public_id   TEXT NOT NULL,
+    day         TEXT NOT NULL,        -- HKT YYYY-MM-DD
+    word_id     INTEGER NOT NULL,
+    correct     INTEGER NOT NULL DEFAULT 1,
+    created_at  TEXT NOT NULL
+  );
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_daily_challenge_day
+    ON daily_challenge(public_id, day);
+  CREATE INDEX IF NOT EXISTS idx_daily_challenge_device
+    ON daily_challenge(public_id);
 `);
 
 // ---------------------------------------------------------------------------
@@ -2987,6 +3006,37 @@ const S = {
     VALUES (?, ?, ?, ?, ?, ?, ?)
   `),
 
+  // --- Daily Word Challenge: a bite-sized micro-quiz with its own streak. ---
+  // Count of the vocabulary pool; the daily word is a deterministic offset into
+  // it, so the same HKT day always yields the same word for everyone.
+  countVocab: db.prepare(`SELECT COUNT(*) AS n FROM vocabulary`),
+  // The word at a given 0-based offset (stable ordering by id).
+  vocabByOffset: db.prepare(`
+    SELECT id, cantonese, jyutping, english, tagalog, mandarin, indonesian, emoji, level
+      FROM vocabulary ORDER BY id LIMIT 1 OFFSET ?
+  `),
+  // Distractors: a window of other words at a deterministic offset, so the
+  // option set is stable for a given day. ORDER BY id makes them distinct.
+  vocabDistractors: db.prepare(`
+    SELECT id, cantonese FROM vocabulary
+     WHERE id != ? ORDER BY id LIMIT ? OFFSET ?
+  `),
+  // Did this device already finish today's challenge? The UNIQUE(public_id, day)
+  // index makes the insert idempotent, but the UI also needs to know up front.
+  challengeForToday: db.prepare(`
+    SELECT id, word_id, correct, day FROM daily_challenge
+     WHERE public_id = ? AND day = ?
+  `),
+  // Every distinct day a device completed the challenge — feeds streaksFrom().
+  challengeDaysForDevice: db.prepare(`
+    SELECT DISTINCT day FROM daily_challenge WHERE public_id = ? ORDER BY day
+  `),
+  insertChallenge: db.prepare(`
+    INSERT OR IGNORE INTO daily_challenge
+      (public_id, day, word_id, correct, created_at)
+    VALUES (?, ?, ?, ?, ?)
+  `),
+
   // --- Living: supportive passages about life in Hong Kong ---
   listLivingPosts: db.prepare(`
     SELECT id, slug, category, sub_key, icon,
@@ -3475,6 +3525,108 @@ function getTournamentCurrent(nowMs = Date.now()) {
       game: nextGame,
       window: { start: next.start, end: next.endExclusive },
     },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Daily Word Challenge — a bite-sized micro-quiz with its OWN streak.
+//
+// The word is deterministic per HKT day (a hashed offset into the vocabulary
+// pool) so everyone gets the same word on the same day, and it is stable across
+// page reloads. The streak counts consecutive HKT days a device completed the
+// challenge — independent of the practice streak in getLearnerStats, because a
+// helper can finish the daily word without ever opening a full quiz.
+// ---------------------------------------------------------------------------
+
+/**
+ * A tiny stable string hash (djb2-ish) — deterministic, no crypto needed.
+ * Used only to turn an HKT day string into a repeatable offset.
+ */
+function hashString(str) {
+  let h = 5381;
+  for (let i = 0; i < str.length; i++) h = ((h * 33) ^ str.charCodeAt(i)) >>> 0;
+  return h >>> 0;
+}
+
+/** The vocabulary word featured on a given HKT day, or null if the pool is empty. */
+function dailyWordForDate(hktDay) {
+  const row = S.countVocab.get();
+  const n = Number(row && row.n) || 0;
+  if (n === 0) return null;
+  const offset = hashString(hktDay) % n;
+  return S.vocabByOffset.get(offset) || null;
+}
+
+/**
+ * Three deterministic distractors for a word on a given day. Offsets are derived
+ * from the day hash so the option set is stable across reloads; the caller
+ * shuffles for display. Falls back to fewer options if the pool is tiny.
+ */
+function dailyChallengeDistractors(wordId, hktDay, count = 3) {
+  const total = Number(S.countVocab.get().n) || 0;
+  // How many OTHER words exist (everything but the featured one).
+  const others = Math.max(total - 1, 0);
+  if (others === 0) return [];
+  const want = Math.min(count, others);
+  // Keep the window fully inside the pool so it always returns `want` rows.
+  const maxOffset = Math.max(others - want, 0);
+  const offset = hashString(hktDay + ':d') % (maxOffset + 1);
+  return S.vocabDistractors.all(wordId, want, offset)
+    .filter((r) => r.id !== wordId)
+    .map((r) => ({ id: r.id, cantonese: r.cantonese }));
+}
+
+/**
+ * Record a completion for today (idempotent: UNIQUE(public_id, day) makes the
+ * second insert a no-op). Returns nothing — call getDailyChallenge for the view.
+ */
+function recordDailyChallenge({ publicId, wordId, correct = 1, day }) {
+  if (!publicId || !wordId || !day) return;
+  S.insertChallenge.run(String(publicId), String(day), Number(wordId), correct ? 1 : 0, new Date().toISOString());
+}
+
+/**
+ * The full view for one device on one day:
+ *  - date:        the HKT day (YYYY-MM-DD)
+ *  - word:        the featured vocabulary word (or null if the pool is empty)
+ *  - options:     [correct, ...distractors] as {id, cantonese} (shuffle client-side)
+ *  - streak:      {current, longest} over the device's challenge days
+ *  - completedToday: did this device already finish today's challenge?
+ *  - lastCompletedDay: the most recent prior day completed (for "streak since")
+ */
+function getDailyChallenge(publicId, nowMs = Date.now()) {
+  const day = hktDate(nowMs);
+  const word = dailyWordForDate(day);
+
+  let options = [];
+  if (word) {
+    options = [{ id: word.id, cantonese: word.cantonese }]
+      .concat(dailyChallengeDistractors(word.id, day, 3));
+  }
+
+  let streak = { current: 0, longest: 0 };
+  let completedToday = false;
+  let lastCompletedDay = null;
+
+  if (publicId) {
+    const days = S.challengeDaysForDevice.all(String(publicId)).map((r) => r.day);
+    streak = streaksFrom(days, nowMs);
+    const today = S.challengeForToday.get(String(publicId), day);
+    completedToday = !!today;
+    if (days.length) lastCompletedDay = days[days.length - 1];
+  }
+
+  return {
+    date: day,
+    word: word
+      ? { id: word.id, cantonese: word.cantonese, jyutping: word.jyutping,
+          english: word.english, tagalog: word.tagalog, mandarin: word.mandarin,
+          indonesian: word.indonesian, emoji: word.emoji, level: word.level }
+      : null,
+    options,
+    streak,
+    completedToday,
+    lastCompletedDay,
   };
 }
 
@@ -6970,6 +7122,10 @@ module.exports = {
   getWeekendLeaderboard,
   awardWeekBadges,
   TOURNAMENT_GAMES,
+  // Daily Word Challenge — deterministic daily word + its own streak.
+  getDailyChallenge,
+  recordDailyChallenge,
+  dailyWordForDate,
   getStoryForModeration,
   getStoryCounts,
   setStoryStatus,

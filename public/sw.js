@@ -52,12 +52,16 @@
 // .forum-* rules, so the cache-first APP_SHELL must be bumped. /forums is a NEW
 // server-rendered document (crawlable topic/thread listing) added to SEO_NETWORK_FIRST
 // so a returning visitor sees the live forums page, not a stale cached shell.
-// v152 — this release (2026-11-09). "Today in Hong Kong": index.html gained a new
-// #today-in-hk home card and app.js renders it, so the cache-first APP_SHELL must
-// be bumped. /today is a NEW server-rendered document (live HKO + 1823 data) added
-// to SEO_NETWORK_FIRST, for the same reason /articles is there — a returning
-// visitor must see the fresh page, not a stale cached shell.
-const CACHE = 'cantobuddy-v153';
+// v152 — "Today in Hong Kong": index.html gained a new #today-in-hk home card and
+// app.js renders it, so the cache-first APP_SHELL must be bumped. /today is a NEW
+// server-rendered document (live HKO + 1823 data) added to SEO_NETWORK_FIRST.
+// v153 — Community Forums (Phase 0 + Phase A): /forums SSR page, bottom-nav and
+// footer link, pre-moderation plus the shared reports/moderation_blocks tables.
+// v154 — footer de-duplication (2026-11-09): removed the five repeated policy
+// links (Privacy / Terms / About / Contact / Disclaimer) from the "Browse Cantonese
+// vocabulary" group; they now live only in "CantoBuddy information & policies".
+// App-shell bump so installed copies stop showing the duplicated footer.
+const CACHE = 'cantobuddy-v154';
 
 // Which paths are server-rendered SEO documents rather than app-shell assets.
 // Kept as one matcher so it can be asserted against `LANG_PREFIX` in seo.js —

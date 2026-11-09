@@ -1047,19 +1047,11 @@
       <a href="/zh/learn" data-i18n="footer.mandarin">中文</a>
       <a href="/id/learn" data-i18n="footer.indonesian">Bahasa Indonesia</a>
       <a href="/portal" data-i18n="header.employerSite">For employers</a>
-      <!-- Required by AdSense, and genuinely useful: the three concrete things
-           this policy promises (no account, no location, no learner-linked
-           feedback) are the app's real behaviour, not boilerplate. -->
-      <a href="/privacy" data-i18n="footer.privacy">Privacy</a>
-      <!-- Publisher identity, required by AdSense and by anyone deciding
-           whether to trust the policy above. English labels on purpose: the
-           pages themselves are English only (they are publisher identity, not
-           learner content), so a translated label would promise a translation
-           that does not exist. -->
-      <a href="/about">About</a>
-      <a href="/contact">Contact</a>
-      <a href="/terms">Terms</a>
-      <a href="/disclaimer">Disclaimer</a>
+      <!-- Policy links (Privacy / Terms / About / Contact / Disclaimer) are NOT
+           repeated here. They live once, in the "CantoBuddy information &
+           policies" group below, with the full page names a monetisation reviewer
+           expects. Keeping them out of this browse section stops the same five
+           links appearing twice in the footer. -->
       <!-- The project's Facebook page. Same URL as FACEBOOK_URL in seo.js —
            this is a static file so it cannot require that module. rel="me" is
            the machine-readable ownership claim that matches ORG_LD.sameAs;
@@ -1069,15 +1061,14 @@
          target="_blank" rel="me noopener noreferrer">📘 Facebook</a>
     </nav>
 
-    <!-- Publisher identity and policies live in their OWN labelled group.
-         A monetisation reviewer looks for explicit links to standalone
-         Privacy Policy / Terms / About / Contact pages; the short labels in the
-         vocabulary nav above are easy to miss. Full page names are plain
-         English on purpose: these are publisher-identity pages, which are
-         English-only, so a data-i18n label would promise a translation that
-         does not exist. The short links above stay for the four localised
-         dictionaries — repeated hrefs are harmless, and removing them would
-         leave footer.privacy unused in three languages. -->
+    <!-- Publisher identity and policies live in their OWN labelled group — and
+         now ONLY here. A monetisation reviewer looks for explicit links to
+         standalone Privacy Policy / Terms / About / Contact pages with their
+         full names; this is the section that satisfies that. The browse section
+         above is content-only (vocabulary, guides, tools, languages), so these
+         five links are no longer shown twice. Full page names are plain English
+         on purpose: these are publisher-identity pages, which are English-only,
+         so a data-i18n label would promise a translation that does not exist. -->
     <p class="site-footer-title site-footer-title-sub">CantoBuddy information &amp; policies</p>
     <nav class="site-footer-links" aria-label="Site information and policies">
       <a href="/privacy">Privacy Policy</a>

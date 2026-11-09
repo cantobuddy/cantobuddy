@@ -36,6 +36,10 @@ const dailyPhrase = require('./daily-phrase');
 // The practical channels (survival / household / health / festivals). Shared
 // with server.js and the app so adding one is a single-file edit.
 const { PRACTICAL_CHANNELS, practicalText, practicalSection } = require('./practical-channels');
+// The long-form editorial shelf behind /articles. Only the slugs and metadata
+// are read here; titles and summaries come from the live store so an operator's
+// edit in the admin is reflected on the index without a code change.
+const LONGFORM_GUIDES = require('./longform-guides');
 
 /* ---------------------------------------------------------------------------
    Outings (/places) — ONE data source, two runtimes
@@ -676,7 +680,7 @@ const PRIVACY = {
       {
         h: 'Advertising',
         p: [
-          'This site shows advertisements supplied by Google AdSense. To do that, Google and its partners load a script on the page and may place cookies or read device identifiers in order to select and measure advertising.',
+          'Third-party vendors, including Google, use cookies to serve ads on this site. This site shows advertisements supplied by Google AdSense; to do that, Google and its vendor partners load a script on the page and may set cookies or read device identifiers in order to select, personalise and measure advertising.',
           'This means Google, and the advertisers it works with, can see your IP address, your browser type, and which pages you view on this site. That is a change from the rest of this app, which is built not to track you, and we would rather state it plainly than bury it.',
           'You can control personalised advertising in your Google Ads Settings, and you can opt out of third-party advertising cookies through aboutads.info or youronlinechoices.eu. If you are in the European Economic Area, the United Kingdom, or Switzerland, a consent prompt appears before advertising cookies are used, and declining it does not stop you using the app.',
           'If you would prefer no advertising at all, a browser extension that blocks advertising will also stop the AdSense script from loading, and the app works normally without it.',
@@ -1542,10 +1546,11 @@ ${o.body}
        &nbsp;·&nbsp; <a href="${LANG_PREFIX[lang]}/stories">${esc((STORIES_UI[lang] || STORIES_UI.en).title)}</a>
        &nbsp;·&nbsp; <a href="${LANG_PREFIX[lang]}/privacy">${esc(PRIVACY[lang].title)}</a>
        &nbsp;·&nbsp; <a href="${FOR_EMPLOYERS_HREF[lang]}">${esc(FOR_EMPLOYERS_LABEL[lang])}</a>
-       &nbsp;·&nbsp; <a href="/about">About</a>
-       &nbsp;·&nbsp; <a href="/contact">Contact</a>
-       &nbsp;·&nbsp; <a href="/terms">Terms</a>
+       &nbsp;·&nbsp; <a href="/about">About Us</a>
+       &nbsp;·&nbsp; <a href="/contact">Contact Us</a>
+       &nbsp;·&nbsp; <a href="/terms">Terms of Service</a>
        &nbsp;·&nbsp; <a href="/disclaimer">Disclaimer</a>
+       &nbsp;·&nbsp; <a href="/articles">Articles &amp; Guides</a>
        &nbsp;·&nbsp; <a href="/cantonese-for-domestic-helpers">For helpers</a>
        &nbsp;·&nbsp; <a href="/cantonese-food-phrases">Food phrases</a>
        &nbsp;·&nbsp; <a href="/cantonese-for-elderly-learners">Elderly learners</a>
@@ -1691,6 +1696,11 @@ const ORG_LD = {
   // actually ours rather than a fan page or a name collision. Every server-
   // rendered page embeds ORG_LD, so one line here covers the whole SEO tree.
   sameAs: [FACEBOOK_URL],
+  // The address already used as the site's VAPID subject. A ContactPage that
+  // names no address at all is a weaker trust signal for both readers and
+  // reviewers, so the publisher's address belongs in the organisation node
+  // that every server-rendered page carries.
+  email: 'hello@cantobuddy.com',
 };
 
 function breadcrumbLd(trail) {
@@ -2501,7 +2511,7 @@ ${faqHtml}
 
     <p class="pl-cta"><a class="cta" href="#auth-form">Sign in to the employer portal</a></p>
     <p class="pl-more"><a href="${guide}">Read the full guide: getting your helper started →</a></p>
-    <p class="pl-more"><a href="/about">About CantoBuddy</a> · <a href="/contact">Contact</a> · <a href="/terms">Terms</a> · <a href="/disclaimer">Disclaimer</a></p>
+    <p class="pl-more"><a href="/privacy">Privacy Policy</a> · <a href="/about">About Us</a> · <a href="/contact">Contact Us</a> · <a href="/terms">Terms of Service</a> · <a href="/disclaimer">Disclaimer</a> · <a href="/articles">Articles &amp; Guides</a></p>
   </div>
 </section>`;
 }
@@ -4704,6 +4714,19 @@ ${alts}
   add('/terms', '0.3', 'yearly', null, SITE_STRUCTURE_DATE);
   add('/disclaimer', '0.3', 'yearly', null, SITE_STRUCTURE_DATE);
 
+  // The long-form shelf index. Priority above the publisher pages because it
+  // IS content, and it is the one page that links all eighteen articles in a
+  // single crawl. lastmod is the newest article it lists, not the crawl date —
+  // the same honesty rule the /discover and /living hubs follow.
+  const newestLongformArticle = LONGFORM_GUIDES.reduce(
+    (m, g) => {
+      const d = postDateShort(g.published_at);
+      return d > m ? d : m;
+    },
+    SITE_STRUCTURE_DATE
+  );
+  add('/articles', '0.8', 'weekly', null, newestLongformArticle);
+
   // Stories — the shared shelf of helper-written stories.
   //
   // ONE shelf, every tree. The hub is listed in all four language trees because
@@ -4938,6 +4961,7 @@ Allow: /words
 Allow: /level
 Allow: /guide
 Allow: /discover
+Allow: /articles
 Allow: /stories
 Allow: /living
 # /places is BOTH a server-rendered hub and the directory holding the photos.
@@ -5050,6 +5074,10 @@ ${crumbs('en', [{ label: 'About' }])}
 <p>${words} words and phrases across ${topics} everyday topics — greetings, the kitchen, elder care, medication, emergencies, transport, money. Each entry carries the characters, Jyutping romanisation, the meaning in English and Filipino, and audio. Quizzes and a practice game turn the list into something a helper can actually remember.</p>
 <p>It works offline, needs no sign-up, and costs nothing. That is not a trial: there is no paid tier to upgrade to.</p>
 
+<h2>Our mission</h2>
+<p>The aim is narrow and practical: to help a domestic helper understand the Cantonese she hears in the home, and to give her enough of the language to answer clearly when it matters — a symptom, a medicine time, a request repeated three times. CantoBuddy is not a course, an exam prep tool or a placement service. It is a free, offline-capable practice aid for the working day, and it stays free because the people it is built for should not have to pay to be understood at work.</p>
+<p>That mission also sets the limits. We do not give legal, medical or financial advice, we do not act as an intermediary between a helper and an employer, and we do not collect the personal details that a commercial learning platform would ask for.</p>
+
 <h2>Who it is for</h2>
 <p>Around 200,000 Filipino and Indonesian women work as live-in helpers in Hong Kong. Most arrive speaking English and learn Cantonese on the job, from the person in the household who speaks English least. That gap is where small misunderstandings happen — a request repeated three times, a symptom not reported, a medicine taken at the wrong hour.</p>
 <p>The app is built for that situation rather than for exam preparation. The vocabulary is chosen by what comes up in a flat, not by what appears in a textbook.</p>
@@ -5061,6 +5089,17 @@ ${crumbs('en', [{ label: 'About' }])}
 <p>Vocabulary entries are written and checked by hand. Where a word has more than one common form — 菜 and 蔬菜 for vegetables, for instance — both are kept, because a helper will hear either one.</p>
 <p>The guides on rights, holidays, pay and health are written from primary sources: the Hong Kong Labour Department, the Immigration Department, the Minimum Wage Ordinance, and the official sites of the hospitals and utilities they describe. Dates are checked against the current year rather than carried forward, and every guide carries the month it was last reviewed.</p>
 <p>Nothing here is legal, medical or financial advice, and the <a href="/terms">terms of use</a> say so plainly. Where a decision matters, the guide links to the body that actually decides it.</p>
+
+<h2>Experience, expertise and how the work is checked</h2>
+<p>These are the parts of the site a reader should be able to test, so they are stated concretely rather than as a claim to authority:</p>
+<ul>
+  <li><strong>The subject matter is the job, not the textbook.</strong> The vocabulary is organised around what happens in a Hong Kong flat — elder care, medication, kitchen instructions, cleaning, transport, emergencies — and around the words a helper <em>hears</em> rather than only the ones she says. Where Cantonese has two common forms for one idea, both are kept, because she will hear either one.</li>
+  <li><strong>Guides are written against primary sources.</strong> Material on employment rights, statutory holidays, pay, health and transport is checked against the Hong Kong Labour Department, the Immigration Department and the official pages of the bodies that actually decide the question. Each guide names the body responsible and carries the date it was last reviewed.</li>
+  <li><strong>Figures that expire are not frozen.</strong> A wage rate, a holiday date or a visa condition changes. Where a number would go stale, the guide points to the current official source instead of printing a figure that will be wrong next year. If an official source and a guide disagree, the official source wins and <a href="/contact">we ask to be told</a> so the guide can be corrected.</li>
+  <li><strong>Pronunciation is not guessed.</strong> Jyutping readings follow a single in-house vocabulary set used by the app, the word pages and the guides, so the same word is not spelt three different ways in three places.</li>
+  <li><strong>Corrections are part of the process.</strong> Cantonese varies by household and by district. A reading that is right in one home can sound odd in another; the <a href="/contact">contact form</a> goes to the maintainer and corrections are published rather than merely acknowledged.</li>
+</ul>
+<p>CantoBuddy is an independent project, not a government service, a law firm, a clinic, an employer or an employment agency. Nothing here is a certified translation or professional advice, and the <a href="/terms">terms of use</a> and <a href="/disclaimer">disclaimer</a> set out those limits in full. The <a href="/articles">articles and guides index</a> lists the long-form material so a reader can see the scope of what has been published and when.</p>
 
 <h2>How it is paid for</h2>
 <p>Hosting and the audio cost money, and advertising pays for it. Ads appear on this website; they are served by Google, and they are never targeted using anything a helper tells the app. There is no subscription, no in-app purchase, and nothing in the app to sell her.</p>
@@ -5095,6 +5134,10 @@ ${crumbs('en', [{ label: 'Contact' }])}
 <article>
 <h1>Contact CantoBuddy</h1>
 <p class="lede">Corrections, questions about privacy, a bug, or something that reads wrong — this form reaches the person who maintains the site.</p>
+
+<p><strong>The form below is the direct support channel.</strong> It posts to the same feedback inbox the app's &ldquo;Send feedback&rdquo; button uses, and a person reads every message. There is no account, no ticket number and no automated reply. If you leave an email address or phone number, that is where a reply goes; if you do not, the message is still read and we still act on it. Use it for a correction, a privacy question, a problem with the app, or anything about advertising on this site. The <a href="/privacy">Privacy Policy</a> sets out exactly what is stored when you send one.</p>
+
+<p>If you would rather use email, write to <a href="mailto:hello@cantobuddy.com">hello@cantobuddy.com</a>. The form above is the primary support channel because it is read directly by the person who maintains the site and works with JavaScript disabled; either way the same person receives it.</p>
 
 ${
   sent
@@ -5242,6 +5285,104 @@ ${crumbs('en', [{ label: 'Disclaimer' }])}
       'CantoBuddy disclaimer: guides are general information, not legal, medical or financial advice; no government or agency affiliation; how ads and sources work.',
     path: '/disclaimer',
     body,
+  });
+}
+
+/* ---------------------------------------------------------------------------
+   /articles — the crawlable doorway to the long-form shelf.
+   ---------------------------------------------------------------------------
+
+   The footer of every server-rendered page and the SPA has linked to
+   /articles since the trust-signal pass. Until now that link was a 404: the
+   eighteen guides existed as /discover/<slug> leaves, but no page gathered
+   them, so a reviewer landing on the footer found a dead link and Google had
+   no doorway to the deepest content on the site.
+
+   This is deliberately a plain, English-only, server-rendered document. There
+   is no client-side fetch, no spinner and no runtime dependency: everything a
+   crawler sees arrives in the first response. It reads the LIVE post rows so
+   an operator's title or summary edit in the admin is reflected here too, and
+   falls back to the seed copy for a guide that is not in the database yet.
+   --------------------------------------------------------------------------- */
+function renderArticlesHub() {
+  const live = new Map(
+    store.listPosts({ status: 'published', channel: 'culture', limit: 300 })
+      .map((p) => [p.slug, p])
+  );
+  const guides = LONGFORM_GUIDES.map((g) => live.get(g.slug) || g);
+
+  const cards = guides.map((g) => {
+    const date = postDateShort(g.published_at || g.created_at);
+    return `<li class="guide-card">
+  <a href="/discover/${esc(g.slug)}">
+    <span class="em">${esc(g.icon || '📖')}</span>
+    ${date ? `<span class="pm">${esc(date)}</span>` : ''}
+    <span class="gt">${esc(postText(g, 'title', 'en'))}</span>
+    <span class="gd">${esc(postText(g, 'summary', 'en'))}</span>
+  </a>
+</li>`;
+  }).join('\n');
+
+  const description =
+    'Eighteen original long-form Cantonese guides for domestic helpers in Hong Kong: holidays, contracts, markets, clinics, transport, elder care and daily practice.';
+
+  const body = `
+${crumbs('en', [{ label: 'Articles and Guides' }])}
+<article>
+<h1>Articles and Guides</h1>
+<p class="lede">CantoBuddy publishes practical, checked writing about the Cantonese a domestic helper actually hears at work and around Hong Kong. Every article below is free, needs no account and is written to be read on a phone on a short break. The dates are the dates the articles were published, not a crawl timestamp.</p>
+
+<h2>Long-form guides for everyday working life</h2>
+<p>Each of these is a full guide, not a phrase list: the situation, the decision you have to make in it, the words that carry it, and an honest note on what the guide cannot decide for you. Start with the one that matches tomorrow.</p>
+<ul class="guide-list">
+${cards}
+</ul>
+
+<h2>Shorter guides and the rest of the library</h2>
+<p>The long articles sit alongside smaller, more focused material. The <a href="/guide">guides index</a> collects study plans, elder care and the difference between Cantonese and Mandarin. The <a href="/discover">Discover feed</a> carries shorter culture pieces and headlines, the <a href="/living">Living shelf</a> holds passages written for helpers arriving in Hong Kong, and the <a href="/stories">stories shelf</a> is written by helpers themselves.</p>
+<p>For the words behind the articles, the <a href="/learn">topic library</a> gives characters, Jyutping, meanings and audio, and the <a href="/tools">Daily Tools</a> page works offline. None of it requires a sign-up.</p>
+
+<h2>How these articles are written</h2>
+<p>Every Cantonese phrase and its Jyutping romanisation comes from the site's checked vocabulary library; an article never invents a plausible-sounding reading. Vocabulary is organised around what happens in a Hong Kong flat rather than around a textbook chapter, and where two common forms of a word exist, both are kept because a helper will hear either one.</p>
+<p>Where a question belongs to an official body, the article names that body — the Hong Kong Labour Department, the Immigration Department, the Hong Kong Observatory, the Hospital Authority — and tells you to check its current page. Figures that expire, including holiday dates, wage rates, allowances and hotline numbers, are deliberately not frozen into prose that will be wrong next year. If an official source and an article disagree, the official source wins and the article is corrected.</p>
+<p>The articles are written and reviewed by the same person who maintains the rest of the site, with no sponsored content and no commercial placement inside an article. A correction, a privacy question or a complaint about advertising goes through the <a href="/contact">contact form</a> and is read by a person.</p>
+
+<h2>What these articles cannot decide</h2>
+<p>These are language and orientation guides. They are not legal, medical, immigration or financial advice, they are not certified translations, and they do not tell you what your contract should say, what you are entitled to, or how a rule applies to your situation. Those decisions belong to the official bodies named in each article and to advisers who can read the current rules alongside your own documents. The <a href="/disclaimer">disclaimer</a> and the <a href="/terms">terms of use</a> set those limits out in full; the <a href="/privacy">privacy policy</a> explains what the site stores, and the <a href="/about">About page</a> says who publishes it and how the material is checked.</p>
+${ctaCard('en', null, '/discover')}
+</article>`;
+
+  return page({
+    lang: 'en',
+    title: 'Cantonese Articles and Guides for Helpers | CantoBuddy',
+    description,
+    path: '/articles',
+    body,
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@graph': [
+        ORG_LD,
+        breadcrumbLd([
+          { name: 'CantoBuddy', path: '/' },
+          { name: 'Articles and Guides', path: '/articles' },
+        ]),
+        {
+          '@type': 'CollectionPage',
+          name: 'Articles and Guides',
+          description,
+          url: `${SITE_ORIGIN}/articles`,
+          inLanguage: 'en-HK',
+          isPartOf: { '@type': 'WebSite', name: 'CantoBuddy', url: SITE_ORIGIN },
+          hasPart: guides.map((g) => ({
+            '@type': 'Article',
+            headline: postText(g, 'title', 'en'),
+            description: postText(g, 'summary', 'en'),
+            datePublished: postDateShort(g.published_at || g.created_at) || undefined,
+            url: `${SITE_ORIGIN}/discover/${g.slug}`,
+          })),
+        },
+      ],
+    },
   });
 }
 
@@ -5401,6 +5542,14 @@ function mount(app) {
   // The rejection note named /disclaimer as a 404 too. It is a plain GET here,
   // so the generic trailing-slash 301 in server.js covers /disclaimer/ as well.
   app.get('/disclaimer', (req, res) => html(res, renderDisclaimer()));
+  // The long-form shelf index. English only (the articles themselves carry
+  // Chinese titles and summaries, but the prose is English), so it is a single
+  // URL with a self-canonical — mirroring it into four trees would advertise
+  // three near-duplicates. It was linked from every footer before it existed.
+  app.get('/articles', (req, res) => {
+    try { html(res, renderArticlesHub()); }
+    catch (e) { console.error('  ! /articles render failed:', e.message); html(res, renderNotFound('en'), 500); }
+  });
 
   // --- English track (/en) SEO siblings of the /en SPA ---
   app.get('/en/learn', (req, res) => {

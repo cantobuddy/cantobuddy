@@ -4064,6 +4064,15 @@ for (const v of SEED_VOCABULARY) {
    are picked up on the next boot without touching the DB by hand. */
 SEED_POSTS.push(...require('./practical-posts'));
 
+/* The long-form editorial shelf. Eighteen original 1,000-1,500 word guides
+   for helpers and Cantonese learners, kept in six readable modules behind one
+   aggregator. They are ordinary culture posts, so /discover/<slug>, the
+   sitemap, the /articles index and the app's Discover feed all pick them up
+   from this one list without a second copy of the prose. seedPostsIfNeeded()
+   is guarded on SEED_POSTS.length, so growing this array is all it takes for
+   an existing install to receive the new rows on its next boot. */
+SEED_POSTS.push(...require('./longform-guides'));
+
 module.exports = {
   load,
   save,

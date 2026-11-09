@@ -1051,6 +1051,26 @@
       <a class="footer-facebook" href="https://www.facebook.com/profile.php?id=61595817612067"
          target="_blank" rel="me noopener noreferrer">📘 Facebook</a>
     </nav>
+
+    <!-- Publisher identity and policies live in their OWN labelled group.
+         A monetisation reviewer looks for explicit links to standalone
+         Privacy Policy / Terms / About / Contact pages; the short labels in the
+         vocabulary nav above are easy to miss. Full page names are plain
+         English on purpose: these are publisher-identity pages, which are
+         English-only, so a data-i18n label would promise a translation that
+         does not exist. The short links above stay for the four localised
+         dictionaries — repeated hrefs are harmless, and removing them would
+         leave footer.privacy unused in three languages. -->
+    <p class="site-footer-title site-footer-title-sub">CantoBuddy information &amp; policies</p>
+    <nav class="site-footer-links" aria-label="Site information and policies">
+      <a href="/privacy">Privacy Policy</a>
+      <a href="/terms">Terms of Service</a>
+      <a href="/about">About Us</a>
+      <a href="/contact">Contact Us</a>
+      <a href="/disclaimer">Disclaimer</a>
+      <a href="/articles">Articles &amp; Guides</a>
+    </nav>
+
     <!-- Not a crawlable link like the ones above — this one opens a dialog. Kept
          on its own line so it reads as "talk to us" rather than as one more
          vocabulary page. This is no longer the only route in (see the bottom nav

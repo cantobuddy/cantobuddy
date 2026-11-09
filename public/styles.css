@@ -5832,6 +5832,10 @@ a.game-tile:active { transform: scale(0.96); background: var(--c-primary-tint); 
   color: var(--c-text-soft);
   margin-bottom: 12px;
 }
+/* The second, labelled footer group (publisher identity + policies) needs its
+   own separation from the vocabulary pills above it. Both groups use the same
+   pill styling so the legal links are real, tappable targets, not fine print. */
+.site-footer-title-sub { margin-top: 20px; }
 .site-footer-links { display: flex; flex-wrap: wrap; gap: 8px 10px; }
 .site-footer-links a {
   font-size: 0.85rem;

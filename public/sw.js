@@ -36,16 +36,30 @@
 // (app.js, index.html, games-common.js and three game index.html pages all
 // changed), plus the db/server endpoints for the weekend leaderboard.
 //
-// v150 — this release (2026-11-08). Daily Word Challenge: a new home card in
-// app.js and a new #daily-challenge section in index.html. Both are cache-first
-// APP_SHELL files, so the bump is required. The per-device API is no-store and
-// network-first, so it needs no cache entry of its own.
-const CACHE = 'cantobuddy-v150';
+// v150 — 2026-11-08. Daily Word Challenge: a new home card in app.js and a new
+// #daily-challenge section in index.html. Both are cache-first APP_SHELL files,
+// so the bump is required. The per-device API is no-store and network-first, so
+// it needs no cache entry of its own.
+//
+// v151 — this release (2026-11-09). Trust signals and the long-form shelf:
+// index.html (explicit grouped footer links) and styles.css (footer rules) both
+// changed, so the cache-first APP_SHELL must be bumped. /articles is a NEW
+// server-rendered document added to SEO_NETWORK_FIRST below; without that, a
+// returning visitor would be served the app shell instead of the article index.
+const CACHE = 'cantobuddy-v151';
 
 // Which paths are server-rendered SEO documents rather than app-shell assets.
 // Kept as one matcher so it can be asserted against `LANG_PREFIX` in seo.js —
 // see the comment at its use site for what drifted when this was a `||` chain.
-const SEO_NETWORK_FIRST = /^\/(learn|words|level|guide|discover|stories|privacy|for-employers|places|living|fil|zh|id)(\/|$)/;
+// `articles` is the English-only long-form shelf index. It is a server-rendered
+// document (like /living), not an app route, so it must never fall through to
+// the cache-first app shell — a returning visitor would see the SPA instead of
+// the article list, which is exactly the blank-screen shape an AdSense review
+// rejects. The publisher pages are in the same matcher for the same reason: a
+// privacy policy or contact page must never be served from a stale cache, and
+// /articles joins them because a withdrawn or corrected article index has to
+// reach a returning reader on its next visit, not after the next cache bump.
+const SEO_NETWORK_FIRST = /^\/(learn|words|level|guide|discover|articles|stories|privacy|about|contact|terms|disclaimer|for-employers|places|living|fil|zh|id)(\/|$)/;
 
 /* /places is BOTH a server-rendered document family AND the folder that holds
    the 34 outing photographs and credits.js. A .jpg there is an asset, not a

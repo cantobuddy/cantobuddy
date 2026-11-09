@@ -831,6 +831,7 @@ async function init() {
     renderHomeDiscoverPromo();
     renderSundayShowdown();
     renderDailyChallenge();
+    renderTodayInHk();
     // Apply the operator's Discover tab order/visibility. Fired after the
     // initial render so the Home promo + Discover row can be corrected from the
     // saved config; a failed fetch leaves the authored HTML order untouched.
@@ -870,6 +871,7 @@ function rerenderForLanguage() {
   renderHomeGamesPromo();
   renderSundayShowdown();
   renderDailyChallenge();
+  renderTodayInHk();
   renderGamesHub();
   renderCategoryChips();
   renderQuizTypes();
@@ -2408,6 +2410,162 @@ function gameTile(g) {
     + `<span class="game-art ${g.artClass}" aria-hidden="true">${g.art}</span>`
     + `<span class="game-tile-name">${escapeHtml(name)}</span>`
     + `</a>`;
+}
+
+/* ---- Today in Hong Kong ------------------------------------------------
+   A live weather + next-holiday widget. games-common.js is NOT loaded on the
+   home page, so the .cb-tk-* styles are injected here (guarded by #cbTodayStyle
+   so a second render cannot duplicate them). */
+function ensureTodayStyles() {
+  if (document.getElementById('cbTodayStyle')) return;
+  const css =
+    '.cb-tk{padding:14px 15px;margin:14px 0;border:1px solid #cfe3f0;border-radius:14px;' +
+    'background:linear-gradient(135deg,#eef6fb,#fff);box-shadow:0 1px 2px rgba(18,33,47,.05)}' +
+    '.cb-tk-head{margin-bottom:10px}' +
+    '.cb-tk-title{display:block;font-weight:800;font-size:14px;color:#0b5a86}' +
+    '.cb-tk-sub{display:block;font-size:12px;color:#5b6573;margin-top:2px}' +
+    '.cb-tk-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}' +
+    '.cb-tk-cell{background:#fff;border:1px solid #dcebf4;border-radius:10px;padding:9px 10px}' +
+    '.cb-tk-label{font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:#7a8a98;margin-bottom:3px}' +
+    '.cb-tk-value{font-size:20px;font-weight:800;color:#12212f}' +
+    '.cb-tk-warn{margin-bottom:10px}' +
+    '.cb-tk-warn ul{margin:4px 0 0;padding-left:18px}' +
+    '.cb-tk-warn li{font-size:13px;color:#a83a00;font-weight:600;margin:2px 0}' +
+    '.cb-tk-none{font-size:13px;color:#1f7a3d;font-weight:600;margin:4px 0 0}' +
+    '.cb-tk-fore{margin-bottom:10px}' +
+    '.cb-tk-fore p{font-size:13px;color:#12212f;line-height:1.5;margin:4px 0 0}' +
+    '.cb-tk-hol{background:#fff;border:1px solid #dcebf4;border-radius:10px;padding:9px 10px;margin-bottom:10px}' +
+    '.cb-tk-hol-name{font-size:15px;font-weight:800;color:#0b5a86}' +
+    '.cb-tk-hol-when{font-size:12px;color:#5b6573;margin-top:2px}' +
+    '.cb-tk-unavailable{font-size:13px;color:#a8500a;background:#fff0d6;border-radius:10px;padding:9px 10px;margin:0 0 10px}' +
+    '.cb-tk-foot{font-size:11px;color:#8a93a0;line-height:1.6}' +
+    '.cb-tk-foot a{color:#0b5a86;text-decoration:none}' +
+    '.cb-tk-foot a:hover{text-decoration:underline}' +
+    '@media(max-width:360px){.cb-tk-grid{grid-template-columns:1fr}}';
+  const st = document.createElement('style');
+  st.id = 'cbTodayStyle';
+  st.textContent = css;
+  (document.head || document.documentElement).appendChild(st);
+}
+
+function tkCell(label, value) {
+  const c = document.createElement('div');
+  c.className = 'cb-tk-cell';
+  c.appendChild(tkLabel(label));
+  const v = document.createElement('div');
+  v.className = 'cb-tk-value';
+  v.textContent = value;
+  c.appendChild(v);
+  return c;
+}
+function tkLabel(text) {
+  const d = document.createElement('div');
+  d.className = 'cb-tk-label';
+  d.textContent = text;
+  return d;
+}
+
+async function renderTodayInHk() {
+  const el = document.getElementById('today-in-hk');
+  if (!el) return;
+  el.hidden = true;
+  try {
+    const r = await fetch('/api/today-in-hk', { headers: { Accept: 'application/json' } });
+    if (!r.ok) throw new Error('today-in-hk ' + r.status);
+    const d = await r.json();
+    if (!d || typeof d !== 'object') return;
+
+    ensureTodayStyles();
+    el.innerHTML = '';
+    el.hidden = false;
+
+    const card = document.createElement('div');
+    card.className = 'cb-tk';
+    el.appendChild(card);
+
+    const head = document.createElement('div');
+    head.className = 'cb-tk-head';
+    head.innerHTML =
+      '<span class="cb-tk-title">🌤️ ' + escapeHtml(t('today.title')) + '</span>' +
+      '<span class="cb-tk-sub">' + escapeHtml(t('today.subtitle')) + '</span>';
+    card.appendChild(head);
+
+    const w = d.weather || {};
+    const src = d.sources || {};
+
+    if (d.available === false) {
+      const un = document.createElement('p');
+      un.className = 'cb-tk-unavailable';
+      un.textContent = t('today.unavailable');
+      card.appendChild(un);
+    } else {
+      const grid = document.createElement('div');
+      grid.className = 'cb-tk-grid';
+      grid.appendChild(tkCell(t('today.temperature'), w.temperatureC != null ? w.temperatureC + '°C' : '—'));
+      grid.appendChild(tkCell(t('today.humidity'), w.humidityPct != null ? w.humidityPct + '%' : '—'));
+      card.appendChild(grid);
+
+      const warn = document.createElement('div');
+      warn.className = 'cb-tk-warn';
+      warn.appendChild(tkLabel(t('today.warnings')));
+      const warns = Array.isArray(w.warnings) ? w.warnings : [];
+      if (warns.length) {
+        const ul = document.createElement('ul');
+        warns.forEach((msg) => {
+          const li = document.createElement('li');
+          li.textContent = msg;
+          ul.appendChild(li);
+        });
+        warn.appendChild(ul);
+      } else {
+        const p = document.createElement('p');
+        p.className = 'cb-tk-none';
+        p.textContent = t('today.noWarnings');
+        warn.appendChild(p);
+      }
+      card.appendChild(warn);
+
+      if (w.forecast) {
+        const fore = document.createElement('div');
+        fore.className = 'cb-tk-fore';
+        fore.appendChild(tkLabel(t('today.forecast')));
+        const p = document.createElement('p');
+        p.textContent = w.forecast;
+        fore.appendChild(p);
+        card.appendChild(fore);
+      }
+    }
+
+    if (d.nextHoliday && d.nextHoliday.date) {
+      const hol = document.createElement('div');
+      hol.className = 'cb-tk-hol';
+      hol.appendChild(tkLabel(t('today.nextHoliday')));
+      const name = document.createElement('div');
+      name.className = 'cb-tk-hol-name';
+      name.textContent = d.nextHoliday.name;
+      hol.appendChild(name);
+      const when = document.createElement('div');
+      when.className = 'cb-tk-hol-when';
+      when.textContent =
+        d.nextHoliday.daysUntil === 0 ? t('today.holidayToday')
+          : d.nextHoliday.daysUntil + ' ' + t('today.daysAway');
+      hol.appendChild(when);
+      card.appendChild(hol);
+    }
+
+    const foot = document.createElement('div');
+    foot.className = 'cb-tk-foot';
+    const weatherUrl = src.weather || 'https://www.hko.gov.hk/en/wxinfo/currwx/warningsum.htm';
+    const holidayUrl = src.holidays || 'https://www.1823.gov.hk/en/public-holiday/';
+    foot.innerHTML = '🔗 ' +
+      '<a href="' + escapeHtml(weatherUrl) + '" target="_blank" rel="noopener">' +
+      escapeHtml(t('today.sourceWeather')) + '</a> · ' +
+      '<a href="' + escapeHtml(holidayUrl) + '" target="_blank" rel="noopener">' +
+      escapeHtml(t('today.sourceHolidays')) + '</a>';
+    card.appendChild(foot);
+  } catch (e) {
+    el.hidden = true;
+  }
 }
 
 /* The Games hub (#view-games). Filled by JS so it always matches the catalog. */

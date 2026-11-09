@@ -19,6 +19,7 @@ const push = require('./push');
 const reminders = require('./push-reminders');
 const dailyPhrase = require('./daily-phrase');
 const sundayTable = require('./sunday-table');
+const todayInHk = require('./today-in-hk');
 const { createSweeper } = require('./push-sweep');
 // English track (/en) — isolated data layer for elderly learners. Separate DB
 // file (cantobuddy-en.db) so the Cantonese site and its database are untouched.
@@ -1832,6 +1833,31 @@ app.post('/api/daily-challenge', (req, res) => {
     res.json(store.getDailyChallenge(publicId, Date.now()));
   } catch (e) {
     res.status(500).json({ error: 'Could not save your challenge.' });
+  }
+});
+
+/**
+ * "Today in Hong Kong" — live weather from the Hong Kong Observatory and the
+ * next public holiday from 1823, aggregated server-side (no browser CORS, and
+ * the same JSON can be rendered as plain HTML on /today for crawlers). Public and
+ * cacheable for five minutes; the module itself keeps a 10-minute in-memory
+ * cache and degrades to { available:false } with source links if an upstream is
+ * down. It never reads or writes user data.
+ */
+app.get('/api/today-in-hk', async (req, res) => {
+  try {
+    const data = await todayInHk.getTodayInHk();
+    res.set('Cache-Control', 'public, max-age=300');
+    res.json(data);
+  } catch (e) {
+    res.status(500).json({
+      available: false,
+      error: 'server_error',
+      sources: {
+        weather: 'https://www.hko.gov.hk/en/wxinfo/currwx/warningsum.htm',
+        holidays: 'https://www.1823.gov.hk/en/public-holiday/',
+      },
+    });
   }
 });
 

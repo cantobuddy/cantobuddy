@@ -46,7 +46,13 @@
 // changed, so the cache-first APP_SHELL must be bumped. /articles is a NEW
 // server-rendered document added to SEO_NETWORK_FIRST below; without that, a
 // returning visitor would be served the app shell instead of the article index.
-const CACHE = 'cantobuddy-v151';
+//
+// v152 — this release (2026-11-09). "Today in Hong Kong": index.html gained a new
+// #today-in-hk home card and app.js renders it, so the cache-first APP_SHELL must
+// be bumped. /today is a NEW server-rendered document (live HKO + 1823 data) added
+// to SEO_NETWORK_FIRST, for the same reason /articles is there — a returning
+// visitor must see the fresh page, not a stale cached shell.
+const CACHE = 'cantobuddy-v152';
 
 // Which paths are server-rendered SEO documents rather than app-shell assets.
 // Kept as one matcher so it can be asserted against `LANG_PREFIX` in seo.js —
@@ -59,7 +65,7 @@ const CACHE = 'cantobuddy-v151';
 // privacy policy or contact page must never be served from a stale cache, and
 // /articles joins them because a withdrawn or corrected article index has to
 // reach a returning reader on its next visit, not after the next cache bump.
-const SEO_NETWORK_FIRST = /^\/(learn|words|level|guide|discover|articles|stories|privacy|about|contact|terms|disclaimer|for-employers|places|living|fil|zh|id)(\/|$)/;
+const SEO_NETWORK_FIRST = /^\/(learn|words|level|guide|discover|articles|today|stories|privacy|about|contact|terms|disclaimer|for-employers|places|living|fil|zh|id)(\/|$)/;
 
 /* /places is BOTH a server-rendered document family AND the folder that holds
    the 34 outing photographs and credits.js. A .jpg there is an asset, not a

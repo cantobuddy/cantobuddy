@@ -32,6 +32,20 @@ const I18N = {
   en: {
     // nav / header
     'nav.home': 'Home',
+    // Today in Hong Kong home card
+    'today.title': 'Today in Hong Kong',
+    'today.subtitle': 'Live weather and the next public holiday',
+    'today.temperature': 'Temperature',
+    'today.humidity': 'Humidity',
+    'today.warnings': 'Warnings',
+    'today.noWarnings': 'No special weather warnings in force',
+    'today.forecast': 'Today’s forecast',
+    'today.nextHoliday': 'Next public holiday',
+    'today.daysAway': 'days away',
+    'today.holidayToday': 'Today',
+    'today.unavailable': 'Live data is temporarily unavailable. See the official sources below.',
+    'today.sourceWeather': 'Hong Kong Observatory',
+    'today.sourceHolidays': 'Public holidays (1823)',
     'nav.learn': 'Learn',
     'nav.games': 'Games',
     'nav.gamesNew': 'New',
@@ -730,6 +744,20 @@ const I18N = {
   fil: {
     // nav / header
     'nav.home': 'Simula',
+    // Today in Hong Kong home card
+    'today.title': 'Ngayon sa Hong Kong',
+    'today.subtitle': 'Panahon ngayon at susunod na pista opisyal',
+    'today.temperature': 'Temperatura',
+    'today.humidity': 'Halumigmig',
+    'today.warnings': 'Babala',
+    'today.noWarnings': 'Walang espesyal na babala sa panahon',
+    'today.forecast': 'Ulat ng panahon ngayon',
+    'today.nextHoliday': 'Susunod na pista opisyal',
+    'today.daysAway': 'araw na lang',
+    'today.holidayToday': 'Ngayon',
+    'today.unavailable': 'Hindi magamit ang live na datos sandali. Tingnan ang opisyal na sources sa ibaba.',
+    'today.sourceWeather': 'Hong Kong Observatory',
+    'today.sourceHolidays': 'Pista opisyal (1823)',
     'nav.learn': 'Mag-aral',
     'nav.games': 'Laro',
     'nav.gamesNew': 'Bago',
@@ -1376,6 +1404,20 @@ const I18N = {
   zh: {
     // nav / header
     'nav.home': '首页',
+    // Today in Hong Kong 首页卡片
+    'today.title': '香港今日',
+    'today.subtitle': '实时天气与下一个公众假期',
+    'today.temperature': '气温',
+    'today.humidity': '湿度',
+    'today.warnings': '天气警告',
+    'today.noWarnings': '现时没有特别天气警告',
+    'today.forecast': '今日天气预报',
+    'today.nextHoliday': '下一个公众假期',
+    'today.daysAway': '天后',
+    'today.holidayToday': '今天',
+    'today.unavailable': '实时数据暂时无法获取，请查看下方的官方来源。',
+    'today.sourceWeather': '香港天文台',
+    'today.sourceHolidays': '公众假期（1823）',
     'nav.learn': '学习',
     'nav.games': '游戏',
     'nav.gamesNew': '新',
@@ -2021,6 +2063,20 @@ const I18N = {
   id: {
     // nav / header
     'nav.home': 'Beranda',
+    // Today in Hong Kong home card
+    'today.title': 'Hong Kong Hari Ini',
+    'today.subtitle': 'Cuaca terkini dan hari libur berikutnya',
+    'today.temperature': 'Suhu',
+    'today.humidity': 'Kelembapan',
+    'today.warnings': 'Peringatan',
+    'today.noWarnings': 'Tidak ada peringatan cuaca khusus',
+    'today.forecast': 'Prakiraan hari ini',
+    'today.nextHoliday': 'Hari libur berikutnya',
+    'today.daysAway': 'hari lagi',
+    'today.holidayToday': 'Hari ini',
+    'today.unavailable': 'Data langsung sedang tidak tersedia. Lihat sumber resmi di bawah.',
+    'today.sourceWeather': 'Hong Kong Observatory',
+    'today.sourceHolidays': 'Hari libur (1823)',
     'nav.learn': 'Belajar',
     'nav.games': 'Game',
     'nav.gamesNew': 'Baru',

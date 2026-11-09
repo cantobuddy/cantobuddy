@@ -40,6 +40,7 @@ const { PRACTICAL_CHANNELS, practicalText, practicalSection } = require('./pract
 // are read here; titles and summaries come from the live store so an operator's
 // edit in the admin is reflected on the index without a code change.
 const LONGFORM_GUIDES = require('./longform-guides');
+const todayInHk = require('./today-in-hk');
 
 /* ---------------------------------------------------------------------------
    Outings (/places) — ONE data source, two runtimes
@@ -1372,6 +1373,23 @@ p.news-note{color:var(--muted);font-size:13px;margin-top:12px}
   .cta-card{flex-direction:column;align-items:flex-start}
   .cta-card .cta{width:100%;text-align:center}
 }
+/* Today in Hong Kong page (server-rendered, no app styles loaded) */
+.tk-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0 0 14px}
+.tk-cell{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.tk-label{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.tk-value{font-size:24px;font-weight:800;color:var(--ink)}
+.tk-warn{margin:0 0 14px}
+.tk-warn ul{margin:4px 0 0;padding-left:20px}
+.tk-warn li{color:#a83a00;font-weight:600;margin:3px 0}
+.tk-none{color:#1f7a3d;font-weight:600;margin:4px 0 0}
+.tk-fore{margin:0 0 14px}
+.tk-fore p{margin:4px 0 0;line-height:1.6}
+.tk-hol{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:0 0 14px}
+.tk-hol-name{font-size:17px;font-weight:800;color:var(--ink)}
+.tk-hol-when{font-size:13px;color:var(--muted);margin-top:2px}
+.tk-unavailable{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:12px;
+  padding:12px 14px;margin:0 0 14px;line-height:1.6}
+@media(max-width:560px){.tk-grid{grid-template-columns:1fr}}
 `;
 
 /**
@@ -4726,6 +4744,7 @@ ${alts}
     SITE_STRUCTURE_DATE
   );
   add('/articles', '0.8', 'weekly', null, newestLongformArticle);
+  add('/today', '0.6', 'daily', null, SITE_STRUCTURE_DATE);
 
   // Stories — the shared shelf of helper-written stories.
   //
@@ -4962,6 +4981,7 @@ Allow: /level
 Allow: /guide
 Allow: /discover
 Allow: /articles
+Allow: /today
 Allow: /stories
 Allow: /living
 # /places is BOTH a server-rendered hub and the directory holding the photos.
@@ -5304,6 +5324,96 @@ ${crumbs('en', [{ label: 'Disclaimer' }])}
    an operator's title or summary edit in the admin is reflected here too, and
    falls back to the seed copy for a guide that is not in the database yet.
    --------------------------------------------------------------------------- */
+
+/**
+ * The server-rendered "Today in Hong Kong" page. The data is fetched live (HKO +
+ * 1823) and written straight into the HTML so a crawler — and the AdSense
+ * reviewer's "URL Inspection" view — sees real content with no JavaScript, not a
+ * blank shell. It degrades honestly: if the upstream is down, the page says so
+ * and still links to the official sources.
+ */
+function renderTodayInHkPage(data) {
+  const d = data || {};
+  const w = d.weather || {};
+  const src = d.sources || {};
+  const warns = Array.isArray(w.warnings) ? w.warnings : [];
+  const hol = d.nextHoliday || null;
+  const weatherUrl = src.weather || 'https://www.hko.gov.hk/en/wxinfo/currwx/warningsum.htm';
+  const holidayUrl = src.holidays || 'https://www.1823.gov.hk/en/public-holiday/';
+
+  const temp = w.temperatureC != null ? w.temperatureC + '°C' : null;
+  const hum = w.humidityPct != null ? w.humidityPct + '%' : null;
+
+  const weatherBlock = d.available === false
+    ? '<p class="tk-unavailable">Live data is temporarily unavailable. See the official sources below.</p>'
+    : '<div class="tk-grid">' +
+        '<div class="tk-cell"><div class="tk-label">Temperature</div><div class="tk-value">' + (temp || '—') + '</div></div>' +
+        '<div class="tk-cell"><div class="tk-label">Humidity</div><div class="tk-value">' + (hum || '—') + '</div></div>' +
+      '</div>' +
+      '<div class="tk-warn">' +
+        '<div class="tk-label">Weather warnings</div>' +
+        (warns.length
+          ? '<ul>' + warns.map((x) => '<li>' + esc(x) + '</li>').join('') + '</ul>'
+          : '<p class="tk-none">No special weather warnings in force.</p>') +
+      '</div>' +
+      (w.forecast
+        ? '<div class="tk-fore"><div class="tk-label">Today’s forecast</div><p>' + esc(w.forecast) + '</p></div>'
+        : '');
+
+  const holidayBlock = hol && hol.date
+    ? '<div class="tk-hol">' +
+        '<div class="tk-label">Next public holiday</div>' +
+        '<div class="tk-hol-name">' + esc(hol.name) + '</div>' +
+        '<div class="tk-hol-when">' + (hol.daysUntil === 0 ? 'Today' : hol.daysUntil + ' days away') + '</div>' +
+      '</div>'
+    : '';
+
+  const description =
+    'Live Hong Kong weather from the Hong Kong Observatory and the date of the next public holiday, read from official open data — no account, no sign-up.';
+
+  const body = `
+${crumbs('en', [{ label: 'Today in Hong Kong' }])}
+<article>
+<h1>Today in Hong Kong</h1>
+<p class="lede">Live weather from the Hong Kong Observatory and the date of the next public holiday in Hong Kong, updated from official open-data sources. No account, no sign-up — just the numbers a domestic helper or a Cantonese learner actually checks before a shift.</p>
+
+<h2>Right now</h2>
+${weatherBlock}
+${holidayBlock}
+
+<h2>Where this comes from</h2>
+<p>Weather and warnings are read live from the <a href="${esc(weatherUrl)}" rel="noopener">Hong Kong Observatory</a>. Public-holiday dates are read live from <a href="${esc(holidayUrl)}" rel="noopener">1823</a>, the Hong Kong government’s one-stop portal. CantoBuddy does not store or alter these figures; if an official page and this one disagree, the official page is the one to trust.</p>
+<p>For the Cantonese behind the weather, the <a href="/learn">topic library</a> has the characters, Jyutping, meanings and audio for the words you hear on a rainy morning. The <a href="/articles">guides</a> explain the holiday rules and the phrases for a typhoon-signal day at home.</p>
+${ctaCard('en', null, '/learn')}
+</article>`;
+
+  return page({
+    lang: 'en',
+    title: 'Today in Hong Kong — Live Weather & Next Public Holiday | CantoBuddy',
+    description,
+    path: '/today',
+    body,
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@graph': [
+        ORG_LD,
+        breadcrumbLd([
+          { name: 'CantoBuddy', path: '/' },
+          { name: 'Today in Hong Kong', path: '/today' },
+        ]),
+        {
+          '@type': 'WebPage',
+          name: 'Today in Hong Kong',
+          description,
+          url: `${SITE_ORIGIN}/today`,
+          inLanguage: 'en-HK',
+          isPartOf: { '@type': 'WebSite', name: 'CantoBuddy', url: SITE_ORIGIN },
+        },
+      ],
+    },
+  });
+}
+
 function renderArticlesHub() {
   const live = new Map(
     store.listPosts({ status: 'published', channel: 'culture', limit: 300 })
@@ -5542,13 +5652,19 @@ function mount(app) {
   // The rejection note named /disclaimer as a 404 too. It is a plain GET here,
   // so the generic trailing-slash 301 in server.js covers /disclaimer/ as well.
   app.get('/disclaimer', (req, res) => html(res, renderDisclaimer()));
-  // The long-form shelf index. English only (the articles themselves carry
-  // Chinese titles and summaries, but the prose is English), so it is a single
-  // URL with a self-canonical — mirroring it into four trees would advertise
-  // three near-duplicates. It was linked from every footer before it existed.
+  // "Today in Hong Kong" — served by its own route below; the function is
+  // defined here next to the other page renderers.
   app.get('/articles', (req, res) => {
     try { html(res, renderArticlesHub()); }
     catch (e) { console.error('  ! /articles render failed:', e.message); html(res, renderNotFound('en'), 500); }
+  });
+
+  // Live weather + next public holiday. Async because it aggregates two external
+  // open-data feeds; on any failure it still renders an honest, crawlable page
+  // with links to the official sources.
+  app.get('/today', async (req, res) => {
+    try { html(res, renderTodayInHkPage(await todayInHk.getTodayInHk())); }
+    catch (e) { console.error('  ! /today render failed:', e.message); html(res, renderTodayInHkPage(null)); }
   });
 
   // --- English track (/en) SEO siblings of the /en SPA ---

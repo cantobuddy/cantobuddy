@@ -388,6 +388,13 @@
          🔥 challenge streak. Reuses the .cb-dc-* styles injected in app.js. -->
     <section id="daily-challenge" class="home-card" hidden></section>
 
+    <!-- ---- Today in Hong Kong -------------------------------------------------
+         Filled by renderTodayInHk() in app.js. A live weather + next-holiday
+         widget backed by /api/today-in-hk (HKO + 1823, aggregated server-side
+         so the browser never hits CORS). Reuses the .cb-tk-* styles injected
+         in app.js. -->
+    <section id="today-in-hk" class="home-card" hidden></section>
+
     <!-- ---- Returning-learner cards ------------------------------------
          Both are filled by JS and both are EMPTY for a device that has never
          practised, so a first-time visitor sees exactly the screen that
@@ -1069,6 +1076,7 @@
       <a href="/contact">Contact Us</a>
       <a href="/disclaimer">Disclaimer</a>
       <a href="/articles">Articles &amp; Guides</a>
+      <a href="/today">Today in Hong Kong</a>
     </nav>
 
     <!-- Not a crawlable link like the ones above — this one opens a dialog. Kept

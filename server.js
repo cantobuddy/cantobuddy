@@ -350,6 +350,17 @@ const livingRateLimit = makeRateLimit({
 });
 
 /**
+ * Forums are public writes like stories and living comments, so they borrow the
+ * same per-connection backstop above the per-device daily quota. A script that
+ * mints fresh device ids still cannot bury the moderation queue.
+ */
+const forumRateLimit = makeRateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: Number(process.env.FORUM_RATE_MAX) || 20,
+  message: (m) => `You have posted a lot to the forums. Try again in ${m} minute${m === 1 ? '' : 's'}.`,
+});
+
+/**
  * The funnel beacon is the lightest public write there is, but it IS public.
  * A legitimate device sends at most ~6 events a day; 120/hour leaves room for
  * a household on shared NAT and for a test harness (which can raise the cap
@@ -1257,6 +1268,202 @@ app.post('/api/living/:slug/comment', livingRateLimit, (req, res) => {
   });
   if (!comment) return res.status(400).json({ error: 'Please write a comment.' });
   res.status(201).json({ comment, commentCount: store.listLivingComments(post.id).length });
+});
+
+// ---------------------------------------------------------------------------
+// Community forums (Phase A) — peer discussion, pre-moderated.
+//
+// The audience is domestic helpers; nothing a helper writes goes live without a
+// human reading it first, so every submission lands PENDING and is invisible to
+// the public until an operator approves it. The scam/meetup scanner (scanAbuse in
+// db.js) additionally holds auto-flagged posts and files a report, so a loan pitch
+// or a "meet me at" cannot reach a reader even if the queue is briefly unattended.
+// ---------------------------------------------------------------------------
+
+// Forums are pre-moderated for this audience. Kept as a named constant so the
+// operator can flip it once the queue has proved itself at scale.
+const FORUM_PRE_MODERATION = true;
+
+/** GET /api/forums — topic metadata (labels come from i18n on the client). */
+app.get('/api/forums', (req, res) => {
+  res.json({ topics: store.FORUM_TOPICS, counts: store.getForumTopicCounts(), preModeration: FORUM_PRE_MODERATION });
+});
+
+/** GET /api/forums/mine — a device's own threads, so it can see their status. */
+app.get('/api/forums/mine', (req, res) => {
+  const publicId = req.query.public_id ? String(req.query.public_id).trim() : '';
+  if (!publicId) return res.status(400).json({ error: 'Missing device id.' });
+  res.json({ threads: store.listForumThreadsByDevice(publicId) });
+});
+
+/** GET /api/forums/thread/:id — one published thread with its published replies. */
+app.get('/api/forums/thread/:id', (req, res) => {
+  const id = Number(req.params.id);
+  const thread = store.getForumThread(id);
+  if (!thread) return res.status(404).json({ error: 'Not found' });
+  const publicId = req.query.public_id ? String(req.query.public_id) : null;
+  const replies = store.listPublishedForumReplies(id);
+  // Per-reply reaction state, keyed by reply id, so the client can render each
+  // reply's reaction bar from the same response (no extra round-trips).
+  const replyReactions = {};
+  for (const r of replies) {
+    replyReactions[r.id] = {
+      reactions: store.getForumReactions('reply', r.id),
+      myReaction: publicId ? store.getForumUserReaction('reply', r.id, publicId) : null,
+    };
+  }
+  res.json({
+    thread,
+    replies,
+    reactions: store.getForumReactions('thread', id),
+    myReaction: publicId ? store.getForumUserReaction('thread', id, publicId) : null,
+    replyReactions,
+  });
+});
+
+/**
+ * GET /api/forums/:topic — the public shelf for one topic: published threads only,
+ * newest first. An unknown topic is a 404, never an empty list dressed as a shelf.
+ */
+app.get('/api/forums/:topic', (req, res) => {
+  const topic = String(req.params.topic || '');
+  if (!store.FORUM_TOPICS.includes(topic)) return res.status(404).json({ error: 'Unknown topic.' });
+  const limit = Math.max(1, Math.min(Number(req.query.limit) || 50, 200));
+  res.json({ topic, threads: store.listPublishedForumThreads({ topic, limit }) });
+});
+
+/**
+ * POST /api/forums/:topic/thread — start a discussion.
+ * The submission is stored PENDING and returns 201; the response says "we have it",
+ * never "it is live". A blocked device is refused before it can write.
+ */
+app.post('/api/forums/:topic/thread', forumRateLimit, (req, res) => {
+  const topic = String(req.params.topic || '');
+  if (!store.FORUM_TOPICS.includes(topic)) return res.status(404).json({ error: 'Unknown topic.' });
+  const b = req.body || {};
+  const publicId = String(b.public_id || '').trim();
+  if (!publicId) return res.status(400).json({ error: 'Missing device id.' });
+  if (store.isBlocked(publicId)) {
+    return res.status(403).json({ error: 'This device is blocked from posting. Please contact support.' });
+  }
+  // Resolve the device to a learner row so the daily quota is keyed somewhere; the
+  // forum row itself stores the device token, not the learner id.
+  const learner = store.identifyLearner({ public_id: publicId });
+  const quota = store.forumThreadQuotaFor(publicId);
+  if (!quota.allowed) {
+    return res.status(429).json({
+      error: 'You have started several discussions today. Please try again tomorrow.',
+      quota,
+    });
+  }
+  const thread = store.createForumThread({
+    public_id: publicId,
+    topic,
+    title: b.title,
+    body: b.body,
+    sign: b.sign === true,
+    display_name: b.display_name,
+  });
+  if (!thread) return res.status(400).json({ error: 'Please write a title and your message.' });
+  if (learner && learner.id) { /* learner row exists for quota accounting */ }
+  res.status(201).json({
+    ok: true,
+    id: thread.id,
+    status: thread.status,
+    autoFlagged: !!thread.auto_flag,
+    quota: store.forumThreadQuotaFor(publicId),
+  });
+});
+
+/** POST /api/forums/thread/:id/reply — reply to a published thread (pending). */
+app.post('/api/forums/thread/:id/reply', forumRateLimit, (req, res) => {
+  const id = Number(req.params.id);
+  const b = req.body || {};
+  const publicId = String(b.public_id || '').trim();
+  if (!publicId) return res.status(400).json({ error: 'Missing device id.' });
+  if (store.isBlocked(publicId)) {
+    return res.status(403).json({ error: 'This device is blocked from posting. Please contact support.' });
+  }
+  store.identifyLearner({ public_id: publicId });
+  const quota = store.forumReplyQuotaFor(publicId);
+  if (!quota.allowed) {
+    return res.status(429).json({
+      error: 'You have replied several times today. Please try again tomorrow.',
+      quota,
+    });
+  }
+  const reply = store.createForumReply({
+    thread_id: id,
+    public_id: publicId,
+    body: b.body,
+    sign: b.sign === true,
+    display_name: b.display_name,
+  });
+  if (!reply) {
+    // Either the body was empty, or the parent thread is not published (a reply has
+    // nowhere to live). Distinguish so the client can say the right thing.
+    const thread = store.getForumThread(id);
+    return res.status(thread ? 400 : 404).json({
+      error: thread ? 'Please write a reply.' : 'Thread not found.',
+    });
+  }
+  res.status(201).json({
+    ok: true,
+    id: reply.id,
+    status: reply.status,
+    autoFlagged: !!reply.auto_flag,
+    quota: store.forumReplyQuotaFor(publicId),
+  });
+});
+
+/** POST /api/forums/thread/:id/react — react (or change/toggle) on a thread. */
+app.post('/api/forums/thread/:id/react', forumRateLimit, (req, res) => {
+  const id = Number(req.params.id);
+  const b = req.body || {};
+  const publicId = String(b.public_id || '').trim();
+  const emoji = String(b.emoji || '').trim();
+  if (!publicId) return res.status(400).json({ error: 'Missing device id.' });
+  if (!emoji) return res.status(400).json({ error: 'Missing reaction.' });
+  if (!store.getForumThread(id)) return res.status(404).json({ error: 'Not found' });
+  const result = store.setForumReaction('thread', id, publicId, emoji);
+  if (!result) return res.status(400).json({ error: 'Could not save reaction.' });
+  res.json(result);
+});
+
+/** POST /api/forums/reply/:id/react — react (or change/toggle) on a reply. */
+app.post('/api/forums/reply/:id/react', forumRateLimit, (req, res) => {
+  const id = Number(req.params.id);
+  const b = req.body || {};
+  const publicId = String(b.public_id || '').trim();
+  const emoji = String(b.emoji || '').trim();
+  if (!publicId) return res.status(400).json({ error: 'Missing device id.' });
+  if (!emoji) return res.status(400).json({ error: 'Missing reaction.' });
+  const reply = store.getForumReplyForModeration(id);
+  if (!reply) return res.status(404).json({ error: 'Not found' });
+  const result = store.setForumReaction('reply', id, publicId, emoji);
+  if (!result) return res.status(400).json({ error: 'Could not save reaction.' });
+  res.json(result);
+});
+
+/**
+ * POST /api/forums/report — raise a report against any forum content. Open to any
+ * device (a reader who is not the author can still flag abuse). The report lands in
+ * the shared moderation queue.
+ */
+app.post('/api/forums/report', forumRateLimit, (req, res) => {
+  const b = req.body || {};
+  const publicId = String(b.public_id || '').trim();
+  if (!publicId) return res.status(400).json({ error: 'Missing device id.' });
+  const { target_type, target_id, reason } = b;
+  if (!target_type || target_id == null) return res.status(400).json({ error: 'Missing report target.' });
+  const row = store.createReport({
+    target_type,
+    target_id: String(target_id),
+    reason: reason || '',
+    public_id: publicId,
+  });
+  if (!row) return res.status(400).json({ error: 'Could not submit report.' });
+  res.status(201).json({ ok: true, id: row.id });
 });
 
 // ---------------------------------------------------------------------------
@@ -2210,6 +2417,125 @@ app.put('/api/admin/stories/:id', requireAdmin, (req, res) => {
 /** DELETE /api/admin/stories/:id — irreversible, so the admin UI confirms. */
 app.delete('/api/admin/stories/:id', requireAdmin, (req, res) => {
   if (!store.deleteStory(req.params.id)) return res.status(404).json({ error: 'No such story.' });
+  res.json({ ok: true });
+});
+
+// ---------------------------------------------------------------------------
+// Community moderation (Phase 0 + Phase A) — forums, reports, device blocks.
+//
+// All three surfaces share one safety layer: a helper's submission is pending until
+// an operator approves it, a report lands in a shared queue, and a device block
+// silences a token across every community feature.
+// ---------------------------------------------------------------------------
+
+/** GET /api/admin/forums/threads — the forum thread queue + status counts. */
+app.get('/api/admin/forums/threads', requireAdmin, (req, res) => {
+  res.json({
+    threads: store.listForumThreadsForModeration({ status: req.query.status, limit: req.query.limit }),
+    counts: (() => {
+      const out = { pending: 0, published: 0, rejected: 0, total: 0 };
+      for (const row of store.forumThreadCounts()) { if (store.FORUM_STATUSES.includes(row.status)) out[row.status] = row.n; out.total += row.n; }
+      return out;
+    })(),
+  });
+});
+
+/** GET /api/admin/forums/replies — the forum reply queue + status counts. */
+app.get('/api/admin/forums/replies', requireAdmin, (req, res) => {
+  res.json({
+    replies: store.listForumRepliesForModeration({ status: req.query.status, limit: req.query.limit }),
+    counts: (() => {
+      const out = { pending: 0, published: 0, rejected: 0, total: 0 };
+      for (const row of store.forumReplyCounts()) { if (store.FORUM_STATUSES.includes(row.status)) out[row.status] = row.n; out.total += row.n; }
+      return out;
+    })(),
+  });
+});
+
+/**
+ * PATCH /api/admin/forums/thread/:id — approve, reject, or take one back down.
+ * The ONLY way a thread becomes readable. Notifying subscribers on first publish
+ * mirrors the stories queue.
+ */
+app.patch('/api/admin/forums/thread/:id', requireAdmin, (req, res) => {
+  const b = req.body || {};
+  const status = String(b.status || '');
+  const current = store.getForumThreadForModeration(req.params.id);
+  if (!current) return res.status(400).json({ error: 'Unknown thread, or unknown status.' });
+  const note = b.note != null ? b.note : current.reviewer_note;
+  const row = store.setForumThreadStatus(req.params.id, status, note);
+  if (!row) return res.status(400).json({ error: 'Unknown thread, or unknown status.' });
+  if (current.status !== 'published' && row.status === 'published') {
+    notifySubscribers({
+      title: 'New community discussion',
+      body: 'A new discussion is live on CantoBuddy.',
+      url: '/forums',
+      tag: 'forum-thread-' + row.id,
+    }).catch((e) => console.error('forum thread notify failed:', e.message));
+  }
+  res.json(row);
+});
+
+/** PATCH /api/admin/forums/reply/:id — approve, reject, or take one back down. */
+app.patch('/api/admin/forums/reply/:id', requireAdmin, (req, res) => {
+  const b = req.body || {};
+  const status = String(b.status || '');
+  const current = store.getForumReplyForModeration(req.params.id);
+  if (!current) return res.status(400).json({ error: 'Unknown reply, or unknown status.' });
+  const note = b.note != null ? b.note : current.reviewer_note;
+  const row = store.setForumReplyStatus(req.params.id, status, note);
+  if (!row) return res.status(400).json({ error: 'Unknown reply, or unknown status.' });
+  res.json(row);
+});
+
+/** DELETE /api/admin/forums/thread/:id — removes the thread and its replies. */
+app.delete('/api/admin/forums/thread/:id', requireAdmin, (req, res) => {
+  if (!store.deleteForumThread(req.params.id)) return res.status(404).json({ error: 'No such thread.' });
+  res.json({ ok: true });
+});
+
+/** DELETE /api/admin/forums/reply/:id — removes a single reply. */
+app.delete('/api/admin/forums/reply/:id', requireAdmin, (req, res) => {
+  if (!store.deleteForumReply(req.params.id)) return res.status(404).json({ error: 'No such reply.' });
+  res.json({ ok: true });
+});
+
+/** GET /api/admin/reports — the shared report queue + status counts. */
+app.get('/api/admin/reports', requireAdmin, (req, res) => {
+  res.json({ reports: store.listReports({ status: req.query.status, limit: req.query.limit }), counts: store.getReportCounts() });
+});
+
+/** PATCH /api/admin/reports/:id — mark a report reviewed / actioned / dismissed. */
+app.patch('/api/admin/reports/:id', requireAdmin, (req, res) => {
+  const b = req.body || {};
+  const row = store.setReportStatus(Number(req.params.id), String(b.status || ''));
+  if (!row) return res.status(400).json({ error: 'Unknown report, or unknown status.' });
+  res.json(row);
+});
+
+/**
+ * POST /api/admin/moderation-blocks — silence a device across all community
+ * features. until is an ISO timestamp for a timed block, or omitted for permanent.
+ */
+app.post('/api/admin/moderation-blocks', requireAdmin, (req, res) => {
+  const b = req.body || {};
+  const publicId = String(b.public_id || '').trim();
+  if (!publicId) return res.status(400).json({ error: 'Missing device id.' });
+  const until = b.until ? String(b.until) : null;
+  if (until && Number.isNaN(Date.parse(until))) return res.status(400).json({ error: 'Invalid until date.' });
+  const row = store.addModerationBlock({ public_id: publicId, reason: b.reason || '', until });
+  if (!row) return res.status(400).json({ error: 'Could not block device.' });
+  res.status(201).json(row);
+});
+
+/** GET /api/admin/moderation-blocks — list active and expired blocks. */
+app.get('/api/admin/moderation-blocks', requireAdmin, (req, res) => {
+  res.json({ blocks: store.listModerationBlocks() });
+});
+
+/** DELETE /api/admin/moderation-blocks/:id — lift a block. */
+app.delete('/api/admin/moderation-blocks/:id', requireAdmin, (req, res) => {
+  if (!store.removeModerationBlock(Number(req.params.id))) return res.status(404).json({ error: 'No such block.' });
   res.json({ ok: true });
 });
 

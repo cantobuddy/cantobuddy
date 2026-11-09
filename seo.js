@@ -4745,6 +4745,9 @@ ${alts}
   );
   add('/articles', '0.8', 'weekly', null, newestLongformArticle);
   add('/today', '0.6', 'daily', null, SITE_STRUCTURE_DATE);
+  // Community Forums (Phase A). Crawlable landing; content changes as threads are
+  // published, so daily is honest without over-claiming.
+  add('/forums', '0.6', 'daily', null, SITE_STRUCTURE_DATE);
 
   // Stories — the shared shelf of helper-written stories.
   //
@@ -4982,6 +4985,7 @@ Allow: /guide
 Allow: /discover
 Allow: /articles
 Allow: /today
+Allow: /forums
 Allow: /stories
 Allow: /living
 # /places is BOTH a server-rendered hub and the directory holding the photos.
@@ -5414,6 +5418,95 @@ ${ctaCard('en', null, '/learn')}
   });
 }
 
+/**
+ * Community Forums landing page (Phase A). Server-rendered and crawlable: lists
+ * the three topic buckets and their published threads so search engines and link
+ * unfurlers see real content. The interactive app is reached via "/?view=forums".
+ * Styles are inlined (these classes are only used on this page).
+ */
+function renderForumsPage() {
+  const FM_CSS = `
+.fm-topics { display: grid; gap: 8px; }
+.fm-topic { margin: 26px 0; }
+.fm-topic-name { font-size: 1.4rem; color: #c1121f; margin: 0 0 4px; }
+.fm-topic-desc { color: #5b6470; line-height: 1.55; margin: 0 0 14px; }
+.fm-thread-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+.fm-thread { border: 1px solid #e0e0e6; border-radius: 14px; padding: 14px 16px; background: #fff; }
+.fm-thread-title { font-size: 1.05rem; margin: 0 0 4px; color: #1a1a2e; }
+.fm-thread-meta { font-size: .8rem; color: #5b6470; margin: 0 0 6px; }
+.fm-thread-snippet { margin: 0; color: #1a1a2e; line-height: 1.55; }
+.fm-empty { color: #5b6470; }`;
+
+  const topics = [
+    { key: 'cooking', name: 'Cooking', desc: 'Recipes, tips and questions from the kitchen — what to cook on a helper’s day off, how to explain a dish to your employer, and where to find ingredients.' },
+    { key: 'elderly-care', name: 'Elderly Care', desc: 'Caring for an elderly employer: advice, reassurance and shared experience for the hard days as well as the easy ones.' },
+    { key: 'sunday-buysell', name: 'Sunday Buy & Sell', desc: 'Buy, sell or give away within the community — phones, tickets, furniture and the things that help a fellow helper settle in.' },
+  ];
+
+  const sections = topics.map((tp) => {
+    const threads = store.listPublishedForumThreads({ topic: tp.key, limit: 12 });
+    const items = threads.length
+      ? threads.map((th) => {
+          const name = String(th.display_name || '').trim() || 'Anonymous';
+          const body = String(th.body || '');
+          const snippet = body.slice(0, 200);
+          return '<li class="fm-thread">' +
+            '<h3 class="fm-thread-title">' + esc(th.title) + '</h3>' +
+            '<p class="fm-thread-meta">' + esc(name) + ' · ' + esc(postDateShort(th.created_at)) + '</p>' +
+            '<p class="fm-thread-snippet">' + esc(snippet) + (body.length > 200 ? '…' : '') + '</p>' +
+          '</li>';
+        }).join('\n')
+      : '<li class="fm-empty">No discussions yet — be the first to start one.</li>';
+    return '<section class="fm-topic">' +
+      '<h2 class="fm-topic-name">' + esc(tp.name) + '</h2>' +
+      '<p class="fm-topic-desc">' + esc(tp.desc) + '</p>' +
+      '<ul class="fm-thread-list">' + items + '</ul>' +
+    '</section>';
+  }).join('\n');
+
+  const description = 'CantoBuddy community forums for domestic helpers in Hong Kong — cooking, elderly care and Sunday buy & sell. Read real discussions from fellow helpers, all reviewed before they appear.';
+
+  const body = `<style>${FM_CSS}</style>
+${crumbs('en', [{ label: 'Community Forums' }])}
+<article>
+<h1>Community Forums</h1>
+<p class="lede">A quiet, moderated space for domestic helpers in Hong Kong to talk about the things that matter on a Sunday: cooking for the family, caring for an elderly employer, and buying and selling within the community. Every post is reviewed before it appears, so the conversations stay safe and useful.</p>
+
+<h2>Topics</h2>
+${sections}
+
+<h2>Join the conversation</h2>
+<p>The forums live inside the CantoBuddy app. Open the app to start a discussion, reply to a thread or react to a post — all anonymous unless you choose to show your name. <a href="/?view=forums">Open the Community Forums →</a></p>
+${ctaCard('en', null, '/?view=forums')}
+</article>`;
+
+  return page({
+    lang: 'en',
+    title: 'Community Forums — Cooking, Elderly Care & Sunday Buy & Sell | CantoBuddy',
+    description,
+    path: '/forums',
+    body,
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@graph': [
+        ORG_LD,
+        breadcrumbLd([
+          { name: 'CantoBuddy', path: '/' },
+          { name: 'Community Forums', path: '/forums' },
+        ]),
+        {
+          '@type': 'WebPage',
+          name: 'Community Forums',
+          description,
+          url: SITE_ORIGIN + '/forums',
+          inLanguage: 'en-HK',
+          isPartOf: { '@type': 'WebSite', name: 'CantoBuddy', url: SITE_ORIGIN },
+        },
+      ],
+    },
+  });
+}
+
 function renderArticlesHub() {
   const live = new Map(
     store.listPosts({ status: 'published', channel: 'culture', limit: 300 })
@@ -5665,6 +5758,12 @@ function mount(app) {
   app.get('/today', async (req, res) => {
     try { html(res, renderTodayInHkPage(await todayInHk.getTodayInHk())); }
     catch (e) { console.error('  ! /today render failed:', e.message); html(res, renderTodayInHkPage(null)); }
+  });
+
+  // Community Forums (Phase A) — crawlable landing that links into the SPA.
+  app.get('/forums', (req, res) => {
+    try { html(res, renderForumsPage()); }
+    catch (e) { console.error('  ! /forums render failed:', e.message); html(res, renderNotFound('en'), 500); }
   });
 
   // --- English track (/en) SEO siblings of the /en SPA ---

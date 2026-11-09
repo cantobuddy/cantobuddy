@@ -614,6 +614,7 @@ function navigate(view) {
   // screen is "here is what happened to the last one", and a stale list would
   // be worse than none.
   if (view === 'story-new') { defaultStoryLang(); renderStoryMine(); }
+  if (view === 'forums') renderForums();
 }
 
 /**
@@ -832,6 +833,7 @@ async function init() {
     renderSundayShowdown();
     renderDailyChallenge();
     renderTodayInHk();
+    renderForums();
     // Apply the operator's Discover tab order/visibility. Fired after the
     // initial render so the Home promo + Discover row can be corrected from the
     // saved config; a failed fetch leaves the authored HTML order untouched.
@@ -872,6 +874,7 @@ function rerenderForLanguage() {
   renderSundayShowdown();
   renderDailyChallenge();
   renderTodayInHk();
+  renderForums();
   renderGamesHub();
   renderCategoryChips();
   renderQuizTypes();
@@ -2566,6 +2569,364 @@ async function renderTodayInHk() {
   } catch (e) {
     el.hidden = true;
   }
+}
+
+// ---- Community Forums (Phase A) --------------------------------------------
+// Topic-only, pre-moderated, anonymous-by-default. Reuses the stories/living
+// moderation model: everything is stored PENDING and only published content is
+// returned by the public read routes. Reactions and reports mirror living_*.
+
+const FORUM_REACTIONS = ['👍', '❤️', '😂', '🙏', '👏'];
+
+function forumState() {
+  if (!STATE.forums) {
+    STATE.forums = {
+      topics: [], counts: {}, preModeration: true,
+      view: 'topics', topic: null, thread: null,
+      threads: [], replies: [], reactions: {}, myReaction: null,
+      replyReactions: {}, mine: null,
+    };
+  }
+  return STATE.forums;
+}
+
+function forumTopicLabel(topic) {
+  const map = { cooking: 'forum.cooking', 'elderly-care': 'forum.elderlyCare', 'sunday-buysell': 'forum.sundayBuysell' };
+  return t(map[topic] || 'forum.title');
+}
+function forumTopicDesc(topic) {
+  const map = { cooking: 'forum.cookingDesc', 'elderly-care': 'forum.elderlyCareDesc', 'sunday-buysell': 'forum.sundayBuysellDesc' };
+  return t(map[topic] || '');
+}
+function forumStatusLabel(s) {
+  const map = { pending: 'forum.threadPending', published: 'forum.published', rejected: 'forum.rejected' };
+  return t(map[s] || 'forum.threadPending');
+}
+
+/** Top-level entry: refresh topic metadata once, then draw the current screen. */
+async function renderForums() {
+  const host = document.getElementById('view-forums');
+  if (!host) return;
+  const st = forumState();
+  if (!st.topics.length) {
+    try {
+      const d = await apiGet('/api/forums');
+      st.topics = d.topics || [];
+      st.counts = d.counts || {};
+      st.preModeration = d.preModeration;
+    } catch (e) {
+      console.warn('Could not load forums metadata:', e);
+    }
+  }
+  renderForumsView(host);
+}
+
+function renderForumsView(host) {
+  const st = forumState();
+  if (st.view === 'threads') return renderForumThreads(host);
+  if (st.view === 'thread') return renderForumThread(host);
+  if (st.view === 'new') return renderForumNewThread(host);
+  if (st.view === 'mine') return renderForumMine(host);
+  renderForumTopics(host);
+}
+
+/** Topic home: three buckets plus the "my discussions" entry point. */
+function renderForumTopics(host) {
+  const st = forumState();
+  const cards = (st.topics || []).map((topic) => {
+    const count = st.counts[topic] || 0;
+    return `<button class="forum-topic-card" onclick="openForumTopic('${topic}')">
+      <div class="forum-topic-name">${escapeHtml(forumTopicLabel(topic))}</div>
+      <div class="forum-topic-desc">${escapeHtml(forumTopicDesc(topic))}</div>
+      <div class="forum-topic-count">${count} · ${escapeHtml(t('forum.browse'))}</div>
+    </button>`;
+  }).join('');
+  host.innerHTML = `
+    <div class="forum-head">
+      <h1 class="forum-title">${escapeHtml(t('forum.title'))}</h1>
+      <p class="forum-sub">${escapeHtml(t('forum.subtitle'))}</p>
+      <div class="forum-actions">
+        <button class="btn btn-link" onclick="openForumMine()">${escapeHtml(t('forum.mine'))}</button>
+      </div>
+      ${st.preModeration ? `<p class="forum-pre">🔒 ${escapeHtml(t('forum.preModeration'))}</p>` : ''}
+    </div>
+    <div class="forum-topics">${cards}</div>`;
+}
+
+/** Open a topic's shelf: fetch its published threads and switch to list view. */
+async function openForumTopic(topic) {
+  const st = forumState();
+  st.topic = topic;
+  st.view = 'threads';
+  try {
+    const d = await apiGet('/api/forums/' + encodeURIComponent(topic));
+    st.threads = d.threads || [];
+  } catch (e) {
+    st.threads = [];
+  }
+  renderForums();
+}
+
+function renderForumThreads(host) {
+  const st = forumState();
+  const topic = st.topic;
+  const threads = st.threads || [];
+  const list = threads.length
+    ? threads.map((th) => {
+        const name = String(th.display_name || '').trim() || t('forum.anonymous');
+        const badge = th.status && th.status !== 'published'
+          ? `<span class="forum-pill forum-pill-${escapeHtml(th.status)}">${escapeHtml(forumStatusLabel(th.status))}</span>` : '';
+        const body = String(th.body || '');
+        const snippet = body.slice(0, 160);
+        return `<button class="forum-thread-card" onclick="openForumThread(${th.id})">
+          <div class="forum-thread-top">
+            <span class="forum-thread-title">${escapeHtml(th.title)}</span>${badge}
+          </div>
+          <div class="forum-thread-snippet">${escapeHtml(snippet)}${body.length > 160 ? '…' : ''}</div>
+          <div class="forum-thread-meta">
+            <span>${escapeHtml(name)}</span>
+            <span>· ${escapeHtml(postDate(th.created_at))}</span>
+            <span>· ${th.reply_count || 0} ${escapeHtml(t('forum.replies'))}</span>
+          </div>
+        </button>`;
+      }).join('')
+    : `<p class="forum-empty">${escapeHtml(t('forum.noThreads'))}</p>`;
+  host.innerHTML = `
+    <div class="forum-backbar">
+      <button class="btn-link" onclick="forumBackToTopics()">← ${escapeHtml(t('forum.back'))}</button>
+      <button class="btn btn-primary forum-start" onclick="openForumNew('${topic}')">＋ ${escapeHtml(t('forum.startDiscussion'))}</button>
+    </div>
+    <h2 class="forum-section-title">${escapeHtml(forumTopicLabel(topic))}</h2>
+    <div class="forum-threads">${list}</div>`;
+}
+
+/** Open one thread + its replies (and the device's own reaction state). */
+async function openForumThread(id) {
+  const st = forumState();
+  st.view = 'thread';
+  try {
+    const d = await apiGet('/api/forums/thread/' + encodeURIComponent(id) + '?public_id=' + encodeURIComponent(STATE.deviceId));
+    st.thread = d.thread;
+    st.replies = d.replies || [];
+    st.reactions = d.reactions || {};
+    st.myReaction = d.myReaction || null;
+    st.replyReactions = d.replyReactions || {};
+  } catch (e) {
+    st.thread = null; st.replies = []; st.reactions = {}; st.myReaction = null; st.replyReactions = {};
+  }
+  renderForums();
+}
+
+function renderForumThread(host) {
+  const st = forumState();
+  const th = st.thread;
+  if (!th) {
+    host.innerHTML = `
+      <div class="forum-backbar"><button class="btn-link" onclick="forumBackToTopics()">← ${escapeHtml(t('forum.back'))}</button></div>
+      <p class="forum-empty">${escapeHtml(t('forum.closed'))}</p>`;
+    return;
+  }
+  const name = String(th.display_name || '').trim() || t('forum.anonymous');
+  const replies = (st.replies || []).map((r) => {
+    const rname = String(r.display_name || '').trim() || t('forum.anonymous');
+    const rr = st.replyReactions[r.id] || { reactions: {}, myReaction: null };
+    return `<div class="forum-reply">
+      <div class="forum-reply-head"><span class="forum-reply-name">${escapeHtml(rname)}</span><span class="forum-reply-date">${escapeHtml(postDate(r.created_at))}</span></div>
+      <div class="forum-reply-body">${escapeHtml(r.body)}</div>
+      <div class="forum-reply-foot">
+        ${forumReactBar('reply', r.id, rr.reactions, rr.myReaction)}
+        <button class="forum-report-btn" onclick="forumReport('forum_reply', ${r.id})">⚑ ${escapeHtml(t('forum.report'))}</button>
+      </div>
+    </div>`;
+  }).join('');
+  host.innerHTML = `
+    <div class="forum-backbar">
+      <button class="btn-link" onclick="openForumTopic('${th.topic}')">← ${escapeHtml(t('forum.back'))}</button>
+    </div>
+    <div class="forum-thread-detail">
+      <h2 class="forum-detail-title">${escapeHtml(th.title)}</h2>
+      <div class="forum-thread-meta"><span>${escapeHtml(name)}</span> · <span>${escapeHtml(postDate(th.created_at))}</span></div>
+      <div class="forum-detail-body">${escapeHtml(th.body)}</div>
+      <div class="forum-reaction-row">
+        ${forumReactBar('thread', th.id, st.reactions, st.myReaction)}
+        <button class="forum-report-btn" onclick="forumReport('forum_thread', ${th.id})">⚑ ${escapeHtml(t('forum.report'))}</button>
+      </div>
+    </div>
+    <h3 class="forum-replies-title">${escapeHtml(t('forum.replies'))} (${st.replies ? st.replies.length : 0})</h3>
+    <div class="forum-replies">${replies}</div>
+    <form class="forum-form" id="forum-reply-form" onsubmit="return submitForumReply(event)">
+      <textarea id="forum-reply-body" class="forum-textarea" maxlength="4000" required placeholder="${escapeHtml(t('forum.replyPlaceholder'))}"></textarea>
+      <div class="forum-form-actions">
+        <button type="submit" class="btn btn-primary" id="forum-reply-submit">${escapeHtml(t('forum.reply'))}</button>
+      </div>
+    </form>`;
+}
+
+/** The reaction bar: every emoji visible from the start, like living passages. */
+function forumReactBar(targetType, targetId, reactions, myReaction) {
+  reactions = reactions || {};
+  const chips = FORUM_REACTIONS.map((emoji) => {
+    const n = reactions[emoji] || 0;
+    const active = emoji === myReaction ? ' is-active' : '';
+    const empty = n === 0 && emoji !== myReaction ? ' is-empty' : '';
+    return `<button class="forum-react-chip${active}${empty}" title="${escapeHtml(emoji)}" onclick="forumReact('${targetType}', ${targetId}, '${emoji}')">
+      <span class="forum-react-emoji">${emoji}</span>${n ? `<span class="forum-react-count">${n}</span>` : ''}
+    </button>`;
+  }).join('');
+  return `<span class="forum-react-bar">${chips}</span>`;
+}
+
+/** Send/toggle a reaction, then re-read the thread so every bar stays in sync. */
+async function forumReact(targetType, targetId, emoji) {
+  try {
+    await apiPost(`/api/forums/${targetType}/${targetId}/react`, { public_id: STATE.deviceId, emoji });
+    const st = forumState();
+    if (st.view === 'thread' && st.thread) await openForumThread(st.thread.id);
+  } catch (e) {
+    showToast(t('share.failed'));
+  }
+}
+
+/** Raise a report against a thread or reply; lands in the shared moderation queue. */
+async function forumReport(targetType, targetId) {
+  if (!window.confirm(t('forum.reportConfirm'))) return;
+  try {
+    await apiPost('/api/forums/report', { public_id: STATE.deviceId, target_type: targetType, target_id: String(targetId), reason: '' });
+    showToast(t('forum.reported'));
+  } catch (e) {
+    showToast(t('share.failed'));
+  }
+}
+
+/** New-thread form for the active topic. */
+function openForumNew(topic) {
+  const st = forumState();
+  st.topic = topic || st.topic;
+  st.view = 'new';
+  renderForums();
+}
+
+function renderForumNewThread(host) {
+  const st = forumState();
+  const topic = st.topic;
+  host.innerHTML = `
+    <div class="forum-backbar">
+      <button class="btn-link" onclick="openForumTopic('${topic}')">← ${escapeHtml(t('forum.back'))}</button>
+    </div>
+    <h2 class="forum-section-title">${escapeHtml(t('forum.newThread'))}</h2>
+    <p class="forum-prenotice">ℹ️ ${escapeHtml(t('forum.pendingNotice'))}</p>
+    <form class="forum-form" id="forum-new-form" onsubmit="return submitForumThread(event)">
+      <input type="text" id="forum-title" class="forum-input" maxlength="200" required placeholder="${escapeHtml(t('forum.titlePlaceholder'))}">
+      <textarea id="forum-body" class="forum-textarea" maxlength="4000" required placeholder="${escapeHtml(t('forum.bodyPlaceholder'))}"></textarea>
+      <input type="text" id="forum-name" class="forum-input" maxlength="40" placeholder="${escapeHtml(t('forum.namePlaceholder'))}">
+      <label class="forum-check"><input type="checkbox" id="forum-sign"> ${escapeHtml(t('forum.showName'))}</label>
+      <div class="forum-form-actions">
+        <button type="button" class="btn btn-link" onclick="openForumTopic('${topic}')">${escapeHtml(t('forum.cancel'))}</button>
+        <button type="submit" class="btn btn-primary" id="forum-submit">${escapeHtml(t('forum.submit'))}</button>
+      </div>
+    </form>`;
+}
+
+async function submitForumThread(event) {
+  event.preventDefault();
+  const st = forumState();
+  const topic = st.topic;
+  const titleEl = document.getElementById('forum-title');
+  const bodyEl = document.getElementById('forum-body');
+  const nameEl = document.getElementById('forum-name');
+  const signEl = document.getElementById('forum-sign');
+  const btn = document.getElementById('forum-submit');
+  const title = titleEl ? titleEl.value.trim() : '';
+  const body = bodyEl ? bodyEl.value.trim() : '';
+  if (!title || !body) return false;
+  if (btn) { btn.disabled = true; btn.textContent = t('forum.submit'); }
+  try {
+    const res = await apiPost(`/api/forums/${encodeURIComponent(topic)}/thread`, {
+      public_id: STATE.deviceId, title, body,
+      display_name: nameEl ? nameEl.value.trim() : '',
+      sign: signEl ? signEl.checked : false,
+    });
+    showToast(res.autoFlagged ? t('forum.autoFlagged') : t('forum.thanksPending'));
+    st.view = 'topics';
+    st.topics = []; // force metadata refresh so the count updates
+    renderForums();
+    return false;
+  } catch (err) {
+    if (btn) { btn.disabled = false; btn.textContent = t('forum.submit'); }
+    let msg = t('share.failed');
+    if (err && err.status === 403) msg = t('forum.blockedPost');
+    else if (err && err.status === 429) msg = t('forum.quotaThread');
+    showToast(msg);
+    return false;
+  }
+}
+
+async function submitForumReply(event) {
+  event.preventDefault();
+  const st = forumState();
+  const th = st.thread;
+  if (!th) return false;
+  const bodyEl = document.getElementById('forum-reply-body');
+  const btn = document.getElementById('forum-reply-submit');
+  const body = bodyEl ? bodyEl.value.trim() : '';
+  if (!body) return false;
+  if (btn) btn.disabled = true;
+  try {
+    const res = await apiPost(`/api/forums/thread/${th.id}/reply`, { public_id: STATE.deviceId, body });
+    showToast(res.autoFlagged ? t('forum.autoFlagged') : t('forum.thanksPending'));
+    await openForumThread(th.id); // reload: shows the reply once published, refreshes reactions
+    return false;
+  } catch (err) {
+    if (btn) btn.disabled = false;
+    let msg = t('share.failed');
+    if (err && err.status === 403) msg = t('forum.blockedPost');
+    else if (err && err.status === 429) msg = t('forum.quotaReply');
+    else if (err && err.status === 404) msg = t('forum.closed');
+    showToast(msg);
+    return false;
+  }
+}
+
+/** "My discussions": the device's own threads and what happened to them. */
+async function openForumMine() {
+  const st = forumState();
+  st.view = 'mine';
+  try {
+    const d = await apiGet('/api/forums/mine?public_id=' + encodeURIComponent(STATE.deviceId));
+    st.mine = d.threads || [];
+  } catch (e) {
+    st.mine = [];
+  }
+  renderForums();
+}
+
+function renderForumMine(host) {
+  const st = forumState();
+  const threads = st.mine || [];
+  const list = threads.length
+    ? threads.map((th) => `
+      <div class="forum-mine-row">
+        <div class="forum-mine-head">
+          <span class="forum-mine-title">${escapeHtml(th.title)}</span>
+          <span class="forum-pill forum-pill-${escapeHtml(th.status)}">${escapeHtml(forumStatusLabel(th.status))}</span>
+        </div>
+        <div class="forum-mine-date">${escapeHtml(postDate(th.created_at))}${th.reviewer_note ? ` · ${escapeHtml(th.reviewer_note)}` : ''}</div>
+      </div>`).join('')
+    : `<p class="forum-empty">${escapeHtml(t('forum.noThreads'))}</p>`;
+  host.innerHTML = `
+    <div class="forum-backbar">
+      <button class="btn-link" onclick="forumBackToTopics()">← ${escapeHtml(t('forum.back'))}</button>
+    </div>
+    <h2 class="forum-section-title">${escapeHtml(t('forum.mine'))}</h2>
+    <div class="forum-mine">${list}</div>`;
+}
+
+/** Return to the topic buckets from any sub-view. */
+function forumBackToTopics() {
+  const st = forumState();
+  st.view = 'topics';
+  st.thread = null; st.replies = []; st.reactions = {}; st.myReaction = null; st.replyReactions = {};
+  renderForums();
 }
 
 /* The Games hub (#view-games). Filled by JS so it always matches the catalog. */

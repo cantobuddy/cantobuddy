@@ -762,6 +762,93 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_living_comments_post ON living_comments(post_id, created_at DESC);
 
+  /* Community forums — peer-to-peer discussion (Phase A).
+     Mirrors the stories moderation model exactly: a submission is PENDING until a
+     human approves it, display_name is empty unless the author opted in, there is
+     NO image column, and the client HTML-escapes on render. forum_reactions /
+     forum_user_reactions mirror living_reactions but key on (target_type,
+     target_id) so one reaction table serves threads AND replies.
+     auto_flag is set when the scam/meetup scanner (see scanAbuse) trips — it still
+     lands pending, but the moderator sees why it was held. */
+  CREATE TABLE IF NOT EXISTS forum_threads (
+    id            INTEGER PRIMARY KEY,
+    topic         TEXT NOT NULL,
+    public_id     TEXT NOT NULL,
+    display_name  TEXT NOT NULL DEFAULT '',
+    title         TEXT NOT NULL,
+    body          TEXT NOT NULL,
+    status        TEXT NOT NULL DEFAULT 'pending',
+    reviewer_note TEXT NOT NULL DEFAULT '',
+    auto_flag     INTEGER NOT NULL DEFAULT 0,
+    created_at    TEXT NOT NULL,
+    updated_at    TEXT,
+    published_at  TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_forum_threads_topic ON forum_threads(topic, status, created_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_forum_threads_status ON forum_threads(status, created_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_forum_threads_public ON forum_threads(public_id, created_at DESC);
+
+  CREATE TABLE IF NOT EXISTS forum_replies (
+    id            INTEGER PRIMARY KEY,
+    thread_id     INTEGER NOT NULL REFERENCES forum_threads(id) ON DELETE CASCADE,
+    public_id     TEXT NOT NULL,
+    display_name  TEXT NOT NULL DEFAULT '',
+    body          TEXT NOT NULL,
+    status        TEXT NOT NULL DEFAULT 'pending',
+    reviewer_note TEXT NOT NULL DEFAULT '',
+    auto_flag     INTEGER NOT NULL DEFAULT 0,
+    created_at    TEXT NOT NULL,
+    updated_at    TEXT,
+    published_at  TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_forum_replies_thread ON forum_replies(thread_id, status, created_at DESC);
+
+  CREATE TABLE IF NOT EXISTS forum_reactions (
+    target_type TEXT NOT NULL DEFAULT 'thread',
+    target_id   INTEGER NOT NULL,
+    emoji       TEXT NOT NULL,
+    count       INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (target_type, target_id, emoji)
+  );
+  CREATE INDEX IF NOT EXISTS idx_forum_reactions_target ON forum_reactions(target_type, target_id);
+
+  CREATE TABLE IF NOT EXISTS forum_user_reactions (
+    target_type TEXT NOT NULL DEFAULT 'thread',
+    target_id   INTEGER NOT NULL,
+    public_id   TEXT NOT NULL,
+    emoji       TEXT NOT NULL,
+    created_at  TEXT NOT NULL,
+    PRIMARY KEY (target_type, target_id, public_id)
+  );
+
+  /* Reports — Phase 0 shared across every community feature. Anyone (a helper, an
+     anonymous reader) can raise one against any target by (target_type,
+     target_id). status is open | reviewed | actioned | dismissed. */
+  CREATE TABLE IF NOT EXISTS reports (
+    id           INTEGER PRIMARY KEY,
+    target_type  TEXT NOT NULL,
+    target_id    TEXT NOT NULL,
+    reason       TEXT NOT NULL DEFAULT '',
+    public_id    TEXT NOT NULL,
+    status       TEXT NOT NULL DEFAULT 'open',
+    created_at   TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_reports_target ON reports(target_type, target_id);
+  CREATE INDEX IF NOT EXISTS idx_reports_status ON reports(status, created_at DESC);
+
+  /* Moderation blocks — Phase 0 shared. Silences a device across ALL community
+     features. until is NULL for a permanent block; otherwise the block lifts on
+     its own after that ISO timestamp. This is the only real lever against a
+     spammer who never logs in: there is no account to ban, so we ban the token. */
+  CREATE TABLE IF NOT EXISTS moderation_blocks (
+    id          INTEGER PRIMARY KEY,
+    public_id   TEXT NOT NULL,
+    reason      TEXT NOT NULL DEFAULT '',
+    until       TEXT,
+    created_at  TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_moderation_blocks_pid ON moderation_blocks(public_id);
+
   /* Web Push subscriptions.
 
      A subscription is a browser's device token (endpoint) plus the two keys the
@@ -3140,6 +3227,147 @@ const S = {
     SELECT id, post_id, display_name, body, created_at
       FROM living_comments WHERE id = ?
   `),
+
+  // --- Community forums (Phase A) + shared reports/blocks (Phase 0) ---
+  insertForumThread: db.prepare(`
+    INSERT INTO forum_threads
+      (topic, public_id, display_name, title, body, status, auto_flag, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `),
+  // Public list: published threads, never learner_id. reply_count is computed so
+  // the list can show "N replies" without a second round-trip per row.
+  listPublishedForumThreads: db.prepare(`
+    SELECT t.id, t.topic, t.display_name, t.title, t.body, t.created_at,
+           (SELECT COUNT(*) FROM forum_replies r
+              WHERE r.thread_id = t.id AND r.status = 'published') AS reply_count
+      FROM forum_threads t
+     WHERE t.status = 'published'
+       AND (? = '' OR t.topic = ?)
+     ORDER BY t.created_at DESC, t.id DESC
+     LIMIT ?
+  `),
+  // A single published thread for the reader. No learner_id, no reviewer_note.
+  getPublishedForumThread: db.prepare(`
+    SELECT id, topic, display_name, title, body, created_at
+      FROM forum_threads WHERE id = ? AND status = 'published'
+  `),
+  listPublishedForumReplies: db.prepare(`
+    SELECT id, thread_id, display_name, body, created_at
+      FROM forum_replies
+     WHERE thread_id = ? AND status = 'published'
+     ORDER BY created_at ASC, id ASC
+  `),
+  getForumThreadForModeration: db.prepare(`
+    SELECT id, topic, public_id, display_name, title, body, status, reviewer_note, auto_flag, created_at, updated_at
+      FROM forum_threads WHERE id = ?
+  `),
+  listForumThreadsForModeration: db.prepare(`
+    SELECT id, topic, public_id, display_name, title, body, status, reviewer_note, auto_flag, created_at, updated_at
+      FROM forum_threads
+     WHERE (? = '' OR status = ?)
+     ORDER BY CASE status WHEN 'pending' THEN 0 ELSE 1 END, created_at ASC
+     LIMIT ?
+  `),
+  getForumReplyForModeration: db.prepare(`
+    SELECT id, thread_id, public_id, display_name, body, status, reviewer_note, auto_flag, created_at, updated_at
+      FROM forum_replies WHERE id = ?
+  `),
+  listForumRepliesForModeration: db.prepare(`
+    SELECT id, thread_id, public_id, display_name, body, status, reviewer_note, auto_flag, created_at, updated_at
+      FROM forum_replies
+     WHERE (? = '' OR status = ?)
+     ORDER BY CASE status WHEN 'pending' THEN 0 ELSE 1 END, created_at ASC
+     LIMIT ?
+  `),
+  setForumThreadStatus: db.prepare(`
+    UPDATE forum_threads
+    SET status = ?, reviewer_note = ?, updated_at = ?,
+        published_at = CASE WHEN ? = 'published' THEN COALESCE(published_at, ?) ELSE published_at END
+    WHERE id = ?
+  `),
+  setForumReplyStatus: db.prepare(`
+    UPDATE forum_replies
+    SET status = ?, reviewer_note = ?, updated_at = ?,
+        published_at = CASE WHEN ? = 'published' THEN COALESCE(published_at, ?) ELSE published_at END
+    WHERE id = ?
+  `),
+  deleteForumThread: db.prepare('DELETE FROM forum_threads WHERE id = ?'),
+  deleteForumReply: db.prepare('DELETE FROM forum_replies WHERE id = ?'),
+  forumThreadCounts: db.prepare('SELECT status, COUNT(*) AS n FROM forum_threads GROUP BY status'),
+  forumReplyCounts: db.prepare('SELECT status, COUNT(*) AS n FROM forum_replies GROUP BY status'),
+  forumTopicCounts: db.prepare(`
+    SELECT topic, COUNT(*) AS n FROM forum_threads WHERE status = 'published' GROUP BY topic
+  `),
+  countForumThreadsSince: db.prepare(
+    "SELECT COUNT(*) AS n FROM forum_threads WHERE public_id = ? AND created_at >= ?"
+  ),
+  countForumRepliesSince: db.prepare(
+    "SELECT COUNT(*) AS n FROM forum_replies WHERE public_id = ? AND created_at >= ?"
+  ),
+  listForumThreadsByDevice: db.prepare(`
+    SELECT id, topic, title, status, created_at
+      FROM forum_threads WHERE public_id = ? ORDER BY created_at DESC LIMIT ?
+  `),
+  insertForumReply: db.prepare(`
+    INSERT INTO forum_replies
+      (thread_id, public_id, display_name, body, status, auto_flag, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `),
+  // Reactions, keyed on (target_type, target_id) so threads and replies share one table.
+  getForumReactions: db.prepare(
+    'SELECT emoji, count FROM forum_reactions WHERE target_type = ? AND target_id = ?'
+  ),
+  getForumUserReaction: db.prepare(
+    'SELECT emoji FROM forum_user_reactions WHERE target_type = ? AND target_id = ? AND public_id = ?'
+  ),
+  incForumReaction: db.prepare(`
+    INSERT INTO forum_reactions (target_type, target_id, emoji, count)
+    VALUES (?, ?, ?, 1)
+    ON CONFLICT(target_type, target_id, emoji) DO UPDATE SET count = count + 1
+  `),
+  decForumReaction: db.prepare(`
+    UPDATE forum_reactions SET count = MAX(0, count - 1)
+     WHERE target_type = ? AND target_id = ? AND emoji = ?
+  `),
+  upsertForumUserReaction: db.prepare(`
+    INSERT INTO forum_user_reactions (target_type, target_id, public_id, emoji, created_at)
+    VALUES (?, ?, ?, ?, ?)
+    ON CONFLICT(target_type, target_id, public_id) DO UPDATE SET emoji = excluded.emoji, created_at = excluded.created_at
+  `),
+  delForumUserReaction: db.prepare(
+    'DELETE FROM forum_user_reactions WHERE target_type = ? AND target_id = ? AND public_id = ?'
+  ),
+  // Reports
+  insertReport: db.prepare(`
+    INSERT INTO reports (target_type, target_id, reason, public_id, status, created_at)
+    VALUES (?, ?, ?, ?, 'open', ?)
+  `),
+  listReports: db.prepare(`
+    SELECT id, target_type, target_id, reason, public_id, status, created_at
+      FROM reports
+     WHERE (? = '' OR status = ?)
+     ORDER BY created_at DESC
+     LIMIT ?
+  `),
+  getReport: db.prepare('SELECT id, target_type, target_id, reason, public_id, status, created_at FROM reports WHERE id = ?'),
+  reportCounts: db.prepare('SELECT status, COUNT(*) AS n FROM reports GROUP BY status'),
+  setReportStatus: db.prepare("UPDATE reports SET status = ? WHERE id = ?"),
+  // Moderation blocks
+  insertModerationBlock: db.prepare(`
+    INSERT INTO moderation_blocks (public_id, reason, until, created_at)
+    VALUES (?, ?, ?, ?)
+  `),
+  listModerationBlocks: db.prepare(`
+    SELECT id, public_id, reason, until, created_at
+      FROM moderation_blocks ORDER BY created_at DESC
+  `),
+  getActiveBlock: db.prepare(`
+    SELECT id, public_id, reason, until, created_at
+      FROM moderation_blocks
+     WHERE public_id = ? AND (until IS NULL OR until > ?)
+     ORDER BY created_at DESC LIMIT 1
+  `),
+  deleteModerationBlock: db.prepare('DELETE FROM moderation_blocks WHERE id = ?'),
 };
 
 // ---------------------------------------------------------------------------
@@ -5869,6 +6097,268 @@ function addLivingComment(postId, { publicId, displayName, body } = {}) {
   return S.getLivingComment.get(info.lastInsertRowid);
 }
 
+// ---- Community forums (Phase A) + shared reports/blocks (Phase 0) -------------
+
+const FORUM_TOPICS = ['cooking', 'elderly-care', 'sunday-buysell'];
+const FORUM_STATUSES = ['pending', 'published', 'rejected'];
+const REPORT_STATUSES = ['open', 'reviewed', 'actioned', 'dismissed'];
+const FORUM_TITLE_MAX = 200;
+const FORUM_BODY_MAX = 4000;
+const FORUM_NAME_MAX = 40;
+const FORUM_NOTE_MAX = 300;
+/** Per device, rolling 24h. Generous for one person, tight for a script. */
+const FORUM_DAILY_LIMIT = 5;
+const FORUM_REPLY_DAILY_LIMIT = 15;
+
+/**
+ * Scam / meetup / PII scanner — the Phase 0 shared safety net.
+ *
+ * Returns the matched categories so the moderator sees WHY a post was held. A hit
+ * forces a pending post to stay pending (it is going to be pending anyway under
+ * pre-moderation) AND files an automatic report, so a loan pitch or a "meet me
+ * at" never reaches a reader even if the queue is briefly unattended. Conservative
+ * on purpose: the cost of a human glance at a held post is zero; the cost of a
+ * helper meeting a scammer is not.
+ */
+function scanAbuse(text) {
+  const s = String(text || '').toLowerCase();
+  const hits = [];
+  if (/\b(loan|utang|pautang|5-6|five-six|five six|pera|lending|borrow|sugar daddy|money lender|loan shark)\b/.test(s)) hits.push('loan');
+  if (/\b(meet me at|meet up at|kita tayo|kitakits|see you at|lets meet|let's meet|text me at|call me at|dm me|message me at)\b/.test(s)) hits.push('meetup');
+  if (/(https?:\/\/|www\.)/i.test(s)) hits.push('link');
+  // HK number shapes: +852 ..., or an 8-digit run beginning 5/6/9 (mobile).
+  // Avoids lookbehind so it parses on every supported Node: an optional +852
+  // block, or a phone-number-shaped run that is not itself part of a longer one.
+  if (/(\+?852[\s-]?\d{4}[\s-]?\d{4})|(?:^|[^0-9])(5|6|9)\d{3}[\s-]?\d{4}(?![0-9])/.test(s)) hits.push('phone');
+  return hits;
+}
+
+/**
+ * Stores a new thread as PENDING. Nothing here can publish — only
+ * setForumThreadStatus can, and only the admin route calls it. `sign` is the
+ * whole privacy decision and is applied HERE, not at render time: an unsigned
+ * thread has no name stored anywhere that could leak later.
+ *
+ * @returns {object|null} the stored row (with public_id; no learner_id is kept,
+ *   because forum identity is the device token), or null when title/body is empty
+ *   or the topic is unknown.
+ */
+function createForumThread({ public_id, topic, title, body, display_name = '', sign = false } = {}) {
+  const pid = String(public_id || '').trim();
+  if (!pid) return null;
+  const t = String(title ?? '').trim().slice(0, FORUM_TITLE_MAX);
+  const b = String(body ?? '').trim().slice(0, FORUM_BODY_MAX);
+  if (!t || !b) return null;
+  if (!FORUM_TOPICS.includes(topic)) return null;
+  const now = new Date().toISOString();
+  const flags = scanAbuse(t + ' ' + b);
+  const autoFlag = flags.length ? 1 : 0;
+  const info = S.insertForumThread.run(
+    topic, pid,
+    sign ? String(display_name ?? '').trim().slice(0, FORUM_NAME_MAX) : '',
+    t, b, 'pending', autoFlag, now, now
+  );
+  const id = Number(info.lastInsertRowid);
+  // An auto-flag also files an automatic report so the moderator sees it first.
+  if (autoFlag) {
+    try { S.insertReport.run('forum_thread', String(id), 'Auto-flag: ' + flags.join(', '), pid, now); } catch (e) { /* best effort */ }
+  }
+  return S.getForumThreadForModeration.get(id);
+}
+
+/** Public list of published threads, optionally narrowed to one topic. */
+function listPublishedForumThreads({ topic = '', limit = 50 } = {}) {
+  const lim = Math.max(1, Math.min(Number(limit) || 50, 200));
+  const tp = FORUM_TOPICS.includes(topic) ? topic : '';
+  return S.listPublishedForumThreads.all(tp, tp, lim)
+    .map((r) => ({ ...r, reply_count: Number(r.reply_count) || 0 }));
+}
+
+/** One published thread for the reader, or null. */
+function getForumThread(id) {
+  return S.getPublishedForumThread.get(Number(id)) || null;
+}
+
+/** Published-thread counts per topic, for the forum home (always 0 for unknown). */
+function getForumTopicCounts() {
+  const out = {};
+  for (const k of FORUM_TOPICS) out[k] = 0;
+  for (const r of S.forumTopicCounts.all()) {
+    if (FORUM_TOPICS.includes(r.topic)) out[r.topic] = Number(r.n) || 0;
+  }
+  return out;
+}
+
+/**
+ * Add a reply to a published thread. Returns null when the body is empty OR the
+ * parent thread is not published (a reply has nowhere to live otherwise). Stored
+ * PENDING, like a thread.
+ */
+function createForumReply({ thread_id, public_id, body, display_name = '', sign = false } = {}) {
+  const pid = String(public_id || '').trim();
+  const tid = Number(thread_id);
+  if (!pid || !tid) return null;
+  const text = String(body ?? '').trim().slice(0, FORUM_BODY_MAX);
+  if (!text) return null;
+  if (!S.getPublishedForumThread.get(tid)) return null; // parent must be visible
+  const now = new Date().toISOString();
+  const flags = scanAbuse(text);
+  const autoFlag = flags.length ? 1 : 0;
+  const info = S.insertForumReply.run(
+    tid, pid,
+    sign ? String(display_name ?? '').trim().slice(0, FORUM_NAME_MAX) : '',
+    text, 'pending', autoFlag, now, now
+  );
+  const id = Number(info.lastInsertRowid);
+  if (autoFlag) {
+    try { S.insertReport.run('forum_reply', String(id), 'Auto-flag: ' + flags.join(', '), pid, now); } catch (e) { /* best effort */ }
+  }
+  return S.getForumReplyForModeration.get(id);
+}
+
+/** Published replies under a thread, oldest first. */
+function listPublishedForumReplies(threadId) {
+  return S.listPublishedForumReplies.all(Number(threadId));
+}
+
+/** The ONLY function that can publish a thread. Keeps reviewer_note trimmed. */
+function setForumThreadStatus(id, status, note = '') {
+  if (!FORUM_STATUSES.includes(status)) return null;
+  const cur = S.getForumThreadForModeration.get(Number(id));
+  if (!cur) return null;
+  S.setForumThreadStatus.run(status, String(note ?? '').trim().slice(0, FORUM_NOTE_MAX), new Date().toISOString(), status, new Date().toISOString(), Number(id));
+  return S.getForumThreadForModeration.get(Number(id));
+}
+
+/** The ONLY function that can publish a reply. */
+function setForumReplyStatus(id, status, note = '') {
+  if (!FORUM_STATUSES.includes(status)) return null;
+  const cur = S.getForumReplyForModeration.get(Number(id));
+  if (!cur) return null;
+  S.setForumReplyStatus.run(status, String(note ?? '').trim().slice(0, FORUM_NOTE_MAX), new Date().toISOString(), status, new Date().toISOString(), Number(id));
+  return S.getForumReplyForModeration.get(Number(id));
+}
+
+function deleteForumThread(id) { return S.deleteForumThread.run(Number(id)).changes > 0; }
+function deleteForumReply(id) { return S.deleteForumReply.run(Number(id)).changes > 0; }
+
+/** Has this device hit its rolling-24h thread limit? */
+function forumThreadQuotaFor(publicId) {
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const count = S.countForumThreadsSince.get(String(publicId || ''), since).n;
+  return { count, limit: FORUM_DAILY_LIMIT, allowed: count < FORUM_DAILY_LIMIT };
+}
+
+/** Has this device hit its rolling-24h reply limit? */
+function forumReplyQuotaFor(publicId) {
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const count = S.countForumRepliesSince.get(String(publicId || ''), since).n;
+  return { count, limit: FORUM_REPLY_DAILY_LIMIT, allowed: count < FORUM_REPLY_DAILY_LIMIT };
+}
+
+function listForumThreadsForModeration({ status = null, limit = 200 } = {}) {
+  const s = FORUM_STATUSES.includes(status) ? status : '';
+  return S.listForumThreadsForModeration.all(s, s, Math.max(1, Math.min(Number(limit) || 200, 500)));
+}
+function listForumRepliesForModeration({ status = null, limit = 200 } = {}) {
+  const s = FORUM_STATUSES.includes(status) ? status : '';
+  return S.listForumRepliesForModeration.all(s, s, Math.max(1, Math.min(Number(limit) || 200, 500)));
+}
+function getForumThreadForModeration(id) { return S.getForumThreadForModeration.get(Number(id)) || null; }
+function getForumReplyForModeration(id) { return S.getForumReplyForModeration.get(Number(id)) || null; }
+/** Raw status tallies for the moderation dashboard (mirrors getStoryCounts). */
+function forumThreadCounts() { return S.forumThreadCounts.all(); }
+function forumReplyCounts() { return S.forumReplyCounts.all(); }
+
+/** A device's own threads, so it can see what happened to them. */
+function listForumThreadsByDevice(publicId, { limit = 50 } = {}) {
+  return S.listForumThreadsByDevice.all(String(publicId || ''), Math.max(1, Math.min(Number(limit) || 50, 200)));
+}
+
+/** Aggregated reaction counts for a target (thread or reply): { emoji: count }. */
+function getForumReactions(targetType, targetId) {
+  const out = {};
+  for (const r of S.getForumReactions.all(String(targetType || 'thread'), Number(targetId))) {
+    if (r.count > 0) out[r.emoji] = r.count;
+  }
+  return out;
+}
+
+/** The emoji this device currently has on a target, or null. */
+function getForumUserReaction(targetType, targetId, publicId) {
+  const row = S.getForumUserReaction.get(String(targetType || 'thread'), Number(targetId), String(publicId || ''));
+  return row ? row.emoji : null;
+}
+
+/**
+ * React (or change/toggle) on a target. Exactly one reaction per device: picking a
+ * second emoji moves the old count down and the new one up; picking the same one
+ * again clears it. Returns the target's full reaction state + the device's current.
+ */
+function setForumReaction(targetType, targetId, publicId, emoji) {
+  const tt = String(targetType || 'thread');
+  const tid = Number(targetId);
+  const pub = String(publicId || '');
+  if (!pub || !emoji) return null;
+  const now = new Date().toISOString();
+  const prev = getForumUserReaction(tt, tid, pub);
+  if (prev === emoji) {
+    S.decForumReaction.run(tt, tid, emoji);
+    S.delForumUserReaction.run(tt, tid, pub);
+  } else {
+    S.upsertForumUserReaction.run(tt, tid, pub, emoji, now);
+    S.incForumReaction.run(tt, tid, emoji);
+    if (prev) S.decForumReaction.run(tt, tid, prev);
+  }
+  return { reactions: getForumReactions(tt, tid), myReaction: getForumUserReaction(tt, tid, pub) };
+}
+
+// ---- Reports (Phase 0 shared) ----
+function createReport({ target_type, target_id, reason, public_id }) {
+  const tt = String(target_type || '').trim();
+  const tid = String(target_id == null ? '' : target_id).trim();
+  const pid = String(public_id || '').trim();
+  if (!tt || !tid || !pid) return null;
+  const now = new Date().toISOString();
+  const info = S.insertReport.run(tt, tid, String(reason ?? '').trim().slice(0, 500), pid, now);
+  return S.getReport.get(Number(info.lastInsertRowid));
+}
+function listReports({ status = null, limit = 200 } = {}) {
+  const s = REPORT_STATUSES.includes(status) ? status : '';
+  return S.listReports.all(s, s, Math.max(1, Math.min(Number(limit) || 200, 500)));
+}
+function getReport(id) { return S.getReport.get(Number(id)) || null; }
+function getReportCounts() {
+  const out = { open: 0, reviewed: 0, actioned: 0, dismissed: 0, total: 0 };
+  for (const r of S.reportCounts.all()) {
+    if (REPORT_STATUSES.includes(r.status)) out[r.status] = r.n;
+    out.total += r.n;
+  }
+  return out;
+}
+function setReportStatus(id, status) {
+  if (!REPORT_STATUSES.includes(status)) return null;
+  const cur = S.getReport.get(Number(id));
+  if (!cur) return null;
+  S.setReportStatus.run(status, Number(id));
+  return S.getReport.get(Number(id));
+}
+
+// ---- Moderation blocks (Phase 0 shared) ----
+/** Is this device currently blocked? Returns the block row, or null. */
+function isBlocked(publicId) {
+  return S.getActiveBlock.get(String(publicId || ''), new Date().toISOString()) || null;
+}
+function addModerationBlock({ public_id, reason = '', until = null } = {}) {
+  const pid = String(public_id || '').trim();
+  if (!pid) return null;
+  const now = new Date().toISOString();
+  const info = S.insertModerationBlock.run(pid, String(reason ?? '').trim().slice(0, 500), until ? String(until) : null, now);
+  return S.getActiveBlock.get(pid, now);
+}
+function listModerationBlocks() { return S.listModerationBlocks.all(); }
+function removeModerationBlock(id) { return S.deleteModerationBlock.run(Number(id)).changes > 0; }
+
 /** Who this learner has chosen to share their progress with. */
 const listEmployersForLearner = (learnerId) => S.listLinksByLearner.all(Number(learnerId));
 /** The learners an employer is allowed to see — accepted invitations only. */
@@ -7144,6 +7634,42 @@ module.exports = {
   setLivingReaction,
   listLivingComments,
   addLivingComment,
+  // Community forums (Phase A) + shared reports/blocks (Phase 0). Device-token
+  // identity, pending-first moderation, no images, no learner_id in public rows.
+  FORUM_TOPICS,
+  FORUM_STATUSES,
+  REPORT_STATUSES,
+  createForumThread,
+  listPublishedForumThreads,
+  getForumThread,
+  getForumTopicCounts,
+  createForumReply,
+  listPublishedForumReplies,
+  setForumThreadStatus,
+  setForumReplyStatus,
+  deleteForumThread,
+  deleteForumReply,
+  forumThreadQuotaFor,
+  forumReplyQuotaFor,
+  listForumThreadsForModeration,
+  listForumRepliesForModeration,
+  getForumThreadForModeration,
+  getForumReplyForModeration,
+  forumThreadCounts,
+  forumReplyCounts,
+  listForumThreadsByDevice,
+  getForumReactions,
+  getForumUserReaction,
+  setForumReaction,
+  createReport,
+  listReports,
+  getReport,
+  getReportCounts,
+  setReportStatus,
+  isBlocked,
+  addModerationBlock,
+  listModerationBlocks,
+  removeModerationBlock,
   slugifyStory,
   STORY_TOPICS,
   STORY_STATUSES,

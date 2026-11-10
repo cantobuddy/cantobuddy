@@ -1678,9 +1678,26 @@ function escapeTourneyHtml(s) {
     .replace(/"/g, '&quot;');
 }
 
+// Hong Kong wall-clock day of week (0 = Sunday … 6 = Saturday). Hong Kong is
+// UTC+8 with no daylight saving, so shifting "now" by +8h and reading it as if
+// it were UTC yields the correct HKT calendar day.
+function hkDayOfWeek() {
+  return new Date(Date.now() + 8 * 60 * 60 * 1000).getUTCDay();
+}
+// The Sunday Showdown is a weekend event: it is visible only on Sunday (the
+// tournament is live) and Monday (last weekend's champions are announced).
+// Hidden every other day so it does not clutter the home screen mid-week.
+function isSundayOrMondayHKT() {
+  const d = hkDayOfWeek();
+  return d === 0 || d === 1; // Sunday or Monday
+}
+
 async function renderSundayShowdown() {
   const el = document.getElementById('sunday-showdown');
   if (!el) return;
+  // Showdown appears Sunday + Monday only. On any other HKT day, keep the card
+  // hidden and skip the network request entirely.
+  if (!isSundayOrMondayHKT()) { el.hidden = true; el.innerHTML = ''; return; }
   // Default hidden; only revealed when there is something worth showing.
   el.hidden = true;
   try {

@@ -61,7 +61,10 @@
 // links (Privacy / Terms / About / Contact / Disclaimer) from the "Browse Cantonese
 // vocabulary" group; they now live only in "CantoBuddy information & policies".
 // App-shell bump so installed copies stop showing the duplicated footer.
-const CACHE = 'cantobuddy-v154';
+// v155 — Sunday Showdown visibility gate (2026-11-10): renderSundayShowdown() in
+// app.js now hides the home card on every HKT day except Sunday (live) and Monday
+// (results). app.js is an APP_SHELL file, so the cache-first shell must be bumped.
+const CACHE = 'cantobuddy-v155';
 
 // Which paths are server-rendered SEO documents rather than app-shell assets.
 // Kept as one matcher so it can be asserted against `LANG_PREFIX` in seo.js —

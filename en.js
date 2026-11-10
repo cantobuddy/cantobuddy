@@ -18,6 +18,10 @@
 const path = require('path');
 const { DatabaseSync } = require('node:sqlite');
 const { SEED_EN_CATEGORIES, SEED_EN_VOCABULARY, SEED_EN_SCENARIOS } = require('./en-data');
+// EN-ROADMAP.md §0b: Hong Kong elders read Traditional Chinese, a smaller
+// group from the mainland reads Simplified. Meanings are stored in BOTH scripts;
+// the client chooses. No npm dependency — see zh-convert.js for why.
+const { toSimplified } = require('./zh-convert');
 
 const DATA_DIR = process.env.DATA_DIR || __dirname;
 const DB_PATH = process.env.EN_DB_FILE || path.join(DATA_DIR, 'cantobuddy-en.db');
@@ -43,6 +47,7 @@ db.exec(`
     english     TEXT NOT NULL,
     phonetic    TEXT NOT NULL DEFAULT '',
     cantonese   TEXT NOT NULL DEFAULT '',
+    meaning_sc  TEXT NOT NULL DEFAULT '',
     emoji       TEXT NOT NULL DEFAULT '📝',
     level       INTEGER NOT NULL DEFAULT 1,
     category_id INTEGER,
@@ -113,6 +118,30 @@ function seedIfEmpty() {
 }
 seedIfEmpty();
 
+/**
+ * §0b migration — Simplified Chinese meanings.
+ *
+ * The deployed database predates this column, and `CREATE TABLE IF NOT EXISTS`
+ * does NOT add columns to an existing table. Guard on PRAGMA table_info so this
+ * is idempotent on both a fresh scratch DB (column already in CREATE TABLE) and
+ * the live file. The backfill is character-level (zh-convert.js): HK vocabulary
+ * such as 雪櫃 stays 雪柜 rather than being rewritten to mainland 冰箱, because
+ * that is a wording difference, not a script difference.
+ *
+ * Only rows with an EMPTY meaning_sc are backfilled, so an operator's hand-edited
+ * Simplified meaning is never overwritten by a later boot.
+ */
+function ensureMeaningSc() {
+  const cols = db.prepare('PRAGMA table_info(en_vocabulary)').all().map((c) => c.name);
+  if (!cols.includes('meaning_sc')) {
+    db.exec("ALTER TABLE en_vocabulary ADD COLUMN meaning_sc TEXT NOT NULL DEFAULT ''");
+  }
+  const rows = db.prepare('SELECT id, cantonese FROM en_vocabulary').all();
+  const fill = db.prepare("UPDATE en_vocabulary SET meaning_sc = ? WHERE id = ? AND (meaning_sc IS NULL OR meaning_sc = '')");
+  for (const r of rows) fill.run(toSimplified(r.cantonese || ''), r.id);
+}
+ensureMeaningSc();
+
 // ---- Prepared statements ----------------------------------------------------
 const S = {
   listCategories: db.prepare('SELECT * FROM en_categories ORDER BY sort_order, id'),
@@ -141,7 +170,7 @@ const S = {
      not actually look after this half of the site. */
   updateVocab: db.prepare(`
     UPDATE en_vocabulary
-       SET english = ?, phonetic = ?, cantonese = ?, emoji = ?, level = ?,
+       SET english = ?, phonetic = ?, cantonese = ?, meaning_sc = ?, emoji = ?, level = ?,
            category_id = ?, scenario_id = ?, updated_at = ?
      WHERE id = ?
   `),
@@ -151,8 +180,8 @@ const S = {
   deleteVocabProgress: db.prepare('DELETE FROM en_progress WHERE vocab_id = ?'),
   insertVocab: db.prepare(`
     INSERT INTO en_vocabulary
-      (english, phonetic, cantonese, emoji, level, category_id, type, scenario_id, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (english, phonetic, cantonese, meaning_sc, emoji, level, category_id, type, scenario_id, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `),
   updateCategory: db.prepare(`
     UPDATE en_categories
@@ -256,10 +285,21 @@ function updateEnVocab(id, patch = {}) {
   const categoryId = isSentence ? null : Number(patch.category_id);
   const scenarioId = isSentence ? Number(patch.scenario_id) : null;
 
+  // A Traditional meaning edited through the admin must not leave a stale
+  // Simplified meaning behind. Re-derive it from the NEW text unless the
+  // operator supplied their own Simplified wording in the same request.
+  const meaningTc = pick(patch.cantonese, existing.cantonese, 400);
+  const meaningSc = patch.meaning_sc !== undefined
+    ? str(patch.meaning_sc, 400)
+    : (patch.cantonese !== undefined
+      ? toSimplified(meaningTc)
+      : (existing.meaning_sc || toSimplified(meaningTc)));
+
   S.updateVocab.run(
     str(patch.english) || existing.english,
     pick(patch.phonetic, existing.phonetic),
-    pick(patch.cantonese, existing.cantonese),
+    meaningTc,
+    meaningSc,
     str(patch.emoji, 8) || existing.emoji,
     Number.isFinite(level) && level >= 1 && level <= 3 ? level : existing.level,
     Number.isFinite(categoryId) && categoryId > 0 ? categoryId : (isSentence ? null : existing.category_id),
@@ -279,11 +319,16 @@ function createEnVocab(patch = {}) {
   const categoryId = type === 'word' ? Number(patch.category_id) : null;
   const scenarioId = type === 'sentence' ? Number(patch.scenario_id) : null;
   const now = new Date().toISOString();
+  const meaningTc = str(patch.cantonese, 400);
+  const meaningSc = patch.meaning_sc !== undefined
+    ? str(patch.meaning_sc, 400)
+    : toSimplified(meaningTc);
 
   const info = S.insertVocab.run(
     english,
     str(patch.phonetic),
-    str(patch.cantonese),
+    meaningTc,
+    meaningSc,
     str(patch.emoji, 8) || '📝',
     Number.isFinite(level) && level >= 1 && level <= 3 ? level : 1,
     Number.isFinite(categoryId) && categoryId > 0 ? categoryId : null,

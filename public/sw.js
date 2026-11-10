@@ -64,7 +64,14 @@
 // v155 — Sunday Showdown visibility gate (2026-11-10): renderSundayShowdown() in
 // app.js now hides the home card on every HKT day except Sunday (live) and Monday
 // (results). app.js is an APP_SHELL file, so the cache-first shell must be bumped.
-const CACHE = 'cantobuddy-v155';
+// v156 — /en Phase 1 elder companion (2026-11-10). en.html / en-app.js /
+// en-i18n.js are NOT APP_SHELL files — EN_TRACK serves them network-first — so
+// the deploy guard does not require this bump. We still take it: the network-
+// first branch keeps an offline fallback in this same cache, and every installed
+// PWA that already visited /en has one. Without a new cache name an offline
+// elder could open the OLD help screen with the OLD (or missing) hotlines, which
+// is the one stale asset that must never survive a release.
+const CACHE = 'cantobuddy-v156';
 
 // Which paths are server-rendered SEO documents rather than app-shell assets.
 // Kept as one matcher so it can be asserted against `LANG_PREFIX` in seo.js —

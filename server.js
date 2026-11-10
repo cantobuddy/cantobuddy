@@ -24,6 +24,9 @@ const { createSweeper } = require('./push-sweep');
 // English track (/en) — isolated data layer for elderly learners. Separate DB
 // file (cantobuddy-en.db) so the Cantonese site and its database are untouched.
 const en = require('./en');
+// /en Phase 1 elder companion: static, editorial content + the verified help
+// directory. Pure read-only module — no DB, no user data, no device id.
+const enElder = require('./en-elder-content');
 // W1.1 — one funnel, one vocabulary. db.js also requires this module; it is
 // pure constants and normalisers, so sharing it cannot open a second DB.
 const {
@@ -2962,6 +2965,28 @@ app.delete('/api/en/progress', (req, res) => {
   en.deleteEnProgress(device);
   res.json({ ok: true });
 });
+
+// ---- English track: Phase 1 elder companion (EN-ROADMAP.md) ----------------
+// Both endpoints are READ-ONLY and carry no device id, no account and no write.
+// The content is editorial (jokes, 生活小常識, 智慧故事, helper-voice cards) and
+// the help directory reuses numbers already verified in public/tools.js. Keeping
+// them out of the Cantonese database and out of the funnel is deliberate: /en is
+// a separate audience and a separate privacy surface.
+//
+// `no-store` on help: a corrected hotline must reach a returning reader on the
+// very next visit. Content is static but rotates on the Hong Kong calendar day,
+// so it is capped at 5 minutes rather than cached for a day.
+app.get('/api/en/elder/content', (req, res) => {
+  res.set('Cache-Control', 'public, max-age=300');
+  res.json(enElder.publicContent(Date.now()));
+});
+app.get('/api/en/elder/help', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.json(enElder.helpDirectory());
+});
+// The weather / holiday half of "local interesting news" (A6) is the EXISTING
+// /api/today-in-hk endpoint above (live HKO + 1823 official open data). /en
+// fetches it directly; no new route, no invented headlines.
 
 // ---- English track: operator view -------------------------------------------
 // Two halves, because "manage the English site" means two different things:

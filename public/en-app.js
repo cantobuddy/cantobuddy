@@ -9,6 +9,12 @@
  * Audience: an elderly Cantonese-speaking person. UI is in 繁/簡/Fil/Indo
  * (default 繁). Every word/phrase has TWO audio buttons — English (en voice) and
  * 粵語 (zh-HK voice) — both browser TTS, so no audio files are needed.
+ *
+ * Phase 1 of EN-ROADMAP.md adds the elder companion: a Today view (daily reads,
+ * jokes, 生活小常識, 中國智慧故事, helper-voice cards, live official HK weather,
+ * emoji share cards) and a Help view (big 999 target, verified hotlines, local
+ * medication reminders). 繁/簡 now also switches the MEANING script via the new
+ * `meaning_sc` column — see readingMeaning() below.
  */
 
 // ---- State -----------------------------------------------------------------
@@ -21,6 +27,13 @@ var STATE = {
   progress: {},      // vocab_id -> { seen, correct }
   currentCat: null,
   quiz: null,
+  elder: null,        // /api/en/elder/content payload (read-only editorial)
+  help: null,         // /api/en/elder/help payload (verified numbers)
+  todayHk: null,      // /api/today-in-hk (live official HKO + 1823 data)
+  todayTab: 'all',
+  mood: null,
+  shareItem: null,    // the content item the reader chose to share
+  reminders: [],      // localStorage only — never leaves this device
 };
 
 const $ = (id) => document.getElementById(id);
@@ -28,6 +41,30 @@ const escapeHtml = (s) =>
   String(s == null ? '' : s)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+/**
+ * §0b — which Chinese script to show for a word's meaning.
+ *
+ * `cantonese` is the Traditional source of truth (Hong Kong, the majority of
+ * our elders). `meaning_sc` is its Simplified twin, stored by en.js so the
+ * browser needs no converter table. The Fil/Indo UI languages are for helpers
+ * reading the CHROME; the teaching content stays Chinese, so they fall back to
+ * Traditional just as the app did before this release.
+ */
+function readingMeaning(w) {
+  if (!w) return '';
+  if (enCurrentLang() === 'zh' && w.meaning_sc) return w.meaning_sc;
+  return w.cantonese || '';
+}
+
+/** Pick the tc / sc / en branch of an elder content item for the UI language. */
+function elderText(entry) {
+  if (!entry) return { title: '', body: '' };
+  const lang = enCurrentLang();
+  if (lang === 'zh') return entry.sc || entry.tc || entry.en;
+  if (lang === 'fil' || lang === 'id') return entry.en || entry.tc;
+  return entry.tc || entry.en;
+}
 
 // ---- Device identity (same pattern as the Cantonese app: no account) --------
 function loadDeviceId() {
@@ -124,6 +161,16 @@ function speak(text, lang) {
   u.lang = lang === 'en' ? 'en-US' : 'zh-HK';
   u.rate = 0.9;
   window.speechSynthesis.speak(u);
+}
+
+/**
+ * Speak the meaning in the reader's CURRENT script (§0b). Passing the id rather
+ * than an interpolated string also removes the inline-quote escaping the old
+ * audio buttons needed — a meaning can now safely contain an apostrophe.
+ */
+function speakReading(vocabId, lang) {
+  const w = STATE.words.find((x) => x.id === Number(vocabId));
+  if (w) speak(readingMeaning(w), lang);
 }
 
 // ---- Voice chooser (top menu) ----------------------------------------------
@@ -224,10 +271,12 @@ function enNavigate(view) {
     b.classList.toggle('active', b.dataset.view === view);
   });
   window.scrollTo(0, 0);
-  if (view === 'home') renderHomeQuick();
+  if (view === 'home') { renderHomeQuick(); renderHomeToday(); }
   if (view === 'learn') renderLearn();
   if (view === 'practice') renderPractice();
   if (view === 'progress') renderProgress();
+  if (view === 'today') renderToday();
+  if (view === 'help') renderHelp();
 }
 
 function enGoLearn() { enNavigate('learn'); }
@@ -253,6 +302,20 @@ const STATIC_TEXT = {
   'nav-learn': 'nav.learn',
   'nav-practice': 'nav.practice',
   'nav-progress': 'nav.progress',
+  'nav-today': 'nav.today',
+  'nav-help': 'nav.help',
+  'home-help-cta': 'home.help',
+  'home-today-kicker': 'home.todayKicker',
+  'home-today-btn': 'home.todayBtn',
+  'reading-note': 'learn.readingNote',
+  'today-title': 'today.title',
+  'mood-kicker': 'today.moodKicker',
+  'mood-title': 'today.moodTitle',
+  'mood-note': 'today.moodNote',
+  'local-title': 'today.localTitle',
+  'help-title': 'help.title',
+  'reminder-title': 'help.reminderTitle',
+  'reminder-note': 'help.reminderNote',
   'browse-quiz-btn': 'btn.quiz',
   'browse-back': 'btn.back',
   'quiz-back': 'btn.back',
@@ -337,10 +400,10 @@ function renderBrowse() {
           <span class="en">${escapeHtml(w.english)}</span>
         </div>
         <div class="ph">${escapeHtml(w.phonetic || '')}</div>
-        <div class="yue">${escapeHtml(w.cantonese || '')}</div>
+        <div class="yue">${escapeHtml(readingMeaning(w))}</div>
         <div class="en-audio-row">
           <button class="en-audio" onclick="speak('${escapeHtml(w.english.replace(/'/g, "\\'"))}', 'en')">🔊 ${enT('btn.listenEn')}</button>
-          <button class="en-audio" onclick="speak('${escapeHtml(w.cantonese.replace(/'/g, "\\'"))}', 'yue')">🔊 ${enT('btn.listenYue')}</button>
+          <button class="en-audio" onclick="speakReading(${w.id}, 'yue')">🔊 ${enT('btn.listenYue')}</button>
         </div>
       </div>`
     )
@@ -373,10 +436,10 @@ function openScenario(id) {
           <span class="en">${escapeHtml(w.english)}</span>
         </div>
         <div class="ph">${escapeHtml(w.phonetic || '')}</div>
-        <div class="yue">${escapeHtml(w.cantonese || '')}</div>
+        <div class="yue">${escapeHtml(readingMeaning(w))}</div>
         <div class="en-audio-row">
           <button class="en-audio" onclick="speak('${escapeHtml(w.english.replace(/'/g, "\\'"))}', 'en')">🔊 ${enT('btn.listenEn')}</button>
-          <button class="en-audio" onclick="speak('${escapeHtml(w.cantonese.replace(/'/g, "\\'"))}', 'yue')">🔊 ${enT('btn.listenYue')}</button>
+          <button class="en-audio" onclick="speakReading(${w.id}, 'yue')">🔊 ${enT('btn.listenYue')}</button>
         </div>
       </div>`
     )
@@ -575,20 +638,23 @@ function renderQuizQuestion() {
     .filter((x) => x.id !== w.id && inGroup(x))
     .sort(() => Math.random() - 0.5)
     .slice(0, 3)
-    .map((x) => x.cantonese);
+    .map((x) => readingMeaning(x));
   if (distractors.length < 3) {
     const extra = STATE.words
-      .filter((x) => x.id !== w.id && distractors.indexOf(x.cantonese) === -1)
+      .filter((x) => x.id !== w.id && distractors.indexOf(readingMeaning(x)) === -1)
       .sort(() => Math.random() - 0.5);
     for (const x of extra) {
       if (distractors.length >= 3) break;
-      distractors.push(x.cantonese);
+      distractors.push(readingMeaning(x));
     }
   }
-  let opts = [w.cantonese, ...distractors].sort(() => Math.random() - 0.5);
+  // §0b: the answer AND the decoys are in the reader's chosen script. Mixing
+  // Traditional and Simplified here would make the right answer obvious.
+  const correctMeaning = readingMeaning(w);
+  let opts = [correctMeaning, ...distractors].sort(() => Math.random() - 0.5);
   $('quiz-options').innerHTML = opts
     .map(
-      (o) => `<button class="en-opt" data-correct="${o === w.cantonese ? '1' : '0'}" onclick="enQuizAnswer(this, ${w.id}, '${escapeHtml(w.cantonese.replace(/'/g, "\\'"))}')">${escapeHtml(o)}</button>`
+      (o) => `<button class="en-opt" data-correct="${o === correctMeaning ? '1' : '0'}" onclick="enQuizAnswer(this, ${w.id})">${escapeHtml(o)}</button>`
     )
     .join('');
 }
@@ -601,8 +667,11 @@ function enRestartQuiz() {
   else enStartQuiz(q.groupId);
 }
 
-function enQuizAnswer(btn, vocabId, correctYue) {
+function enQuizAnswer(btn, vocabId) {
   const chosen = btn.textContent;
+  // Resolve the answer at click time in the CURRENT reading script, so a
+  // language switch mid-quiz cannot produce a false "wrong" mark.
+  const correctYue = readingMeaning(STATE.words.find((x) => x.id === Number(vocabId)));
   const isCorrect = chosen === correctYue;
   if (isCorrect) {
     btn.classList.add('correct');
@@ -749,6 +818,410 @@ window.addEventListener('appinstalled', () => {
   enSyncInstallEntry();
 });
 
+// ===========================================================================
+// /en Phase 1 — elder companion (EN-ROADMAP.md)
+//
+// Everything in this block is READ-ONLY against the server (two editorial JSON
+// endpoints + the existing official-weather endpoint). The only write is the
+// medication reminder list, and that goes to localStorage on THIS device — it
+// is never posted anywhere, has no device id, and cannot identify anyone.
+//
+// All server strings go through escapeHtml(). Share links are built from a
+// fixed set of preset strings plus our own site URL, so there is no free-text
+// input to escape, moderate or inject.
+// ===========================================================================
+
+const ELDER_KINDS = [
+  { id: 'all', key: 'today.tabAll' },
+  { id: 'joke', key: 'today.tabJoke' },
+  { id: 'tip', key: 'today.tabTip' },
+  { id: 'wisdom', key: 'today.tabWisdom' },
+  { id: 'helper', key: 'today.tabHelper' },
+];
+const KIND_LABEL = {
+  joke: 'elder.joke', tip: 'elder.tip', wisdom: 'elder.wisdom', helper: 'elder.helper',
+};
+const REMINDER_LABELS = [
+  { id: 'morning', tc: '朝早食藥', sc: '早上吃药', en: 'Morning medicine' },
+  { id: 'noon', tc: '中午食藥', sc: '中午吃药', en: 'Lunchtime medicine' },
+  { id: 'evening', tc: '夜晚食藥', sc: '晚上吃药', en: 'Evening medicine' },
+  { id: 'bedtime', tc: '睡前食藥', sc: '睡前吃药', en: 'Bedtime medicine' },
+  { id: 'water', tc: '飲杯水', sc: '喝杯水', en: 'Drink some water' },
+  { id: 'walk', tc: '落樓行吓', sc: '下楼走走', en: 'Go for a short walk' },
+  { id: 'call', tc: '打畀屋企人', sc: '给家人打电话', en: 'Call the family' },
+  { id: 'bp', tc: '量血壓', sc: '量血压', en: 'Check blood pressure' },
+];
+const REMINDER_KEY = 'en_reminders_v1';
+
+/** String-valued content (moods, notes) picks a language differently from items. */
+function noteText(n) {
+  if (!n || typeof n !== 'object') return String(n || '');
+  const lang = enCurrentLang();
+  if (lang === 'zh') return n.sc || n.tc || n.en || '';
+  if (lang === 'fil' || lang === 'id') return n.en || n.tc || '';
+  return n.tc || n.en || '';
+}
+function reminderLabelText(l) { return noteText(l); }
+function moodText(m) { return noteText(m); }
+
+/** Hong Kong calendar day — the "done" tick resets at HKT midnight, not UTC. */
+function hktToday() {
+  return new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+function loadReminders() {
+  try {
+    const raw = safeGet(REMINDER_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr.filter((r) => r && r.id && r.time && r.label).slice(0, 20) : [];
+  } catch (e) { return []; }
+}
+function saveReminders() {
+  try { safeSet(REMINDER_KEY, JSON.stringify(STATE.reminders)); } catch (e) { /* storage blocked */ }
+}
+
+function elderItem(id) {
+  return (STATE.elder && STATE.elder.items || []).find((x) => x.id === id) || null;
+}
+function elderItemCard(item) {
+  const t = elderText(item);
+  return `<div class="elder-card elder-item">
+    <div class="elder-kicker">${escapeHtml(item.emoji || '📖')} ${escapeHtml(enT(KIND_LABEL[item.kind] || 'today.tabAll'))}</div>
+    <div class="elder-title">${escapeHtml(t.title)}</div>
+    <div class="elder-body">${escapeHtml(t.body)}</div>
+    <div class="elder-row">
+      <button class="elder-btn small" onclick="enSpeakItem('${escapeHtml(item.id)}')">${escapeHtml(enT('today.speak'))}</button>
+      <button class="elder-btn small" onclick="enChooseShareItem('${escapeHtml(item.id)}')">${escapeHtml(enT('today.shareItem'))}</button>
+    </div>
+  </div>`;
+}
+
+function enSpeakItem(id) {
+  const item = elderItem(id);
+  if (!item) return;
+  const t = elderText(item);
+  const englishChrome = enCurrentLang() === 'fil' || enCurrentLang() === 'id';
+  speak(t.body, englishChrome ? 'en' : 'yue');
+}
+
+// ---- Home teaser (A1) -------------------------------------------------------
+function renderHomeToday() {
+  const title = $('home-today-title');
+  const body = $('home-today-body');
+  if (!title || !body) return;
+  const daily = STATE.elder && STATE.elder.daily;
+  const item = daily && daily.picks && daily.picks.joke;
+  if (!item) {
+    title.textContent = enT('home.todayTitle');
+    body.textContent = enT(STATE.elder ? 'elder.error' : 'elder.loading');
+    return;
+  }
+  const t = elderText(item);
+  title.textContent = '😄 ' + t.title;
+  body.textContent = t.body;
+}
+
+// ---- Today ------------------------------------------------------------------
+function renderToday() {
+  renderTodayWeather();
+  renderTodayDaily();
+  renderTodayTabs();
+  renderTodayItems();
+  renderTodayMoods();
+  renderTodayLocal();
+  renderTodayShare();
+}
+
+function renderTodayWeather() {
+  const box = $('today-weather');
+  if (!box) return;
+  const d = STATE.todayHk;
+  const w = d && d.weather;
+  const has = w && (w.temperatureC != null || w.humidityPct != null ||
+    (w.warnings && w.warnings.length) || w.forecast);
+  let html = `<div class="elder-card"><h3>🌤️ ${escapeHtml(enT('today.weatherTitle'))}</h3>`;
+  if (!has) {
+    html += `<p>${escapeHtml(enT(d ? 'today.weatherMissing' : 'elder.loading'))}</p>`;
+  } else {
+    const bits = [];
+    if (w.temperatureC != null) bits.push('🌡️ ' + enT('elder.temp') + ' ' + w.temperatureC + '°C');
+    if (w.humidityPct != null) bits.push('💧 ' + enT('elder.humidity') + ' ' + w.humidityPct + '%');
+    if (bits.length) html += `<p>${escapeHtml(bits.join(' · '))}</p>`;
+    if (w.warnings && w.warnings.length) {
+      html += `<p>⚠️ ${escapeHtml(enT('elder.warnings'))}：${escapeHtml(w.warnings.map(String).join('、'))}</p>`;
+    }
+    if (w.forecast) html += `<p>${escapeHtml(String(w.forecast))}</p>`;
+  }
+  if (d && d.nextHoliday && d.nextHoliday.name) {
+    const h = d.nextHoliday;
+    const name = enCurrentLang() === 'zh' ? (h.nameZh || h.name) : h.name;
+    html += `<p class="elder-note">📅 ${escapeHtml(enT('elder.holiday'))}：${escapeHtml(String(name))} (${escapeHtml(String(h.date))})</p>`;
+  }
+  html += '</div>';
+  box.innerHTML = html;
+}
+
+function renderTodayDaily() {
+  const box = $('today-daily');
+  if (!box) return;
+  const daily = STATE.elder && STATE.elder.daily;
+  if (!daily) { box.innerHTML = `<div class="elder-card"><p>${escapeHtml(enT('elder.loading'))}</p></div>`; return; }
+  const picks = daily.picks || {};
+  const chosen = [picks.joke, picks.tip, picks.wisdom].filter(Boolean);
+  box.innerHTML = `<div class="elder-kicker" style="margin-bottom:8px">${escapeHtml(enT('today.dailyTitle'))} · ${escapeHtml(daily.date)}</div>`
+    + chosen.map(elderItemCard).join('');
+}
+
+function enSetTodayTab(kind) {
+  STATE.todayTab = kind;
+  renderTodayTabs();
+  renderTodayItems();
+}
+function renderTodayTabs() {
+  const box = $('today-tabs');
+  if (!box) return;
+  box.innerHTML = ELDER_KINDS.map(
+    (k) => `<button class="elder-tab ${STATE.todayTab === k.id ? 'active' : ''}" onclick="enSetTodayTab('${k.id}')">${escapeHtml(enT(k.key))}</button>`
+  ).join('');
+}
+function renderTodayItems() {
+  const box = $('today-items');
+  if (!box) return;
+  if (!STATE.elder) { box.innerHTML = `<div class="elder-card"><p>${escapeHtml(enT('elder.loading'))}</p></div>`; return; }
+  const items = (STATE.elder.items || []).filter((x) => STATE.todayTab === 'all' || x.kind === STATE.todayTab);
+  const helperNote = (STATE.todayTab === 'helper' || STATE.todayTab === 'all') && STATE.elder.helperNote
+    ? `<p class="elder-note">${escapeHtml(noteText(STATE.elder.helperNote))}</p>` : '';
+  box.innerHTML = helperNote + items.map(elderItemCard).join('');
+}
+
+// ---- Emoji expression + one-tap sharing (F1 / F2 / C1) ---------------------
+function enSelectMood(id) {
+  STATE.mood = (STATE.elder && STATE.elder.moods || []).find((m) => m.id === id) || null;
+  renderTodayMoods();
+  renderTodayShare();
+}
+function renderTodayMoods() {
+  const box = $('today-moods');
+  if (!box) return;
+  const moods = STATE.elder && STATE.elder.moods || [];
+  if (!moods.length) { box.innerHTML = `<p class="elder-note">${escapeHtml(enT('elder.loading'))}</p>`; return; }
+  box.innerHTML = moods.map(
+    (m) => `<button class="elder-mood ${STATE.mood && STATE.mood.id === m.id ? 'active' : ''}" onclick="enSelectMood('${escapeHtml(m.id)}')"><span class="em">${escapeHtml(m.emoji)}</span><span class="tx">${escapeHtml(moodText(m))}</span></button>`
+  ).join('');
+}
+function enChooseShareItem(id) {
+  STATE.shareItem = elderItem(id);
+  renderTodayShare();
+  const p = $('today-share-preview');
+  if (p && p.scrollIntoView) p.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+function enShareText() {
+  const bits = [];
+  if (STATE.mood) bits.push(moodText(STATE.mood));
+  if (STATE.shareItem) {
+    const t = elderText(STATE.shareItem);
+    bits.push(t.title + '\n' + t.body);
+  }
+  if (!bits.length) return '';
+  const site = (STATE.elder && STATE.elder.shareSite) || 'https://cantobuddy.com/en';
+  bits.push(site);
+  return bits.join('\n\n');
+}
+function renderTodayShare() {
+  const preview = $('today-share-preview');
+  const actions = $('today-share-actions');
+  if (!preview || !actions) return;
+  const text = enShareText();
+  if (!text) {
+    preview.textContent = enT('today.shareEmpty');
+    actions.innerHTML = '';
+    return;
+  }
+  preview.textContent = text;
+  const site = (STATE.elder && STATE.elder.shareSite) || 'https://cantobuddy.com/en';
+  const wa = 'https://wa.me/?text=' + encodeURIComponent(text);
+  const fb = 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(site)
+    + '&quote=' + encodeURIComponent(text);
+  actions.innerHTML =
+    `<a class="elder-btn green" href="${escapeHtml(wa)}" target="_blank" rel="noopener noreferrer">${escapeHtml(enT('today.shareWhatsapp'))}</a>`
+    + `<a class="elder-btn" href="${escapeHtml(fb)}" target="_blank" rel="noopener noreferrer">${escapeHtml(enT('today.shareFacebook'))}</a>`
+    + `<button class="elder-btn small" onclick="enCopyShare()" aria-label="Copy">📋</button>`;
+}
+async function enCopyShare() {
+  const text = enShareText();
+  if (!text) return;
+  try {
+    await navigator.clipboard.writeText(text);
+    const p = $('today-share-preview');
+    if (p) { const old = p.textContent; p.textContent = enT('elder.copyOk'); setTimeout(() => { p.textContent = old; }, 1800); }
+  } catch (e) { /* clipboard blocked — the two share links still work */ }
+}
+
+function renderTodayLocal() {
+  const box = $('today-local');
+  if (!box) return;
+  const links = STATE.elder && STATE.elder.localLinks || [];
+  box.innerHTML = links.map((l) => {
+    const t = elderText(l);
+    return `<a class="elder-link" href="${escapeHtml(l.url)}" target="_blank" rel="noopener noreferrer"><span class="ic">${escapeHtml(l.icon || '🔗')}</span><span><span class="nm">${escapeHtml(t.title)}</span><br><span class="ds">${escapeHtml(t.desc || '')}</span></span></a>`;
+  }).join('');
+}
+
+// ---- Help (D1 / D2 / B2) ----------------------------------------------------
+function renderHelp() {
+  renderHelp999();
+  renderHelpDirectory();
+  renderReminderList();
+  renderHelpLinks();
+  renderHelpSources();
+}
+function helpEntryActions(e, danger) {
+  let html = `<a class="elder-call ${danger ? 'danger' : ''}" href="tel:${escapeHtml(e.phone)}">📞 ${escapeHtml(e.display || e.phone)}</a>`;
+  if (e.whatsapp) {
+    html += `<a class="elder-btn small" href="https://wa.me/${escapeHtml(e.whatsapp)}" target="_blank" rel="noopener noreferrer">${escapeHtml(enT('help.whatsapp'))}</a>`;
+  }
+  if (e.web) {
+    html += `<a class="elder-btn small" href="${escapeHtml(e.web)}" target="_blank" rel="noopener noreferrer">${escapeHtml(enT('help.website'))}</a>`;
+  }
+  return html;
+}
+function renderHelp999() {
+  const box = $('help-999');
+  if (!box) return;
+  const g = STATE.help && (STATE.help.groups || []).find((x) => x.id === 'danger');
+  const e = g && g.entries && g.entries[0];
+  const t = e ? elderText(e) : { name: '999', desc: '' };
+  box.innerHTML = `<div class="elder-card" style="border-color:var(--red)">
+      <h3>${escapeHtml(enT('help.emergencyTitle'))}</h3>
+      <a class="elder-call danger" href="tel:999" style="font-size:1.6rem;min-width:100%">📞 999</a>
+      <p class="elder-note">${escapeHtml(t.name)} — ${escapeHtml(t.desc)}</p>
+    </div>`;
+}
+function renderHelpDirectory() {
+  const box = $('help-directory');
+  if (!box) return;
+  if (!STATE.help) { box.innerHTML = `<div class="elder-card"><p>${escapeHtml(enT('elder.loading'))}</p></div>`; return; }
+  box.innerHTML = (STATE.help.groups || []).filter((g) => g.id !== 'danger').map((g) => {
+    const gt = elderText(g);
+    return `<div class="elder-card"><h3>${escapeHtml(g.icon || '📞')} ${escapeHtml(gt.title || '')}</h3>`
+      + (g.entries || []).map((e) => {
+        const t = elderText(e);
+        return `<div class="elder-help-entry"><div class="nm">${escapeHtml(e.icon || '')} ${escapeHtml(t.name)}</div>
+          <div class="ds">${escapeHtml(t.desc || '')}</div>${helpEntryActions(e, false)}</div>`;
+      }).join('') + '</div>';
+  }).join('');
+}
+function renderHelpLinks() {
+  const box = $('help-links');
+  if (!box) return;
+  const links = STATE.help && STATE.help.localLinks || [];
+  if (!links.length) return;
+  box.innerHTML = `<div class="elder-card"><h3>${escapeHtml(enT('help.linksTitle'))}</h3>`
+    + links.map((l) => {
+      const t = elderText(l);
+      return `<a class="elder-link" href="${escapeHtml(l.url)}" target="_blank" rel="noopener noreferrer"><span class="ic">${escapeHtml(l.icon || '🔗')}</span><span><span class="nm">${escapeHtml(t.title)}</span><br><span class="ds">${escapeHtml(t.desc || '')}</span></span></a>`;
+    }).join('') + '</div>';
+}
+function renderHelpSources() {
+  const box = $('help-sources');
+  if (!box) return;
+  if (!STATE.help) return;
+  const note = noteText(STATE.help.note);
+  const sources = STATE.help.sources || [];
+  box.innerHTML = `<div class="elder-card"><h3>${escapeHtml(enT('help.sourcesTitle'))}</h3>
+    <p class="elder-note">${escapeHtml(note)}</p>
+    ${sources.map((s) => `<a class="elder-link" href="${escapeHtml(s.url)}" target="_blank" rel="noopener noreferrer"><span class="ic">🔗</span><span class="nm">${escapeHtml(s.label)}</span></a>`).join('')}
+    </div>`;
+}
+
+// ---- Medication reminders (B1) — local-only, no server, no notification API -
+function renderReminderForm() {
+  const box = $('reminder-form');
+  if (!box) return;
+  const opts = REMINDER_LABELS.map(
+    (l) => `<option value="${escapeHtml(l.id)}">${escapeHtml(reminderLabelText(l))}</option>`
+  ).join('');
+  box.innerHTML = `<select id="reminder-label" aria-label="${escapeHtml(enT('help.reminderTitle'))}">${opts}</select>`
+    + `<input type="time" id="reminder-time" value="08:00" aria-label="Time">`
+    + `<button class="elder-btn primary" onclick="enAddReminder()">${escapeHtml(enT('help.reminderAdd'))}</button>`;
+}
+function renderReminderList() {
+  const box = $('reminder-list');
+  if (!box) return;
+  if (!STATE.reminders.length) {
+    box.innerHTML = `<p class="elder-note">${escapeHtml(enT('help.reminderEmpty'))}</p>`;
+    return;
+  }
+  const today = hktToday();
+  box.innerHTML = STATE.reminders.slice().sort((a, b) => String(a.time).localeCompare(String(b.time)))
+    .map((r) => {
+      const label = REMINDER_LABELS.find((l) => l.id === r.label);
+      const text = label ? reminderLabelText(label) : r.label;
+      const done = r.doneOn === today;
+      return `<div class="elder-reminder ${done ? 'done' : ''}">
+        <span class="when">${escapeHtml(r.time)}</span>
+        <span class="what">${escapeHtml(text)}</span>
+        <button class="elder-btn small" onclick="enSpeakReminder('${escapeHtml(r.id)}')">${escapeHtml(enT('help.reminderSpeak'))}</button>
+        <button class="elder-btn small" onclick="enToggleReminder('${escapeHtml(r.id)}')">${escapeHtml(done ? enT('help.reminderUndo') : enT('help.reminderDone'))}</button>
+        <button class="elder-btn small" onclick="enDeleteReminder('${escapeHtml(r.id)}')" aria-label="Delete">${escapeHtml(enT('help.reminderDelete'))}</button>
+      </div>`;
+    }).join('');
+}
+function enAddReminder() {
+  const sel = $('reminder-label');
+  const time = $('reminder-time');
+  if (!sel || !time || !time.value) return;
+  if (STATE.reminders.length >= 20) return;
+  STATE.reminders.push({
+    id: 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    label: sel.value, time: time.value, doneOn: '',
+  });
+  saveReminders();
+  renderReminderList();
+}
+function enToggleReminder(id) {
+  const r = STATE.reminders.find((x) => x.id === id);
+  if (!r) return;
+  r.doneOn = r.doneOn === hktToday() ? '' : hktToday();
+  saveReminders();
+  renderReminderList();
+}
+function enDeleteReminder(id) {
+  STATE.reminders = STATE.reminders.filter((x) => x.id !== id);
+  saveReminders();
+  renderReminderList();
+}
+function enSpeakReminder(id) {
+  const r = STATE.reminders.find((x) => x.id === id);
+  if (!r) return;
+  const label = REMINDER_LABELS.find((l) => l.id === r.label);
+  const englishChrome = enCurrentLang() === 'fil' || enCurrentLang() === 'id';
+  speak(label ? reminderLabelText(label) : String(r.label), englishChrome ? 'en' : 'yue');
+}
+
+/**
+ * Load the elder data OUT OF BAND from the vocabulary. If any of these three
+ * endpoints is down, the learning app still works — this is a companion, not a
+ * dependency. Promise.allSettled is deliberate: a dead HKO upstream must not
+ * hide the help directory from someone who needs it.
+ */
+async function loadElderData() {
+  const results = await Promise.allSettled([
+    apiGet('/api/en/elder/content'),
+    apiGet('/api/en/elder/help'),
+    apiGet('/api/today-in-hk'),
+  ]);
+  if (results[0].status === 'fulfilled') STATE.elder = results[0].value;
+  if (results[1].status === 'fulfilled') STATE.help = results[1].value;
+  if (results[2].status === 'fulfilled') STATE.todayHk = results[2].value;
+  STATE.reminders = loadReminders();
+  renderHomeToday();
+  renderReminderForm();
+  renderReminderList();
+  const active = document.querySelector('.en-view.active');
+  if (active && active.id === 'view-today') renderToday();
+  if (active && active.id === 'view-help') renderHelp();
+}
+
 // ---- Init -------------------------------------------------------------------
 async function init() {
   STATE.deviceId = loadDeviceId();
@@ -756,7 +1229,20 @@ async function init() {
   applyStaticLang();
   enSyncInstallEntry();   // show/hide the header "Add to Home" button correctly
   populateVoiceSelects(); // fill voice <select>s if voices are already available
-  window.onEnLangChange = () => { applyStaticLang(); renderLearn(); renderPractice(); renderProgress(); };
+  window.onEnLangChange = () => {
+    applyStaticLang();
+    renderLearn(); renderPractice(); renderProgress();
+    // §0b — browse/scenario meanings and the quiz options are script-aware,
+    // so every surface has to be redrawn when 繁 ⇄ 簡 changes.
+    renderBrowse(); renderQuizQuestion();
+    renderHomeToday(); renderToday(); renderHelp();
+    renderReminderForm(); renderReminderList();
+  };
+
+  // Elder companion data is deliberately NOT part of the vocabulary Promise:
+  // if HKO, the content endpoint or the help endpoint is down, learning still
+  // boots, and a failure in one companion feed cannot hide the other two.
+  loadElderData();
 
   const loadingMsg = '<div class="en-progress-card">載入中… · Loading…</div>';
   if ($('home-quick')) $('home-quick').innerHTML = loadingMsg;

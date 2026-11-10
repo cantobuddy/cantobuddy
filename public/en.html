@@ -454,6 +454,105 @@
     align-items: center; justify-content: center; color: var(--red); background: #fff;
   }
   .en-install-btn[hidden] { display: none; }
+  /* ==========================================================================
+     /en Phase 1 — elder companion (EN-ROADMAP.md).
+     The "elder standard": 19px base, >=56px tap targets, no countdowns, no
+     time pressure, plain high-contrast cards, and a HELP button big enough to
+     find without reading glasses. Nothing here is a modal and nothing scrolls
+     horizontally except the six-item bottom nav on very narrow phones.
+     ========================================================================== */
+  .en-nav button { padding: 4px 6px; font-size: 12px; }
+  .en-nav { overflow-x: auto; }
+  .en-nav button { flex: 1 0 auto; min-width: 54px; }
+  .elder-card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+    padding: 16px; margin: 0 0 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+  .elder-card h3 { font-size: 1.16rem; margin: 0 0 8px; line-height: 1.35; }
+  .elder-card p { font-size: 1.05rem; margin: 0 0 10px; line-height: 1.65; }
+  .elder-card p:last-child { margin-bottom: 0; }
+  .elder-kicker { font-size: 0.82rem; font-weight: 700; color: var(--red); letter-spacing: .04em; }
+  .elder-note { font-size: 0.86rem; color: var(--muted); line-height: 1.6; margin: 8px 0 0; }
+  .elder-row { display: flex; flex-wrap: wrap; gap: 10px; }
+  .elder-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    min-height: 56px; padding: 12px 16px; border-radius: 14px;
+    border: 1px solid var(--line); background: #fff; color: var(--ink);
+    font-size: 1.03rem; font-weight: 700; font-family: inherit;
+    cursor: pointer; text-decoration: none; flex: 1 1 140px; text-align: center;
+  }
+  .elder-btn:active { transform: scale(0.98); }
+  .elder-btn.primary { background: var(--red); color: #fff; border-color: var(--red); }
+  .elder-btn.green { background: var(--green); color: #fff; border-color: var(--green); }
+  .elder-btn.small { min-height: 48px; font-size: 0.95rem; flex: 0 1 auto; }
+  .elder-help-cta {
+    width: 100%; min-height: 74px; font-size: 1.3rem; font-weight: 800;
+    border: 0; border-radius: 18px; background: var(--red); color: #fff;
+    cursor: pointer; font-family: inherit; margin: 0 0 16px;
+    box-shadow: 0 4px 14px rgba(230,57,70,0.28);
+  }
+  .elder-help-cta:active { transform: scale(0.99); }
+  .elder-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; }
+  .elder-tab {
+    min-height: 50px; padding: 10px 14px; border-radius: 12px;
+    border: 1px solid var(--line); background: #fff; color: var(--muted);
+    font-size: 1rem; font-weight: 700; cursor: pointer; font-family: inherit;
+  }
+  .elder-tab.active { background: var(--red); color: #fff; border-color: var(--red); }
+  .elder-item { border-left: 5px solid var(--gold); padding-left: 12px; }
+  .elder-item .elder-title { font-size: 1.14rem; font-weight: 800; margin: 0 0 6px; }
+  .elder-item .elder-body { font-size: 1.04rem; line-height: 1.7; margin: 0 0 12px; }
+  .elder-moods { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .elder-mood {
+    min-height: 84px; border: 2px solid var(--line); border-radius: 14px;
+    background: #fff; cursor: pointer; font-family: inherit;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  }
+  .elder-mood .em { font-size: 2rem; line-height: 1.1; }
+  .elder-mood .tx { font-size: 0.74rem; color: var(--muted); font-weight: 700; }
+  .elder-mood.active { border-color: var(--red); background: #fff2f0; }
+  .elder-share-preview {
+    background: #fff9f5; border: 1px dashed var(--line); border-radius: 12px;
+    padding: 14px; font-size: 1.05rem; line-height: 1.6; margin: 12px 0;
+  }
+  .elder-link {
+    display: flex; align-items: center; gap: 12px; min-height: 64px;
+    padding: 10px 12px; border: 1px solid var(--line); border-radius: 14px;
+    background: #fff; color: var(--ink); text-decoration: none; margin-bottom: 10px;
+  }
+  .elder-link .ic { font-size: 1.7rem; }
+  .elder-link .nm { font-weight: 800; font-size: 1.02rem; }
+  .elder-link .ds { font-size: 0.84rem; color: var(--muted); }
+  .elder-help-entry {
+    border: 1px solid var(--line); border-radius: 14px; padding: 14px;
+    background: #fff; margin-bottom: 12px;
+  }
+  .elder-help-entry.emergency { border-color: var(--red); background: #fff5f5; }
+  .elder-help-entry .nm { font-weight: 800; font-size: 1.08rem; margin-bottom: 4px; }
+  .elder-help-entry .ds { font-size: 0.96rem; color: var(--muted); margin-bottom: 10px; }
+  .elder-call {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-height: 58px; min-width: 150px; padding: 10px 16px; border-radius: 14px;
+    background: var(--green); color: #fff; font-size: 1.16rem; font-weight: 800;
+    text-decoration: none; margin: 0 8px 8px 0;
+  }
+  .elder-call.danger { background: var(--red); }
+  .elder-reminder {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 12px; border: 1px solid var(--line); border-radius: 14px;
+    background: #fff; margin-bottom: 10px;
+  }
+  .elder-reminder .when { font-size: 1.2rem; font-weight: 800; }
+  .elder-reminder .what { flex: 1 1 120px; font-size: 1.02rem; }
+  .elder-reminder.done { opacity: 0.6; }
+  .elder-reminder select, .elder-reminder input[type="time"] {
+    min-height: 52px; font-size: 1rem; font-family: inherit;
+    border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; background: #fff;
+  }
+  @media (max-width: 360px) {
+    .elder-moods { grid-template-columns: repeat(3, 1fr); }
+    .en-nav button { font-size: 11px; padding: 4px 3px; min-width: 48px; }
+  }
   /* Crawlable intro for search engines — hidden visually, present in markup. */
   .en-seo-intro {
     position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
@@ -480,6 +579,12 @@
       <li><a href="/en/category/shopping-goods">Shopping Goods</a></li>
       <li><a href="/en/category/emergency">Emergency</a></li>
     </ul>
+    <p>The free English track also has a short daily read: original jokes,
+      everyday life tips (生活小常識), classic Chinese wisdom stories (中國智慧故事)
+      and short notes to help a family understand their domestic helper. Meanings
+      can be read in Traditional or Simplified Chinese. There is also a help
+      directory of verified Hong Kong support numbers and large emoji cards that
+      can be shared to WhatsApp or Facebook with one tap.</p>
     <p>Also learn Cantonese for free at <a href="/">CantoBuddy</a>, including
       <a href="/cantonese-for-domestic-helpers">Cantonese for domestic helpers</a>
       and <a href="/cantonese-food-phrases">Cantonese food phrases</a>.</p>
@@ -531,6 +636,16 @@
           <button class="en-cta secondary" onclick="enGoPractice()">情景練習</button>
         </div>
       </div>
+      <!-- D1 — one BIG help button on the home screen. It is deliberately above
+           everything else: an elder who needs help is not here to browse words. -->
+      <button class="elder-help-cta" id="home-help-cta" onclick="enNavigate('help')">🆘 我需要幫助</button>
+      <!-- A1 — today's teaser. Filled from the deterministic HKT daily pick. -->
+      <div class="elder-card" id="home-today-card">
+        <div class="elder-kicker" id="home-today-kicker">今日睇吓</div>
+        <h3 id="home-today-title">慢慢嚟，今日都有新嘢睇</h3>
+        <p id="home-today-body">載入中…</p>
+        <button class="elder-btn primary" id="home-today-btn" onclick="enNavigate('today')">去今日 →</button>
+      </div>
       <div class="en-section-title" id="home-quick-title">快啲開始</div>
       <div class="en-grid" id="home-quick"></div>
     </section>
@@ -538,6 +653,9 @@
     <!-- LEARN / CATEGORIES -->
     <section id="view-learn" class="en-view">
       <div class="en-section-title" id="learn-title">揀一類嚟學詞</div>
+      <!-- §0b — the 繁 / 簡 switch in the header changes the MEANING text too,
+           not just the buttons. Say so where the reader will notice it. -->
+      <p class="elder-note" id="reading-note" style="margin:-6px 0 14px">解釋用繁體中文；想睇簡體，撳右上角「簡」。</p>
       <div class="en-grid" id="learn-grid"></div>
     </section>
 
@@ -579,6 +697,43 @@
       <div class="en-section-title" id="progress-title">我的進度</div>
       <div id="progress-body"></div>
     </section>
+
+    <!-- TODAY — Phase 1 elder companion: weather (live official data), the
+         daily read, jokes / 生活小常識 / 中國智慧故事 / helper-voice cards,
+         the emoji bar and one-tap WhatsApp / Facebook share cards. -->
+    <section id="view-today" class="en-view">
+      <div class="en-section-title" id="today-title">今日</div>
+      <div id="today-weather"></div>
+      <div id="today-daily"></div>
+      <div class="elder-tabs" id="today-tabs"></div>
+      <div id="today-items"></div>
+      <div class="elder-card">
+        <div class="elder-kicker" id="mood-kicker">撳一下就講到</div>
+        <h3 id="mood-title">今日想講句咩？</h3>
+        <p class="elder-note" id="mood-note">揀個表情，再一撳就可以 send 畀屋企人。唔使打字。</p>
+        <div class="elder-moods" id="today-moods"></div>
+        <div class="elder-share-preview" id="today-share-preview"></div>
+        <div class="elder-row" id="today-share-actions"></div>
+      </div>
+      <div class="en-section-title" id="local-title">香港今日</div>
+      <div id="today-local"></div>
+    </section>
+
+    <!-- HELP — D1/D2 + B1/B2. One huge 999 call target first, then the verified
+         directory, then local-only medication reminders (no account, no upload). -->
+    <section id="view-help" class="en-view">
+      <div class="en-section-title" id="help-title">搵幫手</div>
+      <div id="help-999"></div>
+      <div id="help-directory"></div>
+      <div class="elder-card">
+        <h3 id="reminder-title">食藥提示</h3>
+        <p class="elder-note" id="reminder-note">只係記喺呢部電話度，唔會上載，亦唔係鬧鐘。有疑問請問醫生或藥房。</p>
+        <div class="elder-row" id="reminder-form"></div>
+        <div id="reminder-list" style="margin-top:12px"></div>
+      </div>
+      <div id="help-links"></div>
+      <div id="help-sources"></div>
+    </section>
   </main>
 
   <!-- W1.5: policy / publisher links for the English track. These are the four
@@ -595,8 +750,10 @@
 
   <nav class="en-nav" id="en-nav">
     <button data-view="home" class="active" onclick="enNavigate('home')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v9h14v-9"/></svg></span><span id="nav-home">主頁</span></button>
+    <button data-view="today" onclick="enNavigate('today')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/><path d="M9 15h2M14 15h2"/></svg></span><span id="nav-today">今日</span></button>
     <button data-view="learn" onclick="enNavigate('learn')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5C10.5 4 8.5 4 7 4 5.3 4 4 5.2 4 7v12c0 1.2 1 2.2 2.5 2.2 1.5 0 3.5 0 5.5-1"/><path d="M12 5c1.5-1 3.5-1 5-1 1.7 0 3 1.2 3 3v10c0 1.2-1 2.2-2.5 2.2-1.5 0-3.5 0-5.5-1"/><path d="M12 5v14"/></svg></span><span id="nav-learn">學詞</span></button>
     <button data-view="practice" onclick="enNavigate('practice')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.5 7.2L4 21l1.8-5.5A8 8 0 1 1 21 12Z"/><path d="M8.5 11h7M8.5 14h4"/></svg></span><span id="nav-practice">練習</span></button>
+    <button data-view="help" onclick="enNavigate('help')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.2 9a2.9 2.9 0 0 1 5.6 1c0 2-2.8 2.2-2.8 4"/><path d="M12 17.5h.01"/></svg></span><span id="nav-help">求助</span></button>
     <button data-view="progress" onclick="enNavigate('progress')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/></svg></span><span id="nav-progress">進度</span></button>
   </nav>
 

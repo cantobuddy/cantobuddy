@@ -35,11 +35,27 @@
  * on Tuesday and again on Friday simply sees two different small things.
  */
 
-const CONTENT_VERSION = '2026-11-10.2';
+const CONTENT_VERSION = '2026-11-11.1';
 const SHARE_SITE = 'https://cantobuddy.com/en';
 const VERIFIED_ON = '2026-11-06';
 const HKT_MS = 8 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+// ---------------------------------------------------------------------------
+// GovHK publishes ONE page per calendar year at /about/abouthk/holiday/YYYY.htm,
+// plus a multi-year index at /about/abouthk/holiday/ (currently "2023 - 2027").
+// An elder tapping 公眾假期 wants the actual holiday table, not a list of years
+// to choose from. "Current year" is the HONG KONG calendar year at request time,
+// so the link rolls over on 1 January without a code change. Verified live on
+// 2026-11-11: 2023..2027 all return 200 in en / tc / sc, and GovHK always
+// publishes the current year, so this can never resolve to a 404.
+// ---------------------------------------------------------------------------
+function holidayYear(refMs = Date.now()) {
+  return Number(new Date(refMs + HKT_MS).toISOString().slice(0, 4));
+}
+function govhkHolidayUrl(lang, refMs = Date.now()) {
+  return `https://www.gov.hk/${lang}/about/abouthk/holiday/${holidayYear(refMs)}.htm`;
+}
 
 // ---------------------------------------------------------------------------
 // A3 jokes / A7 生活小常識 / A8 中國智慧故事 / E1 helper-voice cards
@@ -184,54 +200,63 @@ const MOODS = [
 // 2026-11-10 FIX: the two links an elder reported as broken BOTH returned 404 —
 // the retired HKO warning-summary page and the retired 1823 holiday page. Both
 // authorities moved their content. Every URL below was re-checked live (200).
-// `url` stays the English
-// default for the existing API contract; urlTc / urlSc / urlEn let a Chinese
-// reader land on the CHINESE official page instead of an English wall of text.
+// `url` stays the English default for the existing API contract; urlTc / urlSc /
+// urlEn let a Chinese reader land on the CHINESE official page instead of an
+// English wall of text.
+//
+// 2026-11-11 FIX: (1) 公眾假期 now opens the CURRENT YEAR holiday table instead
+// of the GovHK multi-year index; (2) 社會福利署 now opens 安老服務 (elderly
+// services) instead of the department's generic homepage. Both were requested
+// by the elder user with screenshots. URLs verified 200 in en / tc / sc.
 // ---------------------------------------------------------------------------
-const LOCAL_LINKS = [
-  {
-    id: 'hko', icon: '🌡️',
-    url: 'https://www.hko.gov.hk/en/wxinfo/currwx/current.htm',
-    urlEn: 'https://www.hko.gov.hk/en/wxinfo/currwx/current.htm',
-    urlTc: 'https://www.hko.gov.hk/tc/wxinfo/currwx/current.htm',
-    urlSc: 'https://www.hko.gov.hk/sc/wxinfo/currwx/current.htm',
-    tc: { title: '香港天文台 · 天氣同警告', desc: '官方即時天氣、暴雨同酷熱警告' },
-    sc: { title: '香港天文台 · 天气和预警', desc: '官方实时天气、暴雨和酷热预警' },
-    en: { title: 'Hong Kong Observatory', desc: 'Official live weather, rainstorm and heat warnings' },
-  },
-  {
-    id: 'holiday', icon: '📅',
-    url: 'https://www.gov.hk/en/about/abouthk/holiday/',
-    urlEn: 'https://www.gov.hk/en/about/abouthk/holiday/',
-    urlTc: 'https://www.gov.hk/tc/about/abouthk/holiday/',
-    urlSc: 'https://www.gov.hk/sc/about/abouthk/holiday/',
-    tc: { title: '香港政府一站通 · 公眾假期', desc: '政府公布嘅公眾假期日期' },
-    sc: { title: '香港政府一站通 · 公众假期', desc: '政府公布的公众假期日期' },
-    en: { title: 'GovHK · Public holidays', desc: 'Official general holiday calendar' },
-  },
-  {
-    id: 'news', icon: '📰',
-    url: 'https://www.news.gov.hk/eng/',
-    urlEn: 'https://www.news.gov.hk/eng/',
-    // news.gov.hk has no Simplified edition; Traditional Chinese is still far
-    // more readable for a 简体 reader than the English page.
-    urlTc: 'https://www.news.gov.hk/chi/',
-    urlSc: 'https://www.news.gov.hk/chi/',
-    tc: { title: '香港政府新聞網', desc: '官方本地新聞，唔使登入' },
-    sc: { title: '香港政府新闻网', desc: '官方本地新闻，不用登录' },
-    en: { title: 'news.gov.hk', desc: 'Official Hong Kong government news, no login' },
-  },
-  {
-    id: 'swd', icon: '🏛️',
-    url: 'https://www.swd.gov.hk/en/',
-    urlEn: 'https://www.swd.gov.hk/en/',
-    urlTc: 'https://www.swd.gov.hk/tc/',
-    urlSc: 'https://www.swd.gov.hk/sc/',
-    tc: { title: '社會福利署', desc: '長者服務同社區支援嘅官方資訊' },
-    sc: { title: '社会福利署', desc: '长者服务和社区支援的官方信息' },
-    en: { title: 'Social Welfare Department', desc: 'Official information on elderly services and community support' },
-  },
-];
+function localLinks(refMs = Date.now()) {
+  const hy = holidayYear(refMs);
+  return [
+    {
+      id: 'hko', icon: '🌡️',
+      url: 'https://www.hko.gov.hk/en/wxinfo/currwx/current.htm',
+      urlEn: 'https://www.hko.gov.hk/en/wxinfo/currwx/current.htm',
+      urlTc: 'https://www.hko.gov.hk/tc/wxinfo/currwx/current.htm',
+      urlSc: 'https://www.hko.gov.hk/sc/wxinfo/currwx/current.htm',
+      tc: { title: '香港天文台 · 天氣同警告', desc: '官方即時天氣、暴雨同酷熱警告' },
+      sc: { title: '香港天文台 · 天气和预警', desc: '官方实时天气、暴雨和酷热预警' },
+      en: { title: 'Hong Kong Observatory', desc: 'Official live weather, rainstorm and heat warnings' },
+    },
+    {
+      id: 'holiday', icon: '📅', year: hy,
+      url: govhkHolidayUrl('en', refMs),
+      urlEn: govhkHolidayUrl('en', refMs),
+      urlTc: govhkHolidayUrl('tc', refMs),
+      urlSc: govhkHolidayUrl('sc', refMs),
+      tc: { title: '香港政府一站通 · 公眾假期', desc: `政府公布嘅 ${hy} 年公眾假期日期` },
+      sc: { title: '香港政府一站通 · 公众假期', desc: `政府公布的 ${hy} 年公众假期日期` },
+      en: { title: 'GovHK · Public holidays', desc: `Official ${hy} general holiday calendar` },
+    },
+    {
+      id: 'news', icon: '📰',
+      url: 'https://www.news.gov.hk/eng/',
+      urlEn: 'https://www.news.gov.hk/eng/',
+      // news.gov.hk has no Simplified edition; Traditional Chinese is still far
+      // more readable for a 简体 reader than the English page.
+      urlTc: 'https://www.news.gov.hk/chi/',
+      urlSc: 'https://www.news.gov.hk/chi/',
+      tc: { title: '香港政府新聞網', desc: '官方本地新聞，唔使登入' },
+      sc: { title: '香港政府新闻网', desc: '官方本地新闻，不用登录' },
+      en: { title: 'news.gov.hk', desc: 'Official Hong Kong government news, no login' },
+    },
+    {
+      id: 'swd', icon: '🏛️',
+      url: 'https://www.swd.gov.hk/en/pubsvc/elderly/',
+      urlEn: 'https://www.swd.gov.hk/en/pubsvc/elderly/',
+      urlTc: 'https://www.swd.gov.hk/tc/pubsvc/elderly/',
+      urlSc: 'https://www.swd.gov.hk/sc/pubsvc/elderly/',
+      tc: { title: '社會福利署', desc: '長者服務同社區支援嘅官方資訊' },
+      sc: { title: '社会福利署', desc: '长者服务和社区支援的官方信息' },
+      en: { title: 'Social Welfare Department', desc: 'Official information on elderly services and community support' },
+    },
+  ];
+}
+const LOCAL_LINKS = localLinks();
 
 // ---------------------------------------------------------------------------
 // B2 / D2 — help directory. EVERY phone number is copied from the verified
@@ -256,8 +281,9 @@ const HELP_GROUPS = [
     entries: [
       {
         id: 'swd-hotline', icon: '☎️', phone: '23432255', display: '2343 2255',
-        web: 'https://www.swd.gov.hk/en/',
-        webTc: 'https://www.swd.gov.hk/tc/', webSc: 'https://www.swd.gov.hk/sc/',
+        web: 'https://www.swd.gov.hk/en/pubsvc/elderly/',
+        webTc: 'https://www.swd.gov.hk/tc/pubsvc/elderly/',
+        webSc: 'https://www.swd.gov.hk/sc/pubsvc/elderly/',
         tc: { name: '社會福利署熱線', desc: '政府服務查詢。長者服務詳情可睇官方網站。' },
         sc: { name: '社会福利署热线', desc: '政府服务查询。长者服务详情请看官方网站。' },
         en: { name: 'Social Welfare Department hotline', desc: 'Government service enquiries. See the official site for elderly services.' },
@@ -320,11 +346,12 @@ const HELP_SOURCES = [
     url: 'https://helpfordomesticworkers.org/get-help/',
   },
   {
-    label: 'Social Welfare Department',
-    labelTc: '社會福利署', labelSc: '社会福利署',
-    url: 'https://www.swd.gov.hk/en/',
-    urlEn: 'https://www.swd.gov.hk/en/',
-    urlTc: 'https://www.swd.gov.hk/tc/', urlSc: 'https://www.swd.gov.hk/sc/',
+    label: 'Social Welfare Department — Elderly services',
+    labelTc: '社會福利署 · 安老服務', labelSc: '社会福利署 · 安老服务',
+    url: 'https://www.swd.gov.hk/en/pubsvc/elderly/',
+    urlEn: 'https://www.swd.gov.hk/en/pubsvc/elderly/',
+    urlTc: 'https://www.swd.gov.hk/tc/pubsvc/elderly/',
+    urlSc: 'https://www.swd.gov.hk/sc/pubsvc/elderly/',
   },
   {
     label: 'Hong Kong Observatory — local weather report',
@@ -401,20 +428,22 @@ function publicContent(refMs = Date.now()) {
     daily: dailySelection(refMs),
     items: ELDER_ITEMS,
     moods: MOODS,
-    localLinks: LOCAL_LINKS,
+    // Resolve the holiday year per request, not at module load: a long-running
+    // server must roll over on 1 January without a restart.
+    localLinks: localLinks(refMs),
     helperNote: HELPER_NOTE,
     shareSite: SHARE_SITE,
   };
 }
 
 /** Shape returned by GET /api/en/elder/help. */
-function helpDirectory() {
+function helpDirectory(refMs = Date.now()) {
   return {
     verifiedOn: VERIFIED_ON,
     groups: HELP_GROUPS,
     sources: HELP_SOURCES,
     note: HELP_NOTE,
-    localLinks: LOCAL_LINKS,
+    localLinks: localLinks(refMs),
   };
 }
 
@@ -422,5 +451,5 @@ module.exports = {
   CONTENT_VERSION, SHARE_SITE, VERIFIED_ON, HKT_MS,
   ELDER_ITEMS, MOODS, LOCAL_LINKS, HELP_GROUPS, HELP_SOURCES, HELP_NOTE, HELPER_NOTE,
   hktDateKey, hktDayIndex, rotate, byKind, dailySelection, localised,
-  publicContent, helpDirectory,
+  holidayYear, govhkHolidayUrl, localLinks, publicContent, helpDirectory,
 };

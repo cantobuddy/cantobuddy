@@ -79,7 +79,13 @@
 //     never falls back to a Mandarin voice, and official links are language-
 //     matched. Those are network-first EN_TRACK assets, but an offline elder
 //     still has a cached copy in this cache — so the bump is mandatory here.
-const CACHE = 'cantobuddy-v157';
+// v158 — /en official-link deep links (2026-11-11): the 公眾假期 card now opens
+// the CURRENT YEAR GovHK holiday table (not the multi-year index) and the 社會
+// 福利署 card opens 安老服務 (not the department homepage). Both URLs live in
+// the /api/en/elder/* payloads, which are network-first but keep a cached
+// offline fallback HERE. Without a new cache name an offline elder would keep
+// the previous release's link set on the help screen.
+const CACHE = 'cantobuddy-v158';
 
 // Which paths are server-rendered SEO documents rather than app-shell assets.
 // Kept as one matcher so it can be asserted against `LANG_PREFIX` in seo.js —

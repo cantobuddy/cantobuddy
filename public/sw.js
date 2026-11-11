@@ -97,7 +97,11 @@
 // the Help view. en.html, en-app.js and en-i18n.js change again, and the new
 // banner copy is part of the offline EN_TRACK fallback, so the cache name must
 // move on or an installed PWA would keep the static pre-banner home screen.
-const CACHE = 'cantobuddy-v160';
+// v161 — the four banners no longer jump to separate views; they all stay on the
+// single /en home page and scroll to their own section (games / tips / helper
+// voice / help), and the SOS button moved to the BOTTOM of the home page. en.html,
+// en-app.js and en-i18n.js change again, so the cache name moves once more.
+const CACHE = 'cantobuddy-v161';
 
 // Which paths are server-rendered SEO documents rather than app-shell assets.
 // Kept as one matcher so it can be asserted against `LANG_PREFIX` in seo.js —

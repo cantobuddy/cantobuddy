@@ -344,7 +344,7 @@ function enNavigate(view) {
     b.classList.toggle('active', b.dataset.view === view);
   });
   window.scrollTo(0, 0);
-  if (view === 'home') { renderHomeQuick(); renderHomeGames(); renderHomeToday(); renderHomeBanners(); }
+  if (view === 'home') { renderHomeQuick(); renderHomeGames(); renderHomeToday(); renderHomeBanners(); renderHomeTips(); renderHomeHelper(); renderHomeHelp(); }
   if (view === 'learn') renderLearn();
   if (view === 'practice') renderPractice();
   if (view === 'progress') renderProgress();
@@ -366,6 +366,10 @@ const STATIC_TEXT = {
   'hero-rest': 'hero.rest',
   'home-games-title': 'home.gamesTitle',
   'home-games-note': 'home.gamesNote',
+  'home-tips-title': 'today.tabTip',
+  'home-helper-title': 'today.tabHelper',
+  'home-help-title': 'help.title',
+  'home-help-seeall': 'home.seeAll',
   'enb-games-title': 'banner.games.title',
   'enb-games-sub': 'banner.games.sub',
   'enb-games-cta': 'banner.games.cta',
@@ -462,6 +466,43 @@ function renderHomeGames() {
     `</a>`).join('');
 }
 
+// ---- v161 — consolidated home sections (tips / helper voice / help) ----------
+// The four rotating banners all scroll to sections on this single /en home page,
+// so the elder sees every topic in one place. These render from the same elder
+// content the Today view uses; if the content endpoint is down they show a
+// friendly loading state instead of breaking the rest of the page.
+function renderHomeTips() {
+  const box = $('home-tips');
+  if (!box) return;
+  if (!STATE.elder) { box.innerHTML = `<div class="elder-card"><p>${escapeHtml(enT('elder.loading'))}</p></div>`; return; }
+  const items = (STATE.elder.items || []).filter((x) => x.kind === 'tip');
+  box.innerHTML = items.length ? items.map(elderItemCard).join('') : '';
+}
+
+function renderHomeHelper() {
+  const box = $('home-helper');
+  if (!box) return;
+  if (!STATE.elder) { box.innerHTML = `<div class="elder-card"><p>${escapeHtml(enT('elder.loading'))}</p></div>`; return; }
+  const note = STATE.elder.helperNote ? `<p class="elder-note">${escapeHtml(noteText(STATE.elder.helperNote))}</p>` : '';
+  const items = (STATE.elder.items || []).filter((x) => x.kind === 'helper');
+  box.innerHTML = note + (items.length ? items.map(elderItemCard).join('') : '');
+}
+
+function renderHomeHelp() {
+  const box = $('home-help-directory');
+  if (!box) return;
+  if (!STATE.help) { box.innerHTML = `<div class="elder-card"><p>${escapeHtml(enT('elder.loading'))}</p></div>`; return; }
+  box.innerHTML = (STATE.help.groups || []).map((g) => {
+    const gt = elderText(g);
+    return `<div class="elder-card"><h3>${escapeHtml(g.icon || '📞')} ${escapeHtml(gt.title || '')}</h3>`
+      + (g.entries || []).map((e) => {
+        const t = elderText(e);
+        return `<div class="elder-help-entry"><div class="nm">${escapeHtml(e.icon || '')} ${escapeHtml(t.name)}</div>`
+          + `<div class="ds">${escapeHtml(t.desc || '')}</div>${helpEntryActions(e, g.id === 'danger')}</div>`;
+      }).join('') + '</div>';
+  }).join('');
+}
+
 // ---- v160 — rotating elder-home banners --------------------------------------
 // Four real <a> slides already live in en.html: games / life tips / helper
 // voice / find help. Each href is a no-JS + deep-link fallback; enOpenBanner()
@@ -472,17 +513,12 @@ const EN_BANNER_SECONDS = 6;
 const _enBanner = { index: 0, timer: null, paused: false, init: false };
 
 function enOpenBanner(kind) {
-  if (kind === 'games') {
-    enNavigate('home');
-    const el = $('home-games');
-    if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
-  } else if (kind === 'tip') {
-    enNavigate('today'); enSetTodayTab('tip');
-  } else if (kind === 'helper') {
-    enNavigate('today'); enSetTodayTab('helper');
-  } else {
-    enNavigate('help');
-  }
+  // v161 — every banner stays on the SINGLE /en home page and scrolls to its own
+  // section, so the elder never leaves the one page that holds all four topics.
+  enNavigate('home');
+  const map = { games: 'home-games', tip: 'home-tips', helper: 'home-helper', help: 'home-help' };
+  const el = $(map[kind] || 'home-games');
+  if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
   return false; // cancel the fallback href — handled in-app above
 }
 
@@ -536,7 +572,7 @@ function renderHomeBanners() {
   }
 }
 
-// Deep-link support for the banner fallback hrefs (/en?view=...&tab=...#home-games).
+// Deep-link support for the banner fallback hrefs (/en?view=home#home-...).
 function enRouteFromUrl() {
   try {
     const sp = new URLSearchParams(location.search);
@@ -544,8 +580,8 @@ function enRouteFromUrl() {
     const tab = sp.get('tab');
     if (tab && view === 'today') { enNavigate('today'); enSetTodayTab(tab); return; }
     if (view && $('view-' + view)) enNavigate(view);
-    if (location.hash === '#home-games') {
-      const el = $('home-games');
+    if (location.hash) {
+      const el = $(location.hash.slice(1));
       if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth' }), 300);
     }
   } catch (e) { /* ignore */ }
@@ -1495,6 +1531,7 @@ async function loadElderData() {
   if (results[2].status === 'fulfilled') STATE.todayHk = results[2].value;
   STATE.reminders = loadReminders();
   renderHomeToday();
+  renderHomeTips(); renderHomeHelper(); renderHomeHelp();
   renderReminderForm();
   renderReminderList();
   const active = document.querySelector('.en-view.active');
@@ -1522,6 +1559,7 @@ async function init() {
     renderHomeQuick(); renderHomeGames();
     renderBrowse(); renderQuizQuestion();
     renderHomeToday(); renderToday(); renderHelp();
+    renderHomeTips(); renderHomeHelper(); renderHomeHelp();
     renderReminderForm(); renderReminderList();
   };
 

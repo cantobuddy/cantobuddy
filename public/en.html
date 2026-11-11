@@ -742,7 +742,7 @@
               </span>
             </a>
             <a class="enb-slide enb-tip" id="enb-slide-tip" data-banner="tip"
-               href="/en?view=today&amp;tab=tip" aria-hidden="true" tabindex="-1"
+               href="/en?view=home#home-tips" aria-hidden="true" tabindex="-1"
                onclick="return enOpenBanner('tip');">
               <span class="enb-art" aria-hidden="true">💡</span>
               <span class="enb-copy">
@@ -752,7 +752,7 @@
               </span>
             </a>
             <a class="enb-slide enb-helper" id="enb-slide-helper" data-banner="helper"
-               href="/en?view=today&amp;tab=helper" aria-hidden="true" tabindex="-1"
+               href="/en?view=home#home-helper" aria-hidden="true" tabindex="-1"
                onclick="return enOpenBanner('helper');">
               <span class="enb-art" aria-hidden="true">🫶</span>
               <span class="enb-copy">
@@ -762,7 +762,7 @@
               </span>
             </a>
             <a class="enb-slide enb-help" id="enb-slide-help" data-banner="help"
-               href="/en?view=help" aria-hidden="true" tabindex="-1"
+               href="/en?view=home#home-help" aria-hidden="true" tabindex="-1"
                onclick="return enOpenBanner('help');">
               <span class="enb-art" aria-hidden="true">🆘</span>
               <span class="enb-copy">
@@ -789,9 +789,6 @@
         </div>
       </section>
 
-      <!-- D1 — one BIG help button on the home screen. It is deliberately above
-           everything else: an elder who needs help is not here to browse words. -->
-      <button class="elder-help-cta" id="home-help-cta" onclick="enNavigate('help')">🆘 我需要幫助</button>
       <!-- A1 — today's teaser. Filled from the deterministic HKT daily pick. -->
       <div class="elder-card" id="home-today-card">
         <div class="elder-kicker" id="home-today-kicker">今日睇吓</div>
@@ -799,16 +796,29 @@
         <p id="home-today-body">載入中…</p>
         <button class="elder-btn primary" id="home-today-btn" onclick="enNavigate('today')">去今日 →</button>
       </div>
-      <!-- A2 entertainment — 2026-11-11: the elder asked for the GAMES to sit
-           BEFORE 揀一類嚟學詞. An elder who wants something to play should not
-           have to scroll past the whole vocabulary grid to find it. These are
-           the same seven live games as the Cantonese Games hub; no new game,
-           no new route and no account needed. Rendered by renderHomeGames(). -->
+      <!-- A2 entertainment — the elder asked for the GAMES to sit near the top,
+           BEFORE 揀一類嚟學詞. These are the same seven live games as the
+           Cantonese Games hub; no new game, no new route and no account needed.
+           Rendered by renderHomeGames(). -->
       <div class="en-section-title" id="home-games-title">玩吓遊戲</div>
       <p class="elder-note" id="home-games-note">一個人玩都得，唔使登記，全部免費。</p>
       <div class="en-grid elder-games" id="home-games"></div>
-      <!-- Keep this title AFTER the games section. It is the 揀一類嚟學詞 grid
-           (home-quick-title is mapped to learn.title by applyStaticLang()). -->
+      <!-- v161 — the four home banners below all land on THIS single page (the
+           /en home), each scrolling to its own section, so an elder sees every
+           topic in one place instead of jumping between separate views. -->
+      <div class="en-section-title" id="home-tips-title">生活小常識</div>
+      <div class="en-grid" id="home-tips"></div>
+      <div class="en-section-title" id="home-helper-title">姐姐心聲</div>
+      <div class="en-grid" id="home-helper"></div>
+      <div class="en-section-title" id="home-help-title">搵幫手</div>
+      <div id="home-help-directory"></div>
+      <button class="elder-btn primary" id="home-help-seeall" onclick="enNavigate('help')">睇全部幫手資料 →</button>
+      <!-- D1 — the SOS / "I need help" button is rarely used, so it sits at the
+           BOTTOM of the home page, not above the content. Tapping it still opens
+           the full Help view with every emergency and support number. -->
+      <button class="elder-help-cta" id="home-help-cta" onclick="enNavigate('help')">🆘 我需要幫助</button>
+      <!-- Keep this title AFTER every highlight section. It is the 揀一類嚟學詞
+           grid (home-quick-title is mapped to learn.title by applyStaticLang()). -->
       <div class="en-section-title" id="home-quick-title">快啲開始</div>
       <div class="en-grid" id="home-quick"></div>
     </section>

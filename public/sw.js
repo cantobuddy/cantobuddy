@@ -71,7 +71,15 @@
 // PWA that already visited /en has one. Without a new cache name an offline
 // elder could open the OLD help screen with the OLD (or missing) hotlines, which
 // is the one stale asset that must never survive a release.
-const CACHE = 'cantobuddy-v156';
+// v157 — /en elder accessibility + dead official links (2026-11-10):
+//   * app.js (APP_SHELL) now falls back to the LIVE HKO current-weather page and
+//     the LIVE 1823 iCal page. Both previous fallbacks returned 404, so an
+//     installed PWA with the old cache would keep sending elders to a dead link.
+//   * /en weather is shown in the Observatory's own 繁/簡 wording, tap-to-speak
+//     never falls back to a Mandarin voice, and official links are language-
+//     matched. Those are network-first EN_TRACK assets, but an offline elder
+//     still has a cached copy in this cache — so the bump is mandatory here.
+const CACHE = 'cantobuddy-v157';
 
 // Which paths are server-rendered SEO documents rather than app-shell assets.
 // Kept as one matcher so it can be asserted against `LANG_PREFIX` in seo.js —

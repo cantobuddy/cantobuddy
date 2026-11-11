@@ -2575,8 +2575,8 @@ async function renderTodayInHk() {
 
     const foot = document.createElement('div');
     foot.className = 'cb-tk-foot';
-    const weatherUrl = src.weather || 'https://www.hko.gov.hk/en/wxinfo/currwx/warningsum.htm';
-    const holidayUrl = src.holidays || 'https://www.1823.gov.hk/en/public-holiday/';
+    const weatherUrl = src.weather || 'https://www.hko.gov.hk/en/wxinfo/currwx/current.htm';
+    const holidayUrl = src.holidays || 'https://www.1823.gov.hk/en/hong-kong-public-holidays-ical';
     foot.innerHTML = '🔗 ' +
       '<a href="' + escapeHtml(weatherUrl) + '" target="_blank" rel="noopener">' +
       escapeHtml(t('today.sourceWeather')) + '</a> · ' +

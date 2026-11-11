@@ -35,7 +35,7 @@
  * on Tuesday and again on Friday simply sees two different small things.
  */
 
-const CONTENT_VERSION = '2026-11-10.1';
+const CONTENT_VERSION = '2026-11-10.2';
 const SHARE_SITE = 'https://cantobuddy.com/en';
 const VERIFIED_ON = '2026-11-06';
 const HKT_MS = 8 * 60 * 60 * 1000;
@@ -180,28 +180,53 @@ const MOODS = [
 // ---------------------------------------------------------------------------
 // A6 — official local information. Links only, plus the live HKO/1823 feed
 // already exposed by /api/today-in-hk. No invented headlines.
+//
+// 2026-11-10 FIX: the two links an elder reported as broken BOTH returned 404 —
+// the retired HKO warning-summary page and the retired 1823 holiday page. Both
+// authorities moved their content. Every URL below was re-checked live (200).
+// `url` stays the English
+// default for the existing API contract; urlTc / urlSc / urlEn let a Chinese
+// reader land on the CHINESE official page instead of an English wall of text.
 // ---------------------------------------------------------------------------
 const LOCAL_LINKS = [
   {
-    id: 'hko', icon: '🌡️', url: 'https://www.hko.gov.hk/en/wxinfo/currwx/warningsum.htm',
+    id: 'hko', icon: '🌡️',
+    url: 'https://www.hko.gov.hk/en/wxinfo/currwx/current.htm',
+    urlEn: 'https://www.hko.gov.hk/en/wxinfo/currwx/current.htm',
+    urlTc: 'https://www.hko.gov.hk/tc/wxinfo/currwx/current.htm',
+    urlSc: 'https://www.hko.gov.hk/sc/wxinfo/currwx/current.htm',
     tc: { title: '香港天文台 · 天氣同警告', desc: '官方即時天氣、暴雨同酷熱警告' },
     sc: { title: '香港天文台 · 天气和预警', desc: '官方实时天气、暴雨和酷热预警' },
     en: { title: 'Hong Kong Observatory', desc: 'Official live weather, rainstorm and heat warnings' },
   },
   {
-    id: 'holiday', icon: '📅', url: 'https://www.1823.gov.hk/en/public-holiday/',
-    tc: { title: '1823 · 公眾假期', desc: '政府公布嘅公眾假期日期' },
-    sc: { title: '1823 · 公众假期', desc: '政府公布的公众假期日期' },
-    en: { title: '1823 · Public holidays', desc: 'Official general holiday calendar' },
+    id: 'holiday', icon: '📅',
+    url: 'https://www.gov.hk/en/about/abouthk/holiday/',
+    urlEn: 'https://www.gov.hk/en/about/abouthk/holiday/',
+    urlTc: 'https://www.gov.hk/tc/about/abouthk/holiday/',
+    urlSc: 'https://www.gov.hk/sc/about/abouthk/holiday/',
+    tc: { title: '香港政府一站通 · 公眾假期', desc: '政府公布嘅公眾假期日期' },
+    sc: { title: '香港政府一站通 · 公众假期', desc: '政府公布的公众假期日期' },
+    en: { title: 'GovHK · Public holidays', desc: 'Official general holiday calendar' },
   },
   {
-    id: 'news', icon: '📰', url: 'https://www.news.gov.hk/eng/',
+    id: 'news', icon: '📰',
+    url: 'https://www.news.gov.hk/eng/',
+    urlEn: 'https://www.news.gov.hk/eng/',
+    // news.gov.hk has no Simplified edition; Traditional Chinese is still far
+    // more readable for a 简体 reader than the English page.
+    urlTc: 'https://www.news.gov.hk/chi/',
+    urlSc: 'https://www.news.gov.hk/chi/',
     tc: { title: '香港政府新聞網', desc: '官方本地新聞，唔使登入' },
     sc: { title: '香港政府新闻网', desc: '官方本地新闻，不用登录' },
     en: { title: 'news.gov.hk', desc: 'Official Hong Kong government news, no login' },
   },
   {
-    id: 'swd', icon: '🏛️', url: 'https://www.swd.gov.hk/en/',
+    id: 'swd', icon: '🏛️',
+    url: 'https://www.swd.gov.hk/en/',
+    urlEn: 'https://www.swd.gov.hk/en/',
+    urlTc: 'https://www.swd.gov.hk/tc/',
+    urlSc: 'https://www.swd.gov.hk/sc/',
     tc: { title: '社會福利署', desc: '長者服務同社區支援嘅官方資訊' },
     sc: { title: '社会福利署', desc: '长者服务和社区支援的官方信息' },
     en: { title: 'Social Welfare Department', desc: 'Official information on elderly services and community support' },
@@ -232,6 +257,7 @@ const HELP_GROUPS = [
       {
         id: 'swd-hotline', icon: '☎️', phone: '23432255', display: '2343 2255',
         web: 'https://www.swd.gov.hk/en/',
+        webTc: 'https://www.swd.gov.hk/tc/', webSc: 'https://www.swd.gov.hk/sc/',
         tc: { name: '社會福利署熱線', desc: '政府服務查詢。長者服務詳情可睇官方網站。' },
         sc: { name: '社会福利署热线', desc: '政府服务查询。长者服务详情请看官方网站。' },
         en: { name: 'Social Welfare Department hotline', desc: 'Government service enquiries. See the official site for elderly services.' },
@@ -239,6 +265,8 @@ const HELP_GROUPS = [
       {
         id: 'labour-fdh', icon: '📞', phone: '27171771', display: '2717 1771',
         web: 'https://www.fdh.labour.gov.hk/en/contact_us.html',
+        webTc: 'https://www.fdh.labour.gov.hk/tc/contact_us.html',
+        webSc: 'https://www.fdh.labour.gov.hk/sc/contact_us.html',
         tc: { name: '勞工處 · 外傭 24 小時熱線', desc: '關於家務助理嘅合約、假期同薪金問題（由 1823 接聽）。' },
         sc: { name: '劳工处 · 外佣 24 小时热线', desc: '关于家务助理的合同、假期和薪金问题（由 1823 接听）。' },
         en: { name: 'Labour Department · FDH 24-hour hotline', desc: 'Contract, rest-day and pay questions about a domestic helper. Answered by 1823.' },
@@ -258,6 +286,11 @@ const HELP_GROUPS = [
       {
         id: 'help-ngo', icon: '🤝', phone: '25234020', display: '2523 4020',
         whatsapp: '85259363780', web: 'https://helpfordomesticworkers.org/get-help/',
+        // This NGO publishes in English only (no /tc/, /sc/ edition — checked).
+        // Explicit same-target variants keep the language resolver honest rather
+        // than silently inventing a Chinese URL that would 404.
+        webTc: 'https://helpfordomesticworkers.org/get-help/',
+        webSc: 'https://helpfordomesticworkers.org/get-help/',
         tc: { name: 'HELP for Domestic Workers', desc: '免費意見同轉介，俾家務助理用；屋企人都可以幫手問。' },
         sc: { name: 'HELP for Domestic Workers', desc: '免费意见和转介，给家务助理用；家人也可以帮忙问。' },
         en: { name: 'HELP for Domestic Workers', desc: 'Free advice and referrals for domestic helpers; family members may call on their behalf.' },
@@ -266,12 +299,49 @@ const HELP_GROUPS = [
   },
 ];
 
-/** The sources behind the numbers above, kept visible so they can be re-checked. */
+/**
+ * The sources behind the numbers above, kept visible so they can be re-checked.
+ * Labels and URLs are localised: an elder looking for the origin of a hotline
+ * should not be sent to an unreadable English page (or a 404). Verified 200 on
+ * 2026-11-10; the old HKO warning-summary link was retired by the Observatory.
+ */
 const HELP_SOURCES = [
-  { label: 'Labour Department FDH — Contact us', url: 'https://www.fdh.labour.gov.hk/en/contact_us.html' },
-  { label: 'HELP for Domestic Workers — Get help', url: 'https://helpfordomesticworkers.org/get-help/' },
-  { label: 'Social Welfare Department', url: 'https://www.swd.gov.hk/en/' },
-  { label: 'Hong Kong Observatory — weather warnings', url: 'https://www.hko.gov.hk/en/wxinfo/currwx/warningsum.htm' },
+  {
+    label: 'Labour Department FDH — Contact us',
+    labelTc: '勞工處 · 外傭事務 — 聯絡我們', labelSc: '劳工处 · 外佣事务 — 联系我们',
+    url: 'https://www.fdh.labour.gov.hk/en/contact_us.html',
+    urlEn: 'https://www.fdh.labour.gov.hk/en/contact_us.html',
+    urlTc: 'https://www.fdh.labour.gov.hk/tc/contact_us.html',
+    urlSc: 'https://www.fdh.labour.gov.hk/sc/contact_us.html',
+  },
+  {
+    label: 'HELP for Domestic Workers — Get help',
+    labelTc: 'HELP for Domestic Workers — 尋求協助', labelSc: 'HELP for Domestic Workers — 寻求帮助',
+    url: 'https://helpfordomesticworkers.org/get-help/',
+  },
+  {
+    label: 'Social Welfare Department',
+    labelTc: '社會福利署', labelSc: '社会福利署',
+    url: 'https://www.swd.gov.hk/en/',
+    urlEn: 'https://www.swd.gov.hk/en/',
+    urlTc: 'https://www.swd.gov.hk/tc/', urlSc: 'https://www.swd.gov.hk/sc/',
+  },
+  {
+    label: 'Hong Kong Observatory — local weather report',
+    labelTc: '香港天文台 — 本地天氣報告', labelSc: '香港天文台 — 本地天气报告',
+    url: 'https://www.hko.gov.hk/en/wxinfo/currwx/current.htm',
+    urlEn: 'https://www.hko.gov.hk/en/wxinfo/currwx/current.htm',
+    urlTc: 'https://www.hko.gov.hk/tc/wxinfo/currwx/current.htm',
+    urlSc: 'https://www.hko.gov.hk/sc/wxinfo/currwx/current.htm',
+  },
+  {
+    label: '1823 — Hong Kong public holidays iCal',
+    labelTc: '1823 — 香港公眾假期', labelSc: '1823 — 香港公众假期',
+    url: 'https://www.1823.gov.hk/en/hong-kong-public-holidays-ical',
+    urlEn: 'https://www.1823.gov.hk/en/hong-kong-public-holidays-ical',
+    urlTc: 'https://www.1823.gov.hk/tc/hong-kong-public-holidays-ical',
+    urlSc: 'https://www.1823.gov.hk/sc/hong-kong-public-holidays-ical',
+  },
 ];
 
 const HELP_NOTE = {

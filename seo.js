@@ -5342,8 +5342,8 @@ function renderTodayInHkPage(data) {
   const src = d.sources || {};
   const warns = Array.isArray(w.warnings) ? w.warnings : [];
   const hol = d.nextHoliday || null;
-  const weatherUrl = src.weather || 'https://www.hko.gov.hk/en/wxinfo/currwx/warningsum.htm';
-  const holidayUrl = src.holidays || 'https://www.1823.gov.hk/en/public-holiday/';
+  const weatherUrl = src.weather || 'https://www.hko.gov.hk/en/wxinfo/currwx/current.htm';
+  const holidayUrl = src.holidays || 'https://www.1823.gov.hk/en/hong-kong-public-holidays-ical';
 
   const temp = w.temperatureC != null ? w.temperatureC + '°C' : null;
   const hum = w.humidityPct != null ? w.humidityPct + '%' : null;

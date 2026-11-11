@@ -66,6 +66,42 @@ function elderText(entry) {
   return entry.tc || entry.en;
 }
 
+/**
+ * The reader's script for ANY localised material — live weather, official links
+ * and source labels alike. 繁→tc, 簡→sc, Fil/Indo UI→en. Keeping one resolver
+ * means a Chinese reader never silently gets an English wall of text.
+ */
+function elderScript() {
+  const lang = enCurrentLang();
+  if (lang === 'zh') return 'sc';
+  if (lang === 'yue') return 'tc';
+  return 'en';
+}
+
+/** Language-matched official URL. Falls back to the API's English `url`. */
+function elderUrl(entry) {
+  if (!entry) return '';
+  const s = elderScript();
+  const local = s === 'tc' ? entry.urlTc : s === 'sc' ? entry.urlSc : entry.urlEn;
+  return local || entry.url || '';
+}
+
+/** Language-matched source label, falling back to the English label. */
+function elderLabel(entry) {
+  if (!entry) return '';
+  const s = elderScript();
+  const local = s === 'tc' ? entry.labelTc : s === 'sc' ? entry.labelSc : null;
+  return local || entry.label || '';
+}
+
+/** Language-matched "official website" link on a help-directory entry. */
+function elderWeb(entry) {
+  if (!entry) return '';
+  const s = elderScript();
+  const local = s === 'tc' ? entry.webTc : s === 'sc' ? entry.webSc : null;
+  return local || entry.web || '';
+}
+
 // ---- Device identity (same pattern as the Cantonese app: no account) --------
 function loadDeviceId() {
   let id = safeGet('en_device');
@@ -104,7 +140,7 @@ async function apiDelete(url, body) {
   return r.json().catch(() => ({}));
 }
 
-// ---- TTS (English + Cantonese) ---------------------------------------------
+// ---- TTS (English + Cantonese ONLY, never Mandarin) ------------------------
 let _voices = [];
 // localStorage can throw in private-mode / blocked-storage browsers; never let
 // that blank the whole page, so wrap every access.
@@ -113,9 +149,27 @@ function safeSet(key, val) { try { if (typeof localStorage !== 'undefined') loca
 let _selEn = safeGet('en_voice_en') || '';
 let _selYue = safeGet('en_voice_yue') || '';
 
+/**
+ * A genuine Cantonese voice. `zh-CN` / `cmn` Mandarin voices are deliberately
+ * excluded: an elder in Hong Kong asked for Cantonese, and a Mandarin fallback
+ * is worse than an honest "please install a Cantonese voice" message.
+ */
+function isCantoneseVoice(v) {
+  const l = String((v && v.lang) || '').toLowerCase().replace(/_/g, '-');
+  const n = String((v && v.name) || '').toLowerCase();
+  return /(^|-)yue(-|$)/.test(l) ||
+    /^zh-(hk|hant-hk)(-|$)/.test(l) ||
+    /cantonese|粵語|粤语|廣東話|广东话/.test(n);
+}
+
 function loadVoices() {
   if ('speechSynthesis' in window) {
     _voices = window.speechSynthesis.getVoices() || [];
+    // An earlier release could store a Mandarin voice under this key. Drop it.
+    if (_selYue && !_voices.some((v) => v.name === _selYue && isCantoneseVoice(v))) {
+      _selYue = '';
+      safeSet('en_voice_yue', '');
+    }
     populateVoiceSelects();
   }
 }
@@ -135,31 +189,43 @@ function scoreVoice(v, lang) {
     if (/samantha|aria|zira|google|microsoft|neural|premium|female|natural|enhanced/i.test(name)) s += 3;
     if (/espeak|robot|default|compact|espeakng/i.test(name)) s -= 3;
   } else {
-    if (/zh[-_]hk|yue/.test(l)) s += 3;
-    else if (l.startsWith('zh')) s += 1;
-    if (/google|microsoft|neural|premium|female|natural|ting|sinji|mei|ya|hong|kong/i.test(name)) s += 3;
+    if (isCantoneseVoice(v)) s += 6;
+    if (/google|microsoft|neural|premium|female|natural|sinji|mei|ting|ya|hong|kong/i.test(name)) s += 3;
     if (/espeak|robot|default|compact|espeakng/i.test(name)) s -= 3;
   }
   return s;
 }
 function pickVoice(lang) {
   const pool = lang === 'en'
-    ? _voices.filter((v) => v.lang.toLowerCase().startsWith('en'))
-    : _voices.filter((v) => /zh[-_]HK|yue/i.test(v.lang) || v.lang.toLowerCase().startsWith('zh'));
+    ? _voices.filter((v) => String(v.lang || '').toLowerCase().startsWith('en'))
+    : _voices.filter(isCantoneseVoice);
   if (!pool.length) return null;
   pool.sort((a, b) => scoreVoice(b, lang) - scoreVoice(a, lang));
   return pool[0];
 }
 function speak(text, lang) {
   if (!('speechSynthesis' in window)) { alert(enT('noAudio')); return; }
+  if (!_voices.length) loadVoices();
   window.speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
-  const selName = lang === 'en' ? _selEn : _selYue;
-  let v = selName ? _voices.find((x) => x.name === selName) || null : null;
-  if (!v) v = pickVoice(lang);
-  if (v) u.voice = v;
-  u.lang = lang === 'en' ? 'en-US' : 'zh-HK';
   u.rate = 0.9;
+  if (lang === 'en') {
+    let v = _selEn
+      ? _voices.find((x) => x.name === _selEn && String(x.lang || '').toLowerCase().startsWith('en')) || null
+      : null;
+    if (!v) v = pickVoice('en');
+    if (v) u.voice = v;
+    u.lang = (v && v.lang) || 'en-US';
+  } else {
+    // Every Chinese string in this app is read in Cantonese, including 简体.
+    let v = _selYue
+      ? _voices.find((x) => x.name === _selYue && isCantoneseVoice(x)) || null
+      : null;
+    if (!v) v = pickVoice('yue');
+    if (!v) { alert(enT('noCantoneseVoice')); return; }
+    u.voice = v;
+    u.lang = v.lang || 'zh-HK';
+  }
   window.speechSynthesis.speak(u);
 }
 
@@ -174,12 +240,12 @@ function speakReading(vocabId, lang) {
 }
 
 // ---- Voice chooser (top menu) ----------------------------------------------
-function fillVoiceSelect(sel, voices, selected) {
+function fillVoiceSelect(sel, voices, selected, emptyLabel) {
   sel.innerHTML = '';
   if (!voices.length) {
     const o = document.createElement('option');
     o.value = '';
-    o.textContent = '(呢部機無語音 / no voice)';
+    o.textContent = emptyLabel || '(呢部機無語音 / no voice)';
     sel.appendChild(o);
     return;
   }
@@ -195,10 +261,10 @@ function populateVoiceSelects() {
   const enSel = $('en-voice-en');
   const yueSel = $('en-voice-yue');
   if (!enSel || !yueSel) return;
-  const enVoices = _voices.filter((v) => v.lang.toLowerCase().startsWith('en'));
-  const yueVoices = _voices.filter((v) => /zh[-_]HK|yue/i.test(v.lang) || v.lang.toLowerCase().startsWith('zh'));
+  const enVoices = _voices.filter((v) => String(v.lang || '').toLowerCase().startsWith('en'));
+  const yueVoices = _voices.filter(isCantoneseVoice);
   fillVoiceSelect(enSel, enVoices, _selEn);
-  fillVoiceSelect(yueSel, yueVoices, _selYue);
+  fillVoiceSelect(yueSel, yueVoices, _selYue, enT('noCantoneseVoice'));
 }
 function toggleEnVoicePanel(e) {
   if (e) e.stopPropagation();
@@ -209,10 +275,17 @@ function toggleEnVoicePanel(e) {
   if (p) p.classList.toggle('en-hidden');
 }
 function setEnVoice(lang, name) {
-  if (lang === 'en') { _selEn = name; safeSet('en_voice_en', name); }
-  else { _selYue = name; safeSet('en_voice_yue', name); }
-  // preview the chosen voice immediately
-  speak(lang === 'en' ? 'Hello, good morning.' : '你好，早晨。', lang);
+  if (lang === 'yue') {
+    const v = _voices.find((x) => x.name === name);
+    if (!v || !isCantoneseVoice(v)) { alert(enT('noCantoneseVoice')); return; }
+    _selYue = name;
+    safeSet('en_voice_yue', name);
+    speak('你好，早晨。', 'yue');
+    return;
+  }
+  _selEn = name;
+  safeSet('en_voice_en', name);
+  speak('Hello, good morning.', 'en');
 }
 // Close the panel when tapping outside it.
 document.addEventListener('click', (e) => {
@@ -931,30 +1004,108 @@ function renderToday() {
   renderTodayShare();
 }
 
+/** An ISO date reads as English on a Chinese TTS voice; say it in Chinese. */
+function holidayDateText(iso) {
+  const s = String(iso || '');
+  if (elderScript() === 'en' || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const parts = s.split('-');
+  return Number(parts[0]) + '年' + Number(parts[1]) + '月' + Number(parts[2]) + '日';
+}
+
+/**
+ * One place resolves the official en / tc / sc fields. For 繁/簡 readers we
+ * never fall back to the English strings: if the Chinese feeds are down, the
+ * card says so in Chinese instead of showing a wall of unreadable English.
+ */
+function weatherParts() {
+  const d = STATE.todayHk || {};
+  const w = d.weather || {};
+  const script = elderScript();
+  const pick = (key) => {
+    const suffix = script === 'tc' ? 'Tc' : script === 'sc' ? 'Sc' : '';
+    const v = w[key + suffix];
+    return v == null ? (key === 'warnings' ? [] : '') : v;
+  };
+  const rawWarnings = pick('warnings');
+  const warnings = (Array.isArray(rawWarnings) ? rawWarnings : [rawWarnings])
+    .map(String).filter(Boolean);
+  const forecast = String(pick('forecast') || '');
+  const outlook = String(pick('outlook') || '');
+  const h = d.nextHoliday || null;
+  const holidayName = !h ? '' : script === 'tc'
+    ? String(h.nameTc || '')
+    : script === 'sc' ? String(h.nameSc || '') : String(h.name || '');
+  const englishWarnings = Array.isArray(w.warnings)
+    ? w.warnings
+    : (w.warnings ? [w.warnings] : []);
+  const hasEnglishText = englishWarnings.length > 0 || !!w.forecast || !!w.outlook || !!(h && h.name);
+  const hasChineseText = warnings.length > 0 || !!forecast || !!outlook || !!holidayName;
+  return {
+    d, w, script, holiday: h, holidayName, warnings, forecast, outlook,
+    temp: w.temperatureC, humidity: w.humidityPct,
+    hasEnglishText, hasChineseText,
+  };
+}
+
+/** Big-tap "read the weather to me" — always Cantonese for a Chinese reader. */
+function enSpeakWeather() {
+  const p = weatherParts();
+  const lines = [enT('today.weatherTitle')];
+  if (p.temp != null) {
+    lines.push(p.script === 'en'
+      ? 'Temperature ' + p.temp + ' degrees'
+      : enT('elder.temp') + ' ' + p.temp + '度');
+  }
+  if (p.humidity != null) {
+    lines.push(p.script === 'en'
+      ? 'Humidity ' + p.humidity + ' percent'
+      : enT('elder.humidity') + ' ' + p.humidity);
+  }
+  if (p.warnings.length) lines.push(enT('elder.warnings') + '：' + p.warnings.join('，'));
+  if (p.forecast) lines.push(enT('elder.forecast') + '：' + p.forecast);
+  if (p.outlook) lines.push(enT('elder.outlook') + '：' + p.outlook);
+  if (p.holidayName) {
+    lines.push(enT('elder.holiday') + '：' + p.holidayName + '，' +
+      holidayDateText(p.holiday && p.holiday.date));
+  }
+  if (p.script !== 'en' && !p.hasChineseText && p.hasEnglishText) {
+    lines.push(enT('elder.weatherMissingZh'));
+  }
+  const text = lines.filter(Boolean).join('。') + '。';
+  speak(text, p.script === 'en' ? 'en' : 'yue');
+}
+
 function renderTodayWeather() {
   const box = $('today-weather');
   if (!box) return;
-  const d = STATE.todayHk;
-  const w = d && d.weather;
-  const has = w && (w.temperatureC != null || w.humidityPct != null ||
-    (w.warnings && w.warnings.length) || w.forecast);
+  const p = weatherParts();
+  const hasNumbers = p.temp != null || p.humidity != null;
+  const has = hasNumbers || p.hasChineseText || (p.script !== 'en' && p.hasEnglishText);
   let html = `<div class="elder-card"><h3>🌤️ ${escapeHtml(enT('today.weatherTitle'))}</h3>`;
   if (!has) {
-    html += `<p>${escapeHtml(enT(d ? 'today.weatherMissing' : 'elder.loading'))}</p>`;
+    const loaded = p.d && Object.keys(p.d).length > 0;
+    html += `<p>${escapeHtml(enT(loaded ? 'today.weatherMissing' : 'elder.loading'))}</p>`;
   } else {
     const bits = [];
-    if (w.temperatureC != null) bits.push('🌡️ ' + enT('elder.temp') + ' ' + w.temperatureC + '°C');
-    if (w.humidityPct != null) bits.push('💧 ' + enT('elder.humidity') + ' ' + w.humidityPct + '%');
+    if (p.temp != null) bits.push('🌡️ ' + enT('elder.temp') + ' ' + p.temp + '°C');
+    if (p.humidity != null) bits.push('💧 ' + enT('elder.humidity') + ' ' + p.humidity + '%');
     if (bits.length) html += `<p>${escapeHtml(bits.join(' · '))}</p>`;
-    if (w.warnings && w.warnings.length) {
-      html += `<p>⚠️ ${escapeHtml(enT('elder.warnings'))}：${escapeHtml(w.warnings.map(String).join('、'))}</p>`;
+    if (p.warnings.length) {
+      html += `<p>⚠️ ${escapeHtml(enT('elder.warnings'))}：${escapeHtml(p.warnings.join('、'))}</p>`;
     }
-    if (w.forecast) html += `<p>${escapeHtml(String(w.forecast))}</p>`;
-  }
-  if (d && d.nextHoliday && d.nextHoliday.name) {
-    const h = d.nextHoliday;
-    const name = enCurrentLang() === 'zh' ? (h.nameZh || h.name) : h.name;
-    html += `<p class="elder-note">📅 ${escapeHtml(enT('elder.holiday'))}：${escapeHtml(String(name))} (${escapeHtml(String(h.date))})</p>`;
+    if (p.forecast) {
+      html += `<p><strong>${escapeHtml(enT('elder.forecast'))}：</strong>${escapeHtml(p.forecast)}</p>`;
+    }
+    if (p.outlook) {
+      html += `<p><strong>${escapeHtml(enT('elder.outlook'))}：</strong>${escapeHtml(p.outlook)}</p>`;
+    }
+    if (p.script !== 'en' && !p.hasChineseText && p.hasEnglishText) {
+      html += `<p class="elder-note">${escapeHtml(enT('elder.weatherMissingZh'))}</p>`;
+    }
+    if (p.holidayName) {
+      html += `<p class="elder-note">📅 ${escapeHtml(enT('elder.holiday'))}：${escapeHtml(p.holidayName)} (${escapeHtml(holidayDateText(p.holiday && p.holiday.date))})</p>`;
+    }
+    html += `<button class="elder-btn primary" type="button" onclick="enSpeakWeather()">${escapeHtml(enT('today.speakWeather'))}</button>`;
   }
   html += '</div>';
   box.innerHTML = html;
@@ -1062,7 +1213,7 @@ function renderTodayLocal() {
   const links = STATE.elder && STATE.elder.localLinks || [];
   box.innerHTML = links.map((l) => {
     const t = elderText(l);
-    return `<a class="elder-link" href="${escapeHtml(l.url)}" target="_blank" rel="noopener noreferrer"><span class="ic">${escapeHtml(l.icon || '🔗')}</span><span><span class="nm">${escapeHtml(t.title)}</span><br><span class="ds">${escapeHtml(t.desc || '')}</span></span></a>`;
+    return `<a class="elder-link" href="${escapeHtml(elderUrl(l))}" target="_blank" rel="noopener noreferrer"><span class="ic">${escapeHtml(l.icon || '🔗')}</span><span><span class="nm">${escapeHtml(t.title)}</span><br><span class="ds">${escapeHtml(t.desc || '')}</span></span></a>`;
   }).join('');
 }
 
@@ -1079,8 +1230,9 @@ function helpEntryActions(e, danger) {
   if (e.whatsapp) {
     html += `<a class="elder-btn small" href="https://wa.me/${escapeHtml(e.whatsapp)}" target="_blank" rel="noopener noreferrer">${escapeHtml(enT('help.whatsapp'))}</a>`;
   }
-  if (e.web) {
-    html += `<a class="elder-btn small" href="${escapeHtml(e.web)}" target="_blank" rel="noopener noreferrer">${escapeHtml(enT('help.website'))}</a>`;
+  const web = elderWeb(e);
+  if (web) {
+    html += `<a class="elder-btn small" href="${escapeHtml(web)}" target="_blank" rel="noopener noreferrer">${escapeHtml(enT('help.website'))}</a>`;
   }
   return html;
 }
@@ -1118,7 +1270,7 @@ function renderHelpLinks() {
   box.innerHTML = `<div class="elder-card"><h3>${escapeHtml(enT('help.linksTitle'))}</h3>`
     + links.map((l) => {
       const t = elderText(l);
-      return `<a class="elder-link" href="${escapeHtml(l.url)}" target="_blank" rel="noopener noreferrer"><span class="ic">${escapeHtml(l.icon || '🔗')}</span><span><span class="nm">${escapeHtml(t.title)}</span><br><span class="ds">${escapeHtml(t.desc || '')}</span></span></a>`;
+      return `<a class="elder-link" href="${escapeHtml(elderUrl(l))}" target="_blank" rel="noopener noreferrer"><span class="ic">${escapeHtml(l.icon || '🔗')}</span><span><span class="nm">${escapeHtml(t.title)}</span><br><span class="ds">${escapeHtml(t.desc || '')}</span></span></a>`;
     }).join('') + '</div>';
 }
 function renderHelpSources() {
@@ -1129,7 +1281,7 @@ function renderHelpSources() {
   const sources = STATE.help.sources || [];
   box.innerHTML = `<div class="elder-card"><h3>${escapeHtml(enT('help.sourcesTitle'))}</h3>
     <p class="elder-note">${escapeHtml(note)}</p>
-    ${sources.map((s) => `<a class="elder-link" href="${escapeHtml(s.url)}" target="_blank" rel="noopener noreferrer"><span class="ic">🔗</span><span class="nm">${escapeHtml(s.label)}</span></a>`).join('')}
+    ${sources.map((s) => `<a class="elder-link" href="${escapeHtml(elderUrl(s))}" target="_blank" rel="noopener noreferrer"><span class="ic">🔗</span><span class="nm">${escapeHtml(elderLabel(s))}</span></a>`).join('')}
     </div>`;
 }
 

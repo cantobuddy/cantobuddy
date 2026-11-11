@@ -2064,8 +2064,8 @@ app.get('/api/today-in-hk', async (req, res) => {
       available: false,
       error: 'server_error',
       sources: {
-        weather: 'https://www.hko.gov.hk/en/wxinfo/currwx/warningsum.htm',
-        holidays: 'https://www.1823.gov.hk/en/public-holiday/',
+        weather: 'https://www.hko.gov.hk/en/wxinfo/currwx/current.htm',
+        holidays: 'https://www.1823.gov.hk/en/hong-kong-public-holidays-ical',
       },
     });
   }

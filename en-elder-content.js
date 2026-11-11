@@ -35,7 +35,7 @@
  * on Tuesday and again on Friday simply sees two different small things.
  */
 
-const CONTENT_VERSION = '2026-11-11.1';
+const CONTENT_VERSION = '2026-11-11.2';
 const SHARE_SITE = 'https://cantobuddy.com/en';
 const VERIFIED_ON = '2026-11-06';
 const HKT_MS = 8 * 60 * 60 * 1000;
@@ -44,14 +44,25 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 // ---------------------------------------------------------------------------
 // GovHK publishes ONE page per calendar year at /about/abouthk/holiday/YYYY.htm,
 // plus a multi-year index at /about/abouthk/holiday/ (currently "2023 - 2027").
-// An elder tapping 公眾假期 wants the actual holiday table, not a list of years
-// to choose from. "Current year" is the HONG KONG calendar year at request time,
-// so the link rolls over on 1 January without a code change. Verified live on
-// 2026-11-11: 2023..2027 all return 200 in en / tc / sc, and GovHK always
-// publishes the current year, so this can never resolve to a 404.
+// An elder tapping 公眾假期 wants the actual holiday table, not a list of years.
+//
+// 2026-11-11 CORRECTION: the elder asked explicitly for
+//   https://www.gov.hk/tc/about/abouthk/holiday/2027.htm
+// — the NEWEST PUBLISHED calendar, and the page GovHK's own index puts first.
+// The earlier "current HKT year" resolver answered 2026 in Nov 2026 and was
+// wrong for this reader. HOLIDAY_YEAR is therefore a deliberate PIN, not a
+// computed year: GovHK has not necessarily published a future year yet, and
+// guessing one would send an elder to a 404. Bump this constant (and re-run the
+// official URL sweep) when GovHK publishes the next calendar. Verified 200 on
+// 2026-11-11 for 2027 in en / tc / sc.
+//
+// refMs is still threaded through localLinks() / publicContent() /
+// helpDirectory() so the per-request call shape stays stable; today the answer
+// is the same on every request because the year is pinned.
 // ---------------------------------------------------------------------------
-function holidayYear(refMs = Date.now()) {
-  return Number(new Date(refMs + HKT_MS).toISOString().slice(0, 4));
+const HOLIDAY_YEAR = 2027;
+function holidayYear(_refMs = Date.now()) {
+  return HOLIDAY_YEAR;
 }
 function govhkHolidayUrl(lang, refMs = Date.now()) {
   return `https://www.gov.hk/${lang}/about/abouthk/holiday/${holidayYear(refMs)}.htm`;
@@ -204,10 +215,11 @@ const MOODS = [
 // urlEn let a Chinese reader land on the CHINESE official page instead of an
 // English wall of text.
 //
-// 2026-11-11 FIX: (1) 公眾假期 now opens the CURRENT YEAR holiday table instead
-// of the GovHK multi-year index; (2) 社會福利署 now opens 安老服務 (elderly
-// services) instead of the department's generic homepage. Both were requested
-// by the elder user with screenshots. URLs verified 200 in en / tc / sc.
+// 2026-11-11 FIX: (1) 公眾假期 now opens the concrete 2027 holiday table (the
+// newest GovHK calendar, as the elder asked) instead of the multi-year index;
+// (2) 社會福利署 now opens 安老服務 (elderly services) instead of the
+// department's generic homepage. Both were requested with screenshots. URLs
+// verified 200 in en / tc / sc.
 // ---------------------------------------------------------------------------
 function localLinks(refMs = Date.now()) {
   const hy = holidayYear(refMs);
@@ -428,8 +440,8 @@ function publicContent(refMs = Date.now()) {
     daily: dailySelection(refMs),
     items: ELDER_ITEMS,
     moods: MOODS,
-    // Resolve the holiday year per request, not at module load: a long-running
-    // server must roll over on 1 January without a restart.
+    // Built per request, not cached at module load, so a future year change
+    // takes effect without a restart. The year itself is pinned for now.
     localLinks: localLinks(refMs),
     helperNote: HELPER_NOTE,
     shareSite: SHARE_SITE,
@@ -448,7 +460,7 @@ function helpDirectory(refMs = Date.now()) {
 }
 
 module.exports = {
-  CONTENT_VERSION, SHARE_SITE, VERIFIED_ON, HKT_MS,
+  CONTENT_VERSION, SHARE_SITE, VERIFIED_ON, HKT_MS, HOLIDAY_YEAR,
   ELDER_ITEMS, MOODS, LOCAL_LINKS, HELP_GROUPS, HELP_SOURCES, HELP_NOTE, HELPER_NOTE,
   hktDateKey, hktDayIndex, rotate, byKind, dailySelection, localised,
   holidayYear, govhkHolidayUrl, localLinks, publicContent, helpDirectory,

@@ -344,7 +344,7 @@ function enNavigate(view) {
     b.classList.toggle('active', b.dataset.view === view);
   });
   window.scrollTo(0, 0);
-  if (view === 'home') { renderHomeQuick(); renderHomeToday(); }
+  if (view === 'home') { renderHomeQuick(); renderHomeGames(); renderHomeToday(); renderHomeBanners(); }
   if (view === 'learn') renderLearn();
   if (view === 'practice') renderPractice();
   if (view === 'progress') renderProgress();
@@ -364,6 +364,20 @@ const STATIC_TEXT = {
   'hero-chip': 'hero.chip',
   'hero-bold': 'hero.bold',
   'hero-rest': 'hero.rest',
+  'home-games-title': 'home.gamesTitle',
+  'home-games-note': 'home.gamesNote',
+  'enb-games-title': 'banner.games.title',
+  'enb-games-sub': 'banner.games.sub',
+  'enb-games-cta': 'banner.games.cta',
+  'enb-tip-title': 'banner.tip.title',
+  'enb-tip-sub': 'banner.tip.sub',
+  'enb-tip-cta': 'banner.tip.cta',
+  'enb-helper-title': 'banner.helper.title',
+  'enb-helper-sub': 'banner.helper.sub',
+  'enb-helper-cta': 'banner.helper.cta',
+  'enb-help-title': 'banner.help.title',
+  'enb-help-sub': 'banner.help.sub',
+  'enb-help-cta': 'banner.help.cta',
   'home-quick-title': 'learn.title',
   'learn-title': 'learn.title',
   'practice-title': 'practice.title',
@@ -421,6 +435,120 @@ function categoryName(c) {
   if (lang === 'fil') return c.name_fil || c.name_en;
   if (lang === 'id') return c.name_id || c.name_en;
   return c.name_en;
+}
+
+// ---- A2 elder entertainment -------------------------------------------------
+// The seven live games from the Cantonese Games hub (GAMES_CATALOG in app.js).
+// /en keeps its own small list on purpose: no shared script, no account, no
+// install, and the grid must still render if the vocabulary API is unreachable.
+// Order matches the hub, so the elder sees the same games in the same order.
+const EN_GAMES = [
+  { href: '/games/uno', emoji: '🎴', key: 'home.game.uno' },
+  { href: '/games/bigtwo', emoji: '🃏', key: 'home.game.bigtwo' },
+  { href: '/games/wordmatch', emoji: '🔤', key: 'home.game.wordmatch' },
+  { href: '/games/sudoku', emoji: '🔢', key: 'home.game.sudoku' },
+  { href: '/games/chinesechecker', emoji: '🔷', key: 'home.game.chinesechecker' },
+  { href: '/games/memorymatch', emoji: '🧠', key: 'home.game.memorymatch' },
+  { href: '/games/solitaire', emoji: '♠️', key: 'home.game.solitaire' },
+];
+
+function renderHomeGames() {
+  const grid = $('home-games');
+  if (!grid) return;
+  grid.innerHTML = EN_GAMES.map((g) =>
+    `<a class="en-cat elder-game" href="${g.href}">` +
+    `<div class="ic">${g.emoji}</div>` +
+    `<div class="nm">${escapeHtml(enT(g.key))}</div>` +
+    `</a>`).join('');
+}
+
+// ---- v160 — rotating elder-home banners --------------------------------------
+// Four real <a> slides already live in en.html: games / life tips / helper
+// voice / find help. Each href is a no-JS + deep-link fallback; enOpenBanner()
+// opens the right in-app doorway WITHOUT a reload. Mirrors the main / home
+// carousel but slower (elder-friendly) and reduced-motion aware.
+const EN_BANNERS = ['games', 'tip', 'helper', 'help'];
+const EN_BANNER_SECONDS = 6;
+const _enBanner = { index: 0, timer: null, paused: false, init: false };
+
+function enOpenBanner(kind) {
+  if (kind === 'games') {
+    enNavigate('home');
+    const el = $('home-games');
+    if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+  } else if (kind === 'tip') {
+    enNavigate('today'); enSetTodayTab('tip');
+  } else if (kind === 'helper') {
+    enNavigate('today'); enSetTodayTab('helper');
+  } else {
+    enNavigate('help');
+  }
+  return false; // cancel the fallback href — handled in-app above
+}
+
+function enGoBanner(i) {
+  const n = EN_BANNERS.length;
+  _enBanner.index = ((i % n) + n) % n;
+  const slides = document.querySelectorAll('#enb-track .enb-slide');
+  slides.forEach((s, k) => {
+    const on = k === _enBanner.index;
+    s.classList.toggle('on', on);
+    s.setAttribute('aria-hidden', on ? 'false' : 'true');
+    s.tabIndex = on ? 0 : -1;
+  });
+  document.querySelectorAll('#enb-dots .enb-dot').forEach((d, k) => {
+    const on = k === _enBanner.index;
+    d.classList.toggle('on', on);
+    if (on) d.setAttribute('aria-current', 'true');
+    else d.removeAttribute('aria-current');
+  });
+  _enBannerStart();
+}
+
+function _enBannerStart() {
+  if (_enBanner.timer) { clearInterval(_enBanner.timer); _enBanner.timer = null; }
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce || _enBanner.paused) return;
+  _enBanner.timer = setInterval(() => enGoBanner(_enBanner.index + 1), EN_BANNER_SECONDS * 1000);
+}
+
+function renderHomeBanners() {
+  const wrap = $('en-home-banners');
+  if (!wrap) return;
+  if (!_enBanner.init) {
+    _enBanner.init = true;
+    // Pause on hover / focus / touch and when the tab is hidden.
+    const pause = () => { _enBanner.paused = true; _enBannerStart(); };
+    const resume = () => { _enBanner.paused = false; _enBannerStart(); };
+    wrap.addEventListener('mouseenter', pause);
+    wrap.addEventListener('mouseleave', resume);
+    wrap.addEventListener('focusin', pause);
+    wrap.addEventListener('focusout', resume);
+    wrap.addEventListener('touchstart', pause, { passive: true });
+    wrap.addEventListener('touchend', resume, { passive: true });
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) { if (_enBanner.timer) { clearInterval(_enBanner.timer); _enBanner.timer = null; } }
+      else _enBannerStart();
+    });
+    enGoBanner(0);
+  } else {
+    _enBannerStart();
+  }
+}
+
+// Deep-link support for the banner fallback hrefs (/en?view=...&tab=...#home-games).
+function enRouteFromUrl() {
+  try {
+    const sp = new URLSearchParams(location.search);
+    const view = sp.get('view');
+    const tab = sp.get('tab');
+    if (tab && view === 'today') { enNavigate('today'); enSetTodayTab(tab); return; }
+    if (view && $('view-' + view)) enNavigate(view);
+    if (location.hash === '#home-games') {
+      const el = $('home-games');
+      if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth' }), 300);
+    }
+  } catch (e) { /* ignore */ }
 }
 
 function renderHomeQuick() {
@@ -1379,13 +1507,19 @@ async function init() {
   STATE.deviceId = loadDeviceId();
   renderLangSwitch();
   applyStaticLang();
+  // The games need NO network data, so draw them before the vocabulary request.
+  // If /api/en/vocabulary fails below, the elder can still play something.
+  renderHomeGames();
+  renderHomeBanners();    // v160 — start the four rotating home banners
   enSyncInstallEntry();   // show/hide the header "Add to Home" button correctly
   populateVoiceSelects(); // fill voice <select>s if voices are already available
   window.onEnLangChange = () => {
     applyStaticLang();
     renderLearn(); renderPractice(); renderProgress();
     // §0b — browse/scenario meanings and the quiz options are script-aware,
-    // so every surface has to be redrawn when 繁 ⇄ 簡 changes.
+    // so every surface has to be redrawn when 繁 ⇄ 簡 changes. The two HOME
+    // grids are script-aware too: category names and game names come from enT().
+    renderHomeQuick(); renderHomeGames();
     renderBrowse(); renderQuizQuestion();
     renderHomeToday(); renderToday(); renderHelp();
     renderReminderForm(); renderReminderList();
@@ -1423,6 +1557,7 @@ async function init() {
   renderHomeQuick();
   renderLearn();
   renderPractice();
+  enRouteFromUrl();       // v160 — honour ?view=/&tab=/# deep links (banner hrefs)
 
   // Register the service worker so /en is installable and works offline. The SW
   // (scope "/") is shared with the Cantonese app, so this is idempotent.

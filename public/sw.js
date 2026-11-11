@@ -80,12 +80,24 @@
 //     matched. Those are network-first EN_TRACK assets, but an offline elder
 //     still has a cached copy in this cache — so the bump is mandatory here.
 // v158 — /en official-link deep links (2026-11-11): the 公眾假期 card now opens
-// the CURRENT YEAR GovHK holiday table (not the multi-year index) and the 社會
+// a concrete YEAR GovHK holiday table (not the multi-year index) and the 社會
 // 福利署 card opens 安老服務 (not the department homepage). Both URLs live in
 // the /api/en/elder/* payloads, which are network-first but keep a cached
 // offline fallback HERE. Without a new cache name an offline elder would keep
 // the previous release's link set on the help screen.
-const CACHE = 'cantobuddy-v158';
+// v159 — /en elder home (2026-11-11): (1) the holiday year is pinned to the
+// verified 2027 GovHK calendar the elder asked for, not the current HKT year;
+// (2) a new 玩吓遊戲 games section sits ABOVE 揀一類嚟學詞, so en.html,
+// en-app.js and en-i18n.js all change. Those are network-first EN_TRACK assets
+// with an offline fallback in this cache, and the /api/en/elder/* payloads are
+// cached here too — without a new cache name an installed PWA would keep the
+// OLD 2026 holiday link and the OLD home screen with no games at all.
+// v160 — /en home now has four rotating elder banners (遊戲 / 生活小常識 /
+// 姐姐心聲 / 搵幫手) that deep-link into the games section, the Today tabs and
+// the Help view. en.html, en-app.js and en-i18n.js change again, and the new
+// banner copy is part of the offline EN_TRACK fallback, so the cache name must
+// move on or an installed PWA would keep the static pre-banner home screen.
+const CACHE = 'cantobuddy-v160';
 
 // Which paths are server-rendered SEO documents rather than app-shell assets.
 // Kept as one matcher so it can be asserted against `LANG_PREFIX` in seo.js —

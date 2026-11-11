@@ -516,7 +516,7 @@ function enOpenBanner(kind) {
   // v161 — every banner stays on the SINGLE /en home page and scrolls to its own
   // section, so the elder never leaves the one page that holds all four topics.
   enNavigate('home');
-  const map = { games: 'home-games', tip: 'home-tips', helper: 'home-helper', help: 'home-help' };
+  const map = { games: 'home-games', tip: 'home-tips', helper: 'home-helper', help: 'home-help-directory' };
   const el = $(map[kind] || 'home-games');
   if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
   return false; // cancel the fallback href — handled in-app above

@@ -101,7 +101,7 @@
 // single /en home page and scroll to their own section (games / tips / helper
 // voice / help), and the SOS button moved to the BOTTOM of the home page. en.html,
 // en-app.js and en-i18n.js change again, so the cache name moves once more.
-const CACHE = 'cantobuddy-v161';
+const CACHE = 'cantobuddy-v162';
 
 // Which paths are server-rendered SEO documents rather than app-shell assets.
 // Kept as one matcher so it can be asserted against `LANG_PREFIX` in seo.js —

@@ -403,6 +403,16 @@ const STATIC_TEXT = {
   'mood-kicker': 'today.moodKicker',
   'mood-title': 'today.moodTitle',
   'mood-note': 'today.moodNote',
+  // Feature 1 greeting-card labels are CLASS-based (gm-l-*), not ID-based: the
+  // card appears on BOTH Home (teaser) and Today (full card), so duplicate IDs
+  // would break. renderGoodMorning() fills every .gm-l-* element instead.
+  // Feature 2 — one-tap install guide for the children who set up the phone.
+  'setup-title': 'setup.title',
+  'setup-note': 'setup.note',
+  'setup-step1': 'setup.step1',
+  'setup-step2': 'setup.step2',
+  'setup-step3': 'setup.step3',
+  'setup-cta': 'setup.cta',
   'local-title': 'today.localTitle',
   'help-title': 'help.title',
   'reminder-title': 'help.reminderTitle',
@@ -456,11 +466,245 @@ const EN_GAMES = [
   { href: '/games/solitaire', emoji: '♠️', key: 'home.game.solitaire' },
 ];
 
+// ---- Feature 1: daily "Good Morning + 1 English Word" greeting card ----------
+// A curated, elder-friendly list of everyday English words. One is shown each day
+// (deterministic by HKT date) so the reader has a reason to open the app every
+// morning before messaging family. Speak + share reuse the existing infra.
+const EN_MORNING_WORDS = [
+  { en: 'Good morning', zh: '早晨' },
+  { en: 'Thank you', zh: '唔該' },
+  { en: "You're welcome", zh: '唔使客氣' },
+  { en: "I'm fine", zh: '我好好' },
+  { en: 'See you', zh: '拜拜' },
+  { en: 'Tea', zh: '茶' },
+  { en: 'Water', zh: '水' },
+  { en: 'Eat', zh: '食' },
+  { en: 'Sleep', zh: '瞓覺' },
+  { en: 'Home', zh: '屋企' },
+  { en: 'Family', zh: '屋企人' },
+  { en: 'Friend', zh: '朋友' },
+  { en: 'Happy', zh: '開心' },
+  { en: 'Love', zh: '愛' },
+  { en: 'Help', zh: '幫手' },
+  { en: 'Please', zh: '唔該' },
+  { en: 'Sorry', zh: '對唔住' },
+  { en: 'Doctor', zh: '醫生' },
+  { en: 'Medicine', zh: '藥' },
+  { en: 'Rest', zh: '休息' },
+  { en: 'Walk', zh: '行街' },
+  { en: 'Rain', zh: '雨' },
+  { en: 'Sun', zh: '太陽' },
+  { en: 'Flower', zh: '花' },
+  { en: 'Moon', zh: '月光' },
+  { en: 'Book', zh: '書' },
+  { en: 'Music', zh: '音樂' },
+  { en: 'Phone', zh: '電話' },
+  { en: 'Photo', zh: '相' },
+  { en: 'Park', zh: '公園' },
+  { en: 'Market', zh: '街市' },
+  { en: 'Cat', zh: '貓' },
+  { en: 'Dog', zh: '狗' },
+  { en: 'Grandchild', zh: '孫' },
+  { en: 'Son', zh: '仔' },
+  { en: 'Daughter', zh: '女' },
+  { en: 'Good night', zh: '早唞' },
+  { en: 'Breakfast', zh: '早餐' },
+  { en: 'Weather', zh: '天氣' },
+  { en: 'Garden', zh: '花園' },
+  { en: 'Cook', zh: '煮飯' },
+  { en: 'Clean', zh: '清潔' },
+];
+function enDayOfYear(dateStr) {
+  const p = String(dateStr).split('-').map(Number);
+  const start = Date.UTC(p[0], 0, 0);
+  const cur = Date.UTC(p[0], p[1] - 1, p[2]);
+  return Math.floor((cur - start) / 86400000);
+}
+function enTodayWord() {
+  const len = EN_MORNING_WORDS.length;
+  const idx = ((enDayOfYear(hktToday()) % len) + len) % len;
+  return EN_MORNING_WORDS[idx];
+}
+/** The shareable "Good morning + 1 English word" message for today (HKT). */
+function enGreetingText() {
+  const w = enTodayWord();
+  return '🌞 ' + enT('gm.title') + '\n'
+    + enT('gm.wordOfDay') + '\n' + w.en + ' · ' + w.zh;
+}
+/** HKT date shown on the card, so the reader can see it is a fresh one. */
+function enGreetingDate() {
+  const d = hktToday().split('-');
+  return d[0] + ' / ' + Number(d[1]) + ' / ' + Number(d[2]);
+}
+/** Fill every class-based greeting-card label (Home teaser + Today card). */
+function enFillGreetingLabels() {
+  const map = {
+    'gm-l-kicker': 'gm.kicker',
+    'gm-l-title': 'gm.title',
+    'gm-l-word-title': 'gm.wordOfDay',
+    'gm-l-share-note': 'gm.shareTitle',
+    'gm-l-share-cta': 'gm.shareCta',
+  };
+  for (const cls of Object.keys(map)) {
+    document.querySelectorAll('.' + cls).forEach((el) => { el.textContent = enT(map[cls]); });
+  }
+}
+function renderGoodMorning() {
+  const w = enTodayWord();
+  enFillGreetingLabels();
+  // The English word + Cantonese meaning appear on both the Home teaser and the
+  // full Today card, so use classes here too (no duplicate IDs).
+  document.querySelectorAll('.gm-l-word-en').forEach((el) => { el.textContent = w.en; });
+  document.querySelectorAll('.gm-l-word-zh').forEach((el) => { el.textContent = w.zh; });
+  const sp = $('gm-word-speak');
+  if (sp) {
+    sp.textContent = enT('gm.listenEn');
+    sp.onclick = () => enListenWord('gm:' + w.en, w.en);
+  }
+  const date = $('gm-date');
+  if (date) date.textContent = enGreetingDate();
+  // Compact Home teaser — a reason to open the app every morning.
+  const teaser = $('gm-teaser-word');
+  if (teaser) teaser.textContent = w.en + ' · ' + w.zh;
+  // Dedicated one-tap share row on the greeting card (WhatsApp / FB / copy).
+  const actions = $('gm-share-actions');
+  if (actions) {
+    const text = enGreetingText() + '\n\n'
+      + ((STATE.elder && STATE.elder.shareSite) || 'https://cantobuddy.com/en');
+    const wa = 'https://wa.me/?text=' + encodeURIComponent(text);
+    const fb = 'https://www.facebook.com/sharer/sharer.php?u='
+      + encodeURIComponent((STATE.elder && STATE.elder.shareSite) || 'https://cantobuddy.com/en')
+      + '&quote=' + encodeURIComponent(text);
+    actions.innerHTML =
+      `<a class="elder-btn green" href="${escapeHtml(wa)}" target="_blank" rel="noopener noreferrer">${escapeHtml(enT('today.shareWhatsapp'))}</a>`
+      + `<a class="elder-btn" href="${escapeHtml(fb)}" target="_blank" rel="noopener noreferrer">${escapeHtml(enT('today.shareFacebook'))}</a>`
+      + `<button class="elder-btn small" onclick="enCopyGreeting()" aria-label="Copy">📋</button>`;
+  }
+}
+async function enCopyGreeting() {
+  const text = enGreetingText() + '\n\n'
+    + ((STATE.elder && STATE.elder.shareSite) || 'https://cantobuddy.com/en');
+  try {
+    await navigator.clipboard.writeText(text);
+    const p = $('gm-share-note');
+    if (p) {
+      const old = p.textContent;
+      p.textContent = enT('elder.copyOk');
+      setTimeout(() => { p.textContent = old; }, 1800);
+    }
+  } catch (e) { /* clipboard blocked — the two share links still work */ }
+}
+
+// ---- Feature 3: gentle daily streak (localStorage, no login) -----------------
+// A day "counts" when the elder listens to 3 distinct words OR plays 1 game.
+// Stored per HKT date so the tick resets at local midnight, not UTC.
+const EN_STREAK_KEY = 'cb_en_streak';
+function enGetStreak() {
+  try { return JSON.parse(safeGet(EN_STREAK_KEY)) || {}; } catch (e) { return {}; }
+}
+function enSetStreak(obj) {
+  try { safeSet(EN_STREAK_KEY, JSON.stringify(obj)); } catch (e) { /* storage blocked */ }
+}
+function enMarkWordListened(vocabId) {
+  if (!vocabId) return;
+  const s = enGetStreak();
+  const d = hktToday();
+  const day = s[d] || { words: [], game: 0 };
+  if (!day.words.includes(vocabId)) day.words.push(vocabId);
+  s[d] = day;
+  enSetStreak(s);
+  enRefreshStreakIfVisible();
+}
+function enMarkGamePlayed() {
+  const s = enGetStreak();
+  const d = hktToday();
+  const day = s[d] || { words: [], game: 0 };
+  day.game = 1;
+  s[d] = day;
+  enSetStreak(s);
+  enRefreshStreakIfVisible();
+}
+function enDayDone(day) {
+  if (!day) return false;
+  return (Array.isArray(day.words) && day.words.length >= 3) || day.game === 1;
+}
+function hktKeyOffset(n) {
+  const base = new Date(Date.now() + 8 * 3600 * 1000);
+  base.setUTCDate(base.getUTCDate() - n);
+  return base.toISOString().slice(0, 10);
+}
+function enCurrentStreak() {
+  const s = enGetStreak();
+  let n = 0;
+  const offset = enDayDone(s[hktToday()]) ? 0 : 1; // gentle: today not yet done doesn't break the run
+  for (let i = 0; i < 400; i++) {
+    const key = hktKeyOffset(offset + i);
+    if (enDayDone(s[key])) n++; else break;
+  }
+  return n;
+}
+function enRefreshStreakIfVisible() {
+  const active = document.querySelector('.en-view.active');
+  if (active && active.id === 'view-progress') {
+    const b = $('en-streak');
+    if (b) b.innerHTML = enRenderStreak();
+  }
+}
+function enRenderStreak() {
+  const s = enGetStreak();
+  const now = new Date(Date.now() + 8 * 3600 * 1000);
+  const year = now.getUTCFullYear();
+  const month = now.getUTCMonth();
+  const todayKey = hktToday();
+  const startWeekday = new Date(Date.UTC(year, month, 1)).getUTCDay();
+  const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  const streak = enCurrentStreak();
+  const todayDone = enDayDone(s[todayKey]);
+  let cells = '';
+  for (let i = 0; i < startWeekday; i++) cells += '<span class="en-cal-cell empty"></span>';
+  for (let d = 1; d <= daysInMonth; d++) {
+    const key = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+    const day = s[key];
+    const done = enDayDone(day);
+    const isToday = key === todayKey;
+    const stamp = done ? ((day && day.game && (!day.words || day.words.length < 3)) ? '🍵' : '🌸') : '';
+    const cls = ['en-cal-cell'];
+    if (isToday) cls.push('today');
+    if (!done) cls.push('todo');
+    cells += '<span class="' + cls.join(' ') + '">'
+      + (isToday ? '<span class="en-cal-num">今日</span>' : d)
+      + (stamp ? '<span class="en-cal-stamp">' + stamp + '</span>' : '')
+      + '</span>';
+  }
+  const statusLine = todayDone ? enT('streak.doneToday') : enT('streak.notYet');
+  const streakLine = streak > 0 ? enT('streak.current', { n: streak }) : '';
+  return ''
+    + '<div class="en-streak-card">'
+    + '  <div class="en-streak-head">'
+    + '    <div><div class="elder-kicker">' + escapeHtml(enT('streak.title')) + '</div>'
+    + '    <div class="en-streak-status">' + escapeHtml(statusLine) + '</div></div>'
+    + (streakLine ? '<div class="en-streak-count">' + escapeHtml(streakLine) + '</div>' : '')
+    + '  </div>'
+    + '  <p class="elder-note">' + escapeHtml(enT('streak.sub')) + '</p>'
+    + '  <div class="en-cal-month">' + year + '年' + (month + 1) + '月</div>'
+    + '  <div class="en-cal-grid">'
+    + '    <span class="en-cal-cell head">日</span><span class="en-cal-cell head">一</span><span class="en-cal-cell head">二</span><span class="en-cal-cell head">三</span><span class="en-cal-cell head">四</span><span class="en-cal-cell head">五</span><span class="en-cal-cell head">六</span>'
+    + cells
+    + '  </div>'
+    + '  <p class="en-streak-legend">' + escapeHtml(enT('streak.legend')) + '</p>'
+    + '</div>';
+}
+// Speak an English word and count it toward today's "listened to 3 words" stamp.
+function enListenWord(vocabId, text) {
+  speak(text, 'en');
+  enMarkWordListened(vocabId);
+}
+
 function renderHomeGames() {
   const grid = $('home-games');
   if (!grid) return;
   grid.innerHTML = EN_GAMES.map((g) =>
-    `<a class="en-cat elder-game" href="${g.href}">` +
+    `<a class="en-cat elder-game" href="${g.href}" onclick="enMarkGamePlayed()">` +
     `<div class="ic">${g.emoji}</div>` +
     `<div class="nm">${escapeHtml(enT(g.key))}</div>` +
     `</a>`).join('');
@@ -507,9 +751,11 @@ function renderHomeHelp() {
 // Four real <a> slides already live in en.html: games / life tips / helper
 // voice / find help. Each href is a no-JS + deep-link fallback; enOpenBanner()
 // opens the right in-app doorway WITHOUT a reload. Mirrors the main / home
-// carousel but slower (elder-friendly) and reduced-motion aware.
+// carousel, reduced-motion aware. Operator (2026-11-14): 3 seconds per banner.
+// This is the /en track's OWN interval — the main app's is admin-configurable
+// via /api/admin/banners (default 5s, clamped 2–60) and is NOT shared with /en.
 const EN_BANNERS = ['games', 'tip', 'helper', 'help'];
-const EN_BANNER_SECONDS = 6;
+const EN_BANNER_SECONDS = 3;
 const _enBanner = { index: 0, timer: null, paused: false, init: false };
 
 function enOpenBanner(kind) {
@@ -639,8 +885,8 @@ function renderBrowse() {
         <div class="ph">${escapeHtml(w.phonetic || '')}</div>
         <div class="yue">${escapeHtml(readingMeaning(w))}</div>
         <div class="en-audio-row">
-          <button class="en-audio" onclick="speak('${escapeHtml(w.english.replace(/'/g, "\\'"))}', 'en')">🔊 ${enT('btn.listenEn')}</button>
-          <button class="en-audio" onclick="speakReading(${w.id}, 'yue')">🔊 ${enT('btn.listenYue')}</button>
+          <button class="en-audio" onclick="enListenWord(${w.id}, '${escapeHtml(w.english.replace(/'/g, "\\'"))}')">🔊 ${enT('btn.listenEn')}</button>
+          <button class="en-audio" onclick="speakReading(${w.id}, 'yue'); enMarkWordListened(${w.id});">🔊 ${enT('btn.listenYue')}</button>
         </div>
       </div>`
     )
@@ -675,8 +921,8 @@ function openScenario(id) {
         <div class="ph">${escapeHtml(w.phonetic || '')}</div>
         <div class="yue">${escapeHtml(readingMeaning(w))}</div>
         <div class="en-audio-row">
-          <button class="en-audio" onclick="speak('${escapeHtml(w.english.replace(/'/g, "\\'"))}', 'en')">🔊 ${enT('btn.listenEn')}</button>
-          <button class="en-audio" onclick="speakReading(${w.id}, 'yue')">🔊 ${enT('btn.listenYue')}</button>
+          <button class="en-audio" onclick="enListenWord(${w.id}, '${escapeHtml(w.english.replace(/'/g, "\\'"))}')">🔊 ${enT('btn.listenEn')}</button>
+          <button class="en-audio" onclick="speakReading(${w.id}, 'yue'); enMarkWordListened(${w.id});">🔊 ${enT('btn.listenYue')}</button>
         </div>
       </div>`
     )
@@ -746,6 +992,11 @@ function computeProgressSummary() {
 function renderProgress() {
   const body = $('progress-body');
   if (!body) return;
+  // The gentle daily calendar is independent of word-progress, so render it
+  // BEFORE the empty-state early return below — a brand-new reader still sees
+  // today's flower/tea-cup stamp prompt.
+  const streakBox = $('en-streak');
+  if (streakBox) streakBox.innerHTML = enRenderStreak();
   const entries = Object.values(STATE.progress);
   const total = STATE.words.length; // words + sentences in the English track
   const seen = entries.length; // distinct items practised at least once
@@ -858,11 +1109,13 @@ function renderQuizQuestion() {
   // Cantonese meaning. No reading, no Cantonese audio.
   const enEsc = escapeHtml(w.english.replace(/'/g, "\\'"));
   $('quiz-word').innerHTML =
-    `<button class="en-quiz-play" onclick="speak('${enEsc}', 'en')">🔊 ${enT('quiz.listen')}</button>`;
+    `<button class="en-quiz-play" onclick="enListenWord(${w.id}, '${enEsc}')">🔊 ${enT('quiz.listen')}</button>`;
   $('quiz-ph').innerHTML = '';
   // Auto-play the English audio (the tap that opened the quiz counts as the
-  // user gesture browsers require before speechSynthesis is allowed).
+  // user gesture browsers require before speechSynthesis is allowed). It also
+  // counts as a listened word for the gentle daily streak.
   speak(w.english, 'en');
+  enMarkWordListened(w.id);
   $('quiz-feedback').textContent = '';
   $('quiz-feedback').className = 'en-feedback';
   $('quiz-progress').textContent = (q.idx + 1) + ' / ' + q.items.length;
@@ -1161,6 +1414,7 @@ function renderHomeToday() {
 function renderToday() {
   renderTodayWeather();
   renderTodayDaily();
+  renderGoodMorning();
   renderTodayTabs();
   renderTodayItems();
   renderTodayMoods();
@@ -1331,12 +1585,16 @@ function enChooseShareItem(id) {
 }
 function enShareText() {
   const bits = [];
+  // The daily Good Morning + 1 English Word greeting is always the top of the
+  // message, so even a reader who never picks an emoji has something ready to
+  // send to family each morning. It changes every HKT day. Single source of
+  // truth with the greeting card: enGreetingText().
+  bits.push(enGreetingText());
   if (STATE.mood) bits.push(moodText(STATE.mood));
   if (STATE.shareItem) {
     const t = elderText(STATE.shareItem);
     bits.push(t.title + '\n' + t.body);
   }
-  if (!bits.length) return '';
   const site = (STATE.elder && STATE.elder.shareSite) || 'https://cantobuddy.com/en';
   bits.push(site);
   return bits.join('\n\n');
@@ -1531,6 +1789,7 @@ async function loadElderData() {
   if (results[2].status === 'fulfilled') STATE.todayHk = results[2].value;
   STATE.reminders = loadReminders();
   renderHomeToday();
+  renderGoodMorning(); // shareSite may have just arrived — refresh the greeting share links
   renderHomeTips(); renderHomeHelper(); renderHomeHelp();
   renderReminderForm();
   renderReminderList();
@@ -1544,6 +1803,9 @@ async function init() {
   STATE.deviceId = loadDeviceId();
   renderLangSwitch();
   applyStaticLang();
+  // The Good Morning card is fully offline (curated daily word), so it is ready
+  // on the very first morning visit — before any API request resolves.
+  renderGoodMorning();
   // The games need NO network data, so draw them before the vocabulary request.
   // If /api/en/vocabulary fails below, the elder can still play something.
   renderHomeGames();
@@ -1559,6 +1821,8 @@ async function init() {
     renderHomeQuick(); renderHomeGames();
     renderBrowse(); renderQuizQuestion();
     renderHomeToday(); renderToday(); renderHelp();
+    renderGoodMorning(); // greeting labels + share links are language-aware
+    if ($('en-streak')) $('en-streak').innerHTML = enRenderStreak();
     renderHomeTips(); renderHomeHelper(); renderHomeHelp();
     renderReminderForm(); renderReminderList();
   };

@@ -570,6 +570,12 @@
     box-shadow: 0 4px 14px rgba(230,57,70,0.28);
   }
   .elder-help-cta:active { transform: scale(0.99); }
+  /* D2 — stack the "view all" pill and the SOS banner in an explicit flex
+     column. They were adjacent inline-level boxes with no break opportunity
+     between them, so the 100%-wide banner collapsed onto the pill and
+     overlapped it. A flex column makes the order and spacing unambiguous. */
+  .home-help-actions { display: flex; flex-direction: column; gap: 14px; }
+  .home-help-actions .elder-btn { flex: 0 0 auto; width: 100%; }
   .elder-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; }
   .elder-tab {
     min-height: 50px; padding: 10px 14px; border-radius: 12px;
@@ -637,6 +643,134 @@
     overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0;
   }
   .en-seo-intro a { color: #c92d3a; }
+
+  /* =====================================================================
+     Feature 1 — daily Good Morning + 1 English Word greeting card.
+     Warm sunrise look, deliberately image-like: elders already forward a
+     "早晨" picture to family every day, so this is that picture, with a word.
+     ===================================================================== */
+  .gm-teaser, .gm-card {
+    background: linear-gradient(150deg, #fff3e0 0%, #ffe8ec 55%, #fdeaf0 100%);
+    border: 1px solid #f7d3b8; border-radius: 20px;
+    padding: 18px; margin: 0 0 16px;
+    box-shadow: 0 4px 16px rgba(230,110,60,0.12);
+  }
+  .gm-teaser { cursor: pointer; }
+  .gm-teaser:active { transform: scale(0.995); }
+  .gm-teaser-top, .gm-card-top { display: flex; align-items: center; gap: 8px; }
+  .gm-teaser-sun, .gm-card-sun { font-size: 1.7rem; line-height: 1; }
+  .gm-teaser-kicker, .gm-card-kicker {
+    font-size: 0.82rem; font-weight: 800; color: #b5561f; letter-spacing: .04em;
+  }
+  .gm-card-date {
+    margin-left: auto; font-size: 0.8rem; color: #a06a4a; font-weight: 700;
+    white-space: nowrap;
+  }
+  .gm-teaser-title, .gm-card-title {
+    font-size: 1.5rem; font-weight: 800; color: #7a3418; margin: 6px 0 12px;
+    line-height: 1.3;
+  }
+  .gm-teaser-word-label, .gm-card-word-label {
+    font-size: 0.8rem; font-weight: 800; color: #b5561f; margin-bottom: 4px;
+  }
+  .gm-teaser-word {
+    font-size: 1.25rem; font-weight: 800; color: var(--ink); line-height: 1.4;
+  }
+  .gm-teaser-cta {
+    margin-top: 12px; font-size: 1rem; font-weight: 800; color: #c92d3a;
+  }
+  /* Full Today card — big word, one-tap listen, one-tap send. */
+  .gm-card-word {
+    display: flex; flex-direction: column; gap: 2px;
+    background: rgba(255,255,255,0.72); border: 1px solid #f6dcc6;
+    border-radius: 16px; padding: 16px; margin: 4px 0 12px;
+  }
+  .gm-card-word-en { font-size: 2rem; font-weight: 800; color: #7a3418; line-height: 1.2; overflow-wrap: anywhere; }
+  .gm-card-word-zh { font-size: 1.25rem; font-weight: 700; color: var(--muted); }
+  .gm-card-listen {
+    min-height: 56px; width: 100%; font-size: 1.1rem; font-weight: 800;
+    font-family: inherit; color: #fff; background: var(--red);
+    border: 0; border-radius: 14px; cursor: pointer; margin-bottom: 16px;
+  }
+  .gm-card-listen:active { transform: scale(0.99); }
+  .gm-card-share-title {
+    display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;
+  }
+  .gm-card-share-lead { font-size: 1.06rem; font-weight: 800; color: var(--ink); }
+  .gm-card-share-note { font-size: 0.9rem; color: var(--muted); font-weight: 700; }
+
+  /* =====================================================================
+     Feature 2 — one-tap setup guide for the family (children).
+     ===================================================================== */
+  .setup-guide {
+    background: #eef7f1; border: 1px solid #c3e3d9; border-radius: 20px;
+    padding: 18px; margin: 18px 0 4px;
+  }
+  .setup-guide-head { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+  .setup-guide-emoji { font-size: 2rem; line-height: 1; }
+  .setup-guide-kicker {
+    font-size: 0.78rem; font-weight: 800; color: #2a7d54; letter-spacing: .04em;
+  }
+  .setup-guide h3 { font-size: 1.18rem; font-weight: 800; color: var(--ink); margin: 2px 0 0; }
+  .setup-steps { list-style: none; margin: 14px 0; padding: 0; }
+  .setup-step {
+    display: flex; align-items: center; gap: 12px;
+    background: #fff; border: 1px solid #d5e9df; border-radius: 14px;
+    padding: 12px 14px; margin-bottom: 10px;
+  }
+  .setup-step-phone {
+    flex: 0 0 46px; height: 46px; border-radius: 12px;
+    background: #eaf6f1; display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem;
+  }
+  .setup-step-text { font-size: 1.02rem; font-weight: 700; color: var(--ink); line-height: 1.45; }
+  .setup-guide-cta { width: 100%; margin-top: 4px; }
+
+  /* =====================================================================
+     Feature 3 — gentle daily streak calendar (flower / tea-cup stamps).
+     ===================================================================== */
+  .en-streak-card {
+    background: #fff9f5; border: 1px solid var(--line); border-radius: 20px;
+    padding: 18px; margin: 0 0 18px;
+  }
+  .en-streak-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  }
+  .en-streak-status { font-size: 1.15rem; font-weight: 800; color: var(--ink); margin-top: 4px; }
+  .en-streak-count {
+    background: var(--red); color: #fff; font-size: 0.95rem; font-weight: 800;
+    border-radius: 999px; padding: 8px 14px; white-space: nowrap;
+  }
+  .en-cal-month {
+    text-align: center; font-size: 1.05rem; font-weight: 800; color: var(--ink);
+    margin: 12px 0 8px;
+  }
+  .en-cal-grid {
+    display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px;
+  }
+  .en-cal-cell {
+    position: relative; aspect-ratio: 1 / 1; border-radius: 10px;
+    background: #fff; border: 1px solid var(--line);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-size: 0.9rem; font-weight: 700; color: var(--muted); line-height: 1.1;
+  }
+  .en-cal-cell.head {
+    aspect-ratio: auto; background: transparent; border: 0;
+    font-size: 0.8rem; color: var(--muted); font-weight: 800; padding: 2px 0;
+  }
+  .en-cal-cell.empty { background: transparent; border: 0; }
+  .en-cal-cell.today { border: 2px solid var(--red); color: var(--red); }
+  .en-cal-stamp { font-size: 1.25rem; line-height: 1.1; margin-top: 1px; }
+  .en-cal-num { font-size: 0.72rem; font-weight: 800; }
+  .en-streak-legend {
+    text-align: center; font-size: 0.9rem; color: var(--muted); font-weight: 700;
+    margin: 12px 0 0;
+  }
+  @media (max-width: 360px) {
+    .gm-card-word-en { font-size: 1.7rem; }
+    .en-cal-stamp { font-size: 1.05rem; }
+    .en-cal-cell { font-size: 0.8rem; }
+  }
 </style>
 </head>
 <body>
@@ -718,6 +852,23 @@
           <button class="en-cta" onclick="enGoLearn()">學詞</button>
           <button class="en-cta secondary" onclick="enGoPractice()">情景練習</button>
         </div>
+      </div>
+
+      <!-- Feature 1 — Good Morning teaser, FIRST card under the hero on purpose.
+           Hong Kong elders already forward a "早晨 / Good Morning" picture to
+           family every morning. A fresh one here — with ONE English word, changed
+           every HKT day — makes opening the app the first step of that ritual,
+           so it must not be buried below the carousel. Fully offline. -->
+      <div class="gm-teaser" id="gm-teaser" onclick="enNavigate('today')" role="button" tabindex="0"
+           onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();enNavigate('today');}">
+        <div class="gm-teaser-top">
+          <span class="gm-teaser-sun" aria-hidden="true">🌅</span>
+          <span class="gm-teaser-kicker gm-l-kicker">每日早晨一句</span>
+        </div>
+        <div class="gm-teaser-title gm-l-title">早晨！Good morning</div>
+        <div class="gm-teaser-word-label gm-l-word-title">今日一字 · Word of the day</div>
+        <div class="gm-teaser-word" id="gm-teaser-word">載入中…</div>
+        <div class="gm-teaser-cta gm-l-share-cta">💬 Send 呢句早晨 →</div>
       </div>
 
       <!-- v160 — four rotating elder-home banners. The four <a> slides are
@@ -812,15 +963,48 @@
       <div class="en-grid" id="home-helper"></div>
       <div class="en-section-title" id="home-help-title">搵幫手</div>
       <div id="home-help-directory"></div>
-      <button class="elder-btn primary" id="home-help-seeall" onclick="enNavigate('help')">睇全部幫手資料 →</button>
-      <!-- D1 — the SOS / "I need help" button is rarely used, so it sits at the
-           BOTTOM of the home page, not above the content. Tapping it still opens
-           the full Help view with every emergency and support number. -->
-      <button class="elder-help-cta" id="home-help-cta" onclick="enNavigate('help')">🆘 我需要幫助</button>
+      <div class="home-help-actions">
+        <button class="elder-btn primary" id="home-help-seeall" onclick="enNavigate('help')">睇全部幫手資料 →</button>
+        <!-- D1 — the SOS / "I need help" button is rarely used, so it sits at the
+             BOTTOM of the home page, not above the content. Tapping it still opens
+             the full Help view with every emergency and support number. -->
+        <button class="elder-help-cta" id="home-help-cta" onclick="enNavigate('help')">🆘 我需要幫助</button>
+      </div>
       <!-- Keep this title AFTER every highlight section. It is the 揀一類嚟學詞
            grid (home-quick-title is mapped to learn.title by applyStaticLang()). -->
       <div class="en-section-title" id="home-quick-title">快啲開始</div>
       <div class="en-grid" id="home-quick"></div>
+
+      <!-- Feature 2 — one-tap setup guide FOR THE CHILDREN. The single biggest
+           barrier for an elder is typing a URL or opening a browser. A son or
+           daughter can put the icon straight on the home screen in three taps.
+           The CTA opens the existing install modal, which gives the exact
+           iPhone / Android / in-app steps. Labels are ID-based (single card). -->
+      <div class="setup-guide" id="setup-guide">
+        <div class="setup-guide-head">
+          <span class="setup-guide-emoji" aria-hidden="true">👨‍👩‍👧</span>
+          <div>
+            <div class="setup-guide-kicker">For the family · 畀屋企人</div>
+            <h3 id="setup-title">幫屋企人裝落主螢幕</h3>
+          </div>
+        </div>
+        <p class="elder-note" id="setup-note">子女幫父母裝一次，以後佢哋撳一下 CantoBuddy 就到，唔使再打網址。</p>
+        <ol class="setup-steps">
+          <li class="setup-step">
+            <span class="setup-step-phone" aria-hidden="true">🌐</span>
+            <span class="setup-step-text" id="setup-step1">① 打開 CantoBuddy（撳下面連結，或掃 QR 碼）</span>
+          </li>
+          <li class="setup-step">
+            <span class="setup-step-phone" aria-hidden="true">📲</span>
+            <span class="setup-step-text" id="setup-step2">② 撳右上角「📲 加到主螢幕 · Install」掣</span>
+          </li>
+          <li class="setup-step">
+            <span class="setup-step-phone" aria-hidden="true">✅</span>
+            <span class="setup-step-text" id="setup-step3">③ 撳「添加 / Add」— 個 App 圖案就出咗喺主螢幕</span>
+          </li>
+        </ol>
+        <button class="elder-btn primary setup-guide-cta" id="setup-cta" onclick="enOpenInstallModal()">📲 幫佢加到主螢幕</button>
+      </div>
     </section>
 
     <!-- LEARN / CATEGORIES -->
@@ -865,9 +1049,13 @@
       <div id="scenario-list"></div>
     </section>
 
-    <!-- PROGRESS -->
+    <!-- PROGRESS — Feature 3 adds the gentle daily calendar ABOVE the word
+         progress. A day earns a 🌸 (listened to 3 words) or 🍵 (played 1 game)
+         stamp. Everything is local-only, no account, no upload, and there is no
+         "you broke your streak" guilt — the calendar is a keepsake, not a test. -->
     <section id="view-progress" class="en-view">
       <div class="en-section-title" id="progress-title">我的進度</div>
+      <div id="en-streak"></div>
       <div id="progress-body"></div>
     </section>
 
@@ -880,6 +1068,31 @@
       <div id="today-daily"></div>
       <div class="elder-tabs" id="today-tabs"></div>
       <div id="today-items"></div>
+
+      <!-- Feature 1 — the "今日想講句咩？" section, expanded into a daily Good
+           Morning greeting card. A fresh English word every HKT morning, one-tap
+           listen, and one-tap send to family. The emoji picker below is kept as
+           the optional "add a feeling" extra, so nothing was removed. -->
+      <div class="gm-card" id="gm-card">
+        <div class="gm-card-top">
+          <span class="gm-card-sun" aria-hidden="true">🌅</span>
+          <span class="gm-card-kicker gm-l-kicker">每日早晨一句</span>
+          <span class="gm-card-date" id="gm-date"></span>
+        </div>
+        <div class="gm-card-title gm-l-title">早晨！Good morning</div>
+        <div class="gm-card-word-label gm-l-word-title">今日一字 · Word of the day</div>
+        <div class="gm-card-word">
+          <span class="gm-card-word-en gm-l-word-en"></span>
+          <span class="gm-card-word-zh gm-l-word-zh"></span>
+        </div>
+        <button class="gm-card-listen" id="gm-word-speak" type="button"></button>
+        <div class="gm-card-share-title">
+          <span class="gm-card-share-lead gm-l-share-cta">💬 Send 呢句早晨</span>
+          <span class="gm-card-share-note gm-l-share-note" id="gm-share-note">Send 畀屋企人</span>
+        </div>
+        <div class="elder-row" id="gm-share-actions"></div>
+      </div>
+
       <div class="elder-card">
         <div class="elder-kicker" id="mood-kicker">撳一下就講到</div>
         <h3 id="mood-title">今日想講句咩？</h3>

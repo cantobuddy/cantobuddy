@@ -403,9 +403,9 @@ const STATIC_TEXT = {
   'mood-kicker': 'today.moodKicker',
   'mood-title': 'today.moodTitle',
   'mood-note': 'today.moodNote',
-  // Feature 1 greeting-card labels are CLASS-based (gm-l-*), not ID-based: the
-  // card appears on BOTH Home (teaser) and Today (full card), so duplicate IDs
-  // would break. renderGoodMorning() fills every .gm-l-* element instead.
+  // Feature 1 greeting-card labels are CLASS-based (gm-l-*), not ID-based: a
+  // FULL card appears on BOTH Home and Today, so duplicate IDs would break.
+  // renderGoodMorning() fills every .gm-l-* element on both cards instead.
   // Feature 2 — one-tap install guide for the children who set up the phone.
   'setup-title': 'setup.title',
   'setup-note': 'setup.note',
@@ -552,46 +552,39 @@ function enFillGreetingLabels() {
 function renderGoodMorning() {
   const w = enTodayWord();
   enFillGreetingLabels();
-  // The English word + Cantonese meaning appear on both the Home teaser and the
-  // full Today card, so use classes here too (no duplicate IDs).
+  // Home AND Today each carry a FULL greeting card (word, listen, share). Every
+  // per-card element is class-based (.gm-l-*), so one render fills both and no
+  // duplicate IDs are needed. The Home card must be usable WITHOUT navigating
+  // to Today — an elder sending a morning greeting should never need two taps.
   document.querySelectorAll('.gm-l-word-en').forEach((el) => { el.textContent = w.en; });
   document.querySelectorAll('.gm-l-word-zh').forEach((el) => { el.textContent = w.zh; });
-  const sp = $('gm-word-speak');
-  if (sp) {
-    sp.textContent = enT('gm.listenEn');
-    sp.onclick = () => enListenWord('gm:' + w.en, w.en);
-  }
-  const date = $('gm-date');
-  if (date) date.textContent = enGreetingDate();
-  // Compact Home teaser — a reason to open the app every morning.
-  const teaser = $('gm-teaser-word');
-  if (teaser) teaser.textContent = w.en + ' · ' + w.zh;
-  // Dedicated one-tap share row on the greeting card (WhatsApp / FB / copy).
-  const actions = $('gm-share-actions');
-  if (actions) {
-    const text = enGreetingText() + '\n\n'
-      + ((STATE.elder && STATE.elder.shareSite) || 'https://cantobuddy.com/en');
-    const wa = 'https://wa.me/?text=' + encodeURIComponent(text);
-    const fb = 'https://www.facebook.com/sharer/sharer.php?u='
-      + encodeURIComponent((STATE.elder && STATE.elder.shareSite) || 'https://cantobuddy.com/en')
-      + '&quote=' + encodeURIComponent(text);
-    actions.innerHTML =
-      `<a class="elder-btn green" href="${escapeHtml(wa)}" target="_blank" rel="noopener noreferrer">${escapeHtml(enT('today.shareWhatsapp'))}</a>`
-      + `<a class="elder-btn" href="${escapeHtml(fb)}" target="_blank" rel="noopener noreferrer">${escapeHtml(enT('today.shareFacebook'))}</a>`
-      + `<button class="elder-btn small" onclick="enCopyGreeting()" aria-label="Copy">📋</button>`;
-  }
+  document.querySelectorAll('.gm-l-date').forEach((el) => { el.textContent = enGreetingDate(); });
+  document.querySelectorAll('.gm-l-listen').forEach((btn) => {
+    btn.textContent = enT('gm.listenEn');
+    btn.onclick = () => enListenWord('gm:' + w.en, w.en);
+  });
+  // Dedicated one-tap share row on EVERY greeting card (WhatsApp / FB / copy).
+  const site = (STATE.elder && STATE.elder.shareSite) || 'https://cantobuddy.com/en';
+  const text = enGreetingText() + '\n\n' + site;
+  const wa = 'https://wa.me/?text=' + encodeURIComponent(text);
+  const fb = 'https://www.facebook.com/sharer/sharer.php?u='
+    + encodeURIComponent(site) + '&quote=' + encodeURIComponent(text);
+  const row =
+    `<a class="elder-btn green" href="${escapeHtml(wa)}" target="_blank" rel="noopener noreferrer">${escapeHtml(enT('today.shareWhatsapp'))}</a>`
+    + `<a class="elder-btn" href="${escapeHtml(fb)}" target="_blank" rel="noopener noreferrer">${escapeHtml(enT('today.shareFacebook'))}</a>`
+    + `<button class="elder-btn small" onclick="enCopyGreeting()" aria-label="Copy">📋</button>`;
+  document.querySelectorAll('.gm-l-share-actions').forEach((actions) => { actions.innerHTML = row; });
 }
 async function enCopyGreeting() {
-  const text = enGreetingText() + '\n\n'
-    + ((STATE.elder && STATE.elder.shareSite) || 'https://cantobuddy.com/en');
+  const site = (STATE.elder && STATE.elder.shareSite) || 'https://cantobuddy.com/en';
+  const text = enGreetingText() + '\n\n' + site;
   try {
     await navigator.clipboard.writeText(text);
-    const p = $('gm-share-note');
-    if (p) {
+    document.querySelectorAll('.gm-l-share-note').forEach((p) => {
       const old = p.textContent;
       p.textContent = enT('elder.copyOk');
       setTimeout(() => { p.textContent = old; }, 1800);
-    }
+    });
   } catch (e) { /* clipboard blocked — the two share links still work */ }
 }
 

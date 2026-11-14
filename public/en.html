@@ -854,21 +854,32 @@
         </div>
       </div>
 
-      <!-- Feature 1 — Good Morning teaser, FIRST card under the hero on purpose.
-           Hong Kong elders already forward a "早晨 / Good Morning" picture to
-           family every morning. A fresh one here — with ONE English word, changed
-           every HKT day — makes opening the app the first step of that ritual,
-           so it must not be buried below the carousel. Fully offline. -->
-      <div class="gm-teaser" id="gm-teaser" onclick="enNavigate('today')" role="button" tabindex="0"
-           onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();enNavigate('today');}">
-        <div class="gm-teaser-top">
-          <span class="gm-teaser-sun" aria-hidden="true">🌅</span>
-          <span class="gm-teaser-kicker gm-l-kicker">每日早晨一句</span>
+      <!-- Feature 1 — the FULL daily Good Morning card, FIRST card under the
+           hero on purpose. Hong Kong elders already forward a "早晨" picture to
+           family every morning, so opening the app must BE the ritual: the word,
+           one-tap listen and one-tap send all have to be here on Home, with no
+           extra tap through to Today. A teaser was tried and removed (2026-11-14)
+           because the elder could not actually send the greeting from Home.
+           Same markup/classes as the Today card; renderGoodMorning() fills every
+           .gm-l-* element on BOTH cards, so no duplicate IDs are needed. -->
+      <div class="gm-card" id="gm-card-home">
+        <div class="gm-card-top">
+          <span class="gm-card-sun" aria-hidden="true">🌅</span>
+          <span class="gm-card-kicker gm-l-kicker">每日早晨一句</span>
+          <span class="gm-card-date gm-l-date"></span>
         </div>
-        <div class="gm-teaser-title gm-l-title">早晨！Good morning</div>
-        <div class="gm-teaser-word-label gm-l-word-title">今日一字 · Word of the day</div>
-        <div class="gm-teaser-word" id="gm-teaser-word">載入中…</div>
-        <div class="gm-teaser-cta gm-l-share-cta">💬 Send 呢句早晨 →</div>
+        <div class="gm-card-title gm-l-title">早晨！Good morning</div>
+        <div class="gm-card-word-label gm-l-word-title">今日一字 · Word of the day</div>
+        <div class="gm-card-word">
+          <span class="gm-card-word-en gm-l-word-en"></span>
+          <span class="gm-card-word-zh gm-l-word-zh"></span>
+        </div>
+        <button class="gm-card-listen gm-l-listen" type="button"></button>
+        <div class="gm-card-share-title">
+          <span class="gm-card-share-lead gm-l-share-cta">💬 Send 呢句早晨</span>
+          <span class="gm-card-share-note gm-l-share-note">Send 畀屋企人</span>
+        </div>
+        <div class="elder-row gm-l-share-actions"></div>
       </div>
 
       <!-- v160 — four rotating elder-home banners. The four <a> slides are
@@ -1077,7 +1088,7 @@
         <div class="gm-card-top">
           <span class="gm-card-sun" aria-hidden="true">🌅</span>
           <span class="gm-card-kicker gm-l-kicker">每日早晨一句</span>
-          <span class="gm-card-date" id="gm-date"></span>
+          <span class="gm-card-date gm-l-date" id="gm-date"></span>
         </div>
         <div class="gm-card-title gm-l-title">早晨！Good morning</div>
         <div class="gm-card-word-label gm-l-word-title">今日一字 · Word of the day</div>
@@ -1085,12 +1096,12 @@
           <span class="gm-card-word-en gm-l-word-en"></span>
           <span class="gm-card-word-zh gm-l-word-zh"></span>
         </div>
-        <button class="gm-card-listen" id="gm-word-speak" type="button"></button>
+        <button class="gm-card-listen gm-l-listen" id="gm-word-speak" type="button"></button>
         <div class="gm-card-share-title">
           <span class="gm-card-share-lead gm-l-share-cta">💬 Send 呢句早晨</span>
           <span class="gm-card-share-note gm-l-share-note" id="gm-share-note">Send 畀屋企人</span>
         </div>
-        <div class="elder-row" id="gm-share-actions"></div>
+        <div class="elder-row gm-l-share-actions" id="gm-share-actions"></div>
       </div>
 
       <div class="elder-card">

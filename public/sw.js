@@ -101,7 +101,16 @@
 // single /en home page and scroll to their own section (games / tips / helper
 // voice / help), and the SOS button moved to the BOTTOM of the home page. en.html,
 // en-app.js and en-i18n.js change again, so the cache name moves once more.
-const CACHE = 'cantobuddy-v162';
+// v162 — 2026-11-13/14: the /en elder track gained the daily Good Morning card,
+// the family one-tap setup guide, the gentle streak calendar and a 3s carousel.
+// That release did NOT bump CACHE, which was a mistake: EN_TRACK is network-first
+// BUT keeps its offline fallback in this very cache, so an installed PWA that
+// missed the network could still be served the pre-card /en document.
+// v163 — 2026-11-14: Home now shows the FULL Good Morning card (listen + send)
+// instead of a teaser that only linked to Today. en.html and en-app.js change,
+// so bump again: every returning / installed elder gets the new Home, and any
+// stale offline /en copy held under v162 is dropped on activate.
+const CACHE = 'cantobuddy-v163';
 
 // Which paths are server-rendered SEO documents rather than app-shell assets.
 // Kept as one matcher so it can be asserted against `LANG_PREFIX` in seo.js —

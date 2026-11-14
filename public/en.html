@@ -237,7 +237,9 @@
       .en-hero h1 { font-size: 24px; }
       .en-hero p { font-size: 15px; }
       .en-hero .en-hero-desc { font-size: 13px; margin: 10px 0 16px; }
-      .en-hero .cta-row .en-cta { flex: 1 1 0; min-width: 0; }
+      /* At 320px the 22px side padding made 情景練習 wrap to a second line.
+         Trim only the horizontal padding — keep the >=50px tap height. */
+      .en-hero .cta-row .en-cta { flex: 1 1 0; min-width: 0; padding: 14px 8px; }
     }
     .en-cta {
       background: var(--red); color: #fff; border: none; border-radius: 14px;
@@ -246,7 +248,12 @@
     .en-cta.secondary { background: #fff; color: var(--red); border: 2px solid var(--red); }
     .en-section-title { font-size: 22px; font-weight: 700; margin: 6px 0 14px; }
     /* Category grid */
-    .en-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+    /* minmax(0,1fr), NOT 1fr: `1fr` is minmax(auto,1fr), so a long unbreakable
+       Filipino/Indonesian word in a Today card forced the column past 320px and
+       widened the whole mobile layout viewport by 7–13px. Let columns shrink and
+       break long words inside them instead. */
+    .en-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .en-grid > * { min-width: 0; overflow-wrap: anywhere; }
     .en-cat {
       background: var(--card); border: 1px solid var(--line); border-radius: 16px;
       padding: 16px; text-align: center; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.05);
@@ -274,7 +281,9 @@
        CTA, >=34px dot targets, no countdown, no time pressure. */
     .enb-wrap { margin: 0 0 18px; }
     .enb-viewport {
-      position: relative; height: 380px; border-radius: 20px; overflow: hidden;
+      /* Auto height + stretched flex items: every slide shares the tallest
+         content height. Never crop long translations or the hero's buttons. */
+      position: relative; border-radius: 20px; overflow: hidden;
       box-shadow: 0 4px 16px rgba(83, 40, 34, 0.14); touch-action: pan-y;
     }
     .enb-track {
@@ -288,33 +297,55 @@
     }
     .enb-track > .enb-off { display: none; }
     .enb-clone { pointer-events: none; }
-    .enb-slide::before {
-      content: ''; position: absolute; inset: 0; z-index: 0;
-      background: radial-gradient(circle at 85% 50%, rgba(255,255,255,.22), transparent 46%);
+    /* Do not apply a generic ::before wash: the hero uses it for its mobile
+       image band, and a later background rule would silently erase that picture. */
+    /* v167 — every /en deck slide (the 學日常英文 hero + the four promos + the new
+       長者故事 slide) shares ONE card language, modelled on the approved hero AND the
+       Learn-Cantonese banner deck: a full-bleed, right-aligned photo under a dark
+       left→right wash so bold white copy stays legible, a small translucent chip on
+       top, a big title, a sub line, and a solid pink-red (--red) CTA with a section
+       emoji. One accent for the whole deck (the hero's pink-red) so it reads as one
+       family. Desktop = wash over photo; phone = picture band on top, dark panel
+       below — exactly the hero's responsive treatment. */
+    .enb-games  { --slide-img: url(/banner-games.webp); }
+    .enb-tip    { --slide-img: url(/banner-tip.webp); }
+    .enb-helper { --slide-img: url(/banner-living.webp); }
+    .enb-help   { --slide-img: url(/banner-help.webp); }
+    .enb-story  { --slide-img: url(/banner-hero-en.jpg); } /* interim: reuses the hero's elder illustration (same family); swap for a dedicated 長者故事 photo later */
+    .enb-promo {
+      display: flex; flex-direction: column; align-items: flex-start; justify-content: center;
+      min-height: 380px; padding: 34px 32px; overflow: hidden;
+      background-image:
+        linear-gradient(100deg, rgba(28,20,14,.86) 0%, rgba(28,20,14,.66) 36%, rgba(28,20,14,.34) 68%, rgba(28,20,14,.02) 100%),
+        var(--slide-img);
+      background-position: center right, center right;
+      background-size: cover, cover;
+      background-repeat: no-repeat, no-repeat;
     }
-    /* v166 — every /en promo now carries a real photograph (like the Cantonese
-       homepage) so the rotating deck reads as one family of pictures. A soft
-       scrim keeps the white copy legible on top of the photo. */
-    .enb-games  { background-image: linear-gradient(rgba(46,30,82,.55), rgba(46,30,82,.55)), url(/banner-games.webp); background-size: cover; background-position: center; }
-    .enb-tip    { background-image: linear-gradient(rgba(15,74,60,.55), rgba(15,74,60,.55)), url(/banner-living.webp); background-size: cover; background-position: center; }
-    .enb-helper { background-image: linear-gradient(rgba(120,52,30,.55), rgba(120,52,30,.55)), url(/banner-culture.webp); background-size: cover; background-position: center; }
-    .enb-help   { background-image: linear-gradient(rgba(122,32,48,.55), rgba(122,32,48,.55)), url(/banner-outings.webp); background-size: cover; background-position: center; }
-    .enb-promo { display: flex; align-items: center; gap: 16px; padding: 22px 24px; }
-    .enb-copy { position: relative; z-index: 1; max-width: 76%; }
-    .enb-title { display: block; font-size: 1.72rem; font-weight: 800; line-height: 1.15; }
-    .enb-sub { display: block; font-size: 1rem; line-height: 1.45; margin-top: 8px; }
+    .enb-promo::before { background: none; } /* neutralise the generic radial kept for the hero */
+    .enb-copy { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: flex-start; width: 56%; max-width: 480px; }
+    .enb-chip {
+      display: inline-flex; align-items: center; gap: 8px; margin-bottom: 14px;
+      padding: 5px 12px; border-radius: 999px;
+      background: rgba(255,255,255,.18); color: #fff;
+      font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    }
+    .enb-chip::before { content: ''; width: 6px; height: 6px; flex: 0 0 6px; border-radius: 50%; background: var(--red); }
+    .enb-title { display: block; margin: 0; font-size: 30px; font-weight: 800; line-height: 1.15; color: #fff; overflow-wrap: anywhere; }
+    .enb-sub { display: block; margin-top: 12px; font-size: 19px; font-weight: 500; line-height: 1.5; color: rgba(255,255,255,.94); overflow-wrap: anywhere; }
     .enb-cta {
-      display: inline-flex; align-items: center; min-height: 50px;
-      padding: 8px 16px; margin-top: 14px; border-radius: 12px;
-      background: rgba(255,255,255,.94); color: #4b1d2b;
-      font-size: 1rem; font-weight: 800;
+      display: inline-flex; align-items: center; justify-content: center;
+      margin-top: 20px; padding: 14px 22px; min-width: 150px; min-height: 54px;
+      max-width: 100%; border-radius: 14px; background: var(--red); color: #fff;
+      font-size: 20px; font-weight: 700; line-height: 1.35;
+      box-shadow: 0 5px 14px rgba(230,57,70,.20);
     }
-    .enb-art {
-      position: absolute; right: 18px; top: 50%; transform: translateY(-50%);
-      font-size: 5.2rem; line-height: 1; opacity: .36; z-index: 1;
-    }
-    /* The hero is a slide but keeps its own dark, image-backed look. It must not
-       inherit slide spacing that would break the text column or add a gap. */
+    .enb-promo:hover .enb-cta { background: var(--red-dark); }
+    /* A native stretched link, not a role=button wrapping other buttons. */
+    .en-hero > * { position: relative; z-index: 2; pointer-events: none; }
+    .en-hero > .en-hero-link { position: absolute; inset: 0; z-index: 1; pointer-events: auto; }
+    .en-hero > .cta-row { z-index: 3; pointer-events: auto; align-self: flex-start; }
+    .en-hero:focus-within { outline: 4px solid #fff; outline-offset: -8px; }
     .enb-slide.en-hero { margin-bottom: 0; border-radius: 0; align-items: stretch; }
     .enb-slide:focus-visible { outline: 4px solid #fff; outline-offset: -8px; }
     .enb-dots { display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 10px; }
@@ -330,15 +361,30 @@
     .enb-dot.on::before { width: 28px; background: var(--red); }
     .enb-dot:focus-visible { outline: 2px solid var(--red); outline-offset: 1px; }
     @media (max-width: 620px) {
-      .enb-viewport { height: 440px; border-radius: 18px; }
-      .enb-promo { padding: 20px 18px; align-items: flex-start; }
-      .enb-copy { max-width: 100%; }
-      .enb-art {
-        top: auto; bottom: -16px; right: 10px; transform: none;
-        font-size: 4.5rem; opacity: .26;
+      .enb-viewport { border-radius: 18px; --enb-photo-height: 205px; }
+      /* Same picture-band + panel treatment on EVERY slide. Auto-height on the
+         viewport lets the flex track size all slides to the longest translation. */
+      .enb-slide.en-hero, .enb-promo {
+        min-height: 0; padding: calc(var(--enb-photo-height) + 18px) 20px 26px;
+        justify-content: flex-start; background: #1c140e; background-image: none;
       }
-      .enb-title { font-size: 1.5rem; }
-      .enb-sub { font-size: .96rem; max-width: 92%; }
+      .enb-slide.en-hero::before, .enb-promo::before {
+        content: ''; position: absolute; left: 0; right: 0; top: 0; bottom: auto;
+        height: var(--enb-photo-height); z-index: 0; pointer-events: none;
+        background: var(--slide-img, url(/banner-hero-en.jpg)) center right / cover no-repeat;
+      }
+      .enb-slide.en-hero::after, .enb-promo::after {
+        content: ''; position: absolute; left: 0; right: 0; top: 0; bottom: auto;
+        height: calc(var(--enb-photo-height) + 1px); z-index: 1; pointer-events: none;
+        background: linear-gradient(180deg, transparent 60%, rgba(28,20,14,.25) 82%, #1c140e 100%);
+      }
+      .enb-copy { width: 100%; max-width: none; padding-top: 0; }
+      .enb-chip { margin-bottom: 12px; padding: 5px 12px; font-size: 12px; }
+      .enb-title { font-size: 24px; line-height: 1.15; }
+      .enb-sub { margin-top: 10px; font-size: 19px; line-height: 1.5; }
+      .enb-cta { margin-top: 18px; min-height: 54px; font-size: 20px; }
+      .enb-slide.en-hero .en-hero-desc { font-size: 15px; }
+      .en-hero > .cta-row { align-self: stretch; }
     }
     @media (prefers-reduced-motion: reduce) {
       .enb-track, .enb-dot::before { transition: none; }
@@ -406,7 +452,8 @@
     .en-progress-bar { height: 16px; background: #f0d9d0; border-radius: 999px; overflow: hidden; margin: 2px 0 6px; }
     .en-progress-bar-fill { height: 100%; background: var(--red); transition: width .4s ease; }
     .en-progress-pct { text-align: center; font-size: 15px; color: var(--muted); margin-bottom: 16px; }
-    .en-grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .en-grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .en-grid3 > * { min-width: 0; overflow-wrap: anywhere; }
     .en-grid3 .en-progress-card { padding: 16px 8px; font-size: 14px; margin-bottom: 0; }
     .en-grid3 .en-progress-card .big { font-size: 28px; }
     /* Reset-progress button (progress page) */
@@ -881,7 +928,11 @@
                aria-roledescription="carousel" aria-label="今日精選 · Home highlights">
         <div class="enb-viewport">
           <div class="enb-track" id="enb-track">
-            <div class="enb-slide en-hero" id="enb-hero" data-banner="hero" aria-label="學日常英文">
+            <!-- The native full-card link opens Learn, while the two foreground
+                 buttons remain independent (including keyboard activation). -->
+            <div class="enb-slide en-hero" id="enb-hero" data-banner="hero">
+              <a class="en-hero-link" href="/en?view=learn" draggable="false" aria-labelledby="hero-title"
+                 onclick="enGoLearn();return false;"></a>
               <span class="en-hero-chip" id="hero-chip">100% 免費 · 唔使登記</span>
               <h1 id="hero-title">學日常英文</h1>
               <p id="hero-sub">教你點同家務助理溝通 · 認屋企嘢 · 出街買餸</p>
@@ -897,44 +948,57 @@
            HTML (crawlable and usable before JS); enOpenBanner() handles the
            in-app doorway without a reload, and the href is the no-JS / deep-link
            fallback. Operator on/off + order + speed come from /api/en/home-banners. -->
-            <a class="enb-slide enb-promo enb-games" data-banner="games"
+            <a draggable="false" class="enb-slide enb-promo enb-games" data-banner="games"
                href="/en?view=home#home-games"
                onclick="return enOpenBanner('games');">
-              <span class="enb-art" aria-hidden="true">🎲</span>
               <span class="enb-copy">
+                <span class="enb-chip" id="enb-games-chip">免費玩 · 唔使登記</span>
                 <span class="enb-title" id="enb-games-title">遊戲</span>
                 <span class="enb-sub" id="enb-games-sub">七款小遊戲，一個人玩都得，唔使登記。</span>
                 <span class="enb-cta" id="enb-games-cta">去玩吓 →</span>
               </span>
             </a>
-            <a class="enb-slide enb-promo enb-tip" data-banner="tip"
+            <a draggable="false" class="enb-slide enb-promo enb-tip" data-banner="tip"
                href="/en?view=home#home-tips"
                onclick="return enOpenBanner('tip');">
-              <span class="enb-art" aria-hidden="true">💡</span>
               <span class="enb-copy">
+                <span class="enb-chip" id="enb-tip-chip">每日一篇 · 生活貼士</span>
                 <span class="enb-title" id="enb-tip-title">生活小常識</span>
                 <span class="enb-sub" id="enb-tip-sub">每日一篇，屋企同出街都用得着。</span>
                 <span class="enb-cta" id="enb-tip-cta">睇今日 →</span>
               </span>
             </a>
-            <a class="enb-slide enb-promo enb-helper" data-banner="helper"
+            <a draggable="false" class="enb-slide enb-promo enb-helper" data-banner="helper"
                href="/en?view=home#home-helper"
                onclick="return enOpenBanner('helper');">
-              <span class="enb-art" aria-hidden="true">🫶</span>
               <span class="enb-copy">
+                <span class="enb-chip" id="enb-helper-chip">互相了解 · 好好相處</span>
                 <span class="enb-title" id="enb-helper-title">姐姐心聲</span>
                 <span class="enb-sub" id="enb-helper-sub">了解家務助理嘅想法，大家相處得更好。</span>
                 <span class="enb-cta" id="enb-helper-cta">聽吓佢講 →</span>
               </span>
             </a>
-            <a class="enb-slide enb-promo enb-help" data-banner="help"
+            <a draggable="false" class="enb-slide enb-promo enb-help" data-banner="help"
                href="/en?view=home#home-help-directory"
                onclick="return enOpenBanner('help');">
-              <span class="enb-art" aria-hidden="true">🆘</span>
               <span class="enb-copy">
+                <span class="enb-chip" id="enb-help-chip">支援電話 · 一撳就搵到</span>
                 <span class="enb-title" id="enb-help-title">搵幫手</span>
                 <span class="enb-sub" id="enb-help-sub">緊急電話同香港支援服務，全部大字清楚。</span>
                 <span class="enb-cta" id="enb-help-cta">即刻去 →</span>
+              </span>
+            </a>
+            <!-- v167 — request 2: 長者故事 (Elder Stories) becomes its own slide in
+                 the deck. Photo: a warm scene of HK elders (banner-elder-story.webp).
+                 enOpenBanner('story') scrolls to #home-elder-stories below. -->
+            <a draggable="false" class="enb-slide enb-promo enb-story" data-banner="story"
+               href="/en?view=home#home-elder-stories"
+               onclick="return enOpenBanner('story');">
+              <span class="enb-copy">
+                <span class="enb-chip" id="enb-story-chip">繁體中文 · 慢慢讀</span>
+                <span class="enb-title" id="enb-story-title">長者故事</span>
+                <span class="enb-sub" id="enb-story-sub">香港長者嘅日常同心事，溫馨又實用。</span>
+                <span class="enb-cta" id="enb-story-cta">讀吓 →</span>
               </span>
             </a>
           </div>

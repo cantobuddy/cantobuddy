@@ -1787,7 +1787,7 @@ const SEED_BANNERS = ['games', 'culture', 'outings', 'living'];
 const DEFAULT_ROTATE_SECONDS = 5;
 // The /en deck's own seed and speed. 3 seconds is what the operator set for the
 // elder track on 2026-11-14; the Cantonese deck stays at 5.
-const SEED_EN_BANNERS = ['games', 'tip', 'helper', 'help'];
+const SEED_EN_BANNERS = ['games', 'tip', 'helper', 'help', 'story'];
 const DEFAULT_EN_ROTATE_SECONDS = 3;
 
 function seedBannersIfNeeded() {
@@ -1832,7 +1832,21 @@ function seedBannersIfNeeded() {
   const insEn = db.prepare(
     'INSERT OR IGNORE INTO en_banners (slug, enabled, sort_order, updated_at) VALUES (?, 1, ?, ?)'
   );
-  SEED_EN_BANNERS.forEach((slug, i) => insEn.run(slug, i, now));
+  // Add the original promos without resetting any existing operator choices.
+  // Story is handled separately below so it is appended AFTER the current maximum
+  // order, rather than inserted at a seed slot that could collide with custom order.
+  SEED_EN_BANNERS.filter((slug) => slug !== 'story').forEach((slug, i) => insEn.run(slug, i, now));
+
+  // v167 — append 長者故事 on both fresh and existing databases. Once present,
+  // leave its enabled flag and order untouched, including an operator's opt-out.
+  const hasStory = db.prepare('SELECT 1 FROM en_banners WHERE slug = ?').get('story');
+  if (!hasStory) {
+    const maxRow = db.prepare('SELECT MAX(sort_order) AS m FROM en_banners').get();
+    const nextOrder = (maxRow && typeof maxRow.m === 'number' ? maxRow.m : SEED_EN_BANNERS.length - 2) + 1;
+    db.prepare(
+      'INSERT INTO en_banners (slug, enabled, sort_order, updated_at) VALUES (?, 1, ?, ?)'
+    ).run('story', nextOrder, now);
+  }
   db.prepare(
     'INSERT OR IGNORE INTO app_settings (key, value, updated_at) VALUES (?, ?, ?)'
   ).run('en_banner_rotate_seconds', String(DEFAULT_EN_ROTATE_SECONDS), now);

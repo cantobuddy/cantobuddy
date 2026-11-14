@@ -122,7 +122,14 @@
 // articles (channel 'elders'). en.html and en-app.js change again, so bump: an
 // installed elder PWA must drop the old emoji-only deck and pick up the photo-backed
 // banners and the new article reader.
-const CACHE = 'cantobuddy-v166';
+//
+// v167 — 2026-11-15: the /en deck gains a 長者故事 (Elder Stories) SLIDE and the
+// four promos are reskinned to share the hero's card language (dark wash + white
+// copy + pink-red CTA, Cantonese-deck structure). en.html / en-app.js / en-i18n.js
+// change, and two new banner images (banner-tip / banner-help) ship; the story
+// slide reuses the already-shipped banner-hero-en.jpg. Bump: an installed elder PWA
+// would otherwise keep the old emoji/deck and miss the new slide + reskin.
+const CACHE = 'cantobuddy-v167';
 
 // Which paths are server-rendered SEO documents rather than app-shell assets.
 // Kept as one matcher so it can be asserted against `LANG_PREFIX` in seo.js —

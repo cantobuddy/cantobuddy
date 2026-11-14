@@ -2264,6 +2264,7 @@ const EN_BANNER_META = {
   tip:     { emoji: '💡', label: 'Life tips',       href: '/en?view=home#home-tips' },
   helper:  { emoji: '🫶', label: 'Helper voice',   href: '/en?view=home#home-helper' },
   help:    { emoji: '🆘', label: 'Find help',       href: '/en?view=home#home-help-directory' },
+  story:   { emoji: '📖', label: 'Elder stories',   href: '/en?view=home#home-elder-stories' },
 };
 const EN_FIXED_BANNERS = [{ slug: 'hero', note: 'Always first' }];
 let EN_BANNER_CFG = null;

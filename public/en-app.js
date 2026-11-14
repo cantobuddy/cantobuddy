@@ -382,6 +382,14 @@ const STATIC_TEXT = {
   'enb-help-title': 'banner.help.title',
   'enb-help-sub': 'banner.help.sub',
   'enb-help-cta': 'banner.help.cta',
+  'enb-story-title': 'banner.story.title',
+  'enb-story-sub': 'banner.story.sub',
+  'enb-story-cta': 'banner.story.cta',
+  'enb-games-chip': 'banner.games.chip',
+  'enb-tip-chip': 'banner.tip.chip',
+  'enb-helper-chip': 'banner.helper.chip',
+  'enb-help-chip': 'banner.help.chip',
+  'enb-story-chip': 'banner.story.chip',
   'home-quick-title': 'learn.title',
   'learn-title': 'learn.title',
   'practice-title': 'practice.title',
@@ -439,6 +447,9 @@ function applyStaticLang() {
   const ctas = document.querySelectorAll('.en-hero .en-cta');
   if (ctas[0]) ctas[0].textContent = enT('hero.cta1');
   if (ctas[1]) ctas[1].textContent = enT('hero.cta2');
+  // Rebuild inert boundary clones from the translated originals, so a language
+  // change cannot briefly show an old-language card at the wrap boundary.
+  if (enBanners.loaded) paintEnBanners();
 }
 
 // ---- Rendering --------------------------------------------------------------
@@ -829,7 +840,9 @@ function enCloseElderArticle(e) {
 // authored order below is the fallback, so the deck never depends on the API to
 // render. The hero is never switchable. Each promo's href is a no-JS / deep-link
 // fallback; enOpenBanner() opens the right in-app doorway WITHOUT a reload.
-const EN_BANNERS = ['games', 'tip', 'helper', 'help'];
+// v167 — 長者故事 (Elder Stories) is now a deck slide, so it joins the master
+// list. The hero is never in this list: it is a permanent first slide.
+const EN_BANNERS = ['games', 'tip', 'helper', 'help', 'story'];
 const EN_FALLBACK_SECONDS = 3;
 const enBanners = {
   loaded: false, slugs: null, seconds: EN_FALLBACK_SECONDS,
@@ -840,7 +853,8 @@ function enOpenBanner(kind) {
   // v161 — every banner stays on the SINGLE /en home page and scrolls to its own
   // section, so the elder never leaves the one page that holds all four topics.
   enNavigate('home');
-  const map = { games: 'home-games', tip: 'home-tips', helper: 'home-helper', help: 'home-help-directory' };
+  // v167 — story lands on the 長者故事 home section.
+  const map = { games: 'home-games', tip: 'home-tips', helper: 'home-helper', help: 'home-help-directory', story: 'home-elder-stories' };
   const el = $(map[kind] || 'home-games');
   if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
   return false; // cancel the fallback href — handled in-app above
@@ -1045,26 +1059,54 @@ function restartEnBannerTimer() {
 }
 
 let _enBannerDrag = null;
+let _enBannerSuppressNextClick = false;
 function attachEnBannerSwipe(track) {
   const box = document.getElementById('en-home-banners');
   if (!box || box.dataset.swipeBound) return;
   box.dataset.swipeBound = '1';
-  box.addEventListener('pointerdown', (e) => {
-    _enBannerDrag = { x: e.clientX, y: e.clientY, moved: false };
-    enBanners.paused = true;
-  });
-  box.addEventListener('pointerup', (e) => {
+  // A horizontal swipe can end with ONE browser-generated click on the full-card
+  // link. Swallow that single pointer click only: a 400ms window used to also eat
+  // keyboard activation and the elder's next deliberate tap (e.g. the first promo
+  // right after a swipe). e.detail === 0 means keyboard/programmatic activation —
+  // never a swipe artefact — so it must always reach the button. The next
+  // pointerdown clears the flag, so no timer is needed.
+  box.addEventListener('click', (e) => {
+    if (!_enBannerSuppressNextClick || e.detail === 0) return;
+    _enBannerSuppressNextClick = false;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+  }, true);
+  // On desktop, dragging a native <a> starts an HTML5 link drag: Chrome fires
+  // pointercancel and pointerup never arrives, so a mouse swipe would do nothing.
+  box.addEventListener('dragstart', (e) => e.preventDefault());
+  const finishDrag = (x, y) => {
     if (!_enBannerDrag) return;
-    const dx = e.clientX - _enBannerDrag.x;
-    const dy = e.clientY - _enBannerDrag.y;
+    const dx = x - _enBannerDrag.x;
+    const dy = y - _enBannerDrag.y;
     _enBannerDrag = null;
     enBanners.paused = false;
     if (Math.abs(dx) > 42 && Math.abs(dx) > Math.abs(dy)) {
+      _enBannerSuppressNextClick = true;
       goEnBanner(enBanners.index + (dx < 0 ? 1 : -1), dx < 0 ? 1 : -1);
     }
     restartEnBannerTimer();
+  };
+  box.addEventListener('pointerdown', (e) => {
+    _enBannerSuppressNextClick = false;
+    _enBannerDrag = { x: e.clientX, y: e.clientY, lastX: e.clientX, lastY: e.clientY };
+    enBanners.paused = true;
   });
-  box.addEventListener('pointercancel', () => { _enBannerDrag = null; enBanners.paused = false; });
+  box.addEventListener('pointermove', (e) => {
+    if (!_enBannerDrag) return;
+    _enBannerDrag.lastX = e.clientX;
+    _enBannerDrag.lastY = e.clientY;
+  });
+  box.addEventListener('pointerup', (e) => finishDrag(e.clientX, e.clientY));
+  box.addEventListener('pointercancel', () => {
+    // OS gestures / link drags can cancel the pointer stream. Use the last
+    // observed position so the swipe still completes instead of dying.
+    if (_enBannerDrag) finishDrag(_enBannerDrag.lastX, _enBannerDrag.lastY);
+  });
   box.addEventListener('focusin', (e) => {
     if (e.target.classList.contains('enb-dot')) return;
     enBanners.paused = true;

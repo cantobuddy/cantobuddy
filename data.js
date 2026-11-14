@@ -4081,6 +4081,15 @@ SEED_POSTS.push(...require('./longform-guides'));
    /articles plumbing applies. Guarded on SEED_POSTS.length like the rest. */
 SEED_POSTS.push(...require('./elder-voices'));
 
+/* Two long-form Culture features on how Hong Kong people work and what they
+   believe, drafted in content/ on 2026-11-14 but never registered — so the
+   Cantonese site's Culture tab never showed them and they looked "lost".
+   content/build-culture-features.js turns the markdown into this self-contained
+   module (content/ is local-only and never ships). They are ordinary published
+   culture posts: /discover/<slug>, /articles, the sitemap and the Discover feed
+   all read them from SEED_POSTS. The length guard picks up both on next boot. */
+SEED_POSTS.push(...require('./culture-features'));
+
 module.exports = {
   load,
   save,

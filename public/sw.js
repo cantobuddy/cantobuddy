@@ -116,7 +116,13 @@
 // /api/admin/en-banners. en.html, en-app.js, admin.html and admin.js all change,
 // so bump again: an installed elder PWA must drop the old cross-fade hero and pick
 // up the new transform-based deck plus the operator-set banner order/speed.
-const CACHE = 'cantobuddy-v164';
+// v166 — 2026-11-15: the /en home banners ALL gain real photographs (hero + four
+// promos, mirroring the Cantonese homepage) and a new "長者故事" (Elder Voices)
+// section plus an in-app article reader is added for the four Chinese-only comfort
+// articles (channel 'elders'). en.html and en-app.js change again, so bump: an
+// installed elder PWA must drop the old emoji-only deck and pick up the photo-backed
+// banners and the new article reader.
+const CACHE = 'cantobuddy-v166';
 
 // Which paths are server-rendered SEO documents rather than app-shell assets.
 // Kept as one matcher so it can be asserted against `LANG_PREFIX` in seo.js —
@@ -149,7 +155,11 @@ const PLACE_ASSET = /^\/places\/[^/]+\.[a-z0-9]+$/i;
    beacon, so a pinned old copy means those visitors are never counted and the
    operator's traffic report under-reports for exactly the people who come back.
    Network first, cache as the offline fallback. */
-const EN_TRACK = /^\/en(\.html|\/|$)|^\/en-[a-z0-9-]+\.(js|css)$/i;
+/* /en-manifest.json is the dedicated manifest for the elder English track (id
+   "/en", start_url "/en") so an Android "Add to Home Screen" from /en opens this
+   track, not the Cantonese app. It is network-first here for the same offline-
+   fallback reason as en.html/en-app.js, and stays inside this same CACHE bucket. */
+const EN_TRACK = /^\/en(\.html|\/|$)|^\/en-[a-z0-9-]+\.(js|css)$|^\/en-manifest\.json$/i;
 
 const APP_SHELL = [
   '/',

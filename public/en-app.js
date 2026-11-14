@@ -344,7 +344,7 @@ function enNavigate(view) {
     b.classList.toggle('active', b.dataset.view === view);
   });
   window.scrollTo(0, 0);
-  if (view === 'home') { renderHomeQuick(); renderHomeGames(); renderHomeToday(); renderHomeBanners(); renderHomeTips(); renderHomeHelper(); renderHomeHelp(); }
+  if (view === 'home') { renderHomeQuick(); renderHomeGames(); renderHomeToday(); renderHomeBanners(); renderHomeTips(); renderHomeHelper(); renderHomeHelp(); renderHomeElderStories(); }
   if (view === 'learn') renderLearn();
   if (view === 'practice') renderPractice();
   if (view === 'progress') renderProgress();
@@ -738,6 +738,84 @@ function renderHomeHelp() {
           + `<div class="ds">${escapeHtml(t.desc || '')}</div>${helpEntryActions(e, g.id === 'danger')}</div>`;
       }).join('') + '</div>';
   }).join('');
+}
+
+// ---- v166 — Elder Voices (長者故事) -----------------------------------------
+// Traditional-Chinese comfort articles for Hong Kong elders, on the /en
+// (learn-English) track. The four posts live under channel 'elders' and are
+// Chinese-only (no English / Filipino / Indonesian). The home section lists
+// them; openElderArticle() opens the in-app reader so an elder never leaves the
+// one page they know.
+function renderHomeElderStories() {
+  const box = $('home-elder-stories');
+  if (!box) return;
+  box.innerHTML = `<div class="elder-card"><p>${escapeHtml(enT('elder.loading'))}</p></div>`;
+  apiGet('/api/posts?channel=elders&limit=20')
+    .then((posts) => {
+      if (!Array.isArray(posts) || !posts.length) { box.innerHTML = ''; return; }
+      box.innerHTML = posts.map((p) => {
+        const title = p.title_zh || '';
+        const sum = p.summary_zh || '';
+        return `<a class="en-cat elder-story" href="#elder-${escapeHtml(p.slug)}" `
+          + `onclick="openElderArticle('${escapeHtml(p.slug)}'); return false;">`
+          + `<div class="ic" style="font-size:32px">${escapeHtml(p.icon || '📖')}</div>`
+          + `<div class="nm">${escapeHtml(title)}</div>`
+          + `<div class="ct">${escapeHtml(sum)}</div>`
+          + `</a>`;
+      }).join('');
+    })
+    .catch(() => { box.innerHTML = ''; });
+}
+
+// Minimal sanitiser for the article body. We control the source, but we still
+// restrict to the same small tag set the main app allows so a future or pasted
+// body cannot inject script. Unknown tags are unwrapped; unsafe attrs dropped.
+function sanitizeElderHtml(html) {
+  const ALLOWED = /^(P|H2|H3|UL|OL|LI|STRONG|EM|B|I|BR|A|BLOCKQUOTE)$/;
+  const tpl = document.createElement('template');
+  tpl.innerHTML = String(html || '');
+  const clean = (node) => {
+    [...node.children].forEach((el) => {
+      if (!ALLOWED.test(el.tagName)) {
+        const parent = el.parentNode;
+        while (el.firstChild) parent.insertBefore(el.firstChild, el);
+        parent.removeChild(el);
+        return;
+      }
+      [...el.attributes].forEach((attr) => {
+        const safeHref = el.tagName === 'A' && attr.name === 'href' && /^(https?:\/\/|\/)/i.test(attr.value);
+        if (!safeHref) el.removeAttribute(attr.name);
+      });
+      if (el.tagName === 'A') { el.setAttribute('target', '_blank'); el.setAttribute('rel', 'noopener noreferrer'); }
+      clean(el);
+    });
+  };
+  clean(tpl.content);
+  return tpl.innerHTML;
+}
+
+async function openElderArticle(slug) {
+  const modal = $('en-elder-article-modal');
+  const titleEl = $('en-elder-article-title');
+  const bodyEl = $('en-elder-article-body');
+  if (!modal || !titleEl || !bodyEl) return;
+  titleEl.textContent = enT('elder.loading');
+  bodyEl.innerHTML = '';
+  modal.classList.add('show');
+  try {
+    const p = await apiGet('/api/posts/' + encodeURIComponent(slug));
+    titleEl.textContent = p.title_zh || '';
+    bodyEl.innerHTML = sanitizeElderHtml(p.body_zh || '');
+  } catch (e) {
+    bodyEl.innerHTML = `<p>${escapeHtml(enT('elder.loading'))}</p>`;
+  }
+}
+
+function enCloseElderArticle(e) {
+  // Close only when the overlay itself is clicked, or the ✕ button is tapped.
+  if (e && e.target !== e.currentTarget && !(e.target.classList && e.target.classList.contains('en-modal-x'))) return;
+  const modal = $('en-elder-article-modal');
+  if (modal) modal.classList.remove('show');
 }
 
 // ---- v163 — rotating elder-home carousel ------------------------------------
@@ -1987,7 +2065,7 @@ async function loadElderData() {
   STATE.reminders = loadReminders();
   renderHomeToday();
   renderGoodMorning(); // shareSite may have just arrived — refresh the greeting share links
-  renderHomeTips(); renderHomeHelper(); renderHomeHelp();
+  renderHomeTips(); renderHomeHelper(); renderHomeHelp(); renderHomeElderStories();
   renderReminderForm();
   renderReminderList();
   const active = document.querySelector('.en-view.active');
@@ -2020,7 +2098,7 @@ async function init() {
     renderHomeToday(); renderToday(); renderHelp();
     renderGoodMorning(); // greeting labels + share links are language-aware
     if ($('en-streak')) $('en-streak').innerHTML = enRenderStreak();
-    renderHomeTips(); renderHomeHelper(); renderHomeHelp();
+    renderHomeTips(); renderHomeHelper(); renderHomeHelp(); renderHomeElderStories();
     renderReminderForm(); renderReminderList();
   };
 

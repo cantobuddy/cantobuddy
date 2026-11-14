@@ -48,7 +48,7 @@
     gtag('config', 'G-877054DW3X');
   </script>
 
-  <link rel="manifest" href="/manifest.json" />
+  <link rel="manifest" href="/en-manifest.json" />
   <link rel="icon" href="/favicon.ico" sizes="any" />
   <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
   <style>
@@ -179,10 +179,10 @@
       background-color: #2a1d14;
       background-image:
         linear-gradient(100deg,
-          rgba(28, 20, 14, 0.94) 0%,
-          rgba(28, 20, 14, 0.82) 36%,
-          rgba(28, 20, 14, 0.50) 68%,
-          rgba(28, 20, 14, 0.08) 100%),
+          rgba(28, 20, 14, 0.86) 0%,
+          rgba(28, 20, 14, 0.66) 36%,
+          rgba(28, 20, 14, 0.34) 68%,
+          rgba(28, 20, 14, 0.02) 100%),
         url(/banner-hero-en.jpg);
       background-position: center right, center right;
       background-size: cover, cover;
@@ -292,10 +292,13 @@
       content: ''; position: absolute; inset: 0; z-index: 0;
       background: radial-gradient(circle at 85% 50%, rgba(255,255,255,.22), transparent 46%);
     }
-    .enb-games  { background: linear-gradient(135deg, #5d3fa2, #9263d2); }
-    .enb-tip    { background: linear-gradient(135deg, #176a59, #36a77b); }
-    .enb-helper { background: linear-gradient(135deg, #a84b2f, #e08245); }
-    .enb-help   { background: linear-gradient(135deg, #a6283c, #e05265); }
+    /* v166 — every /en promo now carries a real photograph (like the Cantonese
+       homepage) so the rotating deck reads as one family of pictures. A soft
+       scrim keeps the white copy legible on top of the photo. */
+    .enb-games  { background-image: linear-gradient(rgba(46,30,82,.55), rgba(46,30,82,.55)), url(/banner-games.webp); background-size: cover; background-position: center; }
+    .enb-tip    { background-image: linear-gradient(rgba(15,74,60,.55), rgba(15,74,60,.55)), url(/banner-living.webp); background-size: cover; background-position: center; }
+    .enb-helper { background-image: linear-gradient(rgba(120,52,30,.55), rgba(120,52,30,.55)), url(/banner-culture.webp); background-size: cover; background-position: center; }
+    .enb-help   { background-image: linear-gradient(rgba(122,32,48,.55), rgba(122,32,48,.55)), url(/banner-outings.webp); background-size: cover; background-position: center; }
     .enb-promo { display: flex; align-items: center; gap: 16px; padding: 22px 24px; }
     .enb-copy { position: relative; z-index: 1; max-width: 76%; }
     .enb-title { display: block; font-size: 1.72rem; font-weight: 800; line-height: 1.15; }
@@ -308,7 +311,7 @@
     }
     .enb-art {
       position: absolute; right: 18px; top: 50%; transform: translateY(-50%);
-      font-size: 5.2rem; line-height: 1; opacity: .88; z-index: 1;
+      font-size: 5.2rem; line-height: 1; opacity: .36; z-index: 1;
     }
     /* The hero is a slide but keeps its own dark, image-backed look. It must not
        inherit slide spacing that would break the text column or add a gap. */
@@ -532,6 +535,28 @@
     cursor: pointer; background: #f0d9d0; color: #b3404a;
   }
   .en-btn-primary { background: var(--red); color: #fff; }
+
+  /* v166 — Elder Voices article reader */
+  .en-article-box {
+    max-width: 440px; width: 100%; text-align: left; padding: 22px 20px 24px;
+    max-height: 86vh; overflow-y: auto;
+  }
+  .en-modal-x {
+    position: absolute; top: 10px; right: 12px; width: 34px; height: 34px;
+    border: 0; border-radius: 50%; background: #f0f0f4; color: #6a6a78;
+    font-size: 16px; line-height: 1; cursor: pointer;
+  }
+  .en-article-box h3 { font-size: 1.2rem; line-height: 1.32; margin: 0 30px 12px 0; color: var(--ink); }
+  .en-article-body { font-size: 1.02rem; line-height: 1.75; color: var(--ink); }
+  .en-article-body h2 { font-size: 1.12rem; margin: 18px 0 8px; color: var(--red); }
+  .en-article-body p { margin: 0 0 12px; }
+  .en-article-body ul { margin: 0 0 12px; padding-left: 22px; }
+  .en-article-body li { margin: 0 0 6px; }
+  .en-article-body blockquote {
+    margin: 14px 0; padding: 10px 14px; border-left: 4px solid var(--red);
+    background: #fff5f1; border-radius: 8px; color: #7a3b2e;
+  }
+  .en-article-body em { color: #8a5a2e; font-style: normal; }
   .en-btn-outline { background: #fff; color: var(--muted); border: 1px solid var(--line); }
   .en-install-btn {
     border: 1px solid var(--line); border-radius: 50%;
@@ -971,6 +996,12 @@
              the full Help view with every emergency and support number. -->
         <button class="elder-help-cta" id="home-help-cta" onclick="enNavigate('help')">🆘 我需要幫助</button>
       </div>
+      <!-- v166 — Elder Voices (長者故事): Traditional-Chinese comfort articles
+           for Hong Kong elders, on the /en (learn-English) track. The four posts
+           live under channel 'elders'; each card opens the in-app reader. -->
+      <div class="en-section-title" id="home-elder-stories-title">長者故事</div>
+      <p class="elder-note" id="home-elder-stories-note">為香港長者而寫 · 講述佢哋嘅日常同心事</p>
+      <div class="en-grid" id="home-elder-stories"></div>
       <!-- Keep this title AFTER every highlight section. It is the 揀一類嚟學詞
            grid (home-quick-title is mapped to learn.title by applyStaticLang()). -->
       <div class="en-section-title" id="home-quick-title">快啲開始</div>
@@ -1158,6 +1189,15 @@
         <button class="en-btn en-btn-outline" id="en-install-later" onclick="enDismissInstall()"></button>
         <button class="en-btn en-btn-primary" id="en-install-add" onclick="enDoInstall()" style="display:none"></button>
       </div>
+    </div>
+  </div>
+
+  <!-- Elder Voices article reader -->
+  <div id="en-elder-article-modal" class="en-modal-overlay" onclick="enCloseElderArticle(event)">
+    <div class="en-modal-box en-article-box" onclick="event.stopPropagation()">
+      <button class="en-modal-x" onclick="enCloseElderArticle(event)" aria-label="關閉">✕</button>
+      <h3 id="en-elder-article-title"></h3>
+      <div id="en-elder-article-body" class="en-article-body"></div>
     </div>
   </div>
 

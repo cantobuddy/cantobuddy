@@ -1912,6 +1912,25 @@ function seedPostsIfNeeded() {
 
 const postsSeeded = seedPostsIfNeeded();
 
+// v166 — the Elder Voices comfort articles moved from the Culture channel to a
+// dedicated 'elders' channel: they are Traditional-Chinese-only and surfaced on
+// the /en English-learning track for Hong Kong elders, not the main-site Culture
+// tab. seedPostsIfNeeded() only ever INSERTs, so already-deployed rows would
+// stay on 'culture' forever; this idempotent UPDATE reparents them. Runs every
+// boot; it is a no-op once the rows are already 'elders'.
+const ELDER_POST_SLUGS = [
+  'elder-bno-migration', 'elder-living-alone', 'elder-cost-of-living', 'elder-illness-care',
+];
+try {
+  db.prepare(
+    `UPDATE posts SET channel = 'elders' WHERE slug IN (${ELDER_POST_SLUGS.map(() => '?').join(',')}) AND channel != 'elders'`
+  ).run(...ELDER_POST_SLUGS);
+} catch (e) {
+  // Non-fatal: the posts table may not exist yet on a brand-new boot; seeding
+  // above already inserted these with channel 'elders', so nothing is lost.
+  console.warn('elder channel reparent skipped:', e && e.message);
+}
+
 /* ---------------------------------------------------------------------------
    Refreshing the SEEDED culture articles.
 
@@ -3048,11 +3067,17 @@ const S = {
   `),
 
   /* The newest published post, for "New today: …". Only the title in the
-     device's language, with English as the fallback. */
+     device's language, with English as the fallback.
+
+     The `elders` channel is Chinese-only content for the /en English-learning
+     track (HK Chinese elders) and must never surface as a push headline in the
+     main app — its posts carry no English/Filipino/Indonesian title, so the
+     fallback would be empty and the "new" ladder rung would silently no-op. */
   latestPublishedPost: db.prepare(`
     SELECT slug, title_en, title_fil, title_zh, title_id
       FROM posts
      WHERE status = 'published'
+       AND channel != 'elders'
      ORDER BY COALESCE(published_at, created_at) DESC, id DESC
      LIMIT 1
   `),

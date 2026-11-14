@@ -110,7 +110,13 @@
 // instead of a teaser that only linked to Today. en.html and en-app.js change,
 // so bump again: every returning / installed elder gets the new Home, and any
 // stale offline /en copy held under v162 is dropped on activate.
-const CACHE = 'cantobuddy-v163';
+// v164 — 2026-11-15: the /en home hero MERGES into the four promo slides into one
+// left-to-right sliding deck that mirrors the Cantonese homepage, AND the four
+// /en promos become admin-configurable (enable / order / speed) via
+// /api/admin/en-banners. en.html, en-app.js, admin.html and admin.js all change,
+// so bump again: an installed elder PWA must drop the old cross-fade hero and pick
+// up the new transform-based deck plus the operator-set banner order/speed.
+const CACHE = 'cantobuddy-v164';
 
 // Which paths are server-rendered SEO documents rather than app-shell assets.
 // Kept as one matcher so it can be asserted against `LANG_PREFIX` in seo.js —

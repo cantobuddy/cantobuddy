@@ -136,7 +136,7 @@ function switchTab(tab) {
     c.classList.toggle('active', c.id === 'tab-' + tab);
   });
   if (tab === 'push') renderAdminPush();
-  if (tab === 'banners') renderAdminBanners();
+  if (tab === 'banners') { renderAdminBanners(); renderAdminEnBanners(); }
   if (tab === 'navigation') renderAdminNavigation();
   if (tab === 'discover') renderAdminDiscover();
   if (tab === 'english') renderAdminEnglish();
@@ -2248,6 +2248,120 @@ async function moveBanner(slug, dir) {
   try {
     BANNER_CFG = await apiPut('/api/admin/banners', { order });
     await renderAdminBanners();
+  } catch (e) {
+    alert('Could not reorder: ' + e.message);
+  }
+}
+
+// ---- /en (English / elder) home banners ---------------------------------
+// Same three controls as the Cantonese deck — speed, on/off, order — but for
+// the /en promos (games / tip / helper / help) and its own speed setting. The
+// 學日常英文 hero is a permanent first slide and is not operator-controlled,
+// shown here as a read-only row so the admin sees the full deck.
+const EN_BANNER_META = {
+  hero:    { emoji: '🦜', label: '學日常英文 (Learn English)', href: '#enb-hero' },
+  games:   { emoji: '🎲', label: 'Games',          href: '/en?view=home#home-games' },
+  tip:     { emoji: '💡', label: 'Life tips',       href: '/en?view=home#home-tips' },
+  helper:  { emoji: '🫶', label: 'Helper voice',   href: '/en?view=home#home-helper' },
+  help:    { emoji: '🆘', label: 'Find help',       href: '/en?view=home#home-help-directory' },
+};
+const EN_FIXED_BANNERS = [{ slug: 'hero', note: 'Always first' }];
+let EN_BANNER_CFG = null;
+
+async function renderAdminEnBanners() {
+  const list = document.getElementById('admin-en-banners-list');
+  const fixed = document.getElementById('admin-en-banners-fixed');
+  if (!list) return;
+  try {
+    EN_BANNER_CFG = await apiGet('/api/admin/en-banners');
+    const secs = document.getElementById('en-banner-seconds');
+    if (secs) secs.value = EN_BANNER_CFG.seconds;
+
+    const enabled = EN_BANNER_CFG.banners.filter((b) => b.enabled).length;
+    const slides = 1 + enabled; // hero + enabled promos
+
+    if (fixed) {
+      fixed.innerHTML = EN_FIXED_BANNERS.map((f) => {
+        const m = EN_BANNER_META[f.slug] || { emoji: '🖼️', label: f.slug, href: '' };
+        const pos = EN_FIXED_BANNERS.indexOf(f) + 1;
+        return `<div class="admin-vocab-row" style="display:flex;align-items:center;gap:12px;opacity:1">
+          <span style="flex:0 0 auto;width:20px;text-align:center;font-size:1rem"
+                aria-hidden="true" title="Fixed in the deck">🔒</span>
+          <div style="flex:1 1 auto;min-width:0">
+            <strong>${m.emoji} ${m.label}</strong>
+            <small style="display:block;color:#6b7280;font-weight:600">
+              ${f.note} · deck position ${pos} · <code>${m.href}</code>
+            </small>
+          </div>
+          <span class="admin-vocab-tag" style="flex:0 0 auto">Always on</span>
+        </div>`;
+      }).join('');
+    }
+
+    let slot = EN_FIXED_BANNERS.length;
+    list.innerHTML = EN_BANNER_CFG.banners.map((b, i) => {
+      const m = EN_BANNER_META[b.slug] || { emoji: '🖼️', label: b.slug, href: '' };
+      const on = b.enabled;
+      const pos = on ? ++slot : null;
+      return `<div class="admin-vocab-row" style="display:flex;align-items:center;gap:12px;opacity:${on ? 1 : .55}">
+        <input type="checkbox" ${on ? 'checked' : ''} id="en-banner-on-${b.slug}"
+               onchange="toggleEnBanner('${b.slug}', this.checked)"
+               style="width:20px;height:20px;flex:0 0 auto" />
+        <label for="en-banner-on-${b.slug}" style="flex:1 1 auto;min-width:0;cursor:pointer">
+          <strong>${m.emoji} ${m.label}</strong>
+          <small style="display:block;color:#6b7280;font-weight:600">
+            ${on ? `In rotation · deck position ${pos}` : 'Hidden · not on the deck'} · <code>${m.href}</code>
+          </small>
+        </label>
+        <button class="btn btn-outline btn-sm" ${i === 0 ? 'disabled' : ''}
+                onclick="moveEnBanner('${b.slug}', -1)" aria-label="Move ${m.label} up">↑</button>
+        <button class="btn btn-outline btn-sm" ${i === EN_BANNER_CFG.banners.length - 1 ? 'disabled' : ''}
+                onclick="moveEnBanner('${b.slug}', 1)" aria-label="Move ${m.label} down">↓</button>
+      </div>`;
+    }).join('');
+
+    document.getElementById('admin-en-banners-stamp').textContent =
+      `${enabled} of ${EN_BANNER_CFG.banners.length} promos in rotation · `
+      + `${slides} slide${slides === 1 ? '' : 's'} on the deck · `
+      + `${EN_BANNER_CFG.seconds}s each · saved ${new Date().toLocaleTimeString()}`;
+  } catch (e) {
+    list.innerHTML = `<div class="admin-empty">Could not load /en banners: ${e.message}</div>`;
+    if (fixed) fixed.innerHTML = '';
+  }
+}
+
+async function saveEnBannerSeconds() {
+  const el = document.getElementById('en-banner-seconds');
+  if (!el) return;
+  try {
+    EN_BANNER_CFG = await apiPut('/api/admin/en-banners', { seconds: Number(el.value) });
+    el.value = EN_BANNER_CFG.seconds;
+    await renderAdminEnBanners();
+  } catch (e) {
+    alert('Could not save the /en speed: ' + e.message);
+  }
+}
+
+async function toggleEnBanner(slug, on) {
+  try {
+    EN_BANNER_CFG = await apiPut('/api/admin/en-banners', { enabled: { [slug]: !!on } });
+    await renderAdminEnBanners();
+  } catch (e) {
+    alert('Could not change that banner: ' + e.message);
+    await renderAdminEnBanners();
+  }
+}
+
+async function moveEnBanner(slug, dir) {
+  if (!EN_BANNER_CFG) return;
+  const order = EN_BANNER_CFG.banners.map((b) => b.slug);
+  const from = order.indexOf(slug);
+  const to = from + dir;
+  if (from < 0 || to < 0 || to >= order.length) return;
+  order.splice(to, 0, order.splice(from, 1)[0]);
+  try {
+    EN_BANNER_CFG = await apiPut('/api/admin/en-banners', { order });
+    await renderAdminEnBanners();
   } catch (e) {
     alert('Could not reorder: ' + e.message);
   }

@@ -413,6 +413,35 @@
       <h4 class="admin-subhead" style="margin-top:22px">Promos — switch and reorder</h4>
       <div id="admin-banners-list" class="admin-list"></div>
       <p class="admin-hint" id="admin-banners-stamp"></p>
+
+      <hr class="admin-divider" style="margin:26px 0" />
+
+      <div class="admin-toolbar">
+        <h3>English home banners <span class="admin-tag">/en</span></h3>
+        <button class="btn btn-outline btn-sm" onclick="renderAdminEnBanners()">↻ Refresh</button>
+      </div>
+      <p class="admin-hint">
+        The <strong>/en</strong> deck is one rotating carousel too, with the
+        <strong>學日常英文</strong> hero always first. The four promos below —
+        <strong>Games</strong>, <strong>Tips</strong>, <strong>Helper voice</strong> and
+        <strong>Help</strong> — are yours to switch and reorder, with their own
+        rotation speed. The same rule as the Cantonese deck: the words are
+        translated in the client, so only order, on/off and speed are editable.
+      </p>
+
+      <div class="admin-field-row">
+        <label for="en-banner-seconds"><strong>Seconds per banner</strong></label>
+        <input id="en-banner-seconds" type="number" min="2" max="60" step="1" value="3"
+               style="max-width:110px" onchange="saveEnBannerSeconds()" />
+        <span class="admin-hint" style="margin:0">2–60 seconds. 3 is the default (gentler for elders).</span>
+      </div>
+
+      <h4 class="admin-subhead" style="margin-top:18px">Always on</h4>
+      <div id="admin-en-banners-fixed" class="admin-list"></div>
+
+      <h4 class="admin-subhead" style="margin-top:22px">Promos — switch and reorder</h4>
+      <div id="admin-en-banners-list" class="admin-list"></div>
+      <p class="admin-hint" id="admin-en-banners-stamp"></p>
     </div>
 
     <!-- ---- navigation tab ---- -->

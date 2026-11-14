@@ -494,8 +494,21 @@ db.exec(`
     updated_at TEXT
   );
 
+  /* The /en ELDER track's own promo banner rows (2026-11-14). A separate
+     table, not a 'track' column on home_banners: the two carousels have
+     different slide sets, different defaults (3s vs 5s) and different operator
+     switches, and the Cantonese deck's seeded rows / admin code must not learn
+     about /en slugs it can never render. The hero is a permanent first slide
+     in both decks and is deliberately NOT a row in either table. */
+  CREATE TABLE IF NOT EXISTS en_banners (
+    slug       TEXT PRIMARY KEY,
+    enabled    INTEGER NOT NULL DEFAULT 1,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    updated_at TEXT
+  );
+
   /* Operator settings that are not per-learner and not per-banner — currently
-     just the carousel speed. A key/value table rather than a one-row table so
+     the two carousel speeds. A key/value table rather than a one-row table so
      the next setting does not need a migration. */
   CREATE TABLE IF NOT EXISTS app_settings (
     key        TEXT PRIMARY KEY,
@@ -1772,6 +1785,10 @@ const seeded = seedIfEmpty();
 // ---------------------------------------------------------------------------
 const SEED_BANNERS = ['games', 'culture', 'outings', 'living'];
 const DEFAULT_ROTATE_SECONDS = 5;
+// The /en deck's own seed and speed. 3 seconds is what the operator set for the
+// elder track on 2026-11-14; the Cantonese deck stays at 5.
+const SEED_EN_BANNERS = ['games', 'tip', 'helper', 'help'];
+const DEFAULT_EN_ROTATE_SECONDS = 3;
 
 function seedBannersIfNeeded() {
   const now = new Date().toISOString();
@@ -1806,6 +1823,19 @@ function seedBannersIfNeeded() {
   db.prepare(
     'INSERT OR IGNORE INTO app_settings (key, value, updated_at) VALUES (?, ?, ?)'
   ).run('banner_rotate_seconds', String(DEFAULT_ROTATE_SECONDS), now);
+
+  // The /en elder deck's own promos. Same pattern as above — a fresh install
+  // gets them in this order, an existing install keeps whatever the operator
+  // has since set, because INSERT OR IGNORE keys on the slug and never touches
+  // a row that is already there. The hero is not a row in this table (it is a
+  // permanent first slide, like the Cantonese hero).
+  const insEn = db.prepare(
+    'INSERT OR IGNORE INTO en_banners (slug, enabled, sort_order, updated_at) VALUES (?, 1, ?, ?)'
+  );
+  SEED_EN_BANNERS.forEach((slug, i) => insEn.run(slug, i, now));
+  db.prepare(
+    'INSERT OR IGNORE INTO app_settings (key, value, updated_at) VALUES (?, ?, ?)'
+  ).run('en_banner_rotate_seconds', String(DEFAULT_EN_ROTATE_SECONDS), now);
 }
 
 seedBannersIfNeeded();
@@ -2472,6 +2502,13 @@ const S = {
   listEnabledBanners: db.prepare('SELECT slug FROM home_banners WHERE enabled = 1 ORDER BY sort_order, slug'),
   setBannerOrder: db.prepare('UPDATE home_banners SET sort_order = ?, updated_at = ? WHERE slug = ?'),
   setBannerEnabled: db.prepare('UPDATE home_banners SET enabled = ?, updated_at = ? WHERE slug = ?'),
+
+  /* ---- /en elder home banners -------------------------------------------- */
+  listEnBanners: db.prepare('SELECT slug, enabled, sort_order FROM en_banners ORDER BY sort_order, slug'),
+  listEnabledEnBanners: db.prepare('SELECT slug FROM en_banners WHERE enabled = 1 ORDER BY sort_order, slug'),
+  setEnBannerOrder: db.prepare('UPDATE en_banners SET sort_order = ?, updated_at = ? WHERE slug = ?'),
+  setEnBannerEnabled: db.prepare('UPDATE en_banners SET enabled = ?, updated_at = ? WHERE slug = ?'),
+
   getSetting: db.prepare('SELECT value FROM app_settings WHERE key = ?'),
   setSetting: db.prepare(`
     INSERT INTO app_settings (key, value, updated_at) VALUES (?, ?, ?)
@@ -4960,6 +4997,80 @@ function saveBannerConfig({ seconds, order, enabled } = {}) {
   }
 
   return getBannerConfig();
+}
+
+// ---------------------------------------------------------------------------
+// /en elder-track home banners
+// ---------------------------------------------------------------------------
+// Same shape as the Cantonese deck above, but a SEPARATE table and a SEPARATE
+// speed setting, so the two carousels have independent operator controls and
+// never reach into each other's rows. The hero ("學日常英文") is a permanent
+// first slide in the client deck and is deliberately NOT a row here, exactly
+// like the Cantonese hero. The four promo slugs are games / tip / helper /
+// help — different subjects from the Cantonese deck, so a shared table would
+// have forced either confusing slug collisions or a track column.
+
+function getEnRotateSeconds() {
+  const row = S.getSetting.get('en_banner_rotate_seconds');
+  return clampRotateSeconds(row ? row.value : DEFAULT_EN_ROTATE_SECONDS);
+}
+
+/** What the /en learner app needs: the speed and the slugs to show, in order.
+ *  Disabled banners are not advertised to the public. */
+function getPublicEnBanners() {
+  return {
+    seconds: getEnRotateSeconds(),
+    banners: S.listEnabledEnBanners.all().map((r) => r.slug),
+  };
+}
+
+/** What the /en admin needs: every banner including the switched-off ones. */
+function getEnBannerConfig() {
+  return {
+    seconds: getEnRotateSeconds(),
+    banners: S.listEnBanners.all().map((r) => ({
+      slug: r.slug,
+      enabled: !!r.enabled,
+      sort_order: r.sort_order,
+    })),
+  };
+}
+
+/**
+ * Apply the operator's ordering and on/off choices for the /en deck. Mirrors
+ * saveBannerConfig: order is RENUMBERED 0..n-1, only known slugs are accepted,
+ * and the speed is clamped to 2..60.
+ */
+function saveEnBannerConfig({ seconds, order, enabled } = {}) {
+  const now = new Date().toISOString();
+  const known = new Set(S.listEnBanners.all().map((r) => r.slug));
+
+  if (Array.isArray(order)) {
+    const seen = new Set();
+    let pos = 0;
+    for (const slug of order) {
+      if (typeof slug !== 'string' || !known.has(slug) || seen.has(slug)) continue;
+      seen.add(slug);
+      S.setEnBannerOrder.run(pos++, now, slug);
+    }
+    for (const slug of known) {
+      if (seen.has(slug)) continue;
+      S.setEnBannerOrder.run(pos++, now, slug);
+    }
+  }
+
+  if (enabled && typeof enabled === 'object') {
+    for (const [slug, on] of Object.entries(enabled)) {
+      if (!known.has(slug)) continue;
+      S.setEnBannerEnabled.run(on ? 1 : 0, now, slug);
+    }
+  }
+
+  if (seconds !== undefined && seconds !== null && seconds !== '') {
+    S.setSetting.run('en_banner_rotate_seconds', String(clampRotateSeconds(seconds)), now);
+  }
+
+  return getEnBannerConfig();
 }
 
 // ---------------------------------------------------------------------------
@@ -7515,6 +7626,9 @@ module.exports = {
   getPublicBanners,
   getBannerConfig,
   saveBannerConfig,
+  getPublicEnBanners,
+  getEnBannerConfig,
+  saveEnBannerConfig,
   getPublicNavigation,
   getNavigationConfig,
   saveNavigationConfig,

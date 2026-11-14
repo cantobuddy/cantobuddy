@@ -1741,6 +1741,41 @@ app.put('/api/admin/banners', requireAdmin, (req, res) => {
 });
 
 /**
+ * GET /api/en/home-banners — the /en elder deck: what to show and how fast.
+ *
+ * Same contract as /api/home-banners but reads the en_banners table and the
+ * en_banner_rotate_seconds setting. Public and tiny. The /en client treats a
+ * failed fetch as "keep the authored HTML order", so this response is only an
+ * override of a deck that already renders correctly with no JS.
+ */
+app.get('/api/en/home-banners', (req, res) => {
+  res.set('Cache-Control', 'public, max-age=60');
+  res.json(store.getPublicEnBanners());
+});
+
+/**
+ * GET /api/admin/en-banners — every /en banner incl. the switched-off ones.
+ * PUT /api/admin/en-banners — save rotation speed, ordering and on/off.
+ * Mirrors /api/admin/banners for the Cantonese deck.
+ */
+app.get('/api/admin/en-banners', requireAdmin, (req, res) => {
+  res.json(store.getEnBannerConfig());
+});
+
+app.put('/api/admin/en-banners', requireAdmin, (req, res) => {
+  const b = req.body || {};
+  try {
+    res.json(store.saveEnBannerConfig({
+      seconds: b.seconds,
+      order: b.order,
+      enabled: b.enabled,
+    }));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
  * GET /api/navigation — the order and visibility of the More sheet and the
  * bottom tab bar.
  *

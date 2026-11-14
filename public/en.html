@@ -263,28 +263,31 @@
       min-height: 104px; padding: 14px 10px;
     }
     .elder-games .elder-game:active { transform: scale(0.98); }
-    /* ---- /en rotating home banners (v160) --------------------------------
-       Four crawlable <a> slides that rotate like the Cantonese homepage deck.
-       This is a CROSS-FADE, not a translated flex track: with only four local
-       slides it wraps from the last to the first without a backwards sweep or
-       duplicate DOM ids. Every slide is real markup (no JS-built cards), so the
-       first one is visible and clickable before en-app.js has even loaded.
-       Elder standard: 19px+ copy, >=50px CTA, >=34px dot targets, no countdown,
-       no time pressure, and a slower 8-second rotation. */
+    /* ---- /en home carousel (v163) ------------------------------------------
+       ONE horizontal deck: the hero (slide 1, permanent) + the four promos,
+       sliding left-to-right exactly like the Cantonese homepage (cantobuddy.com).
+       The track is a flex row translated by whole slides, so the browser animates
+       on the compositor with the same .55s easing. Boundary clones give a seamless
+       wrap; disabled promos take no space (.enb-off). All five slides are real
+       markup (crawlable, usable before JS), and the operator's on/off + order +
+       speed come from /api/en/home-banners. Elder standard: 19px+ copy, >=50px
+       CTA, >=34px dot targets, no countdown, no time pressure. */
     .enb-wrap { margin: 0 0 18px; }
     .enb-viewport {
-      position: relative; height: 238px; border-radius: 20px; overflow: hidden;
-      box-shadow: 0 4px 16px rgba(83, 40, 34, 0.14);
+      position: relative; height: 380px; border-radius: 20px; overflow: hidden;
+      box-shadow: 0 4px 16px rgba(83, 40, 34, 0.14); touch-action: pan-y;
     }
-    .enb-track { position: relative; height: 100%; }
+    .enb-track {
+      display: flex; align-items: stretch;
+      transition: transform .55s cubic-bezier(.4, .05, .2, 1);
+      will-change: transform;
+    }
     .enb-slide {
-      position: absolute; inset: 0; display: flex; align-items: center;
-      gap: 16px; padding: 22px 24px; overflow: hidden;
+      flex: 0 0 100%; min-width: 0; position: relative; overflow: hidden;
       color: #fff; text-decoration: none;
-      opacity: 0; visibility: hidden; pointer-events: none;
-      transition: opacity .55s ease;
     }
-    .enb-slide.on { opacity: 1; visibility: visible; pointer-events: auto; z-index: 1; }
+    .enb-track > .enb-off { display: none; }
+    .enb-clone { pointer-events: none; }
     .enb-slide::before {
       content: ''; position: absolute; inset: 0; z-index: 0;
       background: radial-gradient(circle at 85% 50%, rgba(255,255,255,.22), transparent 46%);
@@ -293,6 +296,7 @@
     .enb-tip    { background: linear-gradient(135deg, #176a59, #36a77b); }
     .enb-helper { background: linear-gradient(135deg, #a84b2f, #e08245); }
     .enb-help   { background: linear-gradient(135deg, #a6283c, #e05265); }
+    .enb-promo { display: flex; align-items: center; gap: 16px; padding: 22px 24px; }
     .enb-copy { position: relative; z-index: 1; max-width: 76%; }
     .enb-title { display: block; font-size: 1.72rem; font-weight: 800; line-height: 1.15; }
     .enb-sub { display: block; font-size: 1rem; line-height: 1.45; margin-top: 8px; }
@@ -306,6 +310,9 @@
       position: absolute; right: 18px; top: 50%; transform: translateY(-50%);
       font-size: 5.2rem; line-height: 1; opacity: .88; z-index: 1;
     }
+    /* The hero is a slide but keeps its own dark, image-backed look. It must not
+       inherit slide spacing that would break the text column or add a gap. */
+    .enb-slide.en-hero { margin-bottom: 0; border-radius: 0; align-items: stretch; }
     .enb-slide:focus-visible { outline: 4px solid #fff; outline-offset: -8px; }
     .enb-dots { display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 10px; }
     .enb-dot {
@@ -320,8 +327,8 @@
     .enb-dot.on::before { width: 28px; background: var(--red); }
     .enb-dot:focus-visible { outline: 2px solid var(--red); outline-offset: 1px; }
     @media (max-width: 620px) {
-      .enb-viewport { height: 260px; border-radius: 18px; }
-      .enb-slide { padding: 20px 18px; align-items: flex-start; }
+      .enb-viewport { height: 440px; border-radius: 18px; }
+      .enb-promo { padding: 20px 18px; align-items: flex-start; }
       .enb-copy { max-width: 100%; }
       .enb-art {
         top: auto; bottom: -16px; right: 10px; transform: none;
@@ -331,7 +338,7 @@
       .enb-sub { font-size: .96rem; max-width: 92%; }
     }
     @media (prefers-reduced-motion: reduce) {
-      .enb-slide, .enb-dot::before { transition: none; }
+      .enb-track, .enb-dot::before { transition: none; }
     }
     /* Word cards */
     .en-word {
@@ -840,28 +847,80 @@
   <main>
     <!-- HOME -->
     <section id="view-home" class="en-view active">
-      <div class="en-hero">
-        <span class="en-hero-chip" id="hero-chip">100% 免費 · 唔使登記</span>
-        <h1 id="hero-title">學日常英文</h1>
-        <p id="hero-sub">教你點同家務助理溝通 · 認屋企嘢 · 出街買餸</p>
-        <!-- The bold and the rest of the sentence carry separate ids on
-             purpose: applyStaticLang() sets textContent, so one id on the <p>
-             would delete the <strong> on every language switch. -->
-        <p class="en-hero-desc"><strong id="hero-bold">135 個英文生字同 65 句常用句，全部有語音</strong><span id="hero-rest"> — 情景練習、小測驗，仲有粵語解釋。慢慢學，唔急。</span></p>
-        <div class="cta-row">
-          <button class="en-cta" onclick="enGoLearn()">學詞</button>
-          <button class="en-cta secondary" onclick="enGoPractice()">情景練習</button>
-        </div>
-      </div>
+      <!-- v163 — the hero is now slide 1 of ONE horizontal deck that also holds
+           the four promos, so the whole home highlights rotate left-to-right like
+           the Cantonese homepage (cantobuddy.com). The hero is a permanent first
+           slide (data-banner="hero") and is not operator-switchable; the four
+           promos below are admin-configurable via /api/admin/en-banners. -->
+      <section class="enb-wrap" id="en-home-banners"
+               aria-roledescription="carousel" aria-label="今日精選 · Home highlights">
+        <div class="enb-viewport">
+          <div class="enb-track" id="enb-track">
+            <div class="enb-slide en-hero" id="enb-hero" data-banner="hero" aria-label="學日常英文">
+              <span class="en-hero-chip" id="hero-chip">100% 免費 · 唔使登記</span>
+              <h1 id="hero-title">學日常英文</h1>
+              <p id="hero-sub">教你點同家務助理溝通 · 認屋企嘢 · 出街買餸</p>
+              <p class="en-hero-desc"><strong id="hero-bold">135 個英文生字同 65 句常用句，全部有語音</strong><span id="hero-rest"> — 情景練習、小測驗，仲有粵語解釋。慢慢學，唔急。</span></p>
+              <div class="cta-row">
+                <button class="en-cta" onclick="enGoLearn()">學詞</button>
+                <button class="en-cta secondary" onclick="enGoPractice()">情景練習</button>
+              </div>
+            </div>
 
-      <!-- Feature 1 — the FULL daily Good Morning card, FIRST card under the
-           hero on purpose. Hong Kong elders already forward a "早晨" picture to
-           family every morning, so opening the app must BE the ritual: the word,
-           one-tap listen and one-tap send all have to be here on Home, with no
-           extra tap through to Today. A teaser was tried and removed (2026-11-14)
-           because the elder could not actually send the greeting from Home.
-           Same markup/classes as the Today card; renderGoodMorning() fills every
-           .gm-l-* element on BOTH cards, so no duplicate IDs are needed. -->
+      <!-- v160→v163 — four rotating elder-home promos are now the LAST four
+           slides of the single deck opened above (hero is slide 1). They are real
+           HTML (crawlable and usable before JS); enOpenBanner() handles the
+           in-app doorway without a reload, and the href is the no-JS / deep-link
+           fallback. Operator on/off + order + speed come from /api/en/home-banners. -->
+            <a class="enb-slide enb-promo enb-games" data-banner="games"
+               href="/en?view=home#home-games"
+               onclick="return enOpenBanner('games');">
+              <span class="enb-art" aria-hidden="true">🎲</span>
+              <span class="enb-copy">
+                <span class="enb-title" id="enb-games-title">遊戲</span>
+                <span class="enb-sub" id="enb-games-sub">七款小遊戲，一個人玩都得，唔使登記。</span>
+                <span class="enb-cta" id="enb-games-cta">去玩吓 →</span>
+              </span>
+            </a>
+            <a class="enb-slide enb-promo enb-tip" data-banner="tip"
+               href="/en?view=home#home-tips"
+               onclick="return enOpenBanner('tip');">
+              <span class="enb-art" aria-hidden="true">💡</span>
+              <span class="enb-copy">
+                <span class="enb-title" id="enb-tip-title">生活小常識</span>
+                <span class="enb-sub" id="enb-tip-sub">每日一篇，屋企同出街都用得着。</span>
+                <span class="enb-cta" id="enb-tip-cta">睇今日 →</span>
+              </span>
+            </a>
+            <a class="enb-slide enb-promo enb-helper" data-banner="helper"
+               href="/en?view=home#home-helper"
+               onclick="return enOpenBanner('helper');">
+              <span class="enb-art" aria-hidden="true">🫶</span>
+              <span class="enb-copy">
+                <span class="enb-title" id="enb-helper-title">姐姐心聲</span>
+                <span class="enb-sub" id="enb-helper-sub">了解家務助理嘅想法，大家相處得更好。</span>
+                <span class="enb-cta" id="enb-helper-cta">聽吓佢講 →</span>
+              </span>
+            </a>
+            <a class="enb-slide enb-promo enb-help" data-banner="help"
+               href="/en?view=home#home-help-directory"
+               onclick="return enOpenBanner('help');">
+              <span class="enb-art" aria-hidden="true">🆘</span>
+              <span class="enb-copy">
+                <span class="enb-title" id="enb-help-title">搵幫手</span>
+                <span class="enb-sub" id="enb-help-sub">緊急電話同香港支援服務，全部大字清楚。</span>
+                <span class="enb-cta" id="enb-help-cta">即刻去 →</span>
+              </span>
+            </a>
+          </div>
+        </div>
+        <div class="enb-dots" id="enb-dots"></div>
+      </section>
+
+      <!-- Feature 1 — the FULL daily Good Morning card, directly under the deck
+           so the elder can read, listen and SEND the greeting from Home with no
+           extra tap. Same markup/classes as the Today card; renderGoodMorning()
+           fills every .gm-l-* element on BOTH cards, so no duplicate IDs. -->
       <div class="gm-card" id="gm-card-home">
         <div class="gm-card-top">
           <span class="gm-card-sun" aria-hidden="true">🌅</span>
@@ -881,75 +940,6 @@
         </div>
         <div class="elder-row gm-l-share-actions"></div>
       </div>
-
-      <!-- v160 — four rotating elder-home banners. The four <a> slides are
-           real HTML (crawlable and usable before JS), not innerHTML generated
-           from an API. enOpenBanner() handles the in-app doorway without a
-           reload; the href is the no-JS / deep-link fallback. Only the first
-           slide is visible on first paint; the other three are kept out of the
-           tab order until the carousel makes them active. -->
-      <section class="enb-wrap" id="en-home-banners"
-               aria-roledescription="carousel"
-               aria-label="今日精選 · Home highlights">
-        <div class="enb-viewport">
-          <div class="enb-track" id="enb-track">
-            <a class="enb-slide enb-games on" id="enb-slide-games" data-banner="games"
-               href="/en?view=home#home-games" aria-hidden="false"
-               onclick="return enOpenBanner('games');">
-              <span class="enb-art" aria-hidden="true">🎲</span>
-              <span class="enb-copy">
-                <span class="enb-title" id="enb-games-title">遊戲</span>
-                <span class="enb-sub" id="enb-games-sub">七款小遊戲，一個人玩都得，唔使登記。</span>
-                <span class="enb-cta" id="enb-games-cta">去玩吓 →</span>
-              </span>
-            </a>
-            <a class="enb-slide enb-tip" id="enb-slide-tip" data-banner="tip"
-               href="/en?view=home#home-tips" aria-hidden="true" tabindex="-1"
-               onclick="return enOpenBanner('tip');">
-              <span class="enb-art" aria-hidden="true">💡</span>
-              <span class="enb-copy">
-                <span class="enb-title" id="enb-tip-title">生活小常識</span>
-                <span class="enb-sub" id="enb-tip-sub">每日一篇，屋企同出街都用得着。</span>
-                <span class="enb-cta" id="enb-tip-cta">睇今日 →</span>
-              </span>
-            </a>
-            <a class="enb-slide enb-helper" id="enb-slide-helper" data-banner="helper"
-               href="/en?view=home#home-helper" aria-hidden="true" tabindex="-1"
-               onclick="return enOpenBanner('helper');">
-              <span class="enb-art" aria-hidden="true">🫶</span>
-              <span class="enb-copy">
-                <span class="enb-title" id="enb-helper-title">姐姐心聲</span>
-                <span class="enb-sub" id="enb-helper-sub">了解家務助理嘅想法，大家相處得更好。</span>
-                <span class="enb-cta" id="enb-helper-cta">聽吓佢講 →</span>
-              </span>
-            </a>
-            <a class="enb-slide enb-help" id="enb-slide-help" data-banner="help"
-               href="/en?view=home#home-help-directory" aria-hidden="true" tabindex="-1"
-               onclick="return enOpenBanner('help');">
-              <span class="enb-art" aria-hidden="true">🆘</span>
-              <span class="enb-copy">
-                <span class="enb-title" id="enb-help-title">搵幫手</span>
-                <span class="enb-sub" id="enb-help-sub">緊急電話同香港支援服務，全部大字清楚。</span>
-                <span class="enb-cta" id="enb-help-cta">即刻去 →</span>
-              </span>
-            </a>
-          </div>
-        </div>
-        <div class="enb-dots" id="enb-dots">
-          <button class="enb-dot on" id="enb-dot-0" type="button" data-i="0"
-                  aria-label="睇第 1 張" aria-current="true"
-                  onclick="enGoBanner(0); return false;"></button>
-          <button class="enb-dot" id="enb-dot-1" type="button" data-i="1"
-                  aria-label="睇第 2 張" aria-current="false"
-                  onclick="enGoBanner(1); return false;"></button>
-          <button class="enb-dot" id="enb-dot-2" type="button" data-i="2"
-                  aria-label="睇第 3 張" aria-current="false"
-                  onclick="enGoBanner(2); return false;"></button>
-          <button class="enb-dot" id="enb-dot-3" type="button" data-i="3"
-                  aria-label="睇第 4 張" aria-current="false"
-                  onclick="enGoBanner(3); return false;"></button>
-        </div>
-      </section>
 
       <!-- A1 — today's teaser. Filled from the deterministic HKT daily pick. -->
       <div class="elder-card" id="home-today-card">

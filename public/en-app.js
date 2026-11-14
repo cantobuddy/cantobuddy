@@ -740,16 +740,23 @@ function renderHomeHelp() {
   }).join('');
 }
 
-// ---- v160 — rotating elder-home banners --------------------------------------
-// Four real <a> slides already live in en.html: games / life tips / helper
-// voice / find help. Each href is a no-JS + deep-link fallback; enOpenBanner()
-// opens the right in-app doorway WITHOUT a reload. Mirrors the main / home
-// carousel, reduced-motion aware. Operator (2026-11-14): 3 seconds per banner.
-// This is the /en track's OWN interval — the main app's is admin-configurable
-// via /api/admin/banners (default 5s, clamped 2–60) and is NOT shared with /en.
+// ---- v163 — rotating elder-home carousel ------------------------------------
+// ONE deck in en.html: the hero (slide 1, permanent, data-banner="hero") plus
+// the four promos (games / life tips / helper voice / find help). It slides
+// left-to-right exactly like the Cantonese homepage (cantobuddy.com): a flex
+// track translated by whole slides, with boundary clones for a seamless wrap.
+//
+// The promos are REAL markup (crawlable, usable before JS). /api/en/home-banners
+// supplies the operator's on/off + order + speed; on a slow/blocked fetch the
+// authored order below is the fallback, so the deck never depends on the API to
+// render. The hero is never switchable. Each promo's href is a no-JS / deep-link
+// fallback; enOpenBanner() opens the right in-app doorway WITHOUT a reload.
 const EN_BANNERS = ['games', 'tip', 'helper', 'help'];
-const EN_BANNER_SECONDS = 3;
-const _enBanner = { index: 0, timer: null, paused: false, init: false };
+const EN_FALLBACK_SECONDS = 3;
+const enBanners = {
+  loaded: false, slugs: null, seconds: EN_FALLBACK_SECONDS,
+  index: 0, timer: null, paused: false, busy: false, queued: null, motionCleanup: null,
+};
 
 function enOpenBanner(kind) {
   // v161 — every banner stays on the SINGLE /en home page and scrolls to its own
@@ -761,55 +768,252 @@ function enOpenBanner(kind) {
   return false; // cancel the fallback href — handled in-app above
 }
 
-function enGoBanner(i) {
-  const n = EN_BANNERS.length;
-  _enBanner.index = ((i % n) + n) % n;
-  const slides = document.querySelectorAll('#enb-track .enb-slide');
-  slides.forEach((s, k) => {
-    const on = k === _enBanner.index;
-    s.classList.toggle('on', on);
-    s.setAttribute('aria-hidden', on ? 'false' : 'true');
-    s.tabIndex = on ? 0 : -1;
-  });
-  document.querySelectorAll('#enb-dots .enb-dot').forEach((d, k) => {
-    const on = k === _enBanner.index;
-    d.classList.toggle('on', on);
-    if (on) d.setAttribute('aria-current', 'true');
-    else d.removeAttribute('aria-current');
-  });
-  _enBannerStart();
+// Logical slides only: disabled slides take no space, clones never count.
+function visibleEnSlides() {
+  const track = document.getElementById('enb-track');
+  return track
+    ? Array.prototype.slice.call(track.children).filter((el) =>
+      !el.classList.contains('enb-off') && !el.classList.contains('enb-clone'))
+    : [];
 }
 
-function _enBannerStart() {
-  if (_enBanner.timer) { clearInterval(_enBanner.timer); _enBanner.timer = null; }
-  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (reduce || _enBanner.paused) return;
-  _enBanner.timer = setInterval(() => enGoBanner(_enBanner.index + 1), EN_BANNER_SECONDS * 1000);
-}
-
-function renderHomeBanners() {
-  const wrap = $('en-home-banners');
+async function renderHomeBanners() {
+  const wrap = document.getElementById('en-home-banners');
   if (!wrap) return;
-  if (!_enBanner.init) {
-    _enBanner.init = true;
-    // Pause on hover / focus / touch and when the tab is hidden.
-    const pause = () => { _enBanner.paused = true; _enBannerStart(); };
-    const resume = () => { _enBanner.paused = false; _enBannerStart(); };
-    wrap.addEventListener('mouseenter', pause);
-    wrap.addEventListener('mouseleave', resume);
-    wrap.addEventListener('focusin', pause);
-    wrap.addEventListener('focusout', resume);
-    wrap.addEventListener('touchstart', pause, { passive: true });
-    wrap.addEventListener('touchend', resume, { passive: true });
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) { if (_enBanner.timer) { clearInterval(_enBanner.timer); _enBanner.timer = null; } }
-      else _enBannerStart();
+  if (!enBanners.loaded) {
+    try {
+      const r = await fetch('/api/en/home-banners', { headers: { Accept: 'application/json' } });
+      if (!r.ok) throw new Error('en banners ' + r.status);
+      const d = await r.json();
+      enBanners.slugs = Array.isArray(d.banners)
+        ? d.banners.filter((s) => EN_BANNERS.includes(s)) : null;
+      const secs = Number(d.seconds);
+      enBanners.seconds = Number.isFinite(secs) && secs > 0 ? secs : EN_FALLBACK_SECONDS;
+    } catch (err) {
+      // Decoration, not content. Keep the full authored deck at the default speed.
+      enBanners.slugs = null;
+      enBanners.seconds = EN_FALLBACK_SECONDS;
+    }
+    enBanners.loaded = true;
+  }
+  paintEnBanners();
+}
+
+function paintEnBanners() {
+  if (enBanners.motionCleanup) enBanners.motionCleanup();
+  enBanners.busy = false;
+  enBanners.queued = null;
+  stopEnBannerTimer();
+
+  const track = document.getElementById('enb-track');
+  const dots = document.getElementById('enb-dots');
+  if (!track || !dots) return;
+
+  track.style.transition = 'none';
+  Array.prototype.forEach.call(track.querySelectorAll('.enb-clone'), (el) => el.remove());
+
+  const wanted = [];
+  (enBanners.slugs || EN_BANNERS).forEach((s) => {
+    if (EN_BANNERS.includes(s) && !wanted.includes(s)) wanted.push(s);
+  });
+
+  const promos = Array.prototype.slice.call(track.querySelectorAll('.enb-promo'));
+  promos.forEach((el) => {
+    const on = wanted.includes(el.dataset.banner);
+    el.classList.toggle('enb-off', !on);
+    el.setAttribute('aria-hidden', on ? 'false' : 'true');
+    if (on) el.removeAttribute('tabindex');
+    else el.tabIndex = -1;
+  });
+
+  // Keep the hero first, then append enabled promos in the operator's order.
+  const hero = track.querySelector('.enb-hero');
+  if (hero) track.appendChild(hero);
+  wanted.forEach((slug) => {
+    const el = promos.find((p) => p.dataset.banner === slug);
+    if (el) track.appendChild(el);
+  });
+
+  const visible = visibleEnSlides();
+  if (enBanners.index >= visible.length) enBanners.index = 0;
+
+  if (visible.length > 1) {
+    const clones = [visible[visible.length - 1], visible[0]].map((el) => {
+      const clone = el.cloneNode(true);
+      clone.classList.add('enb-clone');
+      clone.removeAttribute('id');
+      Array.prototype.forEach.call(clone.querySelectorAll('[id]'), (child) => child.removeAttribute('id'));
+      clone.setAttribute('aria-hidden', 'true');
+      clone.tabIndex = -1;
+      clone.inert = true;
+      return clone;
     });
-    enGoBanner(0);
-  } else {
-    _enBannerStart();
+    track.insertBefore(clones[0], track.firstChild);
+    track.appendChild(clones[1]);
+  }
+
+  dots.innerHTML = visible.map((el, i) =>
+    `<button class="enb-dot${i === enBanners.index ? ' on' : ''}" type="button" data-i="${i}" aria-label="${(i + 1)}"></button>`
+  ).join('');
+  dots.style.display = visible.length < 2 ? 'none' : '';
+
+  Array.prototype.forEach.call(dots.querySelectorAll('.enb-dot'), (b) => {
+    b.addEventListener('click', () => {
+      goEnBanner(Number(b.getAttribute('data-i')));
+      restartEnBannerTimer();
+    });
+  });
+
+  attachEnBannerSwipe(track);
+  normalizeEnTransform();
+  restartEnBannerTimer();
+}
+
+function applyEnTransform(position) {
+  const track = document.getElementById('enb-track');
+  if (!track) return;
+  if (position === undefined) {
+    position = visibleEnSlides().length > 1 ? enBanners.index + 1 : 0;
+  }
+  track.style.transform = `translateX(-${position * 100}%)`;
+  Array.prototype.forEach.call(document.querySelectorAll('#enb-dots .enb-dot'), (d, i) => {
+    d.classList.toggle('on', i === enBanners.index);
+  });
+}
+
+function normalizeEnTransform() {
+  const track = document.getElementById('enb-track');
+  if (!track) return;
+  track.style.transition = 'none';
+  applyEnTransform();
+  void track.offsetWidth;
+  track.style.removeProperty('transition');
+  void track.offsetWidth;
+}
+
+function goEnBanner(i, direction = 0) {
+  const track = document.getElementById('enb-track');
+  const n = visibleEnSlides().length;
+  if (!track || !n) return;
+  const reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (enBanners.busy) {
+    if (!reducedMotion) {
+      enBanners.queued = { i, direction };
+      return;
+    }
+    enBanners.motionCleanup();
+    enBanners.busy = false;
+    enBanners.queued = null;
+    normalizeEnTransform();
+  }
+
+  const previous = enBanners.index;
+  const target = direction ? previous + direction : i;
+  const next = ((target % n) + n) % n;
+  if (next === previous) return;
+  enBanners.index = next;
+
+  if (n < 2 || reducedMotion) {
+    normalizeEnTransform();
+    return;
+  }
+
+  let position = next + 1;
+  if (previous === n - 1 && next === 0 && direction >= 0) position = n + 1;
+  else if (previous === 0 && next === n - 1 && direction <= 0) position = 0;
+
+  enBanners.busy = true;
+  let fallback;
+  const finish = () => {
+    if (enBanners.motionCleanup !== cleanup) return;
+    cleanup();
+    if (position !== enBanners.index + 1) normalizeEnTransform();
+    enBanners.busy = false;
+    const queued = enBanners.queued;
+    enBanners.queued = null;
+    if (queued) goEnBanner(queued.i, queued.direction);
+  };
+  const onEnd = (event) => {
+    if (event.target === track && event.propertyName === 'transform') finish();
+  };
+  const cleanup = () => {
+    clearTimeout(fallback);
+    track.removeEventListener('transitionend', onEnd);
+    enBanners.motionCleanup = null;
+  };
+  enBanners.motionCleanup = cleanup;
+  track.addEventListener('transitionend', onEnd);
+  fallback = setTimeout(finish, 700);
+  applyEnTransform(position);
+}
+
+function stopEnBannerTimer() {
+  if (enBanners.timer) { clearInterval(enBanners.timer); enBanners.timer = null; }
+}
+
+function restartEnBannerTimer() {
+  stopEnBannerTimer();
+  if (visibleEnSlides().length < 2) return;
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const ms = Math.max(2000, enBanners.seconds * 1000);
+  enBanners.timer = setInterval(() => {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      stopEnBannerTimer();
+      return;
+    }
+    if (enBanners.paused || document.hidden) return;
+    goEnBanner(enBanners.index + 1, 1);
+  }, ms);
+}
+
+let _enBannerDrag = null;
+function attachEnBannerSwipe(track) {
+  const box = document.getElementById('en-home-banners');
+  if (!box || box.dataset.swipeBound) return;
+  box.dataset.swipeBound = '1';
+  box.addEventListener('pointerdown', (e) => {
+    _enBannerDrag = { x: e.clientX, y: e.clientY, moved: false };
+    enBanners.paused = true;
+  });
+  box.addEventListener('pointerup', (e) => {
+    if (!_enBannerDrag) return;
+    const dx = e.clientX - _enBannerDrag.x;
+    const dy = e.clientY - _enBannerDrag.y;
+    _enBannerDrag = null;
+    enBanners.paused = false;
+    if (Math.abs(dx) > 42 && Math.abs(dx) > Math.abs(dy)) {
+      goEnBanner(enBanners.index + (dx < 0 ? 1 : -1), dx < 0 ? 1 : -1);
+    }
+    restartEnBannerTimer();
+  });
+  box.addEventListener('pointercancel', () => { _enBannerDrag = null; enBanners.paused = false; });
+  box.addEventListener('focusin', (e) => {
+    if (e.target.classList.contains('enb-dot')) return;
+    enBanners.paused = true;
+  });
+  box.addEventListener('focusout', (e) => {
+    if (e.target.classList.contains('enb-dot')) return;
+    enBanners.paused = false;
+    restartEnBannerTimer();
+  });
+  if (window.matchMedia && window.matchMedia('(hover: hover)').matches) {
+    box.addEventListener('mouseenter', () => { enBanners.paused = true; });
+    box.addEventListener('mouseleave', () => {
+      if (_enBannerDrag) return;
+      enBanners.paused = false;
+      restartEnBannerTimer();
+    });
   }
 }
+
+// A background tab is not being read: stop advancing, resume where left off.
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) stopEnBannerTimer();
+  else if (enBanners.loaded) restartEnBannerTimer();
+});
+
+// Kept as an alias so older probes/tests that named the step function still run.
+function enGoBanner(i, d) { return goEnBanner(i, d); }
 
 // Deep-link support for the banner fallback hrefs (/en?view=home#home-...).
 function enRouteFromUrl() {

@@ -4073,6 +4073,14 @@ SEED_POSTS.push(...require('./practical-posts'));
    an existing install to receive the new rows on its next boot. */
 SEED_POSTS.push(...require('./longform-guides'));
 
+/* Elder-voice comfort articles (Traditional Chinese, for Hong Kong elders),
+   seeded into the Culture channel so they surface on cantobuddy.com /articles
+   and the Discover feed. Each carries a full zh article and an en rendering that
+   acts as the platform fallback for en/fil/id readers (see postField in app.js).
+   They are ordinary culture posts, so the same /discover/<slug>, sitemap and
+   /articles plumbing applies. Guarded on SEED_POSTS.length like the rest. */
+SEED_POSTS.push(...require('./elder-voices'));
+
 module.exports = {
   load,
   save,

@@ -103,10 +103,13 @@
   };
 
   function lang() {
-    // The onboarding popup speaks the language being TAUGHT on each site:
-    // the main site teaches Cantonese (Chinese); the /en site teaches English.
-    if (location && location.pathname && location.pathname.indexOf('/en') === 0) return 'en';
-    return 'zh';
+    // The onboarding popup speaks the LEARNER's language, not the language taught:
+    //   - the main site's learners are Filipino/Indonesian helpers who do not read
+    //     Chinese, so the popup is in English;
+    //   - the /en site's learners are Cantonese-speaking elders who do not read
+    //     English, so the whole /en shell (and this popup) is in Chinese.
+    if (location && location.pathname && location.pathname.indexOf('/en') === 0) return 'zh';
+    return 'en';
   }
   function T(k) { return (L[lang()] || L.en)[k] || (L.en[k] || k); }
 

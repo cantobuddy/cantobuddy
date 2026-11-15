@@ -6722,3 +6722,88 @@ a.game-tile:active { transform: scale(0.96); background: var(--c-primary-tint); 
 .forum-mine-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .forum-mine-title { font-weight: 700; color: var(--c-text); font-size: 0.98rem; }
 .forum-mine-date { margin-top: 6px; font-size: 0.8rem; color: var(--c-text-soft); }
+
+/* ---- Full weekend leaderboard (v178) -------------------------------------
+   The Games-tab doorway and the #view-leaderboard board. Everything uses
+   min-width:0 / overflow-wrap:anywhere because a Filipino or Indonesian player
+   name must never widen a 320px viewport (the 1fr min-content trap). */
+.lb-entry {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  margin: 0 0 14px; padding: 10px 12px; min-height: var(--tap);
+  border: 1px solid #f0d9a8; border-radius: var(--radius);
+  background: linear-gradient(135deg, #fff7e9, #fff);
+  color: var(--c-text); cursor: pointer; text-align: left; font-family: inherit;
+}
+.lb-entry:hover { border-color: #e8bd71; }
+.lb-entry-icon { font-size: 1.5rem; flex: 0 0 auto; }
+.lb-entry-copy { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; }
+.lb-entry-copy strong { font-size: 0.95rem; font-weight: 700; color: #7a4a00; }
+.lb-entry-copy small { font-size: 0.8rem; color: var(--c-text-soft); overflow-wrap: anywhere; }
+.lb-entry-go { flex: 0 0 auto; font-size: 1.1rem; color: #7a4a00; }
+
+.lb-lead { font-size: 0.9rem; line-height: 1.55; color: var(--c-text-soft); margin: 0 0 14px; }
+.lb-week-nav { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.lb-week-btn {
+  flex: 0 0 auto; min-height: var(--tap); padding: 8px 10px;
+  border: 1px solid var(--c-border); border-radius: var(--radius-sm);
+  background: var(--c-surface); color: var(--c-primary); font-weight: 700;
+  font-size: 0.8rem; cursor: pointer; font-family: inherit;
+}
+.lb-week-btn:disabled { opacity: 0.4; cursor: default; }
+.lb-week-now { flex: 1 1 auto; min-width: 0; text-align: center; display: flex; flex-direction: column; }
+.lb-week-now strong { font-size: 0.9rem; color: var(--c-text); overflow-wrap: anywhere; }
+.lb-week-now span { font-size: 0.78rem; color: var(--c-text-soft); }
+
+.lb-status-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
+.lb-status { display: inline-block; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.04em; padding: 3px 9px; border-radius: 999px; color: #fff; background: #8a93a0; }
+.lb-status-open { background: #e0532a; }
+.lb-status-closed { background: #2a9d8f; }
+.lb-status-upcoming { background: #8a93a0; }
+.lb-activity { font-size: 0.8rem; color: var(--c-text-soft); }
+
+.lb-body { overflow-x: auto; }
+.lb-table { width: 100%; border-collapse: collapse; font-size: 0.86rem; table-layout: fixed; }
+.lb-table th { text-align: left; padding: 8px 6px; border-bottom: 2px solid var(--c-border); color: var(--c-text-soft); font-size: 0.75rem; }
+.lb-table td { padding: 9px 6px; border-bottom: 1px solid #eef0f3; vertical-align: middle; }
+.lb-table th:nth-child(1), .lb-table td:nth-child(1) { width: 38px; }
+.lb-table th:nth-child(3), .lb-table td:nth-child(3) { width: 52px; text-align: right; }
+.lb-table th:nth-child(4), .lb-table td:nth-child(4) { width: 58px; text-align: right; }
+.lb-rank { font-weight: 800; color: #7a4a00; }
+.lb-name { min-width: 0; overflow-wrap: anywhere; font-weight: 600; color: var(--c-text); }
+.lb-num { font-variant-numeric: tabular-nums; color: #7a4a00; font-weight: 700; }
+.lb-me { background: #fff3d6; }
+.lb-you-tag { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 6px; background: #ffd479; color: #5a3a00; font-size: 0.68rem; font-weight: 800; }
+.lb-empty { padding: 18px 8px; text-align: center; color: var(--c-text-soft); font-size: 0.88rem; }
+.lb-hint { padding: 8px 2px; color: #7a4a00; font-size: 0.82rem; font-weight: 700; }
+
+.lb-mine { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 14px; padding: 12px; border-radius: var(--radius-sm); background: #eaf7f1; border: 1px solid #bfe6d5; }
+.lb-mine-rank { font-size: 1.1rem; font-weight: 800; color: var(--c-secondary-ink); }
+.lb-mine-detail { font-size: 0.8rem; color: var(--c-text-soft); }
+.lb-champions { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--c-border); }
+.lb-champions h3 { font-size: 0.86rem; color: #8a6a2a; margin: 0 0 6px; }
+.lb-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+.lb-badge { display: inline-block; padding: 4px 10px; border-radius: 999px; background: #fff3d6; color: #5a3a00; font-size: 0.82rem; font-weight: 700; }
+
+.lb-actions { display: flex; gap: 8px; margin-top: 16px; }
+.lb-play, .lb-share {
+  flex: 1 1 auto; border: 0; border-radius: var(--radius-sm);
+  padding: 12px 10px; min-height: var(--tap); font-weight: 700;
+  font-size: 0.86rem; text-align: center; text-decoration: none;
+  cursor: pointer; font-family: inherit;
+}
+.lb-play { background: #7a4a00; color: #fff; }
+.lb-play:hover { background: #663d00; }
+.lb-share { background: #25d366; color: #fff; }
+.lb-share:hover { background: #1ebe5b; }
+@media (max-width: 400px) {
+  /* The centre column of a three-part nav cannot hold a translated date
+     range at 320px. Give the label its own full-width line above the two
+     buttons rather than letting "Week of 14 Nov – 15 Nov" wrap mid-date. */
+  .lb-week-nav { flex-wrap: wrap; }
+  .lb-week-now { flex: 1 1 100%; order: -1; }
+  .lb-week-btn { flex: 1 1 auto; }
+}
+@media (max-width: 360px) {
+  .lb-week-btn { padding: 8px 6px; font-size: 0.72rem; }
+  .lb-table { font-size: 0.8rem; }
+}

@@ -148,6 +148,7 @@ function switchTab(tab) {
   if (tab === 'discover') renderAdminDiscover();
   if (tab === 'english') renderAdminEnglish();
   if (tab === 'content') renderAdminContent();
+  if (tab === 'leaderboard') renderAdminLeaderboard();
 }
 
 // ---- Push notifications -----------------------------------------------------
@@ -3172,6 +3173,88 @@ async function submitContentForm(e) {
     await renderAdminContent();
   } catch (err) {
     alert('Could not generate content: ' + err.message);
+  }
+}
+
+// ---- Full weekend leaderboard (v178) ---------------------------------------
+// Read-only board behind the operator's session, plus the one write action the
+// board needs: rebuilding a FINISHED weekend's top-3 badges after a bad row in
+// game_results has been corrected. It shares the learner's API, so the admin
+// can never disagree with what a player sees.
+
+async function renderAdminLeaderboard(week) {
+  const table = document.getElementById('admin-lb-table');
+  if (!table) return;
+  const sel = document.getElementById('admin-lb-week');
+  const chosen = week || (sel && sel.value) || '';
+  table.innerHTML = '<p class="admin-hint">Loading…</p>';
+  try {
+    const d = await apiGet('/api/admin/leaderboard' + (chosen ? '?week=' + encodeURIComponent(chosen) : ''));
+    adminLbPaint(d);
+  } catch (e) {
+    table.innerHTML = '<p class="admin-hint">Could not load the leaderboard: ' + escapeAdmin(e.message) + '</p>';
+  }
+}
+
+function onAdminLbWeekChange() {
+  const sel = document.getElementById('admin-lb-week');
+  if (sel) renderAdminLeaderboard(sel.value);
+}
+
+function adminLbPaint(d) {
+  const sel = document.getElementById('admin-lb-week');
+  const summary = document.getElementById('admin-lb-summary');
+  const badgesEl = document.getElementById('admin-lb-badges');
+  const table = document.getElementById('admin-lb-table');
+  if (!sel || !summary || !badgesEl || !table) return;
+
+  // The picker is rebuilt on every render, so re-select the week we just
+  // loaded instead of snapping back to the newest one.
+  sel.innerHTML = (d.weeks || []).map((w) =>
+    '<option value="' + escapeAdmin(w.key) + '"' + (w.key === d.week.key ? ' selected' : '') + '>' +
+    escapeAdmin(w.key) + ' — ' + escapeAdmin(w.game) + ' · ' + w.players + ' players · ' + w.played + ' games</option>'
+  ).join('');
+
+  const wk = (d.weeks || []).find((w) => w.key === d.week.key) || { players: 0, played: 0 };
+  summary.innerHTML =
+    statCard(d.week.game, 'Featured game') +
+    statCard(d.week.status, 'Status') +
+    statCard(wk.players, 'Players') +
+    statCard(wk.played, 'Games played');
+
+  if (d.badges && d.badges.length) {
+    badgesEl.innerHTML = '<p class="admin-hint"><strong>Champions:</strong> ' +
+      d.badges.map((b) => escapeAdmin(b.label || ('#' + b.rank))).join(' · ') + '</p>';
+  } else {
+    badgesEl.innerHTML = '<p class="admin-hint">No champions recorded for this weekend' +
+      (d.week.status === 'closed' ? ' (no results).' : ' yet — badges are minted once the weekend ends.') + '</p>';
+  }
+
+  if (!d.leaderboard.length) {
+    table.innerHTML = '<p class="admin-hint">No results for this weekend.</p>';
+    return;
+  }
+  const rows = d.leaderboard.map((r, i) =>
+    '<tr><td>' + (i + 1) + '</td><td>' + escapeAdmin(r.name) + '</td>' +
+    '<td>' + escapeAdmin(r.wins) + '</td><td>' + escapeAdmin(r.played) + '</td>' +
+    '<td class="admin-lb-id">' + escapeAdmin(r.publicId) + '</td></tr>'
+  ).join('');
+  table.innerHTML =
+    '<table class="content-table"><thead><tr><th>#</th><th>Player</th><th>Wins</th><th>Played</th><th>Device</th></tr></thead>' +
+    '<tbody>' + rows + '</tbody></table>';
+}
+
+async function reissueAdminLbBadges() {
+  const sel = document.getElementById('admin-lb-week');
+  if (!sel || !sel.value) return;
+  const week = sel.value;
+  try {
+    const r = await apiPost('/api/admin/leaderboard/reissue-badges', { week });
+    await renderAdminLeaderboard(week);
+    alert('Badges rebuilt for ' + r.week + ' (' + r.game + '): ' +
+      (r.badges.length ? r.badges.map((b) => b.label).join(', ') : 'no champions'));
+  } catch (e) {
+    alert('Could not re-issue badges: ' + e.message);
   }
 }
 

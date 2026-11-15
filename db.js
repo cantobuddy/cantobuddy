@@ -3240,6 +3240,33 @@ const S = {
       (week_start, game, public_id, display_name, rank, label, created_at)
     VALUES (?, ?, ?, ?, ?, ?, ?)
   `),
+  // Full-board support (v178): a weekend's activity for the week picker, a
+  // device's EXACT rank even when it is outside the top-N, and the operator's
+  // badge re-issue. All three read the same window boundaries as the board.
+  weekActivity: db.prepare(`
+    SELECT COUNT(*) AS played, COUNT(DISTINCT public_id) AS players,
+           COALESCE(SUM(won), 0) AS wins
+      FROM game_results
+     WHERE game = ? AND created_at >= ? AND created_at < ?
+  `),
+  myWeekRank: db.prepare(`
+    WITH board AS (
+      SELECT public_id, MAX(display_name) AS display_name,
+             COALESCE(SUM(won), 0) AS wins, COUNT(*) AS played
+        FROM game_results
+       WHERE game = ? AND created_at >= ? AND created_at < ?
+       GROUP BY public_id
+    ), me AS (SELECT * FROM board WHERE public_id = ?)
+    SELECT me.wins AS wins, me.played AS played, me.display_name AS display_name,
+           (SELECT COUNT(*) FROM board b
+             WHERE b.wins > me.wins
+                OR (b.wins = me.wins AND (b.played < me.played
+                    OR (b.played = me.played AND b.public_id < me.public_id)))) + 1 AS rank
+      FROM me
+  `),
+  deleteBadgesForWeek: db.prepare(`
+    DELETE FROM tournament_badges WHERE week_start = ? AND game = ?
+  `),
 
   // --- Daily Word Challenge: a bite-sized micro-quiz with its own streak. ---
   // Count of the vocabulary pool; the daily word is a deterministic offset into
@@ -3838,6 +3865,14 @@ function getWeekendLeaderboard(game, startIso, endExclusiveIso, limit = 10) {
   return rows.map(leaderboardRowToView);
 }
 
+/** Read the badges already minted for a weekend, without writing anything. */
+function getWeekBadges(weekStartIso, game) {
+  return S.badgesForWeek.all(weekStartIso, game).map((b) => ({
+    publicId: b.public_id, name: b.display_name || ('Player #' + String(b.public_id).slice(-4)),
+    rank: b.rank, label: b.label,
+  }));
+}
+
 /**
  * Idempotent top-3 badge grant for a closed weekend. Returns the badges whether
  * they were just minted or already existed, so the leaderboard view can show
@@ -3845,10 +3880,7 @@ function getWeekendLeaderboard(game, startIso, endExclusiveIso, limit = 10) {
  */
 function awardWeekBadges(weekStartIso, game, startIso, endExclusiveIso) {
   if (S.badgeExistsForWeek.get(weekStartIso, game)) {
-    return S.badgesForWeek.all(weekStartIso, game).map((b) => ({
-      publicId: b.public_id, name: b.display_name || ('Player #' + String(b.public_id).slice(-4)),
-      rank: b.rank, label: b.label,
-    }));
+    return getWeekBadges(weekStartIso, game);
   }
   const MEDALS = ['🥇', '🥈', '🥉'];
   const top = getWeekendLeaderboard(game, startIso, endExclusiveIso, 3);
@@ -3901,6 +3933,144 @@ function getTournamentCurrent(nowMs = Date.now()) {
       game: nextGame,
       window: { start: next.start, end: next.endExclusive },
     },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Full historical leaderboard (v178)
+//
+// `/api/tournaments/current` above is the compact, cacheable "what is happening
+// this weekend" feed used by the Home card and the in-game banner. The full
+// board is a different question: "show me ANY weekend, all the players, and
+// where *I* finished". It reuses exactly the same window, rotation and badge
+// maths — there is only one definition of a tournament week in this app.
+// ---------------------------------------------------------------------------
+
+/** YYYY-MM-DD of a Saturday 00:00 HKT instant (given as UTC ms). */
+function hktDateKey(satStartMs) {
+  return new Date(satStartMs + HKT_OFFSET_MS).toISOString().slice(0, 10);
+}
+
+/**
+ * Parse `?week=YYYY-MM-DD` into a safe reference instant. Any day of the week
+ * is accepted and normalised to its Saturday by hktWeekendWindow; noon HKT
+ * keeps the parse off an offset boundary. Junk returns null so the route can
+ * answer 400 instead of silently showing the current week.
+ */
+function weekRefMsFromKey(weekKey) {
+  const s = String(weekKey || '');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+  const parts = s.split('-').map(Number);
+  const y = parts[0], m = parts[1], d = parts[2];
+  if (y < 2020 || y > 2100 || m < 1 || m > 12 || d < 1 || d > 31) return null;
+  const ref = Date.UTC(y, m - 1, d, 4, 0, 0); // 12:00 HKT
+  const probe = new Date(ref);
+  // Date.UTC silently rolls 2026-02-30 into March — reject the roll.
+  if (probe.getUTCFullYear() !== y || probe.getUTCMonth() !== m - 1 || probe.getUTCDate() !== d) return null;
+  return ref;
+}
+
+function weekActivityFor(game, startIso, endExclusiveIso) {
+  const a = S.weekActivity.get(game, startIso, endExclusiveIso) || {};
+  return {
+    played: Number(a.played) || 0,
+    players: Number(a.players) || 0,
+    wins: Number(a.wins) || 0,
+  };
+}
+
+/** The last `count` weekends, newest first, with activity for a week picker. */
+function getLeaderboardWeeks(nowMs = Date.now(), count = 12) {
+  const currentSat = hktWeekendWindow(nowMs).satStart;
+  const out = [];
+  for (let i = 0; i < count; i++) {
+    const w = hktWeekendWindow(currentSat - i * 7 * DAY_MS);
+    const game = featuredGameForWeek(w.satStart);
+    out.push(Object.assign({
+      key: hktDateKey(w.satStart),
+      weekStart: w.start,
+      game,
+      ended: w.satStart + 2 * DAY_MS <= nowMs,
+    }, weekActivityFor(game, w.start, w.endExclusive)));
+  }
+  return out;
+}
+
+/**
+ * A device's exact rank in a weekend, including when it is outside the top 50.
+ * The tie-break mirrors weekendLeaderboard exactly: wins DESC, played ASC,
+ * public_id ASC — so the number shown here matches the row order on the board.
+ */
+function myWeekRank(game, startIso, endExclusiveIso, publicId) {
+  if (!publicId) return null;
+  const r = S.myWeekRank.get(game, startIso, endExclusiveIso, publicId);
+  if (!r) return null;
+  return {
+    rank: Number(r.rank) || 0,
+    wins: Number(r.wins) || 0,
+    played: Number(r.played) || 0,
+  };
+}
+
+/**
+ * The full board for one weekend. `week` defaults to now; a bad value returns
+ * null so the route can 400. Badges are only MINTED for a window that has
+ * actually ended — an open or future week can be viewed but must never write
+ * rows, or a curious player could pre-award next week's champions.
+ */
+function getLeaderboardState({ week, publicId, nowMs } = {}) {
+  const now = Number.isFinite(nowMs) ? nowMs : Date.now();
+  const ref = week ? weekRefMsFromKey(week) : now;
+  if (ref == null) return null;
+  const w = hktWeekendWindow(ref);
+  const game = featuredGameForWeek(w.satStart);
+  const ended = w.satStart + 2 * DAY_MS <= now;
+  const status = ended ? 'closed'
+    : (now >= w.satStart && now < w.satStart + 2 * DAY_MS ? 'open' : 'upcoming');
+  const leaderboard = getWeekendLeaderboard(game, w.start, w.endExclusive, 50);
+  const badges = ended
+    ? awardWeekBadges(w.start, game, w.start, w.endExclusive)
+    : getWeekBadges(w.start, game);
+  const currentSat = hktWeekendWindow(now).satStart;
+  const nextSat = w.satStart + 7 * DAY_MS;
+  return {
+    week: {
+      key: hktDateKey(w.satStart),
+      weekStart: w.start,
+      game,
+      status,
+      ended,
+      window: { start: w.start, end: w.endExclusive },
+    },
+    leaderboard,
+    badges,
+    myRank: myWeekRank(game, w.start, w.endExclusive, String(publicId || '').slice(0, 80)),
+    previous: hktDateKey(w.satStart - 7 * DAY_MS),
+    // Never let the UI walk into a week that has not started: its board would
+    // be empty and its champions would be a guess.
+    next: nextSat <= currentSat ? hktDateKey(nextSat) : null,
+    weeks: getLeaderboardWeeks(now, 12),
+  };
+}
+
+/**
+ * Operator action: rebuild a CLOSED weekend's top-3 badges from the results
+ * that exist now. Deletes first, so a name recorded wrongly in game_results
+ * (e.g. a game label instead of a player) can be corrected after the rows are
+ * fixed. Never touches an open or future weekend.
+ */
+function reissueWeekBadges(weekKey, nowMs = Date.now()) {
+  const ref = weekRefMsFromKey(weekKey);
+  if (ref == null) return null;
+  const w = hktWeekendWindow(ref);
+  if (w.satStart + 2 * DAY_MS > nowMs) return { error: 'week-not-closed' };
+  const game = featuredGameForWeek(w.satStart);
+  S.deleteBadgesForWeek.run(w.start, game);
+  return {
+    ok: true,
+    week: hktDateKey(w.satStart),
+    game,
+    badges: awardWeekBadges(w.start, game, w.start, w.endExclusive),
   };
 }
 
@@ -8074,6 +8244,10 @@ module.exports = {
   getWeekendLeaderboard,
   awardWeekBadges,
   TOURNAMENT_GAMES,
+  // Full historical leaderboard (v178) + the operator's badge rebuild.
+  getLeaderboardState,
+  getLeaderboardWeeks,
+  reissueWeekBadges,
   // Daily Word Challenge — deterministic daily word + its own streak.
   getDailyChallenge,
   recordDailyChallenge,

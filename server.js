@@ -981,7 +981,7 @@ app.get('/api/stories/:slug', (req, res) => {
  * can only touch what you wrote. Any edit re-queues the story to 'pending' and
  * clears published_at, so a change to a live story cannot skip human review.
  */
-app.patch('/api/stories/:slug', (req, res) => {
+function editOwnStory(req, res) {
   const b = req.body || {};
   const publicId = String(b.public_id || '').trim();
   if (!publicId) return res.status(400).json({ error: 'Missing device id.' });
@@ -1006,7 +1006,10 @@ app.patch('/api/stories/:slug', (req, res) => {
   if (!ok) return res.status(400).json({ error: 'Please write a title and your story.' });
 
   res.json({ ok: true, slug: req.params.slug, status: 'pending' });
-});
+}
+app.patch('/api/stories/:slug', editOwnStory);
+// POST alias for the same cache-first reason as /api/learners/me above.
+app.post('/api/stories/:slug', editOwnStory);
 
 /**
  * POST /api/stories — a helper shares her story.
@@ -1640,7 +1643,7 @@ app.post('/api/learners/identify', (req, res) => {
  * a helper who skipped onboarding is untouched. The password is hashed with the
  * same scrypt helper as operator accounts and is NEVER returned.
  */
-app.patch('/api/learners/me', (req, res) => {
+function updateLearnerMe(req, res) {
   const b = req.body || {};
   if (!b.public_id) return res.status(400).json({ error: 'Missing device id.' });
   const learner = store.getLearnerByPublicId(String(b.public_id).slice(0, 80));
@@ -1670,7 +1673,11 @@ app.patch('/api/learners/me', (req, res) => {
       has_password: !!updated.password_hash,
     },
   });
-});
+}
+app.patch('/api/learners/me', updateLearnerMe);
+// POST alias: member.js is cache-first, so an installed PWA may still run an old
+// bundle that sends POST here. Accept both methods so a name edit never 404s.
+app.post('/api/learners/me', updateLearnerMe);
 
 /**
  * POST /api/learners/login — optional "login later" for members who gave an
@@ -2207,6 +2214,49 @@ app.get('/api/tournaments/current', (req, res) => {
   } catch (e) {
     res.status(500).json({ error: 'Could not load the tournament.' });
   }
+});
+
+/**
+ * GET /api/leaderboard — the FULL board, for any weekend.
+ *
+ *   /api/leaderboard                       this weekend
+ *   /api/leaderboard?week=2026-11-14       a specific HKT week (any day in it)
+ *   /api/leaderboard?public_id=<device>    ...plus this device's exact rank
+ *
+ * The compact /api/tournaments/current feed stays as-is for the Home card and
+ * the in-game banner. This one carries up to 50 players, a 12-week index, the
+ * champions, and a `myRank` that stays correct outside the top 50. A response
+ * containing a device's rank is per-device, so it must never be cached.
+ */
+app.get('/api/leaderboard', (req, res) => {
+  const week = String(req.query.week || '').trim();
+  const publicId = String(req.query.public_id || '').trim().slice(0, 80);
+  const state = store.getLeaderboardState({ week, publicId, nowMs: Date.now() });
+  if (!state) return res.status(400).json({ error: 'Invalid week. Use YYYY-MM-DD.' });
+  res.set('Cache-Control', publicId ? 'no-store' : 'public, max-age=60');
+  res.json(state);
+});
+
+/** The same board behind the operator's session, with the same week picker. */
+app.get('/api/admin/leaderboard', requireAdmin, (req, res) => {
+  const week = String(req.query.week || '').trim();
+  const state = store.getLeaderboardState({ week, nowMs: Date.now() });
+  if (!state) return res.status(400).json({ error: 'Invalid week. Use YYYY-MM-DD.' });
+  res.set('Cache-Control', 'no-store');
+  res.json(state);
+});
+
+/**
+ * Re-mint a CLOSED weekend's top-3 badges from the results that exist now.
+ * Badges are awarded once on first view, so this is the operator's way to fix
+ * a board whose results were wrong (a junk display name, a duplicate row).
+ */
+app.post('/api/admin/leaderboard/reissue-badges', requireAdmin, (req, res) => {
+  const week = String((req.body || {}).week || '').trim();
+  const result = store.reissueWeekBadges(week, Date.now());
+  if (!result) return res.status(400).json({ error: 'Invalid week. Use YYYY-MM-DD.' });
+  if (result.error) return res.status(400).json({ error: 'That weekend has not finished yet.' });
+  res.json(result);
 });
 
 // The Daily Word Challenge: a deterministic word for the HKT day, plus this

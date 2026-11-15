@@ -104,6 +104,10 @@
            tab order (and every test that pins it) is unchanged. One place for
            read counts on BOTH sites and for future publish dates. -->
       <button class="admin-tab" data-tab="content" onclick="switchTab('content')">📅 Content</button>
+      <!-- v178 — the full Sunday Showdown board. Added at the END so the
+           operator's authored tab order (and every test that pins it) is
+           unchanged, exactly as Content was. -->
+      <button class="admin-tab" data-tab="leaderboard" onclick="switchTab('leaderboard')">🏆 Leaderboard</button>
     </div>
 
     <!-- ---- vocab tab ---- -->
@@ -706,6 +710,32 @@
       <div class="chip-group" id="admin-content-filter"></div>
       <p class="admin-hint">Click any column header to sort — click again to reverse the order.</p>
       <div id="admin-content-list" class="admin-list"></div>
+    </div>
+
+    <!-- ---- Leaderboard tab (v178) ---- -->
+    <div id="tab-leaderboard" class="admin-tab-content">
+      <style>
+        .admin-lb-id { font-size: 11px; color: #7b8493; word-break: break-all; }
+        #tab-leaderboard select { padding: 6px 8px; border: 1px solid #d8dce3; border-radius: 8px; font: inherit; }
+      </style>
+      <div class="admin-toolbar">
+        <h3>🏆 Sunday Showdown — leaderboard</h3>
+        <div class="admin-toolbar-actions">
+          <select id="admin-lb-week" onchange="onAdminLbWeekChange()" aria-label="Week"></select>
+          <button class="btn btn-outline btn-sm" onclick="renderAdminLeaderboard()">↻ Refresh</button>
+          <button class="btn btn-outline btn-sm" onclick="reissueAdminLbBadges()">🏅 Re-issue badges</button>
+        </div>
+      </div>
+      <p class="admin-hint">
+        One featured game each weekend (UNO → Big Two → Sudoku), scored from <strong>game_results</strong>
+        in the Hong Kong Saturday–Sunday window. The top 3 of a <strong>finished</strong> weekend earn a
+        badge, minted once. <strong>Re-issue</strong> rebuilds those three badges from the results as they
+        are now — useful when a player's display name was recorded wrongly. It never touches an
+        unfinished weekend, and it never creates a second set of badges.
+      </p>
+      <div id="admin-lb-summary" class="stats-grid"></div>
+      <div id="admin-lb-badges" class="admin-list"></div>
+      <div id="admin-lb-table" class="admin-list"></div>
     </div>
 
   </section>

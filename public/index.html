@@ -904,6 +904,18 @@
          behaviour that earns it. -->
     <div id="games-credit-strip" class="games-credit" hidden></div>
 
+    <!-- v178 — a permanent doorway to the full weekend board. The Home
+         Showdown card only appears on Sunday and Monday; a player who wants
+         to see last week's standings on a Wednesday still needs a way in. -->
+    <button class="lb-entry" type="button" onclick="navigate('leaderboard')">
+      <span class="lb-entry-icon" aria-hidden="true">🏆</span>
+      <span class="lb-entry-copy">
+        <strong data-i18n="lb.entryTitle">Sunday Showdown</strong>
+        <small data-i18n="lb.entrySub">See the full leaderboard →</small>
+      </span>
+      <span class="lb-entry-go" aria-hidden="true">→</span>
+    </button>
+
     <div class="games-row" id="games-row"><!-- filled by renderGamesHub() --></div>
 
     <!-- ---- The story card: how to play with a friend --------------------
@@ -941,6 +953,44 @@
     </div>
 
     <p class="games-note" data-i18n="games.note">Four games are live now — UNO, Big Two, Word match and Sudoku.</p>
+  </section>
+
+  <!-- ---- LEADERBOARD VIEW (v178) ------------------------------------------
+       The full Sunday Showdown board: ANY weekend, all the players, and this
+       device's exact rank. Static shell + a JS-built table, so switching
+       language rebuilds the whole thing without losing the selected week.
+       Reachable from the Games tab, the Home Showdown card, and /?view=
+       leaderboard (which is what the game pages link to). -->
+  <section id="view-leaderboard" class="view">
+    <div class="browse-header">
+      <button class="btn-back" onclick="navigate('games')" data-i18n="lb.back">← Games</button>
+      <h2 data-i18n="lb.title">Leaderboard</h2>
+    </div>
+
+    <p class="lb-lead" data-i18n="lb.lead">One game takes the spotlight each weekend. Win the most games from Saturday to Sunday, Hong Kong time, to top the board.</p>
+
+    <div class="lb-week-nav">
+      <button class="lb-week-btn" id="lb-prev" type="button" onclick="lbGoWeek(-1)" data-i18n="lb.prev">← Previous</button>
+      <div class="lb-week-now">
+        <strong id="lb-week-label">—</strong>
+        <span id="lb-week-game"></span>
+      </div>
+      <button class="lb-week-btn" id="lb-next" type="button" onclick="lbGoWeek(1)" data-i18n="lb.next">Next →</button>
+    </div>
+
+    <div class="lb-status-row">
+      <span id="lb-status" class="lb-status"></span>
+      <span id="lb-activity" class="lb-activity"></span>
+    </div>
+
+    <div id="lb-body" class="lb-body"></div>
+    <div id="lb-mine" class="lb-mine" hidden></div>
+    <div id="lb-champions" class="lb-champions" hidden></div>
+
+    <div class="lb-actions">
+      <a id="lb-play" class="lb-play" href="/games/uno/">Play →</a>
+      <button id="lb-share" class="lb-share" type="button" onclick="lbShare()" data-i18n="lb.share">Share</button>
+    </div>
   </section>
 
   <!-- ---- SHARE VIEW ---- -->

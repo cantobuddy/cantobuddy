@@ -372,7 +372,9 @@
         '.cb-tn-you{margin-top:8px;font-weight:700;color:#1f7a3d;font-size:13px}' +
         '.cb-tn-share{margin-top:10px;width:100%;border:0;border-radius:10px;padding:9px 12px;' +
         'background:#25d366;color:#fff;font-weight:700;font-size:13px;cursor:pointer}' +
-        '.cb-tn-share:hover{background:#1ebe5b}';
+        '.cb-tn-share:hover{background:#1ebe5b}' +
+        '.cb-tn-full{display:block;margin-top:9px;text-align:center;font-size:12px;font-weight:700;' +
+        'color:#7a4a00;text-decoration:underline;min-height:44px;line-height:44px}';
       var st = document.createElement('style');
       st.id = 'cbTourneyStyle';
       st.textContent = css;
@@ -426,6 +428,15 @@
         window.open(self.shareUrl(t.week.game, 'This week on CantoBuddy: ' + t.week.game + ' tournament! '), '_blank', 'noopener');
       });
       el.appendChild(btn);
+
+      // v178 — this banner is only a top-5 teaser. The game page is exactly
+      // where a player wonders "where did I finish?", so give her the full
+      // board (and every past weekend) in one tap.
+      var full = document.createElement('a');
+      full.className = 'cb-tn-full';
+      full.href = '/?view=leaderboard';
+      full.textContent = 'See the full leaderboard →';
+      el.appendChild(full);
     },
     mount: function (el) {
       if (!el) return;

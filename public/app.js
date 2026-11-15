@@ -615,6 +615,9 @@ function navigate(view) {
   // be worse than none.
   if (view === 'story-new') { defaultStoryLang(); renderStoryMine(); }
   if (view === 'forums') renderForums();
+  // A fresh entry always starts on the CURRENT weekend; a language switch
+  // re-renders the week she was already reading (see rerenderForLanguage).
+  if (view === 'leaderboard') renderLeaderboard();
 }
 
 /**
@@ -642,6 +645,13 @@ function openViewFromUrl() {
   }
   if (!document.getElementById('view-' + name)) return;
   if (name !== 'home') navigate(name);
+  /* A shared leaderboard link names its weekend. navigate() has already
+     started a request for the current one; this second request wins the race
+     through LB.seq, so the URL's week is the one she actually sees. */
+  if (name === 'leaderboard') {
+    const wk = qs.get('week');
+    if (wk) renderLeaderboard(wk);
+  }
   /* The server-rendered /places/<slug> page links back into the app with
      ?view=place&p=<slug>. Without this the empty place shell would open with
      no outing in it — a doorway that leads to a blank room. Validate the slug
@@ -898,6 +908,9 @@ function rerenderForLanguage() {
   // An open outing: the transport sentences and the fee labels are translated,
   // so the page has to be rebuilt rather than left in the old language.
   if (active && active.id === 'view-place' && STATE.discover.place) renderPlace(STATE.discover.place);
+  // The whole board is JS-built text in the learner's language. Rebuild it
+  // on the SAME week — a language switch must not silently jump to today's.
+  if (active && active.id === 'view-leaderboard') renderLeaderboard(LB.week);
   // The write form is static markup and re-translates in place, so only her
   // own submissions below it are rebuilt. Her half-typed draft is untouched.
   if (active && active.id === 'view-story-new') renderStoryMine();
@@ -1665,7 +1678,9 @@ function ensureTourneyStyles() {
     '.cb-tn-play:hover{background:#663d00}' +
     '.cb-tn-share{border:0;border-radius:10px;padding:9px 12px;background:#25d366;color:#fff;' +
     'font-weight:700;font-size:13px;cursor:pointer}' +
-    '.cb-tn-share:hover{background:#1ebe5b}';
+    '.cb-tn-share:hover{background:#1ebe5b}' +
+    '.cb-tn-full{display:block;margin-top:9px;text-align:center;font-size:12px;font-weight:700;' +
+    'color:#7a4a00;text-decoration:underline;min-height:var(--tap,44px);line-height:var(--tap,44px)}';
   const st = document.createElement('style');
   st.id = 'cbTourneyStyle';
   st.textContent = css;
@@ -1800,10 +1815,205 @@ async function renderSundayShowdown() {
     actions.appendChild(share);
 
     card.appendChild(actions);
+
+    // v178 — the compact Home card is only a summary. One obvious doorway to
+    // the full board (all 50 players, ANY weekend, and her own exact rank).
+    const full = document.createElement('a');
+    full.className = 'cb-tn-full';
+    full.href = '/?view=leaderboard';
+    full.textContent = t('lb.fullBoard');
+    full.addEventListener('click', function (e) {
+      e.preventDefault();
+      navigate('leaderboard');
+    });
+    card.appendChild(full);
   } catch (err) {
     // Optional highlight — never block the home page on a failed fetch.
     el.hidden = true;
   }
+}
+
+/* ---------------------------------------------------------------------------
+   Full weekend leaderboard (v178)
+   ---------------------------------------------------------------------------
+   The Home card above is a Sunday/Monday summary of ONE weekend. This is the
+   real board: any of the last twelve weekends, up to 50 players, the champions,
+   and the device's exact rank even when it is outside those 50.
+
+   Everything below is built from DOM nodes and textContent. Player names come
+   from game_results, which a player can type herself — innerHTML would turn a
+   name into markup. The one class of content that is genuinely static (labels)
+   goes through t(), so a language switch rebuilds the whole board.
+   ------------------------------------------------------------------------- */
+const LB = { week: null, data: null, seq: 0 };
+
+function lbLangTag() {
+  return { en: 'en-GB', fil: 'fil-PH', zh: 'zh-HK', id: 'id-ID' }[currentLang()] || 'en-GB';
+}
+
+/** "14 – 15 Nov" in Hong Kong wall-clock time, in the learner's language. */
+function lbWeekRange(win) {
+  try {
+    const fmt = new Intl.DateTimeFormat(lbLangTag(), {
+      day: 'numeric', month: 'short', timeZone: 'Asia/Hong_Kong',
+    });
+    return fmt.format(new Date(win.start)) + ' – ' + fmt.format(new Date(Date.parse(win.end) - 1));
+  } catch (e) {
+    return String(win.start || '').slice(0, 10);
+  }
+}
+
+function lbGoWeek(delta) {
+  const d = LB.data;
+  if (!d) return;
+  const key = delta < 0 ? d.previous : d.next;
+  if (key) renderLeaderboard(key);
+}
+
+function lbShare() {
+  const d = LB.data;
+  if (!d) return;
+  const url = location.origin + '/?view=leaderboard&week=' + encodeURIComponent(d.week.key);
+  const txt = t('lb.shareText') + d.week.game + ' — ' + url;
+  window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank', 'noopener');
+}
+
+function lbCell(tag, cls, text) {
+  const el = document.createElement(tag);
+  if (cls) el.className = cls;
+  el.textContent = text;
+  return el;
+}
+
+/**
+ * Fetch and paint one weekend. `seq` makes a slow response harmless: tapping
+ * "previous" twice must show the SECOND week, not whichever reply lands last.
+ */
+async function renderLeaderboard(week) {
+  const body = document.getElementById('lb-body');
+  if (!body) return;
+  const seq = ++LB.seq;
+  const qs = new URLSearchParams();
+  if (week) qs.set('week', week);
+  if (STATE.deviceId) qs.set('public_id', STATE.deviceId);
+  body.innerHTML = '';
+  body.appendChild(lbCell('p', 'lb-empty', t('lb.loading')));
+  try {
+    const r = await fetch('/api/leaderboard' + (qs.toString() ? '?' + qs : ''), {
+      headers: { Accept: 'application/json' },
+    });
+    if (!r.ok) throw new Error('leaderboard ' + r.status);
+    const d = await r.json();
+    if (seq !== LB.seq) return;
+    LB.data = d;
+    LB.week = d.week.key;
+    lbPaint(d);
+  } catch (err) {
+    if (seq !== LB.seq) return;
+    body.innerHTML = '';
+    body.appendChild(lbCell('p', 'lb-empty', t('lb.error')));
+  }
+}
+
+function lbPaint(d) {
+  const me = STATE.deviceId;
+  const label = document.getElementById('lb-week-label');
+  const gameEl = document.getElementById('lb-week-game');
+  const statusEl = document.getElementById('lb-status');
+  const activityEl = document.getElementById('lb-activity');
+  const prevBtn = document.getElementById('lb-prev');
+  const nextBtn = document.getElementById('lb-next');
+  const body = document.getElementById('lb-body');
+  const mine = document.getElementById('lb-mine');
+  const champs = document.getElementById('lb-champions');
+  const play = document.getElementById('lb-play');
+  if (!label || !body) return;
+
+  label.textContent = t('lb.weekOf') + ' ' + lbWeekRange(d.week.window);
+  gameEl.textContent = '🏆 ' + d.week.game;
+
+  const statusKey = d.week.status === 'open' ? 'lb.live'
+    : (d.week.status === 'closed' ? 'lb.closed' : 'lb.upcoming');
+  statusEl.className = 'lb-status lb-status-' + d.week.status;
+  statusEl.textContent = t(statusKey);
+
+  const week = (d.weeks || []).find((w) => w.key === d.week.key);
+  const players = week ? week.players : d.leaderboard.length;
+  const played = week ? week.played : 0;
+  activityEl.textContent = players + ' ' + t('lb.players') + ' · ' + played + ' ' + t('lb.games');
+
+  prevBtn.disabled = !d.previous;
+  nextBtn.disabled = !d.next;
+
+  // ---- the board ---------------------------------------------------------
+  body.innerHTML = '';
+  if (!d.leaderboard.length) {
+    body.appendChild(lbCell('p', 'lb-empty', t('lb.noResults')));
+  } else {
+    const table = document.createElement('table');
+    table.className = 'lb-table';
+    const thead = document.createElement('thead');
+    const hr = document.createElement('tr');
+    ['lb.rank', 'lb.player', 'lb.wins', 'lb.played'].forEach((k) => {
+      hr.appendChild(lbCell('th', '', t(k)));
+    });
+    thead.appendChild(hr);
+    table.appendChild(thead);
+    const tbody = document.createElement('tbody');
+    d.leaderboard.forEach((row, i) => {
+      const tr = document.createElement('tr');
+      if (me && row.publicId === me) tr.className = 'lb-me';
+      tr.appendChild(lbCell('td', 'lb-rank', String(i + 1)));
+      const name = lbCell('td', 'lb-name', row.name || '—');
+      if (me && row.publicId === me) {
+        const you = document.createElement('span');
+        you.className = 'lb-you-tag';
+        you.textContent = t('lb.you');
+        name.appendChild(you);
+      }
+      tr.appendChild(name);
+      tr.appendChild(lbCell('td', 'lb-num', String(row.wins)));
+      tr.appendChild(lbCell('td', 'lb-num', String(row.played)));
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    body.appendChild(table);
+  }
+
+  // ---- her own rank (correct even outside the top 50) ---------------------
+  mine.hidden = true;
+  mine.innerHTML = '';
+  if (d.myRank) {
+    mine.hidden = false;
+    mine.appendChild(lbCell('strong', '', t('lb.yourRank')));
+    mine.appendChild(lbCell('span', 'lb-mine-rank', '#' + d.myRank.rank));
+    mine.appendChild(lbCell('span', 'lb-mine-detail',
+      d.myRank.wins + ' ' + t('lb.wins') + ' · ' + d.myRank.played + ' ' + t('lb.games')));
+  }
+
+  // ---- champions ---------------------------------------------------------
+  champs.hidden = true;
+  champs.innerHTML = '';
+  if (d.badges && d.badges.length) {
+    champs.hidden = false;
+    champs.appendChild(lbCell('h3', '', t('lb.champions')));
+    const row = document.createElement('div');
+    row.className = 'lb-badges';
+    d.badges.forEach((b) => row.appendChild(lbCell('span', 'lb-badge', b.label || ('#' + b.rank))));
+    champs.appendChild(row);
+  } else if (d.week.status === 'closed') {
+    champs.hidden = false;
+    champs.appendChild(lbCell('p', 'lb-empty', t('lb.noChampions')));
+  } else if (d.week.status === 'open') {
+    champs.hidden = false;
+    champs.appendChild(lbCell('p', 'lb-hint', t('lb.top3')));
+  }
+
+  // The play button always points at the CURRENT weekend's featured game —
+  // a closed or upcoming week cannot be played, but this one can.
+  const currentGame = (d.weeks && d.weeks[0] && d.weeks[0].game) || d.week.game;
+  play.href = '/games/' + encodeURIComponent(currentGame) + '/';
+  play.textContent = t('lb.play') + ' ' + currentGame + ' →';
 }
 
 /**

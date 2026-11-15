@@ -178,6 +178,11 @@
     if (window.apiPost) return window.apiPost(u, b);
     return fetch(u, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then(function (r) { return r.json(); });
   }
+  // Profile + story edits are PATCH on the server. Send the correct method; the
+  // server also keeps a POST alias for old cache-first bundles still out there.
+  function apiPatch(u, b) {
+    return fetch(u, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then(function (r) { return r.json(); });
+  }
   function deviceId() {
     try { return (window.STATE && STATE.deviceId) || localStorage.getItem('cb_device') || ''; }
     catch (e) { return ''; }
@@ -314,7 +319,7 @@
       var pw = box.querySelector('#cbm-pw').value;
       var body = { public_id: deviceId(), display_name: nick, role: chosen, email: email };
       if (pw) body.password = pw;
-      apiPost('/api/learners/me', body).then(function (r) {
+      apiPatch('/api/learners/me', body).then(function (r) {
         if (r && r.ok) {
           var pp = load();
           pp.onboarded = true; pp.nickname = nick; pp.role = chosen; pp.email = email; pp.hasPassword = !!pw || !!pp.hasPassword;
@@ -406,7 +411,7 @@
       var pw = host.querySelector('#cbm-p-pw').value;
       var body = { public_id: deviceId(), display_name: nick, role: chosen, email: email };
       if (pw) body.password = pw;
-      apiPost('/api/learners/me', body).then(function (r) {
+      apiPatch('/api/learners/me', body).then(function (r) {
         if (r && r.ok) {
           var pp = load(); pp.nickname = nick; pp.role = chosen; pp.email = email; pp.hasPassword = !!pw || !!pp.hasPassword; save(pp);
           syncLegacyName(nick);
@@ -485,7 +490,7 @@
         };
         if (!body.title) return setMsg('#cbm-s-msg', T('needTitle'), true);
         if (!body.body) return setMsg('#cbm-s-msg', T('needBody'), true);
-        apiPost('/api/stories/' + encodeURIComponent(slug), body).then(function (r) {
+        apiPatch('/api/stories/' + encodeURIComponent(slug), body).then(function (r) {
           if (r && r.ok) { closeOverlay(); renderStories(host); }
           else setMsg('#cbm-s-msg', (r && r.error) || 'Could not save.', true);
         }).catch(function () { setMsg('#cbm-s-msg', 'Network error.', true); });

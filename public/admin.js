@@ -2909,7 +2909,9 @@ function setContentFilter(group) {
 function renderContentFilterChips(items) {
   const box = document.getElementById('admin-content-filter');
   if (!box) return;
-  const present = new Set(items.map((it) => it.group));
+  // The operator asked to keep News out of this calendar entirely, so the News
+  // chip is never offered (rows are filtered out in renderAdminContent too).
+  const present = new Set(items.map((it) => it.group).filter((g) => g !== 'news'));
   const groups = CONTENT_GROUP_ORDER.filter((g) => g === 'all' || present.has(g));
   for (const g of present) if (!groups.includes(g)) groups.push(g);
   box.innerHTML = groups.map((g) => {
@@ -3005,12 +3007,26 @@ async function renderAdminContent() {
   const { items, views, counts, now } = ADMIN.content;
   const byKey = views.byKey || {};
   const totals = views.totals || { cantonese: 0, en: 0, all: 0 };
+  // News is hidden from this calendar, so subtract its reads from the totals too.
+  const newsSlugs = new Set(
+    items.filter((it) => it.group === 'news' && it.kind === 'post').map((it) => it.slug)
+  );
+  let newsCantonese = 0, newsEn = 0;
+  for (const s of newsSlugs) {
+    newsCantonese += byKey[`post:${s}:cantonese`] || 0;
+    newsEn += byKey[`post:${s}:en`] || 0;
+  }
+  const shownTotals = {
+    cantonese: Math.max(0, totals.cantonese - newsCantonese),
+    en: Math.max(0, totals.en - newsEn),
+    all: Math.max(0, (totals.cantonese - newsCantonese) + (totals.en - newsEn)),
+  };
   const summary = document.getElementById('admin-content-summary');
   if (summary) {
     summary.textContent =
       `${items.length} items · ${counts.live} live · ${counts.scheduled} scheduled · ` +
-      `${totals.cantonese} reads on Learn Cantonese · ${totals.en} reads on /en · ` +
-      `${totals.all} total. Server time ${String(now).slice(0, 16).replace('T', ' ')} UTC.`;
+      `${shownTotals.cantonese} reads on Learn Cantonese · ${shownTotals.en} reads on /en · ` +
+      `${shownTotals.all} total. Server time ${String(now).slice(0, 16).replace('T', ' ')} UTC.`;
   }
   const label = CONTENT_GROUP_LABELS;
 
@@ -3020,7 +3036,8 @@ async function renderAdminContent() {
       const e = byKey[`${it.kind}:${it.slug}:en`] || 0;
       return { ...it, cantonese: c, en: e, total: c + e };
     })
-    .filter((it) => !ADMIN.contentFilter || it.group === ADMIN.contentFilter);
+    .filter((it) => !ADMIN.contentFilter || it.group === ADMIN.contentFilter)
+    .filter((it) => it.group !== 'news');
 
   renderContentFilterChips(items);
 

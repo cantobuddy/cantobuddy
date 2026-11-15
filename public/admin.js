@@ -22,7 +22,8 @@ const ADMIN = {
   // than a second network request.
   content: null,
   contentFilter: '',
-  contentSort: 'views',
+  contentSortKey: 'total',
+  contentSortDir: 'desc',
   // Community stories. The queue opens on 'pending', not on everything: this is
   // the one tab whose default view is a to-do list, because a story that is
   // never approved is a story nobody ever reads.
@@ -2876,13 +2877,99 @@ function escapeAdmin(s) {
 }
 const escapeAttr = escapeAdmin;
 
-// ---- Content calendar & views (v168) --------------------------------------
+// ---- Content calendar & views (v168/v169) ---------------------------------
+
+// Friendly labels + a stable display order for the channel filter chips. Posts
+// keep their real `channel` as the `group`, so the operator can read Culture and
+// News separately instead of as one "Articles" blob.
+const CONTENT_GROUP_LABELS = {
+  all: 'All',
+  culture: '🏛 Culture',
+  news: '📰 News',
+  living: '🏠 Living',
+  festivals: '🎏 Festivals',
+  health: '🩺 Health',
+  'survival-phrases': '💬 Survival phrases',
+  'work-household': '🧹 Work & household',
+  elders: '📖 長者故事',
+  story: '✍️ Stories',
+  outing: '🏞 Outings',
+};
+const CONTENT_GROUP_ORDER = [
+  'all', 'culture', 'news', 'living', 'festivals', 'health',
+  'survival-phrases', 'work-household', 'elders', 'story', 'outing',
+];
 
 function setContentFilter(group) {
   ADMIN.contentFilter = group || '';
-  document.querySelectorAll('#admin-content-filter .chip').forEach((c) => {
-    c.classList.toggle('active', (c.dataset.group || '') === ADMIN.contentFilter);
-  });
+  renderAdminContent();
+}
+
+/** Build the channel filter chips from the groups actually present in the data. */
+function renderContentFilterChips(items) {
+  const box = document.getElementById('admin-content-filter');
+  if (!box) return;
+  const present = new Set(items.map((it) => it.group));
+  const groups = CONTENT_GROUP_ORDER.filter((g) => g === 'all' || present.has(g));
+  for (const g of present) if (!groups.includes(g)) groups.push(g);
+  box.innerHTML = groups.map((g) => {
+    const active = (g === 'all' ? '' : g) === ADMIN.contentFilter ? ' active' : '';
+    const text = g === 'all' ? 'All' : (CONTENT_GROUP_LABELS[g] || g);
+    const val = g === 'all' ? '' : g;
+    return `<button class="chip${active}" data-group="${escapeHtml(val)}" onclick="setContentFilter('${escapeHtml(val)}')">${text}</button>`;
+  }).join('');
+}
+
+// Sortable column headers: click a header to sort; click again to reverse.
+const CONTENT_SORT = {
+  title: { type: 'str', def: 'asc' },
+  group: { type: 'str', def: 'asc' },
+  published_at: { type: 'date', def: 'desc' },
+  status: { type: 'status', def: 'desc' },
+  cantonese: { type: 'num', def: 'desc' },
+  en: { type: 'num', def: 'desc' },
+  total: { type: 'num', def: 'desc' },
+};
+
+function statusRank(s) {
+  if (s === 'scheduled') return 0;
+  if (s === 'published') return 1;
+  if (s === 'pending') return 2;
+  if (s === 'draft') return 3;
+  return 4;
+}
+
+function compareContentRows(a, b, key, dir) {
+  const meta = CONTENT_SORT[key];
+  if (meta.type === 'num') {
+    const av = Number(a[key] || 0), bv = Number(b[key] || 0);
+    return dir === 'asc' ? av - bv : bv - av;
+  }
+  if (meta.type === 'date') {
+    const av = a.published_at ? Date.parse(a.published_at) : -Infinity;
+    const bv = b.published_at ? Date.parse(b.published_at) : -Infinity;
+    return dir === 'asc' ? av - bv : bv - av;
+  }
+  if (meta.type === 'status') {
+    const ra = statusRank(a.status), rb = statusRank(b.status);
+    if (ra !== rb) return dir === 'asc' ? ra - rb : rb - ra;
+    return String(a.title).localeCompare(String(b.title));
+  }
+  const la = key === 'group' ? (CONTENT_GROUP_LABELS[a.group] || a.group) : a[key];
+  const lb = key === 'group' ? (CONTENT_GROUP_LABELS[b.group] || b.group) : b[key];
+  return dir === 'asc'
+    ? String(la).localeCompare(String(lb))
+    : String(lb).localeCompare(String(la));
+}
+
+function setContentSort(key) {
+  if (!CONTENT_SORT[key]) return;
+  if (ADMIN.contentSortKey === key) {
+    ADMIN.contentSortDir = ADMIN.contentSortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    ADMIN.contentSortKey = key;
+    ADMIN.contentSortDir = CONTENT_SORT[key].def;
+  }
   renderAdminContent();
 }
 
@@ -2925,9 +3012,7 @@ async function renderAdminContent() {
       `${totals.cantonese} reads on Learn Cantonese · ${totals.en} reads on /en · ` +
       `${totals.all} total. Server time ${String(now).slice(0, 16).replace('T', ' ')} UTC.`;
   }
-  const sortSel = document.getElementById('admin-content-sort');
-  if (sortSel) ADMIN.contentSort = sortSel.value || ADMIN.contentSort;
-  const label = { article: 'Article', elders: '長者故事', story: 'Story', outing: 'Outing' };
+  const label = CONTENT_GROUP_LABELS;
 
   const rows = items
     .map((it) => {
@@ -2936,21 +3021,25 @@ async function renderAdminContent() {
       return { ...it, cantonese: c, en: e, total: c + e };
     })
     .filter((it) => !ADMIN.contentFilter || it.group === ADMIN.contentFilter);
-  const comparators = {
-    views: (a, b) => b.total - a.total || String(a.title).localeCompare(String(b.title)),
-    date: (a, b) => String(b.published_at || '').localeCompare(String(a.published_at || '')) || b.total - a.total,
-    scheduled: (a, b) => Number(b.scheduled) - Number(a.scheduled)
-      || String(b.published_at || '').localeCompare(String(a.published_at || '')),
-  };
-  rows.sort(comparators[ADMIN.contentSort] || comparators.views);
+
+  renderContentFilterChips(items);
+
+  const sortKey = ADMIN.contentSortKey || 'total';
+  const sortDir = ADMIN.contentSortDir || 'desc';
+  rows.sort((a, b) => compareContentRows(a, b, sortKey, sortDir));
 
   if (!rows.length) {
     wrap.innerHTML = '<p class="admin-hint">Nothing here yet.</p>';
     return;
   }
+
+  const arrow = (key) => (key === sortKey ? (sortDir === 'asc' ? ' ▲' : ' ▼') : '');
+  const th = (key, text) =>
+    `<th class="sortable${key === sortKey ? ' sorted' : ''}" onclick="setContentSort('${key}')" title="Click to sort">${text}${arrow(key)}</th>`;
+
   wrap.innerHTML = `<table class="content-table"><thead><tr>
-      <th>Content</th><th>Type</th><th>Publish date (HKT)</th><th>Status</th>
-      <th>👁 Cantonese</th><th>👁 /en</th><th>Total</th>
+      ${th('title', 'Content')}${th('group', 'Type')}${th('published_at', 'Publish date (HKT)')}${th('status', 'Status')}
+      ${th('cantonese', '👁 Cantonese')}${th('en', '👁 /en')}${th('total', 'Total')}
     </tr></thead><tbody>` + rows.map((it) => {
     const badge = it.scheduled
       ? '<span class="content-badge scheduled">Scheduled</span>'

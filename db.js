@@ -249,7 +249,8 @@ db.exec(`
     public_id    TEXT NOT NULL UNIQUE,
     display_name TEXT NOT NULL DEFAULT '',
     created_at   TEXT,
-    last_seen_at TEXT
+    last_seen_at TEXT,
+    updated_at   TEXT
   );
 
   CREATE TABLE IF NOT EXISTS users (
@@ -1174,6 +1175,18 @@ function migrateSchema() {
   if (addColumnIfMissing('learners', 'referral_code', 'TEXT')) {
     changes.push('learners.referral_code');
   }
+
+  /* Member profile (v169). OPTIONAL and device-linked — never a login gate.
+     `role` drives the default site / personalisation (helper is the default a
+     skip produces). `email` + `password_hash` are nullable and used ONLY for the
+     optional "login later" member flow; a helper who skips onboarding keeps
+     role='helper' and no credentials, exactly as before. */
+  if (addColumnIfMissing('learners', 'role', "TEXT NOT NULL DEFAULT 'helper'")) {
+    changes.push('learners.role');
+  }
+  if (addColumnIfMissing('learners', 'email', 'TEXT')) changes.push('learners.email');
+  if (addColumnIfMissing('learners', 'password_hash', 'TEXT')) changes.push('learners.password_hash');
+  if (addColumnIfMissing('learners', 'updated_at', 'TEXT')) changes.push('learners.updated_at');
 
   /* An operator can switch a category off without deleting it. Disabling hides
      the category from learners AND removes its words from the pool the quiz
@@ -2632,6 +2645,18 @@ const S = {
        FROM learners GROUP BY referrer ORDER BY n DESC, referrer ASC`
   ),
   updateLearnerName: db.prepare('UPDATE learners SET display_name = ?, last_seen_at = ? WHERE id = ?'),
+  updateLearnerProfile: db.prepare(
+    'UPDATE learners SET display_name = ?, role = ?, email = ?, updated_at = ? WHERE id = ?'
+  ),
+  setLearnerPassword: db.prepare('UPDATE learners SET password_hash = ? WHERE id = ?'),
+  getLearnerByEmail: db.prepare('SELECT * FROM learners WHERE email = ?'),
+  getStoryOwnerLearnerId: db.prepare('SELECT learner_id FROM stories WHERE slug = ?'),
+  updateOwnStory: db.prepare(
+    `UPDATE stories
+        SET title = ?, body = ?, lang = ?, topic = ?, display_name = ?,
+            status = 'pending', published_at = NULL, reviewer_note = '', updated_at = ?
+      WHERE slug = ? AND learner_id = ?`
+  ),
   touchLearner: db.prepare('UPDATE learners SET last_seen_at = ? WHERE id = ?'),
   listLearners: db.prepare('SELECT * FROM learners ORDER BY id'),
   // A row created by the schema migration (public_id 'legacy_…') has no device
@@ -3067,7 +3092,7 @@ const S = {
     'SELECT COUNT(*) AS n FROM stories WHERE learner_id = ? AND created_at >= ?'
   ),
   listStoriesByLearner: db.prepare(`
-    SELECT id, slug, title, lang, topic, status, reviewer_note, published_at, created_at
+    SELECT id, slug, title, body, lang, topic, status, reviewer_note, published_at, created_at
       FROM stories WHERE learner_id = ? ORDER BY created_at DESC LIMIT ?
   `),
   /** For the sitemap: only published stories, and only the dates it needs. */
@@ -4805,6 +4830,60 @@ function identifyLearner({ public_id, display_name, referrer }) {
   const info = S.insertLearner.run(pid, name, now, now, ref || null, uniqueReferralCode(pid));
   S.backfillCreditEventsLearner.run(Number(info.lastInsertRowid), pid);
   return getLearnerById(Number(info.lastInsertRowid));
+}
+
+// ---------------------------------------------------------------------------
+// Member profile (v169) — optional, device-linked. Never an account gate:
+// helpers who skip onboarding keep role='helper' and no credentials.
+// ---------------------------------------------------------------------------
+
+const MEMBER_ROLES = ['helper', 'elder', 'employer'];
+
+function updateLearnerProfile(id, { display_name, role, email } = {}) {
+  S.updateLearnerProfile.run(
+    String(display_name || '').trim().slice(0, 80),
+    MEMBER_ROLES.includes(role) ? role : 'helper',
+    email ? String(email).trim().toLowerCase().slice(0, 200) : null,
+    new Date().toISOString(),
+    Number(id)
+  );
+}
+
+function setLearnerPassword(id, hash) {
+  S.setLearnerPassword.run(String(hash), Number(id));
+}
+
+function getLearnerByEmail(email) {
+  if (!email) return null;
+  return S.getLearnerByEmail.get(String(email).trim().toLowerCase()) || null;
+}
+
+/* Returns the owning learner_id of a story, or null when the story is
+   operator-authored (no owner) — callers must treat null as "not yours". */
+function getStoryOwnerLearnerId(slug) {
+  const row = S.getStoryOwnerLearnerId.get(String(slug));
+  if (!row) return undefined; // slug does not exist
+  return row.learner_id == null ? null : Number(row.learner_id);
+}
+
+/* A learner edits her own submitted story. Any change re-queues it for
+   moderation (status back to 'pending', published_at cleared) so a published
+   story cannot be silently altered without a human re-reading it. */
+function updateOwnStory(slug, learnerId, { title, body, lang, topic, display_name } = {}) {
+  const t = String(title ?? '').trim().slice(0, STORY_TITLE_MAX);
+  const b = String(body ?? '').trim().slice(0, STORY_BODY_MAX);
+  if (!t || !b) return false;
+  const info = S.updateOwnStory.run(
+    t,
+    b,
+    ['en', 'fil', 'zh', 'id'].includes(lang) ? lang : 'en',
+    STORY_TOPICS.includes(topic) ? topic : 'daily',
+    String(display_name ?? '').trim().slice(0, STORY_NAME_MAX),
+    new Date().toISOString(),
+    String(slug),
+    Number(learnerId)
+  );
+  return info.changes > 0;
 }
 
 // ---------------------------------------------------------------------------
@@ -7776,7 +7855,7 @@ function listContentForAdmin() {
     items.push({
       kind: 'post', id: p.id, slug: p.slug,
       title: p.title_en || p.title_zh || p.title_fil || p.title_id || p.slug,
-      group: p.channel === 'elders' ? 'elders' : 'article',
+      group: p.channel,
       channel: p.channel, status: p.status,
       published_at: p.published_at || null,
       scheduled: isScheduledPublish(p.published_at), editable: true,
@@ -7877,7 +7956,12 @@ module.exports = {
 
   getLearnerById,
   getLearnerByPublicId,
+  getLearnerByEmail,
   identifyLearner,
+  updateLearnerProfile,
+  setLearnerPassword,
+  getStoryOwnerLearnerId,
+  updateOwnStory,
   getReferrerCounts,
   recordVisit,
   recordActivity,
@@ -8003,6 +8087,8 @@ module.exports = {
   deleteStory,
   storyQuotaFor,
   listStoriesByLearner,
+  getStoryOwnerLearnerId,
+  updateOwnStory,
   listPublishedStorySlugs,
 
   // Living — supportive passages about life in Hong Kong, grouped by situation.

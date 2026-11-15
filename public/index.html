@@ -1324,6 +1324,9 @@
      this file changes. -->
 <script src="/funnel-client.js"></script>
 <script src="/app.js"></script>
+<!-- Member module: onboarding popup + member sheet (profile / game history / my stories).
+     Injected after app.js so window.apiGet/apiPost/STATE are ready. -->
+<script src="/member.js"></script>
 <!-- The illustrated hero used to be swapped in by a script here that read
      localStorage and rewrote the hero's innerHTML. It is plain markup in the
      hero itself now — see the comment there — so nothing needs patching after

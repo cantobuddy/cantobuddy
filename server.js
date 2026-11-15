@@ -973,6 +973,42 @@ app.get('/api/stories/:slug', (req, res) => {
 });
 
 /**
+ * PATCH /api/stories/:slug — the author edits her OWN submission.
+ *
+ * Scoped to the device token like every learner write: we resolve the owning
+ * learner_id of the slug, and reject unless it matches this device's learner.
+ * A null owner (operator-authored story) and a mismatched owner both 403 — you
+ * can only touch what you wrote. Any edit re-queues the story to 'pending' and
+ * clears published_at, so a change to a live story cannot skip human review.
+ */
+app.patch('/api/stories/:slug', (req, res) => {
+  const b = req.body || {};
+  const publicId = String(b.public_id || '').trim();
+  if (!publicId) return res.status(400).json({ error: 'Missing device id.' });
+  const learner = store.getLearnerByPublicId(publicId.slice(0, 80));
+  if (!learner) return res.status(404).json({ error: 'Unknown learner.' });
+
+  const ownerId = store.getStoryOwnerLearnerId(req.params.slug);
+  if (ownerId === undefined) return res.status(404).json({ error: 'Story not found.' });
+  if (ownerId === null) return res.status(403).json({ error: 'This story cannot be edited here.' });
+  if (ownerId !== learner.id) {
+    return res.status(403).json({ error: 'You can only edit your own stories.' });
+  }
+
+  const ok = store.updateOwnStory(req.params.slug, learner.id, {
+    title: b.title,
+    body: b.body,
+    lang: b.lang,
+    topic: b.topic,
+    // `sign` is only true when she ticked the box; otherwise store no name.
+    display_name: b.sign === true ? b.display_name : '',
+  });
+  if (!ok) return res.status(400).json({ error: 'Please write a title and your story.' });
+
+  res.json({ ok: true, slug: req.params.slug, status: 'pending' });
+});
+
+/**
  * POST /api/stories — a helper shares her story.
  *
  * Public by necessity, exactly like feedback: she has no account, and making
@@ -1595,6 +1631,76 @@ app.post('/api/learners/identify', (req, res) => {
     // is the token that controls her name and her employer links.
     referral_code: learner.referral_code || null,
     employers: store.listEmployersForLearner(learner.id),
+  });
+});
+
+/**
+ * PATCH /api/learners/me — optional member profile. Saves nickname/role/email
+ * and (optionally) a password to the device's learner row. All fields optional;
+ * a helper who skipped onboarding is untouched. The password is hashed with the
+ * same scrypt helper as operator accounts and is NEVER returned.
+ */
+app.patch('/api/learners/me', (req, res) => {
+  const b = req.body || {};
+  if (!b.public_id) return res.status(400).json({ error: 'Missing device id.' });
+  const learner = store.getLearnerByPublicId(String(b.public_id).slice(0, 80));
+  if (!learner) return res.status(404).json({ error: 'Unknown learner.' });
+
+  if (b.display_name !== undefined || b.role !== undefined || b.email !== undefined) {
+    store.updateLearnerProfile(learner.id, {
+      display_name: b.display_name,
+      role: b.role,
+      email: b.email,
+    });
+  }
+  if (b.password) {
+    if (String(b.password).length < 4) {
+      return res.status(400).json({ error: 'Password is too short (min 4 characters).' });
+    }
+    store.setLearnerPassword(learner.id, store.hashPassword(String(b.password)));
+  }
+  const updated = store.getLearnerByPublicId(String(b.public_id).slice(0, 80));
+  res.json({
+    ok: true,
+    learner: {
+      id: updated.id,
+      display_name: updated.display_name,
+      role: updated.role,
+      email: updated.email || '',
+      has_password: !!updated.password_hash,
+    },
+  });
+});
+
+/**
+ * POST /api/learners/login — optional "login later" for members who gave an
+ * email + password at onboarding (or set one later). Matches against the
+ * learner row; returns the device token so the client can re-link this device to
+ * that member. Non-members (no credentials) simply get 401.
+ */
+app.post('/api/learners/login', (req, res) => {
+  const b = req.body || {};
+  const email = String(b.email || '').trim().toLowerCase();
+  const password = String(b.password || '');
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password are required.' });
+  }
+  const learner = store.getLearnerByEmail(email);
+  if (!learner || !learner.password_hash) {
+    return res.status(401).json({ error: 'No member found with that email.' });
+  }
+  if (!store.verifyPassword(password, learner.password_hash)) {
+    return res.status(401).json({ error: 'Incorrect password.' });
+  }
+  res.json({
+    ok: true,
+    public_id: learner.public_id,
+    learner: {
+      id: learner.id,
+      display_name: learner.display_name,
+      role: learner.role,
+      email: learner.email || '',
+    },
   });
 });
 

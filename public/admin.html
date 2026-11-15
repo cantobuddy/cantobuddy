@@ -683,6 +683,9 @@
         .content-num { font-variant-numeric: tabular-nums; font-weight: 700; }
         .content-title { font-weight: 600; color: #243046; }
         .content-slug { color: #7b8493; font-size: 11px; }
+        .content-table th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+        .content-table th.sortable:hover { color: #3b4a9c; }
+        .content-table th.sorted { color: #3b4a9c; }
         @media (max-width: 900px) { .content-table { font-size: 12px; } .content-date { width: 145px; } }
       </style>
       <div class="admin-toolbar">
@@ -700,21 +703,8 @@
         hidden from every learner until that Hong Kong time; change the date below or in the post
         form. Outings are authored in code, so they show views but have no date to edit.
       </p>
-      <div class="chip-group" id="admin-content-filter">
-        <button class="chip active" data-group="" onclick="setContentFilter('')">All</button>
-        <button class="chip" data-group="article" onclick="setContentFilter('article')">📰 Articles</button>
-        <button class="chip" data-group="elders" onclick="setContentFilter('elders')">📖 長者故事</button>
-        <button class="chip" data-group="story" onclick="setContentFilter('story')">✍️ Stories</button>
-        <button class="chip" data-group="outing" onclick="setContentFilter('outing')">🏞 Outings</button>
-      </div>
-      <p class="admin-hint">
-        Sort:
-        <select id="admin-content-sort" onchange="renderAdminContent()" style="padding:5px 8px;border:1px solid #d8dce3;border-radius:8px;font:inherit">
-          <option value="views">Most read</option>
-          <option value="date">Newest first</option>
-          <option value="scheduled">Scheduled first</option>
-        </select>
-      </p>
+      <div class="chip-group" id="admin-content-filter"></div>
+      <p class="admin-hint">Click any column header to sort — click again to reverse the order.</p>
       <div id="admin-content-list" class="admin-list"></div>
     </div>
 

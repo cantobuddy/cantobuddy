@@ -117,6 +117,31 @@
   }
   function save(p) { try { localStorage.setItem(STORE_KEY, JSON.stringify(p)); } catch (e) {} }
 
+  // Cross-site "already seen" flag. localStorage is scoped per origin, which is
+  // enough for cantobuddy.com and cantobuddy.com/en (same origin, different path),
+  // but a first-party cookie lets the same device skip the popup even if the two
+  // shells are ever served from different subdomains. We set it on every onboard
+  // action and treat it as an extra suppression signal in boot().
+  var SEEN_COOKIE = 'cb_member_seen';
+  function seenCookieDomain() {
+    var host = (location && location.hostname) || '';
+    if (!host || host === 'localhost' || host === '127.0.0.1' || /^\d+\.\d+\.\d+\.\d+$/.test(host)) return '';
+    var parts = host.split('.');
+    if (parts.length < 2) return '';
+    return parts.slice(-2).join('.');
+  }
+  function setSeenCookie() {
+    try {
+      var d = seenCookieDomain();
+      var max = 60 * 60 * 24 * 365 * 2;
+      document.cookie = SEEN_COOKIE + '=1; path=/; max-age=' + max + (d ? '; domain=' + d : '') + '; SameSite=Lax';
+    } catch (e) {}
+  }
+  function hasSeenCookie() {
+    try { return new RegExp('(?:^|; )' + SEEN_COOKIE + '=1(?:;|$)').test(document.cookie); }
+    catch (e) { return false; }
+  }
+
   // --- helpers --------------------------------------------------------------
   function esc(s) {
     return String(s == null ? '' : s)
@@ -236,6 +261,7 @@
     });
     box.querySelector('#cbm-skip').addEventListener('click', function () {
       var pp = load(); pp.onboarded = true; pp.role = 'helper'; pp.nickname = pp.nickname || ''; save(pp);
+      setSeenCookie();
       closeOverlay();
     });
     box.querySelector('#cbm-save').addEventListener('click', function () {
@@ -249,6 +275,7 @@
           var pp = load();
           pp.onboarded = true; pp.nickname = nick; pp.role = chosen; pp.email = email; pp.hasPassword = !!pw || !!pp.hasPassword;
           save(pp);
+          setSeenCookie();
           closeOverlay();
           maybeAddAvatar();
         } else {
@@ -323,6 +350,7 @@
       apiPost('/api/learners/me', body).then(function (r) {
         if (r && r.ok) {
           var pp = load(); pp.nickname = nick; pp.role = chosen; pp.email = email; pp.hasPassword = !!pw || !!pp.hasPassword; save(pp);
+          setSeenCookie();
           setMsg('#cbm-p-msg', T('saved'));
           maybeAddAvatar();
         } else setMsg('#cbm-p-msg', (r && r.error) || 'Could not save.', true);
@@ -448,11 +476,14 @@
   function boot() {
     maybeAddAvatar();
     var p = load();
-    // Only show the onboarding popup for a device that has neither finished
-    // onboarding nor stored a name yet. A returning visitor who already has a
-    // name saved never sees the popup again.
-    if (deviceId() && !p.onboarded && !p.nickname) {
-      // small delay so the page has settled; show onboarding once per device
+    // A returning visitor who already finished onboarding (name stored locally OR
+    // the cross-site "seen" cookie — set when they onboarded on the other
+    // CantoBuddy shell) should never see the popup again. Seed the cookie here so
+    // an existing local profile also suppresses the popup on the other site.
+    if (p.onboarded || p.nickname) setSeenCookie();
+    // Only show onboarding for a device that has neither finished onboarding,
+    // stored a name, nor carries the cross-site "seen" cookie.
+    if (deviceId() && !p.onboarded && !p.nickname && !hasSeenCookie()) {
       showOnboarding();
     }
   }

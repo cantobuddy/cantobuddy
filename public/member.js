@@ -214,7 +214,7 @@
           roleChip('helper') + roleChip('elder') + roleChip('employer') +
         '</div></div>' +
       '<div class="cbm-field"><label>' + esc(T('email')) + '</label>' +
-        '<input id="cbm-email" type="email" maxlength="200" placeholder="' + esc(T('emailPh')) + '" value="' + esc(p.email || '') + '"></div>' +
+        '<input id="cbm-email" type="email" maxlength="200" placeholder="' + esc(T('emailPh')) + '" value=""></div>' +
       '<div class="cbm-field"><label>' + esc(T('password')) + '</label>' +
         '<input id="cbm-pw" type="password" maxlength="200" placeholder="' + esc(T('passwordPh')) + '"></div>' +
       '<div class="cbm-actions">' +
@@ -448,7 +448,10 @@
   function boot() {
     maybeAddAvatar();
     var p = load();
-    if (!p.onboarded && deviceId()) {
+    // Only show the onboarding popup for a device that has neither finished
+    // onboarding nor stored a name yet. A returning visitor who already has a
+    // name saved never sees the popup again.
+    if (deviceId() && !p.onboarded && !p.nickname) {
       // small delay so the page has settled; show onboarding once per device
       showOnboarding();
     }

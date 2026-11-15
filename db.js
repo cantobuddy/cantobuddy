@@ -38,6 +38,10 @@ const newsCategory = require('./news-category');
 // the note at the top of real-stories.js — so requiring this module here does
 // not create a moderation bypass. It only feeds the three public read paths.
 const { REAL_STORIES, REAL_STORY_CARDS, REAL_STORY_SLUGS } = require('./real-stories');
+// v168 — the outings shelf is authored as a guarded CommonJS/browser module,
+// so the admin content calendar can list every readable outing without a
+// second copy of the slugs drifting out of sync with the app.
+const { PLACES } = require('./public/places.js');
 // W1.1: the single funnel vocabulary, shared with server.js and seo.js so the
 // rollup, the endpoint and the client can never disagree about a step name.
 const { FUNNEL_STEPS, FUNNEL_AUX_EVENTS, normalizeLang, normalizeSource, funnelDays } = require('./funnel');
@@ -449,6 +453,29 @@ db.exec(`
     UNIQUE(day, path)
   );
   CREATE INDEX IF NOT EXISTS idx_visit_daily_day ON visit_daily(day);
+
+  /* v168 — anonymous READ counts for one piece of content, split by site.
+
+     visit_daily answers "which landing page gets traffic". The operator also
+     asked "how many times has THIS article / story / outing been read, on the
+     Cantonese site and on /en?" That needs a per-item counter rather than a
+     per-path one: the same article has an in-app reader, a server-rendered SEO
+     page in four language trees, and (for 長者故事) an /en modal — five URLs,
+     one piece of content.
+
+     Same trust model as visit_daily: NO learner id, no device id, no timestamp
+     per read. One row per (kind, slug, site), with a running total and the last
+     read time. Which person read what is none of this app's business. */
+  CREATE TABLE IF NOT EXISTS content_views (
+    kind    TEXT NOT NULL,           -- 'post' | 'story' | 'place'
+    slug    TEXT NOT NULL,
+    site    TEXT NOT NULL,           -- 'cantonese' | 'en'
+    views   INTEGER NOT NULL DEFAULT 0,
+    first_at TEXT,
+    last_at  TEXT,
+    PRIMARY KEY (kind, slug, site)
+  );
+  CREATE INDEX IF NOT EXISTS idx_content_views_site ON content_views(site, views DESC);
 
   /* W1.1 — the ONE funnel, as an aggregate rollup.
 
@@ -2828,6 +2855,7 @@ const S = {
        AND (? IS NULL OR channel = ?)
        AND (? IS NULL OR category = ?)
        AND (? IS NULL OR source_key LIKE ?)
+       AND (published_at IS NULL OR published_at = '' OR datetime(published_at) <= datetime(?))
      ORDER BY COALESCE(published_at, created_at) DESC, id DESC
      LIMIT ?
   `),
@@ -2841,6 +2869,20 @@ const S = {
   `),
   getPostById: db.prepare('SELECT * FROM posts WHERE id = ?'),
   getPostBySlug: db.prepare('SELECT * FROM posts WHERE slug = ?'),
+  /* v168 — scheduling + anonymous per-item read counts. */
+  countScheduledPosts: db.prepare(
+    `SELECT COUNT(*) AS n FROM posts
+      WHERE status = 'published' AND published_at IS NOT NULL AND published_at != ''
+        AND datetime(published_at) > datetime(?)`
+  ),
+  bumpContentView: db.prepare(`
+    INSERT INTO content_views (kind, slug, site, views, first_at, last_at)
+    VALUES (?, ?, ?, 1, ?, ?)
+    ON CONFLICT(kind, slug, site) DO UPDATE SET
+      views = views + 1, last_at = excluded.last_at
+  `),
+  listContentViews: db.prepare('SELECT kind, slug, site, views, last_at FROM content_views'),
+  setStoryPublishAt: db.prepare('UPDATE stories SET published_at = ?, updated_at = ? WHERE id = ?'),
   /* The same feed with a retention cut. Two statements rather than one with a
      nullable cutoff because `? IS NULL OR ...` cannot use an index, and this
      query runs on every Discover load.
@@ -2856,6 +2898,7 @@ const S = {
        AND (origin != 'auto' OR COALESCE(published_at, created_at) >= ?)
        AND (? IS NULL OR category = ?)
        AND (? IS NULL OR source_key LIKE ?)
+       AND (published_at IS NULL OR published_at = '' OR datetime(published_at) <= datetime(?))
      ORDER BY COALESCE(published_at, created_at) DESC, id DESC
      LIMIT ?
   `),
@@ -2983,6 +3026,7 @@ const S = {
     SELECT id, slug, display_name, lang, topic, title, gloss_en, published_at
       FROM stories
      WHERE status = 'published'
+       AND (published_at IS NULL OR published_at = '' OR datetime(published_at) <= datetime(?))
      ORDER BY published_at DESC, id DESC
      LIMIT ?
   `),
@@ -3029,7 +3073,9 @@ const S = {
   /** For the sitemap: only published stories, and only the dates it needs. */
   listPublishedStorySlugs: db.prepare(`
     SELECT slug, published_at, updated_at FROM stories
-     WHERE status = 'published' ORDER BY published_at DESC
+     WHERE status = 'published'
+       AND (published_at IS NULL OR published_at = '' OR datetime(published_at) <= datetime(?))
+     ORDER BY published_at DESC
   `),
 
   // --- Web Push subscriptions ---
@@ -3092,6 +3138,7 @@ const S = {
       FROM posts
      WHERE status = 'published'
        AND channel != 'elders'
+       AND (published_at IS NULL OR published_at = '' OR datetime(published_at) <= datetime(?))
      ORDER BY COALESCE(published_at, created_at) DESC, id DESC
      LIMIT 1
   `),
@@ -3531,7 +3578,7 @@ function setSubscriptionLang(endpoint, lang) {
 
 /** The newest published post, for the day-3 "New today: …" message. */
 function latestPost() {
-  return S.latestPublishedPost.get() || null;
+  return S.latestPublishedPost.get(nowIso()) || null;
 }
 
 /**
@@ -3568,7 +3615,7 @@ function listPushTargets(nowMs = Date.now()) {
     pushesByEndpoint.get(r.endpoint).push(r);
   }
 
-  const post = S.latestPublishedPost.get();
+  const post = S.latestPublishedPost.get(nowIso());
 
   return subs.map((s) => {
     const lang = PUSH_LANGS.includes(s.lang) ? s.lang : 'en';
@@ -5612,6 +5659,31 @@ function uniquePostSlug(base, excludeId = null) {
   }
 }
 
+/* v168 — future-date scheduling. `published_at` is the ONE source of truth:
+   a published row whose date is still ahead of now is SCHEDULED and invisible
+   to every public read until its moment arrives. No second column and no third
+   status, so the operator cannot create a row that says "scheduled" while the
+   feed serves it anyway. */
+function normalisePublishAt(value) {
+  if (value == null) return null;
+  const raw = String(value).trim();
+  if (!raw) return null;                    // an explicit '' clears a schedule
+  // A datetime-local input carries no zone. The operator is in Hong Kong, so
+  // read it as +08:00 rather than the server's UTC zone — otherwise a post set
+  // for 09:00 would quietly appear at 17:00.
+  const local = /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})$/.exec(raw);
+  const ms = local ? Date.parse(`${local[1]}T${local[2]}:00+08:00`) : Date.parse(raw);
+  return Number.isFinite(ms) ? new Date(ms).toISOString() : null;
+}
+
+function isScheduledPublish(value, nowMs = Date.now()) {
+  if (!value) return false;
+  const ms = Date.parse(value);
+  return Number.isFinite(ms) && ms > nowMs;
+}
+
+const nowIso = () => new Date().toISOString();
+
 /** The learner-facing feed — published only, newest first. */
 function listPosts({ channel = null, status = 'published', limit = 50, category = null, source = null, maxAgeDays } = {}) {
   const ch = POST_CHANNELS.includes(channel) ? channel : null;
@@ -5636,9 +5708,10 @@ function listPosts({ channel = null, status = 'published', limit = 50, category 
   const cutoff = ch === 'news' && windowDays > 0 ? beforeIso(windowDays) : null;
   // The source clause is `(? IS NULL OR source_key LIKE ?)` — two placeholders,
   // so the pattern is passed twice (null when there is no filter).
+  const now = nowIso();
   return cutoff
-    ? S.listPostsInWindow.all(st, ch, ch, cutoff, cat, cat, src, src, n)
-    : S.listPosts.all(st, ch, ch, cat, cat, src, src, n);
+    ? S.listPostsInWindow.all(st, ch, ch, cutoff, cat, cat, src, src, now, n)
+    : S.listPosts.all(st, ch, ch, cat, cat, src, src, now, n);
 }
 
 /** The operator view — every status. */
@@ -5650,7 +5723,11 @@ function listAllPosts({ channel = null, limit = 200, category = null } = {}) {
 }
 
 const getPostById = (id) => S.getPostById.get(Number(id));
-const getPostBySlug = (slug) => S.getPostBySlug.get(String(slug || ''));
+/** Public one-post read. A scheduled (future-dated) post does not exist yet. */
+function getPostBySlug(slug) {
+  const row = S.getPostBySlug.get(String(slug || ''));
+  return row && !isScheduledPublish(row.published_at) ? row : null;
+}
 
 /** Per-channel published counts, for the admin tab header. */
 function getPostCounts() {
@@ -5659,6 +5736,11 @@ function getPostCounts() {
     if (POST_CHANNELS.includes(row.channel)) out[row.channel] = row.n;
     out.published += row.n;
   }
+  // A future-dated published row is SCHEDULED, not live. The admin header
+  // needs both numbers: "published" is the status count, "live" is what a
+  // learner can actually see right now.
+  out.scheduled = S.countScheduledPosts.get(nowIso()).n;
+  out.live = out.published - out.scheduled;
   return out;
 }
 
@@ -5701,7 +5783,12 @@ function createPost(b = {}) {
   const title_en = trimPost(b.title_en, POST_TITLE_MAX);
   if (!title_en) return null;
   const now = new Date().toISOString();
-  const published_at = status === 'published' ? b.published_at || now : b.published_at || null;
+  // v168 — the operator may set a FUTURE publish date from the admin content
+  // calendar. A datetime-local value is Hong Kong local time; normalise it to
+  // UTC before it reaches the SQL date gate. Clearing the date on a published
+  // post means "publish now", not "no date ever".
+  let published_at = b.published_at !== undefined ? normalisePublishAt(b.published_at) : null;
+  if (status === 'published' && !published_at) published_at = now;
   const info = S.insertPost.run(
     uniquePostSlug(b.slug || title_en),
     channel,
@@ -5751,7 +5838,10 @@ function updatePost(id, b = {}) {
   const now = new Date().toISOString();
   // Publishing something that has never been published stamps it now, so it
   // lands at the top of the feed rather than sorting by its creation time.
-  let published_at = b.published_at !== undefined ? b.published_at : cur.published_at;
+  // v168 — accept a future publish date (or clear it) from the admin calendar.
+  let published_at = b.published_at !== undefined
+    ? normalisePublishAt(b.published_at)
+    : cur.published_at;
   if (status === 'published' && !published_at) published_at = now;
   // A category the operator did not touch keeps its current value; one she did
   // set wins, even to clear it (an explicit '' is a decision, not an omission).
@@ -6049,6 +6139,41 @@ function createStory({ learner_id = null, title, body, lang = 'en', topic = 'dai
 }
 
 /**
+ * v168 — an operator-written story from the admin content calendar.
+ *
+ * Deliberately NOT `createStory`: that one is the helper's submission and can
+ * only ever start PENDING. This is editorial content the operator authored, so
+ * it starts published, but it still obeys the publish date — a FUTURE date
+ * keeps it out of every public read until that moment (see listPublishedStories).
+ * No learner_id, so it can never be attributed to a helper or appear in her
+ * "my stories" list.
+ */
+function createAdminStory({ title, body, published_at = null, lang = 'en', topic = 'daily', display_name = '' } = {}) {
+  const t = String(title ?? '').trim().slice(0, STORY_TITLE_MAX);
+  const b = String(body ?? '').trim().slice(0, STORY_BODY_MAX);
+  if (!t || !b) return null;
+  const now = new Date().toISOString();
+  const at = normalisePublishAt(published_at) || now;
+  const info = S.insertStory.run(
+    uniqueStorySlug(t),
+    null,
+    String(display_name ?? '').trim().slice(0, STORY_NAME_MAX),
+    ['en', 'fil', 'zh', 'id'].includes(lang) ? lang : 'en',
+    STORY_TOPICS.includes(topic) ? topic : 'daily',
+    t, b, '', 'published', at, now, now
+  );
+  return S.getStoryForModeration.get(Number(info.lastInsertRowid));
+}
+
+/** v168 — change one story's publish date from the admin calendar. */
+function scheduleStory(id, value) {
+  const cur = S.getStoryForModeration.get(Number(id));
+  if (!cur) return null;
+  S.setStoryPublishAt.run(normalisePublishAt(value), new Date().toISOString(), Number(id));
+  return S.getStoryForModeration.get(Number(id));
+}
+
+/**
  * The public list: published community stories PLUS the editorial real stories.
  *
  * Only the READ side is merged. The moderation queue, the admin CRUD, a
@@ -6063,18 +6188,24 @@ function createStory({ learner_id = null, title, body, lang = 'en', topic = 'dai
  */
 function listPublishedStories({ limit = 50 } = {}) {
   const n = Math.max(1, Math.min(Number(limit) || 50, 200));
-  const rows = S.listPublishedStories.all(n);
-  return [...rows, ...REAL_STORY_CARDS]
+  const now = nowIso();
+  const rows = S.listPublishedStories.all(now, n);
+  // The editorial shelf is authored in real-stories.js, not the moderation
+  // table, so its date gate has to be applied here — a scheduled card must not
+  // slip in just because it bypasses SQL.
+  const cards = REAL_STORY_CARDS.filter((s) => !isScheduledPublish(s.published_at));
+  return [...rows, ...cards]
     .sort((a, b) => String(b.published_at || '').localeCompare(String(a.published_at || '')))
     .slice(0, n);
 }
 
-/** One published story by slug, or null. A pending or rejected story is null. */
+/** One published story by slug, or null. A pending or scheduled story is null. */
 function getPublishedStoryBySlug(slug) {
   const key = String(slug || '');
   const editorial = REAL_STORIES.find((s) => s.slug === key);
-  if (editorial) return editorial;
-  return S.getPublishedStoryBySlug.get(key) || null;
+  if (editorial) return isScheduledPublish(editorial.published_at) ? null : editorial;
+  const row = S.getPublishedStoryBySlug.get(key);
+  return row && !isScheduledPublish(row.published_at) ? row : null;
 }
 
 /** The moderation queue. A null/unknown status means every state, pending first. */
@@ -6132,6 +6263,11 @@ function updateStoryContent(id, patch = {}) {
     new Date().toISOString(),
     Number(id)
   );
+  // v168 — the admin content calendar can reschedule a story without opening
+  // the moderation form. Absent from the patch = leave the date untouched.
+  if (patch.published_at !== undefined) {
+    S.setStoryPublishAt.run(normalisePublishAt(patch.published_at), new Date().toISOString(), Number(id));
+  }
   return S.getStoryForModeration.get(Number(id));
 }
 
@@ -6160,8 +6296,8 @@ function listStoriesByLearner(learnerId, { limit = 50 } = {}) {
  *  them and /stories would be an orphan. */
 function listPublishedStorySlugs() {
   return [
-    ...S.listPublishedStorySlugs.all(),
-    ...REAL_STORIES.map((s) => ({
+    ...S.listPublishedStorySlugs.all(nowIso()),
+    ...REAL_STORIES.filter((s) => !isScheduledPublish(s.published_at)).map((s) => ({
       slug: s.slug, published_at: s.published_at, updated_at: s.updated_at,
     })),
   ].sort((a, b) => String(b.published_at || '').localeCompare(String(a.published_at || '')));
@@ -7589,6 +7725,90 @@ function close() {
   try { db.close(); } catch { /* already closed */ }
 }
 
+// ---------------------------------------------------------------------------
+// v168 — anonymous per-item read counts, and the admin content calendar
+// ---------------------------------------------------------------------------
+
+const CONTENT_VIEW_KINDS = ['post', 'story', 'place'];
+const CONTENT_VIEW_SITES = ['cantonese', 'en'];
+
+/**
+ * One read of ONE piece of content on ONE site.
+ *
+ * Public and unauthenticated (the reader has no account), so the inputs are
+ * allow-listed rather than trusted: no free-text, no client-supplied count, and
+ * no learner/device id is stored. A caller can inflate a counter and nothing
+ * else — exactly the trust model /api/visit already uses for landing pages.
+ */
+function recordContentView(kind, slug, site) {
+  const k = String(kind || '');
+  const s = String(slug || '').trim().slice(0, 120);
+  const w = String(site || '');
+  if (!CONTENT_VIEW_KINDS.includes(k) || !CONTENT_VIEW_SITES.includes(w)) return false;
+  if (!/^[A-Za-z0-9_-]{1,120}$/.test(s)) return false;
+  const now = nowIso();
+  S.bumpContentView.run(k, s, w, now, now);
+  return true;
+}
+
+/** Flat map keyed `kind:slug:site`, plus totals per site, for the admin table. */
+function contentViews() {
+  const byKey = {};
+  const totals = { cantonese: 0, en: 0, all: 0 };
+  for (const r of S.listContentViews.all()) {
+    byKey[`${r.kind}:${r.slug}:${r.site}`] = r.views;
+    if (r.site === 'cantonese' || r.site === 'en') totals[r.site] += r.views;
+    totals.all += r.views;
+  }
+  return { byKey, totals };
+}
+
+/**
+ * ONE list of everything a reader can open, for the admin calendar: articles,
+ * 長者故事, helper/editorial stories and outings. The view counter is keyed by
+ * (kind, slug), so this list must use the SAME slugs the readers send — no
+ * second naming scheme. `editable:false` rows are authored in code and have no
+ * DB row to reschedule.
+ */
+function listContentForAdmin() {
+  const items = [];
+  for (const p of listAllPosts({ limit: 500 })) {
+    items.push({
+      kind: 'post', id: p.id, slug: p.slug,
+      title: p.title_en || p.title_zh || p.title_fil || p.title_id || p.slug,
+      group: p.channel === 'elders' ? 'elders' : 'article',
+      channel: p.channel, status: p.status,
+      published_at: p.published_at || null,
+      scheduled: isScheduledPublish(p.published_at), editable: true,
+    });
+  }
+  for (const s of listStoriesForModeration({ limit: 500 })) {
+    items.push({
+      kind: 'story', id: s.id, slug: s.slug, title: s.title,
+      group: 'story', channel: 'stories', status: s.status,
+      published_at: s.published_at || null,
+      scheduled: s.status === 'published' && isScheduledPublish(s.published_at),
+      editable: true,
+    });
+  }
+  for (const s of REAL_STORY_CARDS) {
+    items.push({
+      kind: 'story', id: null, slug: s.slug, title: s.title,
+      group: 'story', channel: 'editorial', status: 'published',
+      published_at: s.published_at || null,
+      scheduled: isScheduledPublish(s.published_at), editable: false,
+    });
+  }
+  for (const p of PLACES) {
+    items.push({
+      kind: 'place', id: null, slug: p.slug, title: p.name,
+      group: 'outing', channel: 'places', status: 'published',
+      published_at: null, scheduled: false, editable: false,
+    });
+  }
+  return items;
+}
+
 module.exports = {
   db,
   DB_PATH,
@@ -7662,6 +7882,9 @@ module.exports = {
   recordVisit,
   recordActivity,
   recordPageView,
+  recordContentView,
+  contentViews,
+  listContentForAdmin,
   getPublicBanners,
   getBannerConfig,
   saveBannerConfig,
@@ -7717,6 +7940,8 @@ module.exports = {
   getPostById,
   getPostBySlug,
   getPostCounts,
+  normalisePublishAt,
+  isScheduledPublish,
   getNewsCategoryCounts,
   backfillNewsCategories,
   repairFutureDatedNews,
@@ -7773,6 +7998,8 @@ module.exports = {
   getStoryCounts,
   setStoryStatus,
   updateStoryContent,
+  createAdminStory,
+  scheduleStory,
   deleteStory,
   storyQuotaFor,
   listStoriesByLearner,

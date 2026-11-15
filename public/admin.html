@@ -100,6 +100,10 @@
            story ever becomes readable. -->
       <button class="admin-tab" data-tab="stories" onclick="switchTab('stories')">📖 Stories<span
         id="admin-stories-badge" class="tab-badge" style="display:none"></span></button>
+      <!-- v168 — Content calendar. Added at the END so the operator's authored
+           tab order (and every test that pins it) is unchanged. One place for
+           read counts on BOTH sites and for future publish dates. -->
+      <button class="admin-tab" data-tab="content" onclick="switchTab('content')">📅 Content</button>
     </div>
 
     <!-- ---- vocab tab ---- -->
@@ -663,6 +667,57 @@
       <div id="admin-stories-list" class="admin-list"></div>
     </div>
 
+    <!-- ---- Content tab (v168) ---- -->
+    <div id="tab-content" class="admin-tab-content">
+      <style>
+        .content-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .content-table th { text-align: left; padding: 8px 10px; border-bottom: 2px solid #dfe3e9; white-space: nowrap; }
+        .content-table td { padding: 8px 10px; border-bottom: 1px solid #eef0f3; vertical-align: middle; }
+        .content-table tr:hover td { background: #fafbfc; }
+        .content-date { width: 178px; padding: 6px 8px; border: 1px solid #d8dce3; border-radius: 8px; font: inherit; }
+        .content-badge { display: inline-block; padding: 2px 7px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+        .content-badge.live { background: #e6f5ec; color: #206b3e; }
+        .content-badge.scheduled { background: #fff2d9; color: #8a5a00; }
+        .content-badge.draft { background: #eef0f3; color: #555; }
+        .content-badge.group { background: #eef2ff; color: #3b4a9c; }
+        .content-num { font-variant-numeric: tabular-nums; font-weight: 700; }
+        .content-title { font-weight: 600; color: #243046; }
+        .content-slug { color: #7b8493; font-size: 11px; }
+        @media (max-width: 900px) { .content-table { font-size: 12px; } .content-date { width: 145px; } }
+      </style>
+      <div class="admin-toolbar">
+        <h3>Content calendar &amp; views</h3>
+        <div class="admin-toolbar-actions">
+          <button class="btn btn-outline btn-sm" onclick="renderAdminContent()">↻ Refresh</button>
+          <button class="btn btn-primary" onclick="openContentForm()">+ Generate content</button>
+        </div>
+      </div>
+      <p class="admin-hint" id="admin-content-summary"></p>
+      <p class="admin-hint">
+        <strong>Views are anonymous</strong> — one count per item per site, no learner or device
+        is attached. The in-app readers and the search-engine landing pages all count toward the
+        same number. A <strong>future publish date</strong> keeps an article, 長者故事 or story
+        hidden from every learner until that Hong Kong time; change the date below or in the post
+        form. Outings are authored in code, so they show views but have no date to edit.
+      </p>
+      <div class="chip-group" id="admin-content-filter">
+        <button class="chip active" data-group="" onclick="setContentFilter('')">All</button>
+        <button class="chip" data-group="article" onclick="setContentFilter('article')">📰 Articles</button>
+        <button class="chip" data-group="elders" onclick="setContentFilter('elders')">📖 長者故事</button>
+        <button class="chip" data-group="story" onclick="setContentFilter('story')">✍️ Stories</button>
+        <button class="chip" data-group="outing" onclick="setContentFilter('outing')">🏞 Outings</button>
+      </div>
+      <p class="admin-hint">
+        Sort:
+        <select id="admin-content-sort" onchange="renderAdminContent()" style="padding:5px 8px;border:1px solid #d8dce3;border-radius:8px;font:inherit">
+          <option value="views">Most read</option>
+          <option value="date">Newest first</option>
+          <option value="scheduled">Scheduled first</option>
+        </select>
+      </p>
+      <div id="admin-content-list" class="admin-list"></div>
+    </div>
+
   </section>
 </main>
 
@@ -881,6 +936,68 @@
       <div class="modal-actions">
         <button type="button" class="btn btn-outline" onclick="closePostForm()">Cancel</button>
         <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ==================== CONTENT COMPOSER (v168) =========================
+     "Generate content" = the operator writes a new item here and gives it a
+     publish date. No AI call and no hidden generator: what she types is what
+     ships. A future date schedules it; the public APIs hide it until then. -->
+<div id="content-form-modal" class="modal-overlay" onclick="closeContentForm(event)">
+  <div class="modal-form" onclick="event.stopPropagation()">
+    <h3>Generate content</h3>
+    <form onsubmit="submitContentForm(event)">
+      <div class="form-row">
+        <div class="form-field">
+          <label>Content type *</label>
+          <select id="ct-type" onchange="onContentTypeChange()">
+            <option value="culture">🏮 Article — Culture</option>
+            <option value="news">📰 Article — News</option>
+            <option value="elders">📖 長者故事 — /en elders (Traditional Chinese)</option>
+            <option value="story">✍️ Helper story</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Publish date (Hong Kong time) *</label>
+          <input type="datetime-local" id="ct-date" required />
+          <p class="form-hint">Choose a future date to schedule. The item stays invisible to every learner until then.</p>
+        </div>
+      </div>
+      <div class="form-field">
+        <label id="ct-title-en-label">Title — English *</label>
+        <input type="text" id="ct-title-en" required placeholder="A short, clear headline" />
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label>Title — 繁體中文 / 中文</label>
+          <input type="text" id="ct-title-zh" lang="zh-Hant" placeholder="長者故事必填" />
+        </div>
+        <div class="form-field">
+          <label>Author label (stories only)</label>
+          <input type="text" id="ct-name" placeholder="CantoBuddy" />
+        </div>
+      </div>
+      <div class="form-field">
+        <label>Summary — English</label>
+        <textarea id="ct-summary-en" rows="2" placeholder="One or two sentences for the feed card."></textarea>
+      </div>
+      <div class="form-field">
+        <label id="ct-body-en-label">Body — English *</label>
+        <textarea id="ct-body-en" rows="6" required placeholder="Write the article here. Plain text or simple HTML paragraphs."></textarea>
+      </div>
+      <div class="form-field">
+        <label>Body — 繁體中文 (the /en 長者故事 reader shows this)</label>
+        <textarea id="ct-body-zh" rows="6" lang="zh-Hant" placeholder="繁體中文正文。長者故事只顯示呢一欄。"></textarea>
+      </div>
+      <p class="form-hint">
+        Articles go to the Learn Cantonese Discover feed. <strong>長者故事</strong> is Traditional
+        Chinese only and appears on the /en elder site. Both count reads separately in the table.
+      </p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-outline" onclick="closeContentForm()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Generate</button>
       </div>
     </form>
   </div>

@@ -129,7 +129,13 @@
 // change, and two new banner images (banner-tip / banner-help) ship; the story
 // slide reuses the already-shipped banner-hero-en.jpg. Bump: an installed elder PWA
 // would otherwise keep the old emoji/deck and miss the new slide + reskin.
-const CACHE = 'cantobuddy-v167';
+//
+// v168 — 2026-11-15: 長者故事 gets its OWN banner picture (banner-elder-story.webp)
+// and weekly-reading copy, the elder article READER is widened for desktop, and
+// both apps gain anonymous per-item read beacons. app.js, en.html, en-app.js,
+// en-i18n.js, admin.html and admin.js all change, so the cache-first APP_SHELL
+// and the offline EN_TRACK fallback must both move on.
+const CACHE = 'cantobuddy-v168';
 
 // Which paths are server-rendered SEO documents rather than app-shell assets.
 // Kept as one matcher so it can be asserted against `LANG_PREFIX` in seo.js —

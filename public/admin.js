@@ -17,6 +17,12 @@ const ADMIN = {
   posts: [],
   postsFilter: '',
   newsCategory: '',
+  // v168 content calendar — the four content groups, their read counts and
+  // their publish dates. Kept here so filter/sort changes are a redraw rather
+  // than a second network request.
+  content: null,
+  contentFilter: '',
+  contentSort: 'views',
   // Community stories. The queue opens on 'pending', not on everything: this is
   // the one tab whose default view is a to-do list, because a story that is
   // never approved is a story nobody ever reads.
@@ -140,6 +146,7 @@ function switchTab(tab) {
   if (tab === 'navigation') renderAdminNavigation();
   if (tab === 'discover') renderAdminDiscover();
   if (tab === 'english') renderAdminEnglish();
+  if (tab === 'content') renderAdminContent();
 }
 
 // ---- Push notifications -----------------------------------------------------
@@ -2868,6 +2875,199 @@ function escapeAdmin(s) {
   ));
 }
 const escapeAttr = escapeAdmin;
+
+// ---- Content calendar & views (v168) --------------------------------------
+
+function setContentFilter(group) {
+  ADMIN.contentFilter = group || '';
+  document.querySelectorAll('#admin-content-filter .chip').forEach((c) => {
+    c.classList.toggle('active', (c.dataset.group || '') === ADMIN.contentFilter);
+  });
+  renderAdminContent();
+}
+
+/** ISO (UTC) -> the value a datetime-local input expects, in Hong Kong time. */
+function hkDateTimeInput(iso) {
+  if (!iso) return '';
+  const ms = Date.parse(iso);
+  if (!Number.isFinite(ms)) return '';
+  // Hong Kong is UTC+8 with no DST, so adding the offset and formatting as UTC
+  // gives exactly the wall clock the operator chose.
+  return new Date(ms + 8 * 60 * 60 * 1000).toISOString().slice(0, 16);
+}
+
+/** datetime-local (Hong Kong wall clock) -> a UTC ISO string the DB can gate. */
+function hkDateTimeToIso(value) {
+  const m = /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/.exec(String(value || ''));
+  if (!m) return null;
+  const ms = Date.parse(`${m[1]}T${m[2]}:00+08:00`);
+  return Number.isFinite(ms) ? new Date(ms).toISOString() : null;
+}
+
+async function renderAdminContent() {
+  const wrap = document.getElementById('admin-content-list');
+  if (!wrap) return;
+  if (!ADMIN.content) {
+    try {
+      ADMIN.content = await apiGet('/api/admin/content');
+    } catch (err) {
+      wrap.innerHTML = `<p class="admin-hint">Could not load content: ${escapeHtml(err.message)}</p>`;
+      return;
+    }
+  }
+  const { items, views, counts, now } = ADMIN.content;
+  const byKey = views.byKey || {};
+  const totals = views.totals || { cantonese: 0, en: 0, all: 0 };
+  const summary = document.getElementById('admin-content-summary');
+  if (summary) {
+    summary.textContent =
+      `${items.length} items · ${counts.live} live · ${counts.scheduled} scheduled · ` +
+      `${totals.cantonese} reads on Learn Cantonese · ${totals.en} reads on /en · ` +
+      `${totals.all} total. Server time ${String(now).slice(0, 16).replace('T', ' ')} UTC.`;
+  }
+  const sortSel = document.getElementById('admin-content-sort');
+  if (sortSel) ADMIN.contentSort = sortSel.value || ADMIN.contentSort;
+  const label = { article: 'Article', elders: '長者故事', story: 'Story', outing: 'Outing' };
+
+  const rows = items
+    .map((it) => {
+      const c = byKey[`${it.kind}:${it.slug}:cantonese`] || 0;
+      const e = byKey[`${it.kind}:${it.slug}:en`] || 0;
+      return { ...it, cantonese: c, en: e, total: c + e };
+    })
+    .filter((it) => !ADMIN.contentFilter || it.group === ADMIN.contentFilter);
+  const comparators = {
+    views: (a, b) => b.total - a.total || String(a.title).localeCompare(String(b.title)),
+    date: (a, b) => String(b.published_at || '').localeCompare(String(a.published_at || '')) || b.total - a.total,
+    scheduled: (a, b) => Number(b.scheduled) - Number(a.scheduled)
+      || String(b.published_at || '').localeCompare(String(a.published_at || '')),
+  };
+  rows.sort(comparators[ADMIN.contentSort] || comparators.views);
+
+  if (!rows.length) {
+    wrap.innerHTML = '<p class="admin-hint">Nothing here yet.</p>';
+    return;
+  }
+  wrap.innerHTML = `<table class="content-table"><thead><tr>
+      <th>Content</th><th>Type</th><th>Publish date (HKT)</th><th>Status</th>
+      <th>👁 Cantonese</th><th>👁 /en</th><th>Total</th>
+    </tr></thead><tbody>` + rows.map((it) => {
+    const badge = it.scheduled
+      ? '<span class="content-badge scheduled">Scheduled</span>'
+      : it.status === 'published'
+        ? '<span class="content-badge live">Live</span>'
+        : `<span class="content-badge draft">${escapeHtml(it.status)}</span>`;
+    const dateCell = it.editable
+      ? `<input type="datetime-local" class="content-date" id="cd-${escapeHtml(it.kind)}-${Number(it.id)}" value="${escapeHtml(hkDateTimeInput(it.published_at))}" /> `
+        + `<button class="btn btn-sm btn-outline" onclick="saveContentSchedule('${escapeHtml(it.kind)}',${Number(it.id)})">Save</button>`
+      : `<span class="content-slug">${it.published_at ? escapeHtml(hkDateTimeInput(it.published_at).replace('T', ' ')) : 'authored in code'}</span>`;
+    return `<tr>
+      <td><div class="content-title">${escapeHtml(it.title)}</div><div class="content-slug">${escapeHtml(it.slug)}</div></td>
+      <td><span class="content-badge group">${escapeHtml(label[it.group] || it.group)}</span></td>
+      <td>${dateCell}</td>
+      <td>${badge}</td>
+      <td class="content-num">${it.cantonese}</td>
+      <td class="content-num">${it.en}</td>
+      <td class="content-num">${it.total}</td>
+    </tr>`;
+  }).join('') + '</tbody></table>';
+}
+
+/** Inline date edit — writes through the SAME admin routes the post/story forms use. */
+async function saveContentSchedule(kind, id) {
+  const input = document.getElementById(`cd-${kind}-${id}`);
+  if (!input) return;
+  const iso = hkDateTimeToIso(input.value);
+  if (!iso) { alert('Choose a publish date first.'); return; }
+  try {
+    if (kind === 'post') await apiPut(`/api/admin/posts/${id}`, { published_at: iso });
+    else if (kind === 'story') await apiPut(`/api/admin/stories/${id}`, { published_at: iso });
+    else return;
+    ADMIN.content = null;             // refetch: the badge must reflect the new date
+    await renderAdminContent();
+  } catch (err) {
+    alert('Could not save the date: ' + err.message);
+  }
+}
+
+/** Which fields matter changes with the content type — never show a required
+ *  English body for a Chinese-only 長者故事, or vice versa. */
+function onContentTypeChange() {
+  const type = document.getElementById('ct-type').value;
+  const enLabel = document.getElementById('ct-title-en-label');
+  const bodyLabel = document.getElementById('ct-body-en-label');
+  const zhTitle = document.getElementById('ct-title-zh');
+  const bodyEn = document.getElementById('ct-body-en');
+  const bodyZh = document.getElementById('ct-body-zh');
+  if (type === 'elders') {
+    enLabel.textContent = 'Internal English label * (readers see 繁體中文)';
+    bodyLabel.textContent = 'Body — English (fallback only)';
+    zhTitle.required = true; bodyEn.required = false; bodyZh.required = true;
+  } else if (type === 'story') {
+    enLabel.textContent = 'Story title *';
+    bodyLabel.textContent = 'Story text *';
+    zhTitle.required = false; bodyEn.required = true; bodyZh.required = false;
+  } else {
+    enLabel.textContent = 'Title — English *';
+    bodyLabel.textContent = 'Body — English *';
+    zhTitle.required = false; bodyEn.required = true; bodyZh.required = false;
+  }
+}
+
+function openContentForm() {
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+  set('ct-type', 'culture');
+  set('ct-date', hkDateTimeInput(new Date().toISOString()));
+  ['ct-title-en', 'ct-title-zh', 'ct-name', 'ct-summary-en', 'ct-body-en', 'ct-body-zh']
+    .forEach((id) => set(id, ''));
+  onContentTypeChange();
+  document.getElementById('content-form-modal').classList.add('show');
+}
+
+function closeContentForm(e) {
+  if (e && e.target && e.target.id !== 'content-form-modal') return;
+  document.getElementById('content-form-modal').classList.remove('show');
+}
+
+/** "Generate content": the operator authors the item and sets its publish date.
+ *  There is no hidden generator — what she typed is exactly what ships. */
+async function submitContentForm(e) {
+  e.preventDefault();
+  const type = document.getElementById('ct-type').value;
+  const iso = hkDateTimeToIso(document.getElementById('ct-date').value);
+  if (!iso) { alert('Choose a publish date first.'); return; }
+  const val = (id) => document.getElementById(id).value.trim();
+  const titleEn = val('ct-title-en');
+  const titleZh = val('ct-title-zh');
+  const bodyEn = val('ct-body-en');
+  const bodyZh = val('ct-body-zh');
+  try {
+    if (type === 'story') {
+      await apiPost('/api/admin/stories', {
+        title: titleEn, body: bodyEn || bodyZh, published_at: iso,
+        lang: 'en', display_name: val('ct-name') || 'CantoBuddy',
+      });
+    } else {
+      const isElder = type === 'elders';
+      await apiPost('/api/admin/posts', {
+        channel: type, status: 'published', published_at: iso,
+        // title_en is required by the store; for 長者故事 it is an internal
+        // label — the /en reader shows title_zh / body_zh.
+        title_en: titleEn || titleZh,
+        title_zh: titleZh || titleEn,
+        summary_en: val('ct-summary-en'),
+        body_en: bodyEn || bodyZh,
+        body_zh: bodyZh || bodyEn,
+        icon: isElder ? '📖' : (type === 'news' ? '📰' : '🏮'),
+      });
+    }
+    closeContentForm();
+    ADMIN.content = null;
+    await renderAdminContent();
+  } catch (err) {
+    alert('Could not generate content: ' + err.message);
+  }
+}
 
 // ---- Init ------------------------------------------------------------------
 

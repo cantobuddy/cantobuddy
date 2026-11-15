@@ -311,7 +311,10 @@
     .enb-tip    { --slide-img: url(/banner-tip.webp); }
     .enb-helper { --slide-img: url(/banner-living.webp); }
     .enb-help   { --slide-img: url(/banner-help.webp); }
-    .enb-story  { --slide-img: url(/banner-hero-en.jpg); } /* interim: reuses the hero's elder illustration (same family); swap for a dedicated 長者故事 photo later */
+    /* v168 — a dedicated 長者故事 picture: an elder and a helper sharing a story
+       over tea. Composed from the SAME illustrated family as the hero, but a
+       different scene (two people), so no slide repeats another slide's art. */
+    .enb-story  { --slide-img: url(/banner-elder-story.webp); }
     .enb-promo {
       display: flex; flex-direction: column; align-items: flex-start; justify-content: center;
       min-height: 380px; padding: 34px 32px; overflow: hidden;
@@ -555,6 +558,7 @@
   }
   .en-modal-overlay.show { display: flex; }
   .en-modal-box {
+    position: relative; /* the ✕ in the reader is absolutely positioned to the CARD, not the viewport */
     background: #fff; border-radius: 18px; max-width: 360px; width: 100%;
     padding: 22px 20px 18px; text-align: center; box-shadow: 0 12px 40px rgba(26,26,46,0.25);
   }
@@ -604,6 +608,17 @@
     background: #fff5f1; border-radius: 8px; color: #7a3b2e;
   }
   .en-article-body em { color: #8a5a2e; font-style: normal; }
+  /* The 440px install-sheet width is right for a phone but far too narrow for
+     a long Chinese article on a desktop: ~20 characters per line and endless
+     scrolling. Widen the READER only (the install sheet keeps its compact size)
+     and give it a slightly larger type measure. Phones keep the full-screen
+     sheet they already fit. */
+  @media (min-width: 700px) {
+    .en-article-box { max-width: min(760px, 92vw); padding: 30px 38px 34px; }
+    .en-article-box h3 { font-size: 1.45rem; line-height: 1.35; }
+    .en-article-body { font-size: 1.12rem; line-height: 1.85; }
+    .en-article-body h2 { font-size: 1.25rem; }
+  }
   .en-btn-outline { background: #fff; color: var(--muted); border: 1px solid var(--line); }
   .en-install-btn {
     border: 1px solid var(--line); border-radius: 50%;
@@ -995,10 +1010,10 @@
                href="/en?view=home#home-elder-stories"
                onclick="return enOpenBanner('story');">
               <span class="enb-copy">
-                <span class="enb-chip" id="enb-story-chip">繁體中文 · 慢慢讀</span>
+                <span class="enb-chip" id="enb-story-chip">定期新故事 · 慢慢讀</span>
                 <span class="enb-title" id="enb-story-title">長者故事</span>
-                <span class="enb-sub" id="enb-story-sub">香港長者嘅日常同心事，溫馨又實用。</span>
-                <span class="enb-cta" id="enb-story-cta">讀吓 →</span>
+                <span class="enb-sub" id="enb-story-sub">香港長者嘅生活同心事，一期一期慢慢讀，時時都有新故事。</span>
+                <span class="enb-cta" id="enb-story-cta">讀今期 →</span>
               </span>
             </a>
           </div>

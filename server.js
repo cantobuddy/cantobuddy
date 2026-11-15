@@ -830,7 +830,10 @@ app.post('/api/admin/posts', requireAdmin, (req, res) => {
   }
   const post = store.createPost(b);
   if (!post) return res.status(400).json({ error: 'Could not create the post.' });
-  if (post.status === 'published') {
+  // v168 — a SCHEDULED post is not live yet, so it must not broadcast. The
+  // announcement belongs to the moment it becomes readable, not to the moment
+  // the operator queued it.
+  if (post.status === 'published' && !store.isScheduledPublish(post.published_at)) {
     notifySubscribers({
       title: post.title_en || 'New update',
       body: (post.summary_en || 'Something new on CantoBuddy').slice(0, 200),
@@ -845,7 +848,8 @@ app.put('/api/admin/posts/:id', requireAdmin, (req, res) => {
   const before = store.getPostById(req.params.id);
   const post = store.updatePost(req.params.id, req.body || {});
   if (!post) return res.status(404).json({ error: 'Not found' });
-  if (before && before.status !== 'published' && post.status === 'published') {
+  if (before && before.status !== 'published' && post.status === 'published'
+      && !store.isScheduledPublish(post.published_at)) {
     notifySubscribers({
       title: post.title_en || 'New update',
       body: (post.summary_en || 'Something new on CantoBuddy').slice(0, 200),
@@ -897,6 +901,23 @@ app.post('/api/admin/posts/classify', requireAdmin, (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err && err.message ? err.message : 'Classification failed' });
   }
+});
+
+/**
+ * GET /api/admin/content — the operator's ONE content calendar.
+ *
+ * Every readable item (articles, 長者故事, community + editorial stories,
+ * outings) with its anonymous read counts split by site. Admin-only: this is
+ * an aggregate content report, not a learner-facing feed, so it also includes
+ * drafts and SCHEDULED rows that the public APIs deliberately hide.
+ */
+app.get('/api/admin/content', requireAdmin, (req, res) => {
+  res.json({
+    items: store.listContentForAdmin(),
+    views: store.contentViews(),
+    counts: store.getPostCounts(),
+    now: new Date().toISOString(),
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -1618,6 +1639,29 @@ app.post('/api/learners/activity', (req, res) => {
  * at most one visit. There is nothing here worth abusing: the worst case is an
  * inflated visitor count on a free app.
  */
+/**
+ * One piece of content has several URLs: the in-app reader, a server-rendered
+ * SEO page in each of four language trees, and (for 長者故事) the /en modal.
+ * This folds a landing-page view into the SAME per-item counter the readers
+ * use, so "how many times was this article read" is one number, not five.
+ *
+ * Only real, currently-readable slugs are counted — a guessed /discover/foo
+ * cannot create a junk row. Language prefixes are stripped first.
+ */
+function contentViewForPath(rawPath) {
+  const p = rawPath.replace(/^\/(?:fil|zh|id)(?=\/)/, '') || '/';
+  let m = /^\/discover\/([A-Za-z0-9_-]+)$/.exec(p);
+  if (m) {
+    const post = store.getPostBySlug(m[1]);
+    return post && post.status === 'published' ? { kind: 'post', slug: m[1] } : null;
+  }
+  m = /^\/stories\/([A-Za-z0-9_-]+)$/.exec(p);
+  if (m) return store.getPublishedStoryBySlug(m[1]) ? { kind: 'story', slug: m[1] } : null;
+  m = /^\/places\/([A-Za-z0-9_-]+)$/.exec(p);
+  if (m) return PLACES.some((x) => x.slug === m[1]) ? { kind: 'place', slug: m[1] } : null;
+  return null;
+}
+
 app.post('/api/visit', (req, res) => {
   const b = req.body || {};
 
@@ -1628,6 +1672,8 @@ app.post('/api/visit', (req, res) => {
   if (!path.startsWith('/')) return res.status(400).json({ error: 'Invalid path.' });
 
   store.recordPageView(path);
+  const cv = contentViewForPath(path);
+  if (cv) store.recordContentView(cv.kind, cv.slug, 'cantonese');
 
   // The device token is optional: a visitor who has never loaded the app has
   // none yet, and the page view above still counts. When it IS present, the
@@ -1644,6 +1690,23 @@ app.post('/api/visit', (req, res) => {
     }
   }
 
+  res.status(204).end();
+});
+
+/**
+ * POST /api/content-view — one read of ONE piece of content on ONE site.
+ *
+ * Public and unauthenticated, exactly like /api/visit: the reader has no
+ * account. The store allow-lists kind/site and rejects free-text slugs, and no
+ * count, learner id or device id is accepted. `site` is what makes the two
+ * audiences separable: 'cantonese' for the Learn Cantonese app, 'en' for the
+ * /en elder track. A silent 204 keeps a blocked beacon from breaking a reader.
+ */
+app.post('/api/content-view', (req, res) => {
+  const b = req.body || {};
+  if (!store.recordContentView(b.kind, b.slug, b.site)) {
+    return res.status(400).json({ error: 'Invalid content view.' });
+  }
   res.status(204).end();
 });
 
@@ -2394,6 +2457,27 @@ app.patch('/api/admin/feedback/:id', requireAdmin, (req, res) => {
 app.delete('/api/admin/feedback/:id', requireAdmin, (req, res) => {
   if (!store.deleteFeedback(req.params.id)) return res.status(404).json({ error: 'No such feedback.' });
   res.json({ ok: true });
+});
+
+/**
+/**
+ * POST /api/admin/stories — the operator writes a story from the content
+ * calendar. Unlike a helper's submission this starts PUBLISHED, but a future
+ * `published_at` keeps it invisible until that date (see listPublishedStories).
+ * It has no learner_id, so it never lands in a helper's "my stories" list.
+ */
+app.post('/api/admin/stories', requireAdmin, (req, res) => {
+  const b = req.body || {};
+  const row = store.createAdminStory({
+    title: b.title,
+    body: b.body,
+    published_at: b.published_at,
+    lang: b.lang,
+    topic: b.topic,
+    display_name: b.display_name,
+  });
+  if (!row) return res.status(400).json({ error: 'A title and a story body are required.' });
+  res.status(201).json(row);
 });
 
 /**

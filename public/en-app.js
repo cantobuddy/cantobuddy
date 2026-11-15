@@ -805,6 +805,22 @@ function sanitizeElderHtml(html) {
   return tpl.innerHTML;
 }
 
+/** v168 — the /en elder reader counts on the EN site, not the Cantonese one. */
+function noteEnContentView(kind, slug) {
+  if (!slug) return;
+  try {
+    const body = JSON.stringify({ kind, slug, site: 'en' });
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon('/api/content-view', new Blob([body], { type: 'application/json' }));
+    } else {
+      fetch('/api/content-view', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body, keepalive: true,
+      }).catch(() => {});
+    }
+  } catch (e) { /* never let analytics break the reader */ }
+}
+
 async function openElderArticle(slug) {
   const modal = $('en-elder-article-modal');
   const titleEl = $('en-elder-article-title');
@@ -817,6 +833,7 @@ async function openElderArticle(slug) {
     const p = await apiGet('/api/posts/' + encodeURIComponent(slug));
     titleEl.textContent = p.title_zh || '';
     bodyEl.innerHTML = sanitizeElderHtml(p.body_zh || '');
+    noteEnContentView('post', slug);
   } catch (e) {
     bodyEl.innerHTML = `<p>${escapeHtml(enT('elder.loading'))}</p>`;
   }

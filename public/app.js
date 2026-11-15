@@ -6653,6 +6653,7 @@ function openPlace(slug) {
   STATE.discover.place = p;
   navigate('place');
   renderPlace(p);
+  noteContentView('place', slug);
 }
 
 /** Draws the open outing. Also re-run on a language switch. */
@@ -6755,6 +6756,7 @@ async function openStory(slug) {
     STATE.stories.current = story;
     renderStoryPage(story);
     markRead(`story:${slug}`);
+    noteContentView('story', slug);
   } catch (err) {
     console.warn('Could not load the story:', err);
     host.innerHTML = `<p class="discover-empty">${escapeHtml(t('story.notFound'))}</p>`;
@@ -7368,6 +7370,24 @@ async function renderStoryMine() {
 }
 
 
+/** v168 — one anonymous "this item was read" beacon, on the Cantonese site.
+ *  A sendBeacon survives a quick back-tap; a blocked beacon must never stop
+ *  her reading, so every failure is swallowed. No learner/device id is sent. */
+function noteContentView(kind, slug) {
+  if (!slug) return;
+  try {
+    const body = JSON.stringify({ kind, slug, site: 'cantonese' });
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon('/api/content-view', new Blob([body], { type: 'application/json' }));
+    } else {
+      fetch('/api/content-view', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body, keepalive: true,
+      }).catch(() => {});
+    }
+  } catch (e) { /* never let analytics break the reader */ }
+}
+
 /** Opens one article by slug. */
 async function openPost(slug) {
   const host = document.getElementById('post-body');
@@ -7381,6 +7401,7 @@ async function openPost(slug) {
     // Marked AFTER the article rendered, not when the card was tapped: a tap
     // that failed to load is not something she has read.
     markRead(`post:${slug}`);
+    noteContentView('post', slug);
   } catch (err) {
     console.warn('Could not load the article:', err);
     host.innerHTML = `<p class="discover-empty">${escapeHtml(t('discover.notFound'))}</p>`;

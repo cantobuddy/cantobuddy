@@ -135,7 +135,7 @@
 // both apps gain anonymous per-item read beacons. app.js, en.html, en-app.js,
 // en-i18n.js, admin.html and admin.js all change, so the cache-first APP_SHELL
 // and the offline EN_TRACK fallback must both move on.
-const CACHE = 'cantobuddy-v174';
+const CACHE = 'cantobuddy-v175';
 
 // Which paths are server-rendered SEO documents rather than app-shell assets.
 // Kept as one matcher so it can be asserted against `LANG_PREFIX` in seo.js —

@@ -145,6 +145,28 @@
     catch (e) { return false; }
   }
 
+  // The name at the top-right of the Learn-Cantonese header is the legacy
+  // "learner name" (localStorage cb_learner, rendered by app.js updateLearnerBadge).
+  // Keep it in sync with the member nickname so there is ONE visible name and a
+  // name already on screen counts as onboarded.
+  function legacyName() {
+    try { return String(localStorage.getItem('cb_learner') || '').trim(); }
+    catch (e) { return ''; }
+  }
+  function syncLegacyName(name) {
+    name = String(name || '').trim();
+    if (!name) return;
+    try { localStorage.setItem('cb_learner', name); } catch (e) {}
+    // app.js declares `const STATE` (a global lexical binding, NOT window.STATE)
+    // and renders the badge from STATE.learner. To guarantee the badge updates
+    // whether or not app.js is present, set STATE when available AND write the
+    // DOM directly as a fallback (en.html has no app.js / learner-badge).
+    try { if (typeof STATE !== 'undefined' && STATE) STATE.learner = name; } catch (e) {}
+    if (typeof window.updateLearnerBadge === 'function') window.updateLearnerBadge();
+    var badge = document.getElementById('learner-badge');
+    if (badge) badge.textContent = '👤 ' + name;
+  }
+
   // --- helpers --------------------------------------------------------------
   function esc(s) {
     return String(s == null ? '' : s)
@@ -195,7 +217,7 @@
       '.cbm-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f0f5;font-size:.95rem;}',
       '.cbm-msg{color:#1c7a3e;font-size:.9rem;margin-top:8px;min-height:1em;}',
       '.cbm-err{color:#a83030;font-size:.9rem;margin-top:8px;min-height:1em;}',
-      '.cbm-x{float:right;cursor:pointer;border:none;background:none;font-size:1.4rem;line-height:1;color:#888;}',
+      '.cbm-x{float:right;cursor:pointer;border:none;background:none;outline:none;font-size:1.4rem;line-height:1;color:#888;}',
     ].join('\n');
     document.head.appendChild(s);
   }
@@ -214,7 +236,10 @@
     document.body.appendChild(overlay);
     var x = box.querySelector('.cbm-x');
     if (x) x.addEventListener('click', closeOverlay);
-    var f = box.querySelector('input,select,textarea,button');
+    // Focus the first real field, never the close X — focusing X draws a browser
+    // focus ring ("border") around it on load, which the operator does not want.
+    var f = box.querySelector('input:not([type=hidden]),select,textarea') ||
+            box.querySelector('.cbm-tab') || box.querySelector('button:not(.cbm-x)');
     if (f) f.focus();
   }
   function closeOverlay() {
@@ -274,9 +299,14 @@
       });
     });
     box.querySelector('#cbm-skip').addEventListener('click', function () {
-      var pp = load(); pp.onboarded = true; pp.role = 'helper'; pp.nickname = pp.nickname || ''; save(pp);
+      var pp = load(); pp.onboarded = true; pp.role = 'helper';
+      // Keep a name already shown at the top-right (legacy cb_learner) as the
+      // member's name rather than losing it when Skip is tapped.
+      pp.nickname = pp.nickname || legacyName(); save(pp);
+      if (pp.nickname) syncLegacyName(pp.nickname);
       setSeenCookie();
       closeOverlay();
+      maybeAddAvatar();
     });
     box.querySelector('#cbm-save').addEventListener('click', function () {
       var nick = box.querySelector('#cbm-nick').value.trim();
@@ -289,6 +319,7 @@
           var pp = load();
           pp.onboarded = true; pp.nickname = nick; pp.role = chosen; pp.email = email; pp.hasPassword = !!pw || !!pp.hasPassword;
           save(pp);
+          syncLegacyName(nick);
           setSeenCookie();
           closeOverlay();
           maybeAddAvatar();
@@ -364,6 +395,7 @@
       apiPost('/api/learners/me', body).then(function (r) {
         if (r && r.ok) {
           var pp = load(); pp.nickname = nick; pp.role = chosen; pp.email = email; pp.hasPassword = !!pw || !!pp.hasPassword; save(pp);
+          syncLegacyName(nick);
           setSeenCookie();
           setMsg('#cbm-p-msg', T('saved'));
           maybeAddAvatar();
@@ -488,8 +520,16 @@
 
   // --- boot -----------------------------------------------------------------
   function boot() {
-    maybeAddAvatar();
     var p = load();
+    var topName = legacyName();
+    // A name already showing at the top-right (the legacy cb_learner "learner
+    // badge", e.g. "Jen") means this device has already named itself. Adopt it as
+    // the member's name so there is ONE name everywhere, no duplicate avatar, and
+    // no onboarding popup on the next visit.
+    if (topName && !p.nickname) {
+      p.nickname = topName; p.onboarded = true; save(p);
+    }
+    maybeAddAvatar();
     // A returning visitor who already finished onboarding (name stored locally OR
     // the cross-site "seen" cookie — set when they onboarded on the other
     // CantoBuddy shell) should never see the popup again. Seed the cookie here so

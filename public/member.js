@@ -103,15 +103,10 @@
   };
 
   function lang() {
-    try {
-      if (window.STATE && STATE.lang && L[STATE.lang]) return STATE.lang;
-    } catch (e) {}
-    var h = (document.documentElement.getAttribute('lang') || '').toLowerCase();
-    if (h.indexOf('zh') === 0) return 'zh';
-    if (h.indexOf('fil') === 0) return 'fil';
-    if (h.indexOf('id') === 0) return 'id';
+    // The onboarding popup speaks the language being TAUGHT on each site:
+    // the main site teaches Cantonese (Chinese); the /en site teaches English.
     if (location && location.pathname && location.pathname.indexOf('/en') === 0) return 'en';
-    return document.querySelector('.en-header') ? 'en' : 'zh';
+    return 'zh';
   }
   function T(k) { return (L[lang()] || L.en)[k] || (L.en[k] || k); }
 

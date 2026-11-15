@@ -242,15 +242,26 @@
           roleChip('helper') + roleChip('elder') + roleChip('employer') +
         '</div></div>' +
       '<div class="cbm-field"><label>' + esc(T('email')) + '</label>' +
-        '<input id="cbm-email" type="email" maxlength="200" placeholder="' + esc(T('emailPh')) + '" value=""></div>' +
+        '<input id="cbm-email" type="email" maxlength="200" autocomplete="off" spellcheck="false" placeholder="' + esc(T('emailPh')) + '" value=""></div>' +
       '<div class="cbm-field"><label>' + esc(T('password')) + '</label>' +
-        '<input id="cbm-pw" type="password" maxlength="200" placeholder="' + esc(T('passwordPh')) + '"></div>' +
+        '<input id="cbm-pw" type="password" maxlength="200" autocomplete="new-password" placeholder="' + esc(T('passwordPh')) + '"></div>' +
       '<div class="cbm-actions">' +
         '<button class="cbm-btn ghost" id="cbm-skip">' + esc(T('skip')) + '</button>' +
         '<button class="cbm-btn primary" id="cbm-save">' + esc(T('save')) + '</button>' +
       '</div>' +
       '<div class="cbm-msg" id="cbm-msg"></div>'
     );
+    // Password managers can inject saved credentials into an email+password pair
+    // even with autocomplete="off". Wipe any such autofill on a couple of ticks —
+    // but never a field the user is actively typing in.
+    [0, 150, 400].forEach(function (delay) {
+      setTimeout(function () {
+        ['#cbm-email', '#cbm-pw'].forEach(function (sel) {
+          var el = box && box.querySelector(sel);
+          if (el && el.value && document.activeElement !== el) el.value = '';
+        });
+      }, delay);
+    });
     function roleChip(r) {
       return '<div class="cbm-role' + (r === role ? ' sel' : '') + '" data-role="' + r + '">' + esc(T('role' + r.charAt(0).toUpperCase() + r.slice(1))) + '</div>';
     }

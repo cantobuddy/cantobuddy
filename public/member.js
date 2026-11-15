@@ -362,6 +362,9 @@
   }
   function renderProfile(host) {
     var p = load();
+    // Only trust a stored email if it is actually an email. An old autofill bug
+    // saved the bare string "admin" here — never show that as if it were real.
+    var savedEmail = (p.email && String(p.email).indexOf('@') > 0) ? p.email : '';
     host.innerHTML =
       '<div class="cbm-field"><label>' + esc(T('nickname')) + '</label>' +
         '<input id="cbm-p-nick" maxlength="80" value="' + esc(p.nickname || '') + '"></div>' +
@@ -370,11 +373,22 @@
           roleChip('helper', p.role) + roleChip('elder', p.role) + roleChip('employer', p.role) +
         '</div></div>' +
       '<div class="cbm-field"><label>' + esc(T('email')) + '</label>' +
-        '<input id="cbm-p-email" type="email" maxlength="200" value="' + esc(p.email || '') + '"></div>' +
+        '<input id="cbm-p-email" type="email" maxlength="200" autocomplete="off" spellcheck="false" value="' + esc(savedEmail) + '"></div>' +
       '<div class="cbm-field"><label>' + esc(T('newPw')) + '</label>' +
-        '<input id="cbm-p-pw" type="password" maxlength="200" placeholder=""></div>' +
+        '<input id="cbm-p-pw" type="password" maxlength="200" autocomplete="new-password" placeholder=""></div>' +
       '<div class="cbm-actions"><button class="cbm-btn primary" id="cbm-p-save">' + esc(T('save')) + '</button></div>' +
       '<div class="cbm-msg" id="cbm-p-msg"></div>';
+    // Password managers still inject saved credentials into an email+password
+    // pair despite autocomplete="off". Wipe any autofill on a few ticks, but never
+    // a field the user is actively typing in, and keep a legit saved email.
+    [0, 150, 400].forEach(function (delay) {
+      setTimeout(function () {
+        var em = host.querySelector('#cbm-p-email');
+        if (em && document.activeElement !== em && em.value !== savedEmail) em.value = savedEmail;
+        var pw = host.querySelector('#cbm-p-pw');
+        if (pw && document.activeElement !== pw && pw.value) pw.value = '';
+      }, delay);
+    });
     function roleChip(r, sel) {
       return '<div class="cbm-role' + (r === sel ? ' sel' : '') + '" data-role="' + r + '">' + esc(T('role' + r.charAt(0).toUpperCase() + r.slice(1))) + '</div>';
     }

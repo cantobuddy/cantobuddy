@@ -737,8 +737,19 @@ app.get('/api/posts/categories', (req, res) => {
 app.get('/api/posts/daily-culture', (req, res) => {
   const posts = store.listPosts({ channel: 'culture', status: 'published', limit: 200 });
   if (!posts.length) return res.status(404).json({ error: 'No culture posts yet.' });
-  // Same deterministic hash the client uses for the word of the day.
   const dayKey = new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  // The Culture Desk series publishes at 01:00Z = 09:00 HKT. Compare in HKT,
+  // not by the raw UTC date — the reader's "today" starts at 16:00Z yesterday.
+  // If today's scheduled article is due,
+  // it IS Today's Culture — do not let the old hash pick an evergreen post and
+  // break the daily-reading habit. After the 14 days, fall back to the hash.
+  const hktDate = (ms) => new Date(ms + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const todayArticle = posts.find((p) =>
+    /^culture-day-\d{2}-/.test(String(p.slug || '')) &&
+    Number.isFinite(Date.parse(p.published_at)) &&
+    hktDate(Date.parse(p.published_at)) === dayKey);
+  if (todayArticle) return res.json(todayArticle);
+  // Same deterministic hash the client uses for the word of the day.
   let h = 0x811c9dc5;
   const s = 'cb-culture-' + dayKey;
   for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }

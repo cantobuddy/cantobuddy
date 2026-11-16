@@ -4098,6 +4098,15 @@ SEED_POSTS.push(...require('./elder-daily-stories').ELDER_DAILY_STORIES);
    all read them from SEED_POSTS. The length guard picks up both on next boot. */
 SEED_POSTS.push(...require('./culture-features'));
 
+/* Culture Desk — 14 daily 1000–1500-word articles on the Hong Kong topics
+   people actually argue about: housing, money and love, family, dating,
+   friendship, long-stay and short-stay helpers, elder life, care and distance.
+   Each is a normal `culture` post with published_at at 09:00 HKT on 17–30 Nov
+   2026, so the same read-time gate reveals one every morning with no cron.
+   Generated from gitignored content/ drafts by content/build-culture-daily.js;
+   the deploy manifest must ship culture-daily.js or boot fails. */
+SEED_POSTS.push(...require('./culture-daily').CULTURE_DAILY_POSTS);
+
 module.exports = {
   load,
   save,

@@ -2930,6 +2930,7 @@ const DISCOVER_UI = {
     lede: 'Hong Kong life for domestic helpers — how things work at home — plus news from the Philippines, Indonesia and Hong Kong, and stories written by helpers themselves, in plain English.',
     culture: 'Hong Kong culture',
     cultureLede: 'The customs nobody explains — the altar, the festivals, and the two ways to say thank you.',
+    cultureDaily: 'Culture Desk — one deep article every morning',
     news: 'News from home and Hong Kong',
     newsLede: 'News from the Philippines, Indonesia and Hong Kong. Each item is a short summary with a link to the full story.',
     stories: 'Stories from helpers',
@@ -2947,6 +2948,7 @@ const DISCOVER_UI = {
     lede: 'Buhay sa Hong Kong para sa mga helper — kung paano gumagana ang tahanan — at balita mula sa Pilipinas, Indonesia at Hong Kong, at mga kuwentong isinulat mismo ng mga helper, sa simpleng Ingles.',
     culture: 'Kultura ng Hong Kong',
     cultureLede: 'Ang mga kaugaliang walang nagpapaliwanag — ang altar, ang mga pista, at ang dalawang paraan ng pagpapasalamat.',
+    cultureDaily: 'Culture Desk — isang malalim na artikulo bawat umaga',
     news: 'Balita sa tahanan at Hong Kong',
     newsLede: 'Balita mula sa Pilipinas, Indonesia at Hong Kong. Maikling buod ang bawat isa, may link sa buong balita.',
     stories: 'Mga kuwento ng mga helper',
@@ -2964,6 +2966,7 @@ const DISCOVER_UI = {
     lede: '为家佣准备的香港生活——家里的事是怎么运作的——以及来自菲律宾、印尼和香港的新闻，还有家佣亲手写下的故事，都用简单的英文讲清楚。',
     culture: '香港文化',
     cultureLede: '那些没人会解释的习俗——神枱、节庆，以及两个「谢谢」的区别。',
+    cultureDaily: '每日文化閱讀 — 每天早上一篇文章',
     news: '家乡与香港新闻',
     newsLede: '来自菲律宾、印尼和香港的新闻。每条都是简短摘要，并附完整报道的链接。',
     stories: '家佣的故事',
@@ -2981,6 +2984,7 @@ const DISCOVER_UI = {
     lede: 'Kehidupan di Hong Kong untuk asisten rumah tangga — bagaimana rumah tangga bekerja — serta berita dari Indonesia, Filipina, dan Hong Kong, dan kisah yang ditulis sendiri oleh para asisten, dalam bahasa Inggris sederhana.',
     culture: 'Budaya Hong Kong',
     cultureLede: 'Kebiasaan yang tak pernah dijelaskan — altar, perayaan, dan dua cara mengucapkan terima kasih.',
+    cultureDaily: 'Culture Desk — satu artikel mendalam setiap pagi',
     news: 'Berita kampung halaman dan Hong Kong',
     newsLede: 'Berita dari Indonesia, Filipina, dan Hong Kong. Setiap item adalah ringkasan singkat dengan tautan ke berita lengkapnya.',
     stories: 'Kisah dari para asisten',
@@ -2994,6 +2998,134 @@ const DISCOVER_UI = {
     notFoundTitle: 'Artikel tidak ditemukan',
   },
 };
+
+/* Culture Desk — a stable doorway for the 14-morning article series. The
+ * articles themselves live at /discover/<slug>; this shelf exists so a reader
+ * has ONE place to return to every morning instead of hunting in the feed. */
+const CULTURE_DAILY_UI = {
+  en: {
+    title: 'Culture Desk — 每日文化閱讀',
+    lede: 'One deep article every morning at 09:00 Hong Kong time. Real social topics, one open question each day, and no need to read them in order.',
+    ready: 'Ready to read',
+    tomorrow: 'Tomorrow at 09:00 HKT',
+    open: 'Ends with one open question for you.',
+    upcoming: '{n} more mornings in this series. Come back at 09:00 HKT.',
+    complete: 'All 14 mornings are here. Start anywhere — the questions still work.',
+    back: 'Back to Discover',
+    description: 'Fourteen morning articles about Hong Kong housing, love, family, friendship, domestic helpers, ageing and belonging — each ending with an open question.',
+  },
+  fil: {
+    title: 'Culture Desk — 每日文化閱讀',
+    lede: 'Isang malalim na artikulo bawat umaga sa 09:00 Hong Kong. Tunay na paksang panlipunan, isang bukas na tanong araw-araw, at hindi kailangang basahin ayon sa pagkakasunod.',
+    ready: 'Mababasa na',
+    tomorrow: 'Bukas sa 09:00 HKT',
+    open: 'Nagtatapos ito sa isang bukas na tanong para sa iyo.',
+    upcoming: '{n} pang umaga ang darating sa seryeng ito. Bumalik sa 09:00 HKT.',
+    complete: 'Kumpleto na ang 14 na umaga. Magsimula sa alinman — gumagana pa rin ang mga tanong.',
+    back: 'Bumalik sa Discover',
+    description: 'Labing-apat na artikulo sa umaga tungkol sa pabahay, pag-ibig, pamilya, pagkakaibigan, mga helper, pagtanda at pag-aanak sa Hong Kong.',
+  },
+  zh: {
+    title: '每日文化閱讀 — Culture Desk',
+    lede: '每天早上九點（香港時間）一篇深度文章。寫的是香港真實社會議題，每天留一個開放問題，唔使跟住次序讀。',
+    ready: '今日可讀',
+    tomorrow: '明日香港時間九點',
+    open: '每篇最後都留下一個問題，等你用自己的經驗回答。',
+    upcoming: '呢個系列仲有 {n} 篇。明早九點再嚟。',
+    complete: '十四篇已經全部上架。邊一篇先讀都得，問題一樣值得諗。',
+    back: '返回探索',
+    description: '十四篇晨讀文章，寫香港住屋、愛情、家庭、友誼、外傭、長者生活同歸屬感，每篇都留下一個開放問題。',
+  },
+  id: {
+    title: 'Culture Desk — 每日文化閱讀',
+    lede: 'Satu artikel mendalam setiap pagi pukul 09:00 waktu Hong Kong. Isu sosial nyata, satu pertanyaan terbuka setiap hari, dan tidak perlu dibaca berurutan.',
+    ready: 'Siap dibaca',
+    tomorrow: 'Besok pukul 09:00 HKT',
+    open: 'Diakhiri dengan satu pertanyaan terbuka untuk Anda.',
+    upcoming: '{n} pagi lagi dalam seri ini. Kembali pukul 09:00 HKT.',
+    complete: 'Ke-14 pagi sudah lengkap. Mulai dari mana saja — pertanyaannya tetap relevan.',
+    back: 'Kembali ke Discover',
+    description: 'Empat belas artikel pagi tentang perumahan, cinta, keluarga, persahabatan, asisten rumah tangga, usia lanjut dan rasa memiliki di Hong Kong.',
+  },
+};
+
+/** The daily shelf. Future articles are counted but never linked or named. */
+function renderCultureDaily(lang) {
+  const ui = CULTURE_DAILY_UI[lang] || CULTURE_DAILY_UI.en;
+  const prefix = LANG_PREFIX[lang] || '';
+  const isSeriesPost = (p) => /^culture-day-\d{2}-/.test(String(p.slug || ''));
+  const allSeries = store.listAllPosts({ channel: 'culture', limit: 200 })
+    .filter(isSeriesPost)
+    .sort((a, b) => String(a.published_at || '').localeCompare(String(b.published_at || '')));
+  // listPosts() applies the published_at read-time gate, so an article that is
+  // still scheduled for tomorrow is not advertised as a live link today.
+  const due = store.listPosts({ channel: 'culture', limit: 200 }).filter(isSeriesPost);
+  const upcoming = Math.max(0, allSeries.length - due.length);
+  const newest = due.reduce((m, p) => {
+    const d = postDateShort(p.published_at) || SITE_STRUCTURE_DATE;
+    return d > m ? d : m;
+  }, SITE_STRUCTURE_DATE);
+
+  const cards = due.slice().reverse().map((p) => {
+    const day = (String(p.slug).match(/^culture-day-(\d{2})-/) || [, ''])[1];
+    const title = postText(p, 'title', lang);
+    const summary = postText(p, 'summary', lang);
+    return `<li class="guide-card"><a href="${prefix}/discover/${esc(p.slug)}">
+  <span class="em">${esc(p.icon || '📖')}</span>
+  <span class="gt">Day ${esc(day)} · ${esc(title)}</span>
+  <span class="gd">${esc(postDateShort(p.published_at))} · ${esc(ui.ready)}</span>
+  <span class="gd">${esc(summary)}</span>
+  ${p.summary_zh && lang !== 'zh' ? `<span class="gd">${esc(p.summary_zh)}</span>` : ''}
+  <span class="gd">${esc(ui.open)}</span>
+</a></li>`;
+  }).join('\n');
+
+  const body = `
+${crumbs(lang, [{ label: ui.title }])}
+<h1>${esc(ui.title)}</h1>
+<p class="lede">${esc(ui.lede)}</p>
+${cards ? `<ul class="guide-list">\n${cards}\n</ul>` : `<p class="lede">${esc(ui.upcoming.replace('{n}', String(upcoming || 14)))}</p>`}
+<p class="lede">${esc(upcoming ? ui.upcoming.replace('{n}', String(upcoming)) : ui.complete)}</p>
+<p class="updated"><a href="${prefix}/discover">${esc(ui.back)}</a></p>
+${ctaCard(lang)}
+`;
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      ORG_LD,
+      breadcrumbLd([{ name: ui.title, path: `${prefix}/culture-daily` }]),
+      {
+        '@type': 'CollectionPage',
+        name: ui.title,
+        description: ui.description,
+        inLanguage: L[lang].htmlLang,
+        url: `${SITE_ORIGIN}${prefix}/culture-daily`,
+        dateModified: newest,
+        mainEntity: {
+          '@type': 'ItemList',
+          numberOfItems: due.length,
+          itemListElement: due.slice().reverse().map((p, i) => ({
+            '@type': 'ListItem',
+            position: i + 1,
+            name: postText(p, 'title', lang),
+            url: `${SITE_ORIGIN}${prefix}/discover/${p.slug}`,
+          })),
+        },
+      },
+    ],
+  };
+
+  return page({
+    lang,
+    title: `${ui.title} | CantoBuddy`,
+    description: ui.description,
+    path: `${prefix}/culture-daily`,
+    jsonLd,
+    body,
+    alternates: hreflangLinks((l) => `${LANG_PREFIX[l]}/culture-daily`),
+  });
+}
 
 /**
  * The Stories hub and reader.
@@ -3265,6 +3397,7 @@ ${crumbs(lang, [{ label: ui.title }])}
 <h1>${esc(ui.title)}</h1>
 <p class="lede">${esc(ui.lede)}</p>
 ${section(ui.culture, ui.cultureLede, culture)}
+${more(ui.cultureDaily, `${prefix}/culture-daily`)}
 ${extraSections}
 <h2 class="disc-h2">${esc(ui.news)}</h2>
 <p class="lede">${esc(ui.newsLede)}</p>
@@ -3453,6 +3586,13 @@ function renderPost(lang, slug) {
 </div>`
     : '';
 
+  // Culture Desk is written in English with an intentional Traditional Chinese
+  // teaser. Keep that teaser visible even on the English tree; it is the line
+  // an elder recognises when a helper forwards the article to the family chat.
+  const zhTeaser = /^culture-day-\d{2}-/.test(String(post.slug || '')) && post.summary_zh
+    ? `<p class="lede">${esc(post.summary_zh)}</p>`
+    : '';
+
   const body = `
 ${crumbs(lang, [
     { label: ui.title, href: `${prefix}/discover` },
@@ -3462,6 +3602,7 @@ ${crumbs(lang, [
 <h1>${esc(title)}</h1>
 ${date ? `<p class="updated">${esc(date)}</p>` : ''}
 ${summary ? `<p class="lede">${esc(summary)}</p>` : ''}
+${zhTeaser}
 ${bodyHtml}
 ${sourceBlock}
 </article>
@@ -5145,6 +5286,19 @@ ${alts}
     }
   }
 
+  // Culture Desk — the stable daily doorway. Only DUE articles are linked on
+  // the shelf itself, but the shelf exists from day one so a reader can make
+  // returning each morning a habit. Its lastmod follows the newest due post.
+  const cultureDailyDue = culturePosts.filter((p) => /^culture-day-\d{2}-/.test(String(p.slug || '')));
+  const newestCultureDaily = cultureDailyDue.reduce((m, p) => {
+    const d = postDateShort(p.published_at) || SITE_STRUCTURE_DATE;
+    return d > m ? d : m;
+  }, SITE_STRUCTURE_DATE);
+  for (const prefix of Object.values(LANG_PREFIX)) {
+    add(`${prefix}/culture-daily`, '0.7', 'daily',
+      hreflangLinks((l) => `${LANG_PREFIX[l]}/culture-daily`), newestCultureDaily);
+  }
+
   for (const prefix of Object.values(LANG_PREFIX)) {
     add(`${prefix}/stories`, '0.7', 'weekly', hreflangLinks((l) => `${LANG_PREFIX[l]}/stories`), newestStory);
     for (const s of publishedStories) {
@@ -5981,6 +6135,10 @@ function mount(app) {
     // makes that explicit.
     ['/guide', (lang) => renderGuideHub(lang)],
     ['/guide/:slug', (lang, p) => renderGuide(lang, p.slug)],
+    // Culture Desk — a stable daily doorway into the scheduled culture posts.
+    // One segment, registered before /discover/:slug so it can never be read as
+    // a post slug. The articles themselves stay at /discover/<slug>.
+    ['/culture-daily', (lang) => renderCultureDaily(lang)],
     // Discover — the culture and news feed. Two segments, so it is registered
     // after the single-segment routes; a post slug can never shadow /guide or
     // /learn because those namespaces are distinct and the ordering is explicit.

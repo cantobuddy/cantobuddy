@@ -1936,7 +1936,7 @@ function seedPostsIfNeeded() {
        body_en, body_fil, body_zh, body_id,
        source_name, source_url, source_key, source_lang, origin, status,
        published_at, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', '', NULL, '', 'manual', ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   let added = 0;
@@ -1959,6 +1959,14 @@ function seedPostsIfNeeded() {
         p.body_fil || '',
         p.body_zh || '',
         p.body_id || '',
+        // Seeded operator writing can carry real attribution. The old INSERT
+        // hardcoded these to empty, which silently dropped every source on a
+        // seed post and made the public "Source" block vanish.
+        p.source_name || '',
+        p.source_url || '',
+        p.source_key || null,
+        p.source_lang || '',
+        p.origin || 'manual',
         p.status === 'published' ? 'published' : 'draft',
         p.published_at || now,
         now,
@@ -2030,10 +2038,16 @@ function refreshCultureContentIfNeeded() {
 
   const upd = db.prepare(`
     UPDATE posts SET
-      icon      = ?,
-      title_en  = ?,
+      icon       = ?,
+      title_en   = ?,
+      title_zh   = ?,
       summary_en = ?,
-      body_en   = ?
+      summary_zh = ?,
+      body_en    = ?,
+      source_name = ?,
+      source_url  = ?,
+      source_lang = ?,
+      origin      = ?
     WHERE slug = ?
       AND channel = 'culture'
       AND updated_at = created_at
@@ -2052,8 +2066,14 @@ function refreshCultureContentIfNeeded() {
       refreshed += upd.run(
         p.icon || '🏮',
         p.title_en || '',
+        p.title_zh || '',
         p.summary_en || '',
+        p.summary_zh || '',
         p.body_en || '',
+        p.source_name || '',
+        p.source_url || '',
+        p.source_lang || '',
+        p.origin || 'manual',
         p.slug
       ).changes;
     }

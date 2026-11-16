@@ -114,6 +114,31 @@ function loadDeviceId() {
   return id;
 }
 
+/* v181 — an elder who taps a game card from /en gets a REAL game identity.
+   Game rooms validate dev_<hex>; the elder browser owns en_dev_<hex>, so drop
+   "en_". The server marker row put this id on the /en weekly board only. */
+function enPrepareGamePlay() {
+  const id = loadDeviceId().replace(/^en_/, '');
+  let member = null;
+  try { member = JSON.parse(safeGet('cb_member') || 'null'); } catch (e) {}
+  let name = (member && member.role === 'elder' && String(member.nickname || '').trim())
+    || safeGet('cb_player_name') || '長者';
+  name = String(name).trim().slice(0, 24) || '長者';
+  safeSet('cb_device', id);
+  safeSet('cb_player_name', name);
+  const body = JSON.stringify({ public_id: id, nickname: name });
+  try {
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon('/api/en/game-identity', new Blob([body], { type: 'application/json' }));
+      return id;
+    }
+  } catch (e) {}
+  fetch('/api/en/game-identity', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body, keepalive: true,
+  }).catch(() => {});
+  return id;
+}
+
 // ---- API -------------------------------------------------------------------
 async function apiGet(url) {
   const r = await fetch(url);
@@ -708,7 +733,7 @@ function renderHomeGames() {
   const grid = $('home-games');
   if (!grid) return;
   grid.innerHTML = EN_GAMES.map((g) =>
-    `<a class="en-cat elder-game" href="${g.href}" onclick="enMarkGamePlayed()">` +
+    `<a class="en-cat elder-game" href="${g.href}" onclick="enMarkGamePlayed(); enPrepareGamePlay();">` +
     `<div class="ic">${g.emoji}</div>` +
     `<div class="nm">${escapeHtml(enT(g.key))}</div>` +
     `</a>`).join('');
@@ -873,17 +898,15 @@ const enBanners = {
 };
 
 function enOpenBanner(kind) {
-  // v180 — the operator asked for the 長者故事 card to go straight to
-  // https://cantobuddy.com/en/stories. The public shelf is a real page, so
-  // returning false here would strand the tap on the home section again.
-  if (kind === 'story') {
-    window.location.assign('/en/stories');
-    return false;
-  }
+  // v180/v181 — the operator asked for BOTH 長者故事 and 玩吓遊戲 to open their
+  // own public pages. Returning false here would strand the tap on a home
+  // anchor instead of the shareable page they explicitly requested.
+  if (kind === 'story') { window.location.assign('/en/stories'); return false; }
+  if (kind === 'games') { window.location.assign('/en/games'); return false; }
   // v161 — every other banner stays on the SINGLE /en home page and scrolls to
   // its own section, so the elder never leaves the one page that holds all four.
   enNavigate('home');
-  const map = { games: 'home-games', tip: 'home-tips', helper: 'home-helper', help: 'home-help-directory' };
+  const map = { tip: 'home-tips', helper: 'home-helper', help: 'home-help-directory' };
   const el = $(map[kind] || 'home-games');
   if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
   return false; // cancel the fallback href — handled in-app above

@@ -615,7 +615,7 @@
     margin: 18px 0 0; padding-top: 12px; border-top: 1px solid var(--line);
     font-size: 0.95rem;
   }
-  #home-elder-stories-more a, .en-article-public a { color: var(--red); font-weight: 600; }
+  #home-elder-stories-more a, #home-games-more a, .en-article-public a { color: var(--red); font-weight: 600; }
   /* The 440px install-sheet width is right for a phone but far too narrow for
      a long Chinese article on a desktop: ~20 characters per line and endless
      scrolling. Widen the READER only (the install sheet keeps its compact size)
@@ -899,8 +899,8 @@
       can be read in Traditional or Simplified Chinese. There is also a help
       directory of verified Hong Kong support numbers and large emoji cards that
       can be shared to WhatsApp or Facebook with one tap.</p>
-    <p>Four rotating home banners link directly to
-      <a href="/en?view=home#home-games">games (遊戲)</a>,
+    <p>Five rotating home banners link directly to
+      <a href="/en/games">games (遊戲)</a>,
       <a href="/en?view=today&amp;tab=tip">everyday life tips (生活小常識)</a>,
       <a href="/en?view=today&amp;tab=helper">helper perspectives (姐姐心聲)</a> and
       <a href="/en?view=help">finding help (搵幫手)</a>.</p>
@@ -970,9 +970,10 @@
            slides of the single deck opened above (hero is slide 1). They are real
            HTML (crawlable and usable before JS); enOpenBanner() handles the
            in-app doorway without a reload, and the href is the no-JS / deep-link
-           fallback. Operator on/off + order + speed come from /api/en/home-banners. -->
+           fallback. v181 — games now opens its OWN page at /en/games, with the
+           elder weekly leaderboard, rather than scrolling to a home grid. -->
             <a draggable="false" class="enb-slide enb-promo enb-games" data-banner="games"
-               href="/en?view=home#home-games"
+               href="/en/games"
                onclick="return enOpenBanner('games');">
               <span class="enb-copy">
                 <span class="enb-chip" id="enb-games-chip">免費玩 · 唔使登記</span>
@@ -1068,10 +1069,12 @@
            Rendered by renderHomeGames(). -->
       <div class="en-section-title" id="home-games-title">玩吓遊戲</div>
       <p class="elder-note" id="home-games-note">一個人玩都得，唔使登記，全部免費。</p>
+      <!-- v181 — the separate games page carries the weekly elder leaderboard. -->
+      <p class="elder-note" id="home-games-more"><a href="/en/games">睇排行榜同全部遊戲 →</a></p>
       <div class="en-grid elder-games" id="home-games"></div>
-      <!-- v161 — the four home banners below all land on THIS single page (the
-           /en home), each scrolling to its own section, so an elder sees every
-           topic in one place instead of jumping between separate views. -->
+      <!-- v161 — the three remaining home banners below still land on THIS
+           single page, each scrolling to its own section. Games now has its
+           own page at /en/games with the weekly leaderboard. -->
       <div class="en-section-title" id="home-tips-title">生活小常識</div>
       <div class="en-grid" id="home-tips"></div>
       <div class="en-section-title" id="home-helper-title">姐姐心聲</div>

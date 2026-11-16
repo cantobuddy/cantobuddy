@@ -963,6 +963,19 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_game_results_device ON game_results(public_id, game);
   CREATE INDEX IF NOT EXISTS idx_game_results_game   ON game_results(game, created_at);
 
+  /* /en elder game leaderboard. An elder's browser mints "en_dev_<hex>"; the
+     game rooms only accept "dev_<hex>", so /en/games derives a valid game id
+     from it and registers THAT id here. This table is the membership marker:
+     a game_result only appears on the elder board if its public_id is here,
+     which keeps helper results on the existing shared board. No result rows
+     are duplicated — both boards read the same game_results. */
+  CREATE TABLE IF NOT EXISTS elder_game_players (
+    public_id  TEXT PRIMARY KEY,
+    nickname   TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
   CREATE TABLE IF NOT EXISTS tournament_badges (
     id           INTEGER PRIMARY KEY,
     week_start   TEXT NOT NULL,   -- HKT Saturday 00:00, the weekend key (ISO UTC)
@@ -3209,6 +3222,45 @@ const S = {
      WHERE public_id = ? AND created_at >= ?
      GROUP BY game
   `),
+  upsertElderGamePlayer: db.prepare(`
+    INSERT INTO elder_game_players (public_id, nickname, created_at, updated_at)
+    VALUES (?, ?, ?, ?)
+    ON CONFLICT(public_id) DO UPDATE SET
+      nickname = excluded.nickname, updated_at = excluded.updated_at
+  `),
+  // The weekly elder board joins the SAME game_results as the helper board;
+  // membership in elder_game_players is the only thing that separates them.
+  elderWeeklyLeaderboard: db.prepare(`
+    SELECT r.public_id, MAX(p.nickname) AS nickname,
+           COALESCE(SUM(r.won), 0) AS wins, COUNT(*) AS played
+      FROM game_results r
+      JOIN elder_game_players p ON p.public_id = r.public_id
+     WHERE r.created_at >= ? AND r.created_at < ?
+     GROUP BY r.public_id
+     ORDER BY wins DESC, played ASC, r.public_id
+     LIMIT ?
+  `),
+  elderWeekActivity: db.prepare(`
+    SELECT COUNT(DISTINCT r.public_id) AS players, COUNT(*) AS games
+      FROM game_results r
+      JOIN elder_game_players p ON p.public_id = r.public_id
+     WHERE r.created_at >= ? AND r.created_at < ?
+  `),
+  myElderWeekRank: db.prepare(`
+    WITH board AS (
+      SELECT r.public_id, COALESCE(SUM(r.won), 0) AS wins, COUNT(*) AS played
+        FROM game_results r
+        JOIN elder_game_players p ON p.public_id = r.public_id
+       WHERE r.created_at >= ? AND r.created_at < ?
+       GROUP BY r.public_id
+    ), me AS (SELECT * FROM board WHERE public_id = ?)
+    SELECT me.wins AS wins, me.played AS played,
+           (SELECT COUNT(*) FROM board b
+             WHERE b.wins > me.wins
+                OR (b.wins = me.wins AND (b.played < me.played
+                    OR (b.played = me.played AND b.public_id < me.public_id)))) + 1 AS rank
+      FROM me
+  `),
 
   // --- Weekend tournaments: a leaderboard clustered by the HKT Sat–Sun window,
   //     plus the top-3 badges awarded when a weekend closes. ---
@@ -3956,6 +4008,64 @@ function getTournamentCurrent(nowMs = Date.now()) {
 /** YYYY-MM-DD of a Saturday 00:00 HKT instant (given as UTC ms). */
 function hktDateKey(satStartMs) {
   return new Date(satStartMs + HKT_OFFSET_MS).toISOString().slice(0, 10);
+}
+
+/* The /en elder board resets MONDAY, not Saturday: the operator chose "this
+   week" and an elder understands Monday as the start of a new week. Same HKT
+   arithmetic as hktWeekendWindow, with Monday as the anchor. */
+function hktWeekWindow(refMs = Date.now()) {
+  const shifted = refMs + HKT_OFFSET_MS; // HKT wall clock, read as if UTC
+  const d = new Date(shifted);
+  const dow = d.getUTCDay(); // 0=Sun … 1=Mon
+  const daysFromMon = dow === 0 ? -6 : -(dow - 1);
+  const monStartShifted = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + daysFromMon, 0, 0, 0);
+  const startMs = monStartShifted - HKT_OFFSET_MS;
+  return {
+    startMs,
+    start: new Date(startMs).toISOString(),
+    endExclusive: new Date(startMs + 7 * DAY_MS).toISOString(),
+    key: new Date(monStartShifted).toISOString().slice(0, 10),
+  };
+}
+
+/** Register the game id derived from an elder's `en_dev_` browser identity. */
+function upsertElderGamePlayer(publicId, nickname) {
+  const id = String(publicId || '').trim().toLowerCase();
+  if (!/^dev_[a-f0-9]{16,64}$/.test(id)) return false;
+  const now = new Date().toISOString();
+  S.upsertElderGamePlayer.run(id, String(nickname || '').trim().slice(0, 24), now, now);
+  return true;
+}
+
+/**
+ * The current Monday–Sunday elder board. Only device ids registered through
+ * /en/games are counted, so helper results never leak onto this shelf. Rows
+ * come from the same game_results as every other board — no duplicate writes.
+ */
+function getElderGamesLeaderboard({ publicId, nowMs } = {}) {
+  const w = hktWeekWindow(Number.isFinite(nowMs) ? nowMs : Date.now());
+  const rows = S.elderWeeklyLeaderboard.all(w.start, w.endExclusive, 20).map((r, i) => ({
+    rank: i + 1,
+    publicId: r.public_id,
+    name: String(r.nickname || '').trim() || ('長者 ' + String(r.public_id).slice(-4)),
+    wins: Number(r.wins) || 0,
+    played: Number(r.played) || 0,
+  }));
+  const id = String(publicId || '').trim().toLowerCase();
+  let me = null;
+  if (/^dev_[a-f0-9]{16,64}$/.test(id)) {
+    const r = S.myElderWeekRank.get(w.start, w.endExclusive, id);
+    if (r) me = { rank: Number(r.rank) || 0, wins: Number(r.wins) || 0, played: Number(r.played) || 0 };
+  }
+  const activity = S.elderWeekActivity.get(w.start, w.endExclusive) || {};
+  return {
+    week: w.key,
+    rows,
+    me,
+    players: Number(activity.players) || 0,
+    games: Number(activity.games) || 0,
+    resetsAt: w.endExclusive,
+  };
 }
 
 /**
@@ -8245,6 +8355,10 @@ module.exports = {
   gameRecordsForDevice,
   gameRecordsForDevices,
   GAME_KEYS,
+  // /en elder games — separate weekly board, shared game_results.
+  upsertElderGamePlayer,
+  getElderGamesLeaderboard,
+  hktWeekWindow,
   // Weekend tournaments — leaderboard + rotating featured game + badges.
   getTournamentCurrent,
   hktWeekendWindow,

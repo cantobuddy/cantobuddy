@@ -2269,7 +2269,8 @@ async function moveBanner(slug, dir) {
 // shown here as a read-only row so the admin sees the full deck.
 const EN_BANNER_META = {
   hero:    { emoji: '🦜', label: '學日常英文 (Learn English)', href: '#enb-hero' },
-  games:   { emoji: '🎲', label: 'Games',          href: '/en?view=home#home-games' },
+  // v181 — the admin preview link follows the public games shelf, same as card.
+  games:   { emoji: '🎲', label: 'Games',          href: '/en/games' },
   tip:     { emoji: '💡', label: 'Life tips',       href: '/en?view=home#home-tips' },
   helper:  { emoji: '🫶', label: 'Helper voice',   href: '/en?view=home#home-helper' },
   help:    { emoji: '🆘', label: 'Find help',       href: '/en?view=home#home-help-directory' },

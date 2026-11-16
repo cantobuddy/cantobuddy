@@ -2237,6 +2237,32 @@ app.get('/api/leaderboard', (req, res) => {
   res.json(state);
 });
 
+/**
+ * /en elder games — identity + weekly board.
+ *
+ * The elder track mints `en_dev_<hex>` in localStorage. Game rooms only accept
+ * `dev_<hex>`, so /en/games derives one by dropping the `en_` prefix and
+ * registers it here. The marker row is what separates an elder's result from a
+ * helper's on the shared game_results table; no result is written twice.
+ */
+const EN_GAME_ID_RE = /^dev_[a-f0-9]{16,64}$/;
+app.post('/api/en/game-identity', (req, res) => {
+  const publicId = String((req.body || {}).public_id || '').trim().toLowerCase();
+  const nickname = String((req.body || {}).nickname || '').trim().slice(0, 24);
+  if (!EN_GAME_ID_RE.test(publicId)) return res.status(400).json({ error: 'Invalid device.' });
+  store.upsertElderGamePlayer(publicId, nickname);
+  res.json({ ok: true, public_id: publicId, nickname });
+});
+
+/* Monday–Sunday, resets weekly. No week query: "this week" is the only board
+   an elder sees, so there is no stale selector to keep in sync. */
+app.get('/api/en/games/leaderboard', (req, res) => {
+  const publicId = String(req.query.public_id || '').trim().toLowerCase().slice(0, 80);
+  const state = store.getElderGamesLeaderboard({ publicId, nowMs: Date.now() });
+  res.set('Cache-Control', publicId ? 'no-store' : 'public, max-age=60');
+  res.json(state);
+});
+
 /** The same board behind the operator's session, with the same week picker. */
 app.get('/api/admin/leaderboard', requireAdmin, (req, res) => {
   const week = String(req.query.week || '').trim();

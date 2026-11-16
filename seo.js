@@ -1380,6 +1380,32 @@ p.news-note{color:var(--muted);font-size:13px;margin-top:12px}
 .story-nav{margin:36px 0 16px;padding-top:18px;border-top:1px solid var(--line);
   font-size:15px;line-height:2}
 .story-nav a,.elder-story-page a{color:var(--red)}
+/* 玩吓遊戲 — a bigger-tap game shelf and a plain weekly board. The board is
+   deliberately text-first: an elder must see her name and rank without having
+   to decode a chart. */
+.en-games-page h1{font-size:27px;line-height:1.35;margin:0 0 10px}
+.en-games-page h2{font-size:21px;margin:32px 0 12px;line-height:1.4}
+.en-games-name{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:18px 0 8px}
+.en-games-name label{font-weight:600;font-size:16px}
+.en-games-name input{font-size:17px;padding:10px 12px;border:1px solid var(--line);
+  border-radius:8px;max-width:220px;background:#fff;color:var(--ink)}
+.en-games-name button{font-size:16px;padding:10px 18px;border:0;border-radius:8px;
+  background:var(--red);color:#fff;font-weight:600;cursor:pointer}
+.en-games-note{color:var(--muted);font-size:14px;line-height:1.6;margin:0 0 24px}
+.en-game-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;
+  list-style:none;padding:0;margin:0}
+.en-game-grid a{display:block;padding:18px 14px;border:1px solid var(--line);border-radius:12px;
+  background:#fff;text-decoration:none;color:var(--ink);font-size:18px;font-weight:600;text-align:center}
+.en-game-grid a:hover{border-color:var(--red);color:var(--red)}
+.en-game-grid .em{display:block;font-size:34px;margin-bottom:8px}
+.lb-list{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+.lb-row{display:grid;grid-template-columns:44px 1fr auto;gap:12px;align-items:center;
+  padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:17px}
+.lb-rank{font-weight:700;color:var(--red)}
+.lb-name{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-score{color:var(--muted);font-size:15px;white-space:nowrap}
+.lb-row.lb-me{border-color:var(--red);background:#fff4f4}
+.lb-empty{padding:18px;border:1px dashed var(--line);border-radius:10px;color:var(--muted)}
 @media(max-width:560px){
   td.jy{display:none}
   .cta-card{flex-direction:column;align-items:flex-start}
@@ -4765,6 +4791,88 @@ ${ctaCard('en', '', '/en')}
   });
 }
 
+/* ============================ 玩吓遊戲 (/en/games) =========================
+   The operator asked for a SEPARATE page for the /en games card. Before this
+   the card scrolled to a home-section grid and there was no rank for an elder
+   to chase. This shelf keeps the seven real game links crawlable, and gives
+   /en players a Monday-reset leaderboard of their own.
+
+   Elder identity is intentionally separate from the helper board: /en mints
+   en_dev_<hex>, /en/games derives dev_<hex> from it and registers that id via
+   POST /api/en/game-identity. game_results is untouched — the weekly board
+   joins rows to the registered elder ids, so a helper's win never appears.
+   ============================================================================ */
+const EN_GAME_CARDS = [
+  { slug: 'uno', emoji: '🎴', name: 'UNO' },
+  { slug: 'bigtwo', emoji: '🃏', name: '鋤大弟' },
+  { slug: 'wordmatch', emoji: '🔤', name: '配對字' },
+  { slug: 'sudoku', emoji: '🔢', name: '數獨' },
+  { slug: 'chinesechecker', emoji: '🔷', name: '跳棋' },
+  { slug: 'memorymatch', emoji: '🧠', name: '記憶卡' },
+  { slug: 'solitaire', emoji: '♠️', name: '接龍' },
+];
+
+function renderEnGames() {
+  const cards = EN_GAME_CARDS.map((g) => `<li>
+  <a href="/games/${esc(g.slug)}" data-game="${esc(g.slug)}">
+    <span class="em">${esc(g.emoji)}</span>${esc(g.name)}
+  </a>
+</li>`).join('\n');
+  const body = `
+<nav class="crumbs" aria-label="Breadcrumb"><a href="/en">English for Daily Life</a><span class="sep">›</span><span>玩吓遊戲</span></nav>
+<article class="en-games-page">
+<h1>玩吓遊戲</h1>
+<p class="lede">七款小遊戲，一個人玩都得，全部免費，唔使登記。</p>
+<div class="en-games-name">
+  <label for="en-games-name-input">你的排行榜名字</label>
+  <input id="en-games-name-input" maxlength="24" placeholder="例如：陳婆婆" autocomplete="off" />
+  <button type="button" id="en-games-name-save">儲存</button>
+</div>
+<p class="en-games-note">個名只係用嚟喺排行榜顯示；唔想填都可以玩。</p>
+<h2>揀個遊戲</h2>
+<ul class="en-game-grid">
+${cards}
+</ul>
+<h2>本星期排行榜 <span id="en-glb-week"></span></h2>
+<p class="en-games-note">逢星期一清零 · 只計算由呢個頁面開始玩嘅長者。</p>
+<p id="en-glb-mine" class="lb-empty">正在讀取排行榜…</p>
+<ul id="en-glb-list" class="lb-list"></ul>
+<p><a href="/en">← 返回首頁</a></p>
+</article>
+<script src="/en-games.js" defer></script>
+`;
+  return page({
+    lang: 'en',
+    htmlLang: 'zh-Hant',
+    title: '玩吓遊戲 — 長者排行榜 | CantoBuddy',
+    description: '香港長者免費小遊戲：UNO、鋤大弟、數獨等七款遊戲，同本星期長者排行榜。',
+    path: '/en/games',
+    body,
+    alternates: enAlternates('/en/games'),
+    ogImage: `${SITE_ORIGIN}/banner-games.webp`,
+    ogImageAlt: '一位長者在家中玩紙牌遊戲',
+    brandHref: '/en',
+    ctaHref: '/en',
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@graph': [
+        ORG_LD,
+        breadcrumbLd([{ name: '玩吓遊戲', path: '/en/games' }]),
+        {
+          '@type': 'CollectionPage',
+          name: '玩吓遊戲',
+          description: '香港長者的免費小遊戲同本星期排行榜。',
+          url: `${SITE_ORIGIN}/en/games`,
+          inLanguage: 'zh-Hant',
+          hasPart: EN_GAME_CARDS.map((g) => ({
+            '@type': 'Game', name: g.name, url: `${SITE_ORIGIN}/games/${g.slug}`,
+          })),
+        },
+      ],
+    },
+  });
+}
+
 /* ============================ Phrase of the Day ============================
    One crawlable, permanent page per calendar day. The daily-phrase logic
    (daily-phrase.js) is a pure function of vocabulary + date; here we render it
@@ -5116,6 +5224,9 @@ ${alts}
   // English-only pages, so hreflang is a self-reference plus x-default.
   add('/en', '0.9', 'weekly', enAlternates('/en'), SITE_STRUCTURE_DATE);
   add('/en/learn', '0.8', 'weekly', enAlternates('/en/learn'), SITE_STRUCTURE_DATE);
+  // 玩吓遊戲 — the elder games shelf. Static links; the weekly board is live
+  // client-side data and has no indexable URL of its own.
+  add('/en/games', '0.7', 'weekly', enAlternates('/en/games'), SITE_STRUCTURE_DATE);
   for (const c of enCategoryRows()) {
     const p = `/en/category/${slugify(c.name_en)}`;
     add(p, '0.7', 'monthly', enAlternates(p), SITE_STRUCTURE_DATE);
@@ -5986,6 +6097,11 @@ function mount(app) {
   app.get('/en/words/:slug', (req, res) => {
     try { const b = renderEnWord(req.params.slug); if (!b) return html(res, renderNotFound('en'), 404); html(res, b); }
     catch (e) { console.error('  ! /en/words render failed:', e.message); html(res, renderNotFound('en'), 500); }
+  });
+  // 玩吓遊戲 — the separate games shelf with the /en elder weekly leaderboard.
+  app.get('/en/games', (req, res) => {
+    try { html(res, renderEnGames()); }
+    catch (e) { console.error('  ! /en/games render failed:', e.message); html(res, renderNotFound('en'), 500); }
   });
   // 長者故事 — a separate, public shelf for the Chinese-only elder stories.
   // Registered after the other /en siblings and before the pillar routes: the

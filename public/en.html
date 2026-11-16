@@ -608,6 +608,14 @@
     background: #fff5f1; border-radius: 8px; color: #7a3b2e;
   }
   .en-article-body em { color: #8a5a2e; font-style: normal; }
+  /* A public, shareable page for every story. The in-app reader stays the
+     default for elders, but the children who set the phone up need a URL they
+     can forward — keep that doorway visible at the end of every article. */
+  .en-article-public {
+    margin: 18px 0 0; padding-top: 12px; border-top: 1px solid var(--line);
+    font-size: 0.95rem;
+  }
+  #home-elder-stories-more a, .en-article-public a { color: var(--red); font-weight: 600; }
   /* The 440px install-sheet width is right for a phone but far too narrow for
      a long Chinese article on a desktop: ~20 characters per line and endless
      scrolling. Widen the READER only (the install sheet keeps its compact size)
@@ -1080,6 +1088,9 @@
            live under channel 'elders'; each card opens the in-app reader. -->
       <div class="en-section-title" id="home-elder-stories-title">長者故事</div>
       <p class="elder-note" id="home-elder-stories-note">為香港長者而寫 · 講述佢哋嘅日常同心事</p>
+      <!-- v179 — a shareable public shelf. Cards still open the in-app reader;
+           this link is for the son or daughter who wants to send a story on. -->
+      <p class="elder-note" id="home-elder-stories-more"><a href="/en/stories">睇全部長者故事 →</a></p>
       <div class="en-grid" id="home-elder-stories"></div>
       <!-- Keep this title AFTER every highlight section. It is the 揀一類嚟學詞
            grid (home-quick-title is mapped to learn.title by applyStaticLang()). -->
@@ -1279,6 +1290,7 @@
       <button class="en-modal-x" onclick="enCloseElderArticle(event)" aria-label="關閉">✕</button>
       <h3 id="en-elder-article-title"></h3>
       <div id="en-elder-article-body" class="en-article-body"></div>
+      <p class="en-article-public"><a id="en-elder-article-public" href="/en/stories">睇獨立故事頁 →</a></p>
     </div>
   </div>
 

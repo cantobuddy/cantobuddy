@@ -1368,6 +1368,18 @@ p.news-note{color:var(--muted);font-size:13px;margin-top:12px}
    story text so a reader can always tell where the reporting came from. */
 .story-source{margin-top:32px;padding-top:18px;border-top:1px solid var(--line);font-size:.9rem;line-height:1.65;opacity:.9}
 .story-source a{color:inherit;text-decoration:underline;text-underline-offset:2px}
+/* 長者故事 — larger, generous type for an older reader on a phone. */
+.elder-story-page h1{font-size:27px;line-height:1.35;margin:0 0 12px}
+.elder-story-page .pm{color:var(--muted);font-size:14px;margin:0 0 24px}
+.story-body{font-size:18px;line-height:1.9;letter-spacing:.01em}
+.story-body h2{font-size:21px;margin:32px 0 10px;line-height:1.45}
+.story-body p{margin:0 0 18px}
+.story-body blockquote{margin:28px 0;padding:14px 18px;background:#fff4f4;
+  border-left:4px solid var(--red);border-radius:0 8px 8px 0;line-height:1.75}
+.story-body blockquote.story-source{background:#f4f7fa;border-left-color:var(--muted)}
+.story-nav{margin:36px 0 16px;padding-top:18px;border-top:1px solid var(--line);
+  font-size:15px;line-height:2}
+.story-nav a,.elder-story-page a{color:var(--red)}
 @media(max-width:560px){
   td.jy{display:none}
   .cta-card{flex-direction:column;align-items:flex-start}
@@ -1507,7 +1519,7 @@ function page(o) {
   const ogImageAlt = o.ogImageAlt || 'CantoBuddy — free Cantonese for helpers in Hong Kong';
 
   return `<!DOCTYPE html>
-<html lang="${esc(L[lang].htmlLang)}">
+<html lang="${esc(o.htmlLang || L[lang].htmlLang)}">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -4600,6 +4612,159 @@ ${ctaCard(lang, '', '/')}
   });
 }
 
+/* ============================ 長者故事 · 每日一篇 (/en/stories) ==============
+   A SEPARATE, PUBLIC shelf for the Chinese-only elder stories on the English
+   track. Before this, those articles existed only as cards on /en that opened
+   an in-app modal: no URL to share, nothing for a search engine to index, and
+   no way for a son or daughter to send one to their parent. Each story now has
+   its own crawlable page, a real 原文出處 link, and a link back into /en.
+
+   Only published and DUE posts are read (listPosts/getPostBySlug already hide a
+   future published_at), so the 14 scheduled mornings reveal themselves with no
+   cron job. The in-app reader on /en keeps working — this shelf is additive.
+   ============================================================================ */
+const { SOURCES: ELDER_DAILY_SOURCES } = require('./elder-daily-stories');
+
+function elderStoryDate(iso) {
+  if (!iso) return '';
+  const hk = new Date(new Date(iso).getTime() + 8 * 3600 * 1000);
+  if (isNaN(hk.getTime())) return '';
+  return hk.toISOString().slice(0, 10);
+}
+
+function elderStoryCard(p) {
+  const s = ELDER_DAILY_SOURCES[p.slug];
+  return `<li class="guide-card">
+  <a href="/en/stories/${esc(p.slug)}">
+    <span class="em">${esc(p.icon || '📖')}</span>
+    <span class="pm">${esc(elderStoryDate(p.published_at))}</span>
+    <span class="gt">${esc(p.title_zh || '')}</span>
+    <span class="gd">${esc(p.summary_zh || '')}</span>
+    ${s ? `<span class="gd">來源：${esc(s.name)}</span>` : ''}
+  </a>
+</li>`;
+}
+
+function renderEnStoriesHub() {
+  const all = store.listPosts({ channel: 'elders', limit: 200 });
+  const cards = all.map(elderStoryCard).join('\n');
+  const body = `
+<nav class="crumbs" aria-label="Breadcrumb"><a href="/en">English for Daily Life</a><span class="sep">›</span><span>長者故事</span></nav>
+<h1>長者故事</h1>
+<p class="lede">為香港長者而寫 · 每天一篇 · 真實報道改寫，每篇都註明原文出處。</p>
+<p>在呢度，你可以慢慢睇，日日都有新嘅一篇。想返去學英文，撳返上面嘅「開啟應用程式」就可以。</p>
+<h2 class="disc-h2">全部故事（${all.length}）</h2>
+<ul class="guide-list">
+${cards}
+</ul>
+${ctaCard('en', '', '/en')}
+`;
+  return page({
+    lang: 'en',
+    htmlLang: 'zh-Hant', // the content is Traditional Chinese for Cantonese readers
+    title: '長者故事 — 每日一篇 | CantoBuddy',
+    description: '為香港長者而寫的每日故事：真實報道改寫，每天上午九時更新一篇，每篇註明原文出處。',
+    path: '/en/stories',
+    body,
+    alternates: enAlternates('/en/stories'),
+    ogImage: `${SITE_ORIGIN}/banner-elder-story.webp`,
+    ogImageAlt: '一位長者和幫手一起 reading a story at home in Hong Kong',
+    brandHref: '/en',
+    ctaHref: '/en',
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@graph': [
+        ORG_LD,
+        breadcrumbLd([{ name: '長者故事', path: '/en/stories' }]),
+        {
+          '@type': 'CollectionPage',
+          name: '長者故事',
+          description: '為香港長者而寫的每日故事，真實報道改寫。',
+          url: `${SITE_ORIGIN}/en/stories`,
+          inLanguage: 'zh-Hant',
+          hasPart: all.slice(0, 50).map((p) => ({
+            '@type': 'Article', headline: p.title_zh || '',
+            url: `${SITE_ORIGIN}/en/stories/${p.slug}`,
+          })),
+        },
+      ],
+    },
+  });
+}
+
+function renderEnStory(slug) {
+  const p = store.getPostBySlug(slug);
+  if (!p) return null;
+  // Only the elders channel belongs on this shelf. A helper story at the same
+  // slug must not appear here as a duplicate of /stories/<slug>.
+  if (p.channel !== 'elders') return null;
+  const s = ELDER_DAILY_SOURCES[p.slug];
+  const all = store.listPosts({ channel: 'elders', limit: 200 });
+  const idx = all.findIndex((x) => x.slug === p.slug);
+  const prev = idx >= 0 ? all[idx - 1] : null; // older (published earlier)
+  const next = idx >= 0 ? all[idx + 1] : null; // newer (published later)
+  const nav = [
+    prev ? `<a href="/en/stories/${esc(prev.slug)}">← 上一篇：${esc(prev.title_zh || '')}</a>` : '',
+    next ? `<a href="/en/stories/${esc(next.slug)}">下一篇：${esc(next.title_zh || '')} →</a>` : '',
+  ].filter(Boolean).join(' &nbsp;·&nbsp; ');
+
+  // The body is operator-authored, already-escaped-at-render HTML from our own
+  // module. Our sanitizer in /en allows the same small tag set; here we keep the
+  // source link explicit and clickable rather than leaving a bare URL as text.
+  let bodyHtml = String(p.body_zh || '');
+  if (s) {
+    bodyHtml = bodyHtml.replace(
+      new RegExp(`<blockquote>【原文出處】[\\s\\S]*?</blockquote>`),
+      `<blockquote class="story-source">改變自真實報道，原文請看：<a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${esc(s.name)}〈${esc(s.headline)}〉，${esc(s.date)}</a>。</blockquote>`
+    );
+  }
+
+  const body = `
+<nav class="crumbs" aria-label="Breadcrumb"><a href="/en">English for Daily Life</a><span class="sep">›</span><a href="/en/stories">長者故事</a><span class="sep">›</span><span>${esc(elderStoryDate(p.published_at))}</span></nav>
+<article class="elder-story-page">
+<h1>${esc(p.title_zh || '')}</h1>
+<p class="lede">${esc(p.summary_zh || '')}</p>
+<p class="pm">${esc(elderStoryDate(p.published_at))} · 長者故事 · 每日一篇</p>
+<div class="story-body">${bodyHtml}</div>
+${nav ? `<p class="story-nav">${nav}</p>` : ''}
+<p><a href="/en/stories">← 返回全部長者故事</a></p>
+</article>
+${ctaCard('en', '', '/en')}
+`;
+  return page({
+    lang: 'en',
+    htmlLang: 'zh-Hant',
+    title: `${p.title_zh || '長者故事'} | 長者故事 | CantoBuddy`,
+    description: p.summary_zh || '香港長者的真實故事，改寫自已發表的報道。',
+    path: `/en/stories/${p.slug}`,
+    body,
+    alternates: enAlternates(`/en/stories/${p.slug}`),
+    ogImage: `${SITE_ORIGIN}/banner-elder-story.webp`,
+    ogImageAlt: '一位長者和幫手一起看故事',
+    brandHref: '/en',
+    ctaHref: '/en',
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@graph': [
+        ORG_LD,
+        breadcrumbLd([
+          { name: '長者故事', path: '/en/stories' },
+          { name: p.title_zh || '', path: `/en/stories/${p.slug}` },
+        ]),
+        {
+          '@type': 'Article',
+          headline: p.title_zh || '',
+          description: p.summary_zh || '',
+          url: `${SITE_ORIGIN}/en/stories/${p.slug}`,
+          datePublished: p.published_at || '',
+          inLanguage: 'zh-Hant',
+          author: { '@type': 'Organization', name: 'CantoBuddy' },
+        },
+      ],
+    },
+  });
+}
+
 /* ============================ Phrase of the Day ============================
    One crawlable, permanent page per calendar day. The daily-phrase logic
    (daily-phrase.js) is a pure function of vocabulary + date; here we render it
@@ -4959,6 +5124,23 @@ ${alts}
   for (const s of enIdx.bySlug.keys()) {
     const p = `/en/words/${s}`;
     add(p, '0.6', 'monthly', enAlternates(p), SITE_STRUCTURE_DATE);
+  }
+
+  // 長者故事 — a separate Chinese-language shelf on the English track. Unlike
+  // /stories (helper-written, mirrored into four trees), these are Chinese-only
+  // retellings and have ONE canonical home. Only posts that are actually due
+  // are listed: a scheduled page still returns 404 until its morning, so
+  // advertising its URL today would promise Google a page that does not exist.
+  // listPosts() already applies the published_at read-time gate.
+  const elderShelfPosts = store.listPosts({ channel: 'elders', limit: 200 });
+  const newestElderStory = elderShelfPosts.reduce((m, p) => {
+    const d = elderStoryDate(p.published_at);
+    return d > m ? d : m;
+  }, SITE_STRUCTURE_DATE);
+  add('/en/stories', '0.7', 'daily', enAlternates('/en/stories'), newestElderStory);
+  for (const p of elderShelfPosts) {
+    const loc = `/en/stories/${p.slug}`;
+    add(loc, '0.6', 'monthly', enAlternates(loc), elderStoryDate(p.published_at) || SITE_STRUCTURE_DATE);
   }
 
   // Pillar / topic pages (search intent), in every language.
@@ -5804,6 +5986,17 @@ function mount(app) {
   app.get('/en/words/:slug', (req, res) => {
     try { const b = renderEnWord(req.params.slug); if (!b) return html(res, renderNotFound('en'), 404); html(res, b); }
     catch (e) { console.error('  ! /en/words render failed:', e.message); html(res, renderNotFound('en'), 500); }
+  });
+  // 長者故事 — a separate, public shelf for the Chinese-only elder stories.
+  // Registered after the other /en siblings and before the pillar routes: the
+  // two-segment story URL deliberately follows its hub.
+  app.get('/en/stories', (req, res) => {
+    try { const b = renderEnStoriesHub(); if (!b) return html(res, renderNotFound('en'), 404); html(res, b); }
+    catch (e) { console.error('  ! /en/stories render failed:', e.message); html(res, renderNotFound('en'), 500); }
+  });
+  app.get('/en/stories/:slug', (req, res) => {
+    try { const b = renderEnStory(req.params.slug); if (!b) return html(res, renderNotFound('en'), 404); html(res, b); }
+    catch (e) { console.error('  ! /en/stories/:slug render failed:', e.message); html(res, renderNotFound('en'), 500); }
   });
 
   // --- Pillar / topic pages (search intent), one URL per language ---

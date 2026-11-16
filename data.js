@@ -4081,6 +4081,14 @@ SEED_POSTS.push(...require('./longform-guides'));
    /articles plumbing applies. Guarded on SEED_POSTS.length like the rest. */
 SEED_POSTS.push(...require('./elder-voices'));
 
+/* 長者故事 · 每日一篇 — 14 retellings of real, published reporting about Hong
+   Kong elders. Same channel 'elders' as the four essays above, but each carries
+   a future 09:00-HKT publish date (17–30 Nov 2026) so the existing read-time
+   schedule filter reveals one each morning. Guarded on SEED_POSTS.length like
+   the rest: adding these 14 rows makes the guard fire once on the next boot,
+   and INSERT OR IGNORE leaves any row the operator has since edited alone. */
+SEED_POSTS.push(...require('./elder-daily-stories').ELDER_DAILY_STORIES);
+
 /* Two long-form Culture features on how Hong Kong people work and what they
    believe, drafted in content/ on 2026-11-14 but never registered — so the
    Cantonese site's Culture tab never showed them and they looked "lost".

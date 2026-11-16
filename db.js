@@ -3349,12 +3349,19 @@ const S = {
 
   /* "What happened in Hong Kong this week" — bounded by date, not by count, so a
      quiet week reads as quiet instead of reaching back a month to fill four
-     slots. */
+     slots.
+
+     The upper bound matters once posts can be scheduled. This query was the
+     one place outside listPosts() that still accepted a future published_at:
+     the 14 morning 長者故事 rows passed the LOWER bound and landed in the Sunday
+     table before their publish time, where the client then offered a link that
+     the API correctly 404'd. A digest is "what happened", not "what will". */
   sundayTableDigest: db.prepare(`
     SELECT slug, channel, icon, title_en, title_fil, title_zh, title_id,
            summary_en, summary_fil, summary_zh, summary_id, published_at
       FROM posts
      WHERE status = 'published' AND published_at >= ?
+       AND datetime(published_at) <= datetime(?)
      ORDER BY published_at DESC, id DESC
      LIMIT ?
   `),
@@ -8090,7 +8097,8 @@ module.exports = {
   listVocabulary,
   dailyPhrasePool: () => S.listDailyPhrasePool.all(),
   sundayTablePassages: () => S.sundayTablePassages.all(),
-  sundayTableDigest: (fromIso, limit = 4) => S.sundayTableDigest.all(String(fromIso), Number(limit)),
+  sundayTableDigest: (fromIso, limit = 4) =>
+    S.sundayTableDigest.all(String(fromIso), new Date().toISOString(), Number(limit)),
   getVocabulary,
   createVocabulary,
   updateVocabulary,

@@ -825,9 +825,13 @@ async function openElderArticle(slug) {
   const modal = $('en-elder-article-modal');
   const titleEl = $('en-elder-article-title');
   const bodyEl = $('en-elder-article-body');
+  const publicLink = $('en-elder-article-public');
   if (!modal || !titleEl || !bodyEl) return;
   titleEl.textContent = enT('elder.loading');
   bodyEl.innerHTML = '';
+  // Keep a real URL on every story. The modal is the elder's default reader;
+  // the public page is what a family member can forward in WhatsApp.
+  if (publicLink) publicLink.href = '/en/stories/' + encodeURIComponent(slug);
   modal.classList.add('show');
   try {
     const p = await apiGet('/api/posts/' + encodeURIComponent(slug));

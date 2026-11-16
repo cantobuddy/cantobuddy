@@ -3084,7 +3084,7 @@ function renderCultureDaily(lang) {
 ${crumbs(lang, [{ label: ui.title }])}
 <h1>${esc(ui.title)}</h1>
 <p class="lede">${esc(ui.lede)}</p>
-${cards ? `<ul class="guide-list">\n${cards}\n</ul>` : `<p class="lede">${esc(ui.upcoming.replace('{n}', String(upcoming || 14)))}</p>`}
+${cards ? `<ul class="guide-list">\n${cards}\n</ul>` : ''}
 <p class="lede">${esc(upcoming ? ui.upcoming.replace('{n}', String(upcoming)) : ui.complete)}</p>
 <p class="updated"><a href="${prefix}/discover">${esc(ui.back)}</a></p>
 ${ctaCard(lang)}

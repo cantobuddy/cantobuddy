@@ -142,7 +142,12 @@
 // a shareable public-page link; those are EN_TRACK assets with an offline copy
 // in this cache, so the name must move or an installed elder keeps the old
 // card with no way to forward a story.
-const CACHE = 'cantobuddy-v179';
+//
+// v180 — 2026-11-16: the 長者故事 CAROUSEL card ("讀今期") now opens /en/stories
+// directly instead of scrolling to the home teaser. en.html, en-app.js and the
+// admin preview link change; without a bump an installed PWA keeps the old
+// anchor and the operator's reported destination never takes effect.
+const CACHE = 'cantobuddy-v180';
 
 // Which paths are server-rendered SEO documents rather than app-shell assets.
 // Kept as one matcher so it can be asserted against `LANG_PREFIX` in seo.js —

@@ -861,6 +861,8 @@ function enCloseElderArticle(e) {
 // authored order below is the fallback, so the deck never depends on the API to
 // render. The hero is never switchable. Each promo's href is a no-JS / deep-link
 // fallback; enOpenBanner() opens the right in-app doorway WITHOUT a reload.
+// v180 — 長者故事 is the EXCEPTION: "讀今期" opens the public shelf at /en/stories
+// so the reader lands on a shareable URL, not a scroll position inside /en.
 // v167 — 長者故事 (Elder Stories) is now a deck slide, so it joins the master
 // list. The hero is never in this list: it is a permanent first slide.
 const EN_BANNERS = ['games', 'tip', 'helper', 'help', 'story'];
@@ -871,11 +873,17 @@ const enBanners = {
 };
 
 function enOpenBanner(kind) {
-  // v161 — every banner stays on the SINGLE /en home page and scrolls to its own
-  // section, so the elder never leaves the one page that holds all four topics.
+  // v180 — the operator asked for the 長者故事 card to go straight to
+  // https://cantobuddy.com/en/stories. The public shelf is a real page, so
+  // returning false here would strand the tap on the home section again.
+  if (kind === 'story') {
+    window.location.assign('/en/stories');
+    return false;
+  }
+  // v161 — every other banner stays on the SINGLE /en home page and scrolls to
+  // its own section, so the elder never leaves the one page that holds all four.
   enNavigate('home');
-  // v167 — story lands on the 長者故事 home section.
-  const map = { games: 'home-games', tip: 'home-tips', helper: 'home-helper', help: 'home-help-directory', story: 'home-elder-stories' };
+  const map = { games: 'home-games', tip: 'home-tips', helper: 'home-helper', help: 'home-help-directory' };
   const el = $(map[kind] || 'home-games');
   if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
   return false; // cancel the fallback href — handled in-app above

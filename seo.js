@@ -1791,11 +1791,20 @@ function renderLearnHub(lang) {
       </a></li>`
   ).join('\n');
 
+  // Topic pillars are the search-intent entry points. Link them from the hub so
+  // every pillar has an inbound internal link and the cluster is crawlable.
+  const topicItems = pillarLinks(lang);
+
   const body = `
 ${crumbs(lang, [{ label: t.browse }])}
 ${festivalBanner(lang)}
 <h1>${esc(t.browse)}<span class="sub">${esc(t.tagline)}</span></h1>
 <p class="lede">${esc(t.hubLede(total, cats.length))}</p>
+
+<h2>${esc((PILLAR_UI[lang] || PILLAR_UI.en).topics)}</h2>
+<ul class="grid">
+${topicItems}
+</ul>
 
 <h2>${esc(t.categories)}</h2>
 <ul class="grid">
@@ -4516,11 +4525,24 @@ function pillarBySlug(lang, slug) {
 }
 
 const PILLAR_UI = {
-  en: { start: 'Start with these topics', know: 'Good to know', elderly: 'English for Daily Life (elderly track)' },
-  fil: { start: 'Simulan sa mga paksang ito', know: 'Dapat mong malaman', elderly: 'English for Daily Life (para sa matatanda)' },
-  zh: { start: '从这些主题开始', know: '值得知道', elderly: '每日英语（长者专区）' },
-  id: { start: 'Mulai dari topik ini', know: 'Perlu diketahui', elderly: 'Bahasa Inggris Sehari-hari (jalur lansia)' },
+  en: { start: 'Start with these topics', know: 'Good to know', elderly: 'English for Daily Life (elderly track)', topics: 'Learn by topic', more: 'More topics' },
+  fil: { start: 'Simulan sa mga paksang ito', know: 'Dapat mong malaman', elderly: 'English for Daily Life (para sa matatanda)', topics: 'Matuto ayon sa paksa', more: 'Iba pang paksa' },
+  zh: { start: '从这些主题开始', know: '值得知道', elderly: '每日英语（长者专区）', topics: '按主题学习', more: '更多主题' },
+  id: { start: 'Mulai dari topik ini', know: 'Perlu diketahui', elderly: 'Bahasa Inggris Sehari-hari (jalur lansia)', topics: 'Belajar per topik', more: 'Topik lainnya' },
 };
+
+/** Every pillar as an internal link in this language — the topic cluster. */
+function pillarLinks(lang, excludeSlug) {
+  return Object.keys(PILLARS)
+    .map((k) => PILLARS[k])
+    .filter((def) => def[lang] && def[lang].slug !== excludeSlug)
+    .map((def) => {
+      const p = def[lang];
+      const path = `${LANG_PREFIX[lang] || ''}/${p.slug}`;
+      return `<li><a href="${esc(path)}"><span class="em">${esc(def.icon || '📖')}</span> ${esc(p.title)}</a></li>`;
+    })
+    .join('\n');
+}
 
 function renderPillar(lang, slug) {
   const hit = pillarBySlug(lang, slug);
@@ -4555,6 +4577,10 @@ function renderPillar(lang, slug) {
 ${links}
 </ul>
 ${tips ? `<h2>${esc(ui.know)}</h2>\n<ul>\n${tips}\n</ul>` : ''}
+<h2>${esc(ui.more)}</h2>
+<ul class="grid">
+${pillarLinks(lang, c.slug)}
+</ul>
 ${ctaCard(lang, '', '/')}
 `;
   return page({

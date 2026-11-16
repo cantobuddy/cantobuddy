@@ -289,6 +289,216 @@ const PILLARS = {
       postLabel: 'Mengatakan Anda merasa sakit',
     },
   },
+
+  'cantonese-greetings': {
+    icon: '👋',
+    catRegex: /greet|basic|common|family/i,
+    postSlug: 'have-you-eaten-is-a-greeting',
+    en: {
+      slug: 'cantonese-greetings',
+      title: 'Cantonese Greetings: Hello, Thank You & Goodbye',
+      description:
+        'The Cantonese greetings and polite words you will use every day — good morning, thank you, sorry and goodbye — with Jyutping and plain meanings. Free, no sign-up.',
+      intro:
+        'In Hong Kong the first words you say matter more than perfect grammar. A cheerful 早晨 gets a smile; the right 唔該 gets help. This page gathers the small words that open every conversation — greetings, thanks, apologies and goodbyes — with the Jyutping you need to say them out loud.',
+      tips: [
+        '早晨 (zou2 san4) is good morning — the everyday greeting, used from early until about eleven.',
+        '唔該 (m4 goi1) and 多謝 (do1 ze6) both mean thank you. Use 唔該 when someone does something for you, 多謝 for a gift.',
+        '食咗飯未 (sik6 zo2 faan6 mei6) — "have you eaten?" — is a greeting, not a question about food. 食咗 (yes, I have) is the usual answer.',
+        '對唔住 (deoi3 m4 zyu6) is sorry, and 唔使客氣 (m4 sai2 haak3 hei3) is you are welcome.',
+        '慢行 (maan6 haang4) is goodbye said TO the person leaving — at the door or the lift. It is not an instruction to walk slowly.',
+      ],
+      postLabel: 'Why "have you eaten?" is a greeting',
+    },
+    fil: {
+      slug: 'mga-bati-sa-cantonese',
+      title: 'Mga Bati sa Cantonese: Kumusta, Salamat at Paalam',
+      description:
+        'Ang mga bati at magalang na salitang Cantonese na araw-araw mong gagamitin — magandang umaga, salamat, pasensya at paalam — may Jyutping at malinaw na kahulugan. Libre.',
+      intro:
+        'Sa Hong Kong, mas mahalaga ang unang salitang sasabihin mo kaysa sa perpektong gramatika. Isang masayang 早晨 ay nagbubukas ng ngiti; ang tamang 唔該 ay nagbubukas ng tulong. Pinagsasama ng pahinang ito ang maliliit na salitang nagbubukas ng bawat usapan — bati, pasasalamat, paghingi ng paumanhin at paalam — kasama ang Jyutping para bigkasin mo ito nang malakas.',
+      tips: [
+        'Ang 早晨 (zou2 san4) ay magandang umaga — ang pang-araw-araw na bati, mula umaga hanggang mga alas-diyes.',
+        'Ang 唔該 (m4 goi1) at 多謝 (do1 ze6) ay parehong salamat. Gamitin ang 唔該 kapag may gumawa sa iyo ng pabor; ang 多謝 para sa regalo.',
+        'Ang 食咗飯未 (sik6 zo2 faan6 mei6) — "kumain ka na ba?" — ay bati, hindi tanong tungkol sa pagkain. 食咗 (oo, kinain ko na) ang karaniwang sagot.',
+        'Ang 對唔住 (deoi3 m4 zyu6) ay pasensya na, at ang 唔使客氣 (m4 sai2 haak3 hei3) ay walang anuman.',
+        'Ang 慢行 (maan6 haang4) ay paalam na sinasabi SA umaalis — sa pintuan o sa elevator. Hindi ito utos na maglakad nang dahan-dahan.',
+      ],
+      postLabel: 'Bakit bati ang "kumain ka na ba?"',
+    },
+    zh: {
+      slug: 'yue-yu-wen-hou-yong-yu',
+      title: '粤语问候用语：你好、多谢、再见',
+      description:
+        '每天都会用到的粤语问候和礼貌用语——早晨、多谢、对不住、慢行——附粤拼和浅白解释，免费学习，无需注册。',
+      intro:
+        '在香港，第一句话比完美语法更重要。一句爽快的「早晨」换来一个笑容；用对「唔该」换来别人的帮忙。这一页收集打开每段对话的小词——问候、道谢、道歉和道别——并附上粤拼，让你能开口念出来。',
+      tips: [
+        '早晨 (zou2 san4) 就是「早上好」，从清早用到大约十一点，是最日常的问候。',
+        '唔该 (m4 goi1) 和 多谢 (do1 ze6) 都是「谢谢」。别人帮你做事用「唔该」，收到礼物用「多谢」。',
+        '食咗饭未 (sik6 zo2 faan6 mei6)「吃饭了吗」是问候，不是真的问你吃了什么。通常答「食咗」（吃了）就可以。',
+        '对唔住 (deoi3 m4 zyu6) 是「对不起」，唔使客气 (m4 sai2 haak3 hei3) 是「不用谢」。',
+        '慢行 (maan6 haang4) 是对「要离开的人」说的再见——在门口或电梯口说，不是叫人慢慢走。',
+      ],
+      postLabel: '为什么「食咗饭未」是问候',
+    },
+    id: {
+      slug: 'sapaan-dalam-bahasa-kanton',
+      title: 'Sapaan dalam Bahasa Kanton: Halo, Terima Kasih & Selamat Tinggal',
+      description:
+        'Sapaan dan kata sopan Kanton yang dipakai setiap hari — selamat pagi, terima kasih, maaf, dan selamat tinggal — dengan Jyutping dan arti yang jelas. Gratis.',
+      intro:
+        'Di Hong Kong, kata pertama yang Anda ucapkan lebih penting daripada tata bahasa yang sempurna. 早晨 yang ceria memunculkan senyum; 唔該 yang tepat mendatangkan bantuan. Halaman ini mengumpulkan kata-kata kecil yang membuka setiap percakapan — sapaan, terima kasih, permintaan maaf, dan pamit — lengkap dengan Jyutping agar Anda bisa mengucapkannya.',
+      tips: [
+        '早晨 (zou2 san4) = “selamat pagi” — sapaan sehari-hari, dipakai pagi sampai sekitar pukul sebelas.',
+        '唔該 (m4 goi1) dan 多謝 (do1 ze6) sama-sama berarti terima kasih. Pakai 唔該 kalau seseorang melakukan sesuatu untuk Anda; 多謝 untuk hadiah.',
+        '食咗飯未 (sik6 zo2 faan6 mei6) — “sudah makan?” — adalah sapaan, bukan pertanyaan soal makanan. Jawabannya biasanya 食咗 (sudah).',
+        '對唔住 (deoi3 m4 zyu6) = maaf, dan 唔使客氣 (m4 sai2 haak3 hei3) = sama-sama.',
+        '慢行 (maan6 haang4) = selamat tinggal yang diucapkan KEPADA orang yang pergi — di pintu atau di lift. Bukan perintah untuk berjalan pelan.',
+      ],
+      postLabel: 'Kenapa “sudah makan?” itu sapaan',
+    },
+  },
+
+  'cantonese-numbers-and-counting': {
+    icon: '🔢',
+    catRegex: /count|money|number/i,
+    postSlug: 'numbers-sound-lucky-unlucky',
+    en: {
+      slug: 'cantonese-numbers-and-counting',
+      title: 'Cantonese Numbers & Counting: One to a Thousand',
+      description:
+        'Learn Cantonese numbers 1–10, the teens, tens, hundreds and thousands — with Jyutping and the lucky/unlucky numbers Hong Kong actually cares about. Free.',
+      intro:
+        'Numbers are the first Cantonese most helpers need: a floor number, a bus, a price, a phone number. The system is regular once you know ten words, and this page walks you from 一 to 千 with the sounds written out. Learn the first ten by heart and the rest is counting practice.',
+      tips: [
+        'One to ten: 一 jat1, 二 ji6, 三 saam1, 四 sei3, 五 ng5, 六 luk6, 七 cat1, 八 baat3, 九 gau2, 十 sap6.',
+        '五 (ng5) starts with a hummed ng- sound — the hardest sound in Cantonese for most learners. Keep the back of your tongue up.',
+        'Eleven to nineteen are 十一 to 十九. Twenty is 二十 (not 兩十); the tens stack — 三十, 四十, and colloquially 廿 for twenty.',
+        'Hundred is 百 baak3 and thousand is 千 cin1: 二百 is two hundred, 三千 is three thousand.',
+        'A Hong Kong dollar is 蚊 man1, so 十蚊 is ten dollars. Eight (八 baat3) sounds like "prosper", which is why it is lucky; four (四 sei3) sounds like "die", so it is often avoided.',
+      ],
+      postLabel: 'Lucky and unlucky numbers in Hong Kong',
+    },
+    fil: {
+      slug: 'mga-bilang-sa-cantonese',
+      title: 'Mga Bilang sa Cantonese: Isa hanggang Sanlibo',
+      description:
+        'Matutong magbilang sa Cantonese mula 1–10, hanggang sa dosena, daan at libo — may Jyutping at mga numerong maswerte o hindi sa Hong Kong. Libre.',
+      intro:
+        'Ang mga bilang ang unang Cantonese na kailangan ng karamihang katulong: number ng palapag, ng bus, presyo, o number ng telepono. Regular ang sistema kapag alam mo na ang sampung salita, at dito ipinapakita ang 一 hanggang 千 kasama ang tunog. Kaya mong kabisaduhin ang unang sampu, at ang natitira ay pagsasanay na lang.',
+      tips: [
+        'Isa hanggang sampu: 一 jat1, 二 ji6, 三 saam1, 四 sei3, 五 ng5, 六 luk6, 七 cat1, 八 baat3, 九 gau2, 十 sap6.',
+        'Ang 五 (ng5) ay nagsisimula sa tunog na ng- — pinakamahirap na tunog sa Cantonese para sa maraming natututo. Itaas ang likod ng dila.',
+        'Ang laba-y isa hanggang labas-siyam ay 十一 hanggang 十九. Ang dalawampu ay 二十 (hindi 兩十); nagsasalansan ang mga dekada — 三十, 四十, at 廿 bilang dalawampu sa usapan.',
+        'Ang daan ay 百 baak3 at ang libo ay 千 cin1: 二百 ay dalawang daan, 三千 ay tatlong libo.',
+        'Ang isang dolyar ng Hong Kong ay 蚊 man1, kaya 十蚊 ay sampung dolyar. Ang 八 (baat3) ay parang "kasaganaan" kaya maswerte; ang 四 (sei3) ay parang "mamatay" kaya madalas iwasan.',
+      ],
+      postLabel: 'Mga maswerte at hindi-maswerteng bilang sa Hong Kong',
+    },
+    zh: {
+      slug: 'yue-yu-shu-zi-yu-ji-shu',
+      title: '粤语数字与数数：一到一千',
+      description:
+        '学粤语数字 1–10、十几、几十、几百几千——附粤拼，以及香港人真正在意的吉利与忌讳数字。免费学习。',
+      intro:
+        '数字是多数家佣最先要用的粤语：楼层、巴士、价钱、电话号码。只要记住十个基本词，整套系统就很有规律。这一页从「一」写到「千」，把读音都标出来。先把前十个背熟，剩下的就是数数练习。',
+      tips: [
+        '一到十：一 jat1、二 ji6、三 saam1、四 sei3、五 ng5、六 luk6、七 cat1、八 baat3、九 gau2、十 sap6。',
+        '五 (ng5) 以鼻音 ng- 开头，是多数学习者觉得最难的粤语声母。舌根要抬起来哼。',
+        '十一到十九是「十一」到「十九」。二十是「二十」（不是「两十」）；十位会叠加——三十、四十，口语也说「廿」表示二十。',
+        '百是 百 baak3，千是 千 cin1：「二百」是两百，「三千」是三千。',
+        '香港一元叫「蚊」man1，所以「十蚊」是十元。「八」baat3 听起来像「发」，所以吉利；「四」sei3 像「死」，所以常被避开。',
+      ],
+      postLabel: '香港的吉利与忌讳数字',
+    },
+    id: {
+      slug: 'angka-dalam-bahasa-kanton',
+      title: 'Angka dalam Bahasa Kanton: Satu sampai Seribu',
+      description:
+        'Belajar angka Kanton 1–10, belasan, puluhan, ratusan dan ribuan — dengan Jyutping dan angka yang dianggap beruntung atau tidak di Hong Kong. Gratis.',
+      intro:
+        'Angka adalah bahasa Kanton pertama yang dibutuhkan sebagian asisten: nomor lantai, bus, harga, atau nomor telepon. Sistemnya teratur begitu Anda tahu sepuluh kata dasar, dan halaman ini memandu dari 一 sampai 千 dengan bunyi yang ditulis. Hafalkan sepuluh pertama, sisanya tinggal berlatih menghitung.',
+      tips: [
+        'Satu sampai sepuluh: 一 jat1, 二 ji6, 三 saam1, 四 sei3, 五 ng5, 六 luk6, 七 cat1, 八 baat3, 九 gau2, 十 sap6.',
+        '五 (ng5) diawali bunyi ng- yang dihumkan — bunyi paling sulit dalam bahasa Kanton bagi kebanyakan pemula. Angkat pangkal lidah.',
+        'Sebelas sampai sembilan belas adalah 十一 sampai 十九. Dua puluh adalah 二十 (bukan 兩十); puluhan bertumpuk — 三十, 四十, dan 廿 untuk dua puluh dalam percakapan.',
+        'Ratusan adalah 百 baak3 dan ribuan 千 cin1: 二百 dua ratus, 三千 tiga ribu.',
+        'Satu dolar Hong Kong adalah 蚊 man1, jadi 十蚊 sepuluh dolar. 八 (baat3) terdengar seperti "makmur" sehingga beruntung; 四 (sei3) terdengar seperti "mati" sehingga sering dihindari.',
+      ],
+      postLabel: 'Angka beruntung dan sial di Hong Kong',
+    },
+  },
+
+  'cantonese-for-shopping': {
+    icon: '🛒',
+    catRegex: /shop|market|food|fruit|restaurant|money/i,
+    postSlug: 'cantonese-survival-phrases-market',
+    en: {
+      slug: 'cantonese-for-shopping',
+      title: 'Cantonese for Shopping in Hong Kong Markets',
+      description:
+        'Ask the price, ask for a discount, pay and get change in Cantonese — the words for the wet market, shops and restaurants, with Jyutping. Free.',
+      intro:
+        'A wet market is loud, fast and mostly Cantonese. These are the phrases that get you through it: how much, can it be cheaper, too expensive, and keep the change. Learn them once and every shop in Hong Kong becomes a little easier.',
+      tips: [
+        '幾多錢 (gei2 do1 cin2) is "how much?" — the single most useful shopping phrase. Point and ask.',
+        '平啲得唔得 (peng4 di1 dak1 m4 dak1) is "can it be cheaper?" — normal at a wet market, not at a chain store.',
+        '貴 (gwai3) is expensive and 平 (peng4) is cheap. 十蚊 (sap6 man1) is ten dollars.',
+        '找錢 (zaau2 cin2) is the change handed back. 唔使找 means "keep the change".',
+        '收據 (sau1 geoi3) is a receipt — useful when you need to return something or claim it on an employer’s account.',
+      ],
+      postLabel: 'Survival phrases for the market',
+    },
+    fil: {
+      slug: 'pamimili-sa-cantonese',
+      title: 'Pamimili sa Cantonese sa mga Palengke ng Hong Kong',
+      description:
+        'Itanong ang presyo, makipagtawad, magbayad at kumuha ng sukli sa Cantonese — ang mga salita sa palengke, tindahan at restaurant, may Jyutping. Libre.',
+      intro:
+        'Maingay, mabilis, at halos Cantonese lang ang palengke. Ito ang mga pariralang makakapagdala sa iyo roon: magkano, pwede bang mas mura, masyadong mahal, at ibayad na ang sukli. Matutunan mo ito nang isang beses at mas madali na ang bawat tindahan sa Hong Kong.',
+      tips: [
+        'Ang 幾多錢 (gei2 do1 cin2) ay "magkano?" — ang pinakakapaki-pakinabang na parirala sa pamimili. Ituro mo at itanong.',
+        'Ang 平啲得唔得 (peng4 di1 dak1 m4 dak1) ay "puwede bang mas mura?" — normal sa palengke, hindi sa chain store.',
+        'Ang 貴 (gwai3) ay mahal at ang 平 (peng4) ay mura. Ang 十蚊 (sap6 man1) ay sampung dolyar.',
+        'Ang 找錢 (zaau2 cin2) ay ang sukli. Ang 唔使找 ay ibig sabihin "ibayad na ang sukli".',
+        'Ang 收據 (sau1 geoi3) ay resibo — kapaki-pakinabang kapag kailangan mong ibalik ang isang bagay o i-claim ito sa amo.',
+      ],
+      postLabel: 'Mga survival phrase sa palengke',
+    },
+    zh: {
+      slug: 'yue-yu-gou-wu-yong-yu',
+      title: '香港买东西的粤语：街市与商店用语',
+      description:
+        '用粤语问价、讲价、付钱、找赎——街市、商店和茶餐厅常用词，附粤拼，免费学习。',
+      intro:
+        '街市又吵又快，说的几乎全是粤语。下面这些句子能帮你撑过去：多少钱、能便宜点吗、太贵了、不用找了。学会一次，香港每间店铺都会容易一点。',
+      tips: [
+        '幾多錢 (gei2 do1 cin2) 是「多少钱？」——买东西最有用的一句话。指一指东西再问。',
+        '平啲得唔得 (peng4 di1 dak1 m4 dak1) 是「能便宜点吗？」——在街市很正常，在连锁店就不合适。',
+        '貴 (gwai3) 是贵，平 (peng4) 是便宜。十蚊 (sap6 man1) 是十元。',
+        '找錢 (zaau2 cin2) 是找回来的零钱。唔使找 就是「不用找了」。',
+        '收據 (sau1 geoi3) 是收据——要退货或向雇主报账时用得上。',
+      ],
+      postLabel: '街市必备粤语句子',
+    },
+    id: {
+      slug: 'belanja-dalam-bahasa-kanton',
+      title: 'Belanja dalam Bahasa Kanton di Pasar Hong Kong',
+      description:
+        'Tanya harga, minta diskon, bayar, dan terima kembalian dalam bahasa Kanton — kata-kata untuk pasar basah, toko, dan restoran, dengan Jyutping. Gratis.',
+      intro:
+        'Pasar basah itu bising, cepat, dan hampir semuanya bahasa Kanton. Ini kalimat-kalimat yang menuntun Anda melewatinya: berapa harganya, bisa lebih murah, terlalu mahal, dan kembaliannya tidak usah. Pelajari sekali, dan setiap toko di Hong Kong jadi sedikit lebih mudah.',
+      tips: [
+        '幾多錢 (gei2 do1 cin2) = “berapa harganya?” — kalimat belanja yang paling berguna. Tunjuk barangnya lalu tanya.',
+        '平啲得唔得 (peng4 di1 dak1 m4 dak1) = “bisa lebih murah?” — wajar di pasar basah, tidak di toko waralaba.',
+        '貴 (gwai3) = mahal, 平 (peng4) = murah. 十蚊 (sap6 man1) = sepuluh dolar.',
+        '找錢 (zaau2 cin2) = kembalian yang diberikan. 唔使找 berarti “kembaliannya tidak usah”.',
+        '收據 (sau1 geoi3) = kwitansi — berguna kalau harus menukar barang atau mengajukan ke majikan.',
+      ],
+      postLabel: 'Kalimat bertahan hidup di pasar',
+    },
+  },
 };
 
 module.exports = { PILLARS };

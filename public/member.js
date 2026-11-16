@@ -188,6 +188,24 @@
     catch (e) { return ''; }
   }
 
+  // After onboarding, send each learner to the site built for her role. A helper
+  // belongs on the Cantonese site at /; an elder belongs on the English site at
+  // /en. "Skip" chooses the default helper role, so it follows the same route.
+  // Employer is deliberately left where it is: no operator request to move it.
+  // The profile is already saved (and the overlay closed) before this runs.
+  function goToRoleHome(role) {
+    var target = role === 'helper' ? '/' : role === 'elder' ? '/en' : '';
+    if (!target) return;
+    var loc = (window && window.location) || location;
+    if (!loc || typeof loc.assign !== 'function') return;
+    var path = String(loc.pathname || '/');
+    var already = target === '/'
+      ? (path === '/' || path === '/index.html')
+      : (path === '/en' || path === '/en/' || path === '/en/index.html');
+    if (already) return;
+    loc.assign(target);
+  }
+
   // --- overlay / modal scaffolding -----------------------------------------
   var overlay = null, box = null, lastFocus = null;
   function ensureStyles() {
@@ -312,6 +330,7 @@
       setSeenCookie();
       closeOverlay();
       maybeAddAvatar();
+      goToRoleHome('helper');
     });
     box.querySelector('#cbm-save').addEventListener('click', function () {
       var nick = box.querySelector('#cbm-nick').value.trim();
@@ -328,6 +347,7 @@
           setSeenCookie();
           closeOverlay();
           maybeAddAvatar();
+          goToRoleHome(chosen);
         } else {
           setMsg('#cbm-msg', (r && r.error) || 'Could not save.', true);
         }

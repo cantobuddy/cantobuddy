@@ -1646,14 +1646,22 @@ app.post('/api/learners/identify', (req, res) => {
 function updateLearnerMe(req, res) {
   const b = req.body || {};
   if (!b.public_id) return res.status(400).json({ error: 'Missing device id.' });
-  const learner = store.getLearnerByPublicId(String(b.public_id).slice(0, 80));
-  if (!learner) return res.status(404).json({ error: 'Unknown learner.' });
+  const publicId = String(b.public_id).slice(0, 80);
+  let learner = store.getLearnerByPublicId(publicId);
+  // /en does not load app.js, so its elder device never goes through the normal
+  // identify call. Let a first-time onboarding SAVE create the learner row here.
+  // This is the same open device identity as /api/learners/identify (no account),
+  // just without recording a second visit for a device already identified.
+  if (!learner) learner = store.identifyLearner({ public_id: publicId, display_name: b.display_name || '' });
 
   if (b.display_name !== undefined || b.role !== undefined || b.email !== undefined) {
+    // A partial PATCH (e.g. the old cache-first POST that only renames a device)
+    // must not wipe fields the caller did not send — that used to clear the
+    // saved email and make "login later" fail with 401.
     store.updateLearnerProfile(learner.id, {
-      display_name: b.display_name,
-      role: b.role,
-      email: b.email,
+      display_name: b.display_name !== undefined ? b.display_name : learner.display_name,
+      role: b.role !== undefined ? b.role : learner.role,
+      email: b.email !== undefined ? b.email : (learner.email || ''),
     });
   }
   if (b.password) {
@@ -1662,7 +1670,7 @@ function updateLearnerMe(req, res) {
     }
     store.setLearnerPassword(learner.id, store.hashPassword(String(b.password)));
   }
-  const updated = store.getLearnerByPublicId(String(b.public_id).slice(0, 80));
+  const updated = store.getLearnerByPublicId(publicId);
   res.json({
     ok: true,
     learner: {

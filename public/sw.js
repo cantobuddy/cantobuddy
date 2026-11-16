@@ -148,11 +148,15 @@
 // admin preview link change; without a bump an installed PWA keeps the old
 // anchor and the operator's reported destination never takes effect.
 //
+// v182 — 2026-11-16: onboarding now routes a saved helper to / and a saved elder
+// to /en. member.js is in the cache-first APP_SHELL, so the cache name must move
+// or an installed PWA keeps the old "save and stay here" popup behaviour.
+//
 // v181 — 2026-11-16: 玩吓遊戲 gets its OWN page at /en/games with a Monday-reset
 // elder leaderboard. en.html/en-app.js/admin.js change and en-games.js is a new
 // EN_TRACK asset with an offline copy here, so the cache name must move or an
 // installed PWA keeps the old home-anchor card and a silent leaderboard.
-const CACHE = 'cantobuddy-v181';
+const CACHE = 'cantobuddy-v182';
 
 // Which paths are server-rendered SEO documents rather than app-shell assets.
 // Kept as one matcher so it can be asserted against `LANG_PREFIX` in seo.js —

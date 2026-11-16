@@ -193,17 +193,28 @@
   // /en. "Skip" chooses the default helper role, so it follows the same route.
   // Employer is deliberately left where it is: no operator request to move it.
   // The profile is already saved (and the overlay closed) before this runs.
+  function atRoleHome(path, target) {
+    path = String(path || '/');
+    return target === '/'
+      ? (path === '/' || path === '/index.html')
+      : (path === '/en' || path === '/en/' || path === '/en/index.html');
+  }
   function goToRoleHome(role) {
     var target = role === 'helper' ? '/' : role === 'elder' ? '/en' : '';
     if (!target) return;
     var loc = (window && window.location) || location;
     if (!loc || typeof loc.assign !== 'function') return;
-    var path = String(loc.pathname || '/');
-    var already = target === '/'
-      ? (path === '/' || path === '/index.html')
-      : (path === '/en' || path === '/en/' || path === '/en/index.html');
-    if (already) return;
+    if (atRoleHome(loc.pathname, target)) return;
     loc.assign(target);
+    // A cache-first shell can swallow the first navigation while the worker
+    // swaps versions. If we are still not on the role's home a beat later,
+    // force it by assigning href too. Same destination, never a different page.
+    setTimeout(function () {
+      try {
+        var here = (window && window.location) || loc;
+        if (!atRoleHome(here.pathname, target)) here.href = target;
+      } catch (e) {}
+    }, 450);
   }
 
   // --- overlay / modal scaffolding -----------------------------------------
@@ -433,11 +444,14 @@
       if (pw) body.password = pw;
       apiPatch('/api/learners/me', body).then(function (r) {
         if (r && r.ok) {
-          var pp = load(); pp.nickname = nick; pp.role = chosen; pp.email = email; pp.hasPassword = !!pw || !!pp.hasPassword; save(pp);
+          var pp = load(); pp.onboarded = true; pp.nickname = nick; pp.role = chosen; pp.email = email; pp.hasPassword = !!pw || !!pp.hasPassword; save(pp);
           syncLegacyName(nick);
           setSeenCookie();
-          setMsg('#cbm-p-msg', T('saved'));
+          // Operator rule: a role save is final. Close the sheet and land on the
+          // site for that role — no lingering "Saved!" panel to tap again.
+          closeOverlay();
           maybeAddAvatar();
+          goToRoleHome(chosen);
         } else setMsg('#cbm-p-msg', (r && r.error) || 'Could not save.', true);
       }).catch(function () { setMsg('#cbm-p-msg', 'Network error.', true); });
     });

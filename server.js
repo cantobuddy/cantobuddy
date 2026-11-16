@@ -742,7 +742,7 @@ app.get('/api/posts/daily-culture', (req, res) => {
   // not by the raw UTC date — the reader's "today" starts at 16:00Z yesterday.
   // If today's scheduled article is due,
   // it IS Today's Culture — do not let the old hash pick an evergreen post and
-  // break the daily-reading habit. After the 14 days, fall back to the hash.
+  // break the daily-reading habit. After the scheduled series, fall back to the hash.
   const hktDate = (ms) => new Date(ms + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
   const todayArticle = posts.find((p) =>
     /^culture-day-\d{2}-/.test(String(p.slug || '')) &&

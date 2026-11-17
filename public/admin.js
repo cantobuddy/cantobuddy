@@ -22,6 +22,8 @@ const ADMIN = {
   // than a second network request.
   content: null,
   contentFilter: '',
+  contentDateFrom: '',
+  contentDateTo: '',
   contentSortKey: 'total',
   contentSortDir: 'desc',
   // Community stories. The queue opens on 'pending', not on everything: this is
@@ -2908,6 +2910,33 @@ function setContentFilter(group) {
   renderAdminContent();
 }
 
+/** Publish-date range, in HKT wall-clock dates to match the table column. */
+function setContentDateFilter() {
+  const from = document.getElementById('admin-content-date-from');
+  const to = document.getElementById('admin-content-date-to');
+  ADMIN.contentDateFrom = from ? from.value : '';
+  ADMIN.contentDateTo = to ? to.value : '';
+  renderAdminContent();
+}
+
+function clearContentDateFilter() {
+  ADMIN.contentDateFrom = '';
+  ADMIN.contentDateTo = '';
+  const from = document.getElementById('admin-content-date-from');
+  const to = document.getElementById('admin-content-date-to');
+  if (from) from.value = '';
+  if (to) to.value = '';
+  renderAdminContent();
+}
+
+/** ISO timestamp -> the HKT calendar date shown in the Publish date column. */
+function contentHktDay(iso) {
+  if (!iso) return '';
+  const ms = Date.parse(iso);
+  if (!Number.isFinite(ms)) return '';
+  return new Date(ms + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
 /** Build the channel filter chips from the groups actually present in the data. */
 function renderContentFilterChips(items) {
   const box = document.getElementById('admin-content-filter');
@@ -3040,7 +3069,23 @@ async function renderAdminContent() {
       return { ...it, cantonese: c, en: e, total: c + e };
     })
     .filter((it) => !ADMIN.contentFilter || it.group === ADMIN.contentFilter)
-    .filter((it) => it.group !== 'news');
+    .filter((it) => it.group !== 'news')
+    .filter((it) => {
+      const from = ADMIN.contentDateFrom;
+      const to = ADMIN.contentDateTo;
+      if (!from && !to) return true;
+      const day = contentHktDay(it.published_at);
+      if (!day) return false;                       // code-authored items have no date
+      if (from && day < from) return false;
+      if (to && day > to) return false;
+      return true;
+    });
+
+  if (summary && (ADMIN.contentDateFrom || ADMIN.contentDateTo)) {
+    const from = ADMIN.contentDateFrom || 'beginning';
+    const to = ADMIN.contentDateTo || 'end';
+    summary.textContent += ` Publish dates ${from} → ${to} (HKT) — ${rows.length} shown.`;
+  }
 
   renderContentFilterChips(items);
 

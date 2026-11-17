@@ -3227,6 +3227,9 @@ const S = {
     INSERT INTO game_results (public_id, display_name, game, won, players, room_code, created_at)
     VALUES (?, ?, ?, ?, ?, ?, ?)
   `),
+  // One-shot repair for rows written before the name sanitizer existed.
+  junkGameResultRows: db.prepare('SELECT id, created_at FROM game_results WHERE display_name = ?'),
+  clearGameResultName: db.prepare("UPDATE game_results SET display_name = '' WHERE id = ?"),
   gameRecordTotals: db.prepare(`
     SELECT game, COUNT(*) AS played, COALESCE(SUM(won), 0) AS wins
       FROM game_results
@@ -3808,6 +3811,16 @@ function claimPush(endpoint, kind, sentOn) {
    perfectly and leaves no trace. */
 const GAME_KEYS = ['uno', 'bigtwo', 'wordmatch', 'sudoku', 'chinesechecker'];
 
+// A game label is NOT a player name. Sudoku used to fall back to its page
+// title (🔢 Sudoku) when a solo player left the name box empty; that label then
+// reached game_results and the weekend board. Sanitise at write time and let
+// the older rows be repaired once by repairGameResultNames() below.
+const JUNK_GAME_LABELS = new Set(['🔢 Sudoku']);
+function cleanPlayerName(value) {
+  const name = String(value || '').trim().replace(/\s+/g, ' ').slice(0, 24);
+  return JUNK_GAME_LABELS.has(name) ? '' : name;
+}
+
 /**
  * Write one row per player who finished a game.
  *
@@ -3828,7 +3841,7 @@ function recordGameResults({ game, roomCode = '', players = [] }) {
     try {
       S.insertGameResult.run(
         String(p.deviceId),
-        String(p.name || '').slice(0, 24),
+        cleanPlayerName(p.name),
         game,
         p.won ? 1 : 0,
         total,
@@ -4209,6 +4222,37 @@ function reissueWeekBadges(weekKey, nowMs = Date.now()) {
     game,
     badges: awardWeekBadges(w.start, game, w.start, w.endExclusive),
   };
+}
+
+/**
+ * One-shot data repair: clear any game_result name that is really a game label.
+ * Runs on boot and is idempotent — once the stored names are blank there is
+ * nothing left to match. For each repaired row in a CLOSED weekend we also
+ * rebuild that weekend's top-3 badges, because a badge minted from a bad name
+ * would keep showing the label even after the result itself was corrected.
+ * Open/future weekends get their names cleaned but no badges — badge minting
+ * stays the strict privilege of reissueWeekBadges() for ended windows only.
+ */
+function repairGameResultNames(nowMs = Date.now()) {
+  let repaired = 0;
+  const closedWeeks = new Set();
+  for (const label of JUNK_GAME_LABELS) {
+    for (const row of S.junkGameResultRows.all(label)) {
+      const ms = Date.parse(row.created_at);
+      if (Number.isFinite(ms)) {
+        const w = hktWeekendWindow(ms);
+        if (w.satStart + 2 * DAY_MS <= nowMs) closedWeeks.add(hktDateKey(w.satStart));
+      }
+      S.clearGameResultName.run(row.id);
+      repaired += 1;
+    }
+  }
+  const reissued = [];
+  for (const week of closedWeeks) {
+    const result = reissueWeekBadges(week, nowMs);
+    if (result && result.ok) reissued.push(week);
+  }
+  return { repaired, reissued };
 }
 
 // ---------------------------------------------------------------------------
@@ -8195,6 +8239,11 @@ function listContentForAdmin() {
   return items;
 }
 
+// Correct legacy game-label names once, and refresh any closed weekend whose
+// badges were minted from them. Safe to run on every boot: after the first pass
+// the selector matches no rows and nothing is deleted or re-awarded.
+const gameNameRepair = repairGameResultNames();
+
 module.exports = {
   db,
   DB_PATH,
@@ -8372,6 +8421,9 @@ module.exports = {
   latestPost,
   // Game results — the record behind "You 7 · Ana 5".
   recordGameResults,
+  cleanPlayerName,
+  repairGameResultNames,
+  gameNameRepair,
   gameRecordsForDevice,
   gameRecordsForDevices,
   GAME_KEYS,

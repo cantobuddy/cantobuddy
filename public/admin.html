@@ -708,6 +708,13 @@
         form. Outings are authored in code, so they show views but have no date to edit.
       </p>
       <div class="chip-group" id="admin-content-filter"></div>
+      <p class="admin-hint" style="display:flex;flex-wrap:wrap;align-items:center;gap:8px">
+        Publish date (HKT):
+        <input type="date" id="admin-content-date-from" onchange="setContentDateFilter()" aria-label="Published from" />
+        <span>to</span>
+        <input type="date" id="admin-content-date-to" onchange="setContentDateFilter()" aria-label="Published to" />
+        <button class="btn btn-sm btn-outline" onclick="clearContentDateFilter()">Clear dates</button>
+      </p>
       <p class="admin-hint">Click any column header to sort — click again to reverse the order.</p>
       <div id="admin-content-list" class="admin-list"></div>
     </div>

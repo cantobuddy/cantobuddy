@@ -746,7 +746,7 @@ var DICT = {
   function startAlone() {
     var name = $('nameInput').value.trim();
     localStorage.setItem('sudoku.name', name);
-    api('/games/sudoku/api/solo', { level: level, name: name || t('title'), avatar: myAvatar, deviceId: deviceId() })
+    api('/games/sudoku/api/solo', { level: level, name: name, avatar: myAvatar, deviceId: deviceId() })
       .then(function (r) {
         if (!r.ok) { toast(t('roomNotFound')); return; }
         session = { token: r.data.token, code: r.data.code };

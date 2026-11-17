@@ -4,8 +4,9 @@
  *
  * What it does:
  *  1. On first landing (no prior answer on this device) it pops an onboarding
- *     card asking nickname, role (helper / elder / employer), email (optional)
- *     and password (optional); "Skip" keeps the default "helper" role.
+ *     card asking nickname, role (helper / elder / employer / guest / prefer
+ *     not to say), email (optional) and password (optional); "Skip" keeps the
+ *     default "helper" role.
  *  2. A header avatar button opens the member sheet: edit the profile, see game
  *     history, and view / edit the stories you submitted.
  *  3. A "login later" screen lets a member who gave email + password re-link a
@@ -20,7 +21,7 @@
   'use strict';
 
   var STORE_KEY = 'cb_member';
-  var MEMBER_ROLES = ['helper', 'elder', 'employer'];
+  var MEMBER_ROLES = ['helper', 'elder', 'employer', 'guest', 'undisclosed'];
   var GAME_NAMES = {
     uno: 'UNO', bigtwo: '鋤大D (Big Two)', sudoku: 'Sudoku',
     memory: 'Memory', quiz: 'Quiz', bingo: 'Bingo',
@@ -32,6 +33,7 @@
       member: '會員', onboard: '歡迎嚟到 CantoBuddy', onboardSub: '講少少關於你，等我可以一步步幫你。',
       nickname: '稱呼', nicknamePh: '你想我點叫你？', role: '你是？',
       roleHelper: '外傭 / 家務助理', roleElder: '長者', roleEmployer: '僱主',
+      roleGuest: '訪客', roleUndisclosed: '不想透露',
       email: '電郵（可不填）', emailPh: 'example@email.com',
       password: '密碼（可不填）', passwordPh: '想日後登入就填',
       skip: '略過', save: '儲存', close: '關閉',
@@ -45,11 +47,13 @@
       storyTitle: '標題', storyBody: '你嘅故事', storyTopic: '話題', storyLang: '語言',
       signName: '署名（剔呢個就顯示你個名）', signYes: '用我嘅稱呼署名', needTitle: '請填標題。', needBody: '請寫啲嘢。',
       welcome: '你好', roleHelperLbl: '外傭', roleElderLbl: '長者', roleEmployerLbl: '僱主',
+      roleGuestLbl: '訪客', roleUndisclosedLbl: '不想透露',
     },
     en: {
       member: 'Member', onboard: 'Welcome to CantoBuddy', onboardSub: 'Tell me a little about you so I can help step by step.',
       nickname: 'Nickname', nicknamePh: 'What should I call you?', role: 'You are a…',
       roleHelper: 'Helper / domestic worker', roleElder: 'Elder', roleEmployer: 'Employer',
+      roleGuest: 'Guest / visitor', roleUndisclosed: 'Prefer not to say',
       email: 'Email (optional)', emailPh: 'example@email.com',
       password: 'Password (optional)', passwordPh: 'Fill in if you want to sign in later',
       skip: 'Skip', save: 'Save', close: 'Close',
@@ -63,11 +67,13 @@
       storyTitle: 'Title', storyBody: 'Your story', storyTopic: 'Topic', storyLang: 'Language',
       signName: 'Sign with your name (tick to show it)', signYes: 'Sign with my nickname', needTitle: 'Please add a title.', needBody: 'Please write something.',
       welcome: 'Hello', roleHelperLbl: 'Helper', roleElderLbl: 'Elder', roleEmployerLbl: 'Employer',
+      roleGuestLbl: 'Guest', roleUndisclosedLbl: 'Other',
     },
     fil: {
       member: 'Kasapi', onboard: 'Maligayang pagdating sa CantoBuddy', onboardSub: 'Sabihin mo nang kaunti tungkol sa iyo para matulungan kita.',
       nickname: 'Palayaw', nicknamePh: 'Ano ang itatawag ko sa iyo?', role: 'Ikaw ay…',
       roleHelper: 'Katulong / domestic worker', roleElder: 'Matanda', roleEmployer: 'Amo',
+      roleGuest: 'Bisita / guest', roleUndisclosed: 'Ayaw sabihin',
       email: 'Email (optionaal)', emailPh: 'example@email.com',
       password: 'Password (optionaal)', passwordPh: 'Lagyan kung gusto mong mag-sign in',
       skip: 'Laktaw', save: 'I-save', close: 'Isara',
@@ -81,11 +87,13 @@
       storyTitle: 'Pamagat', storyBody: 'Kuwento mo', storyTopic: 'Paksa', storyLang: 'Wika',
       signName: 'Pirmahan ng pangalan (tick para ipakita)', signYes: 'Pirmahan ng palayaw ko', needTitle: 'Lagyan ng pamagat.', needBody: 'Magsulat naman.',
       welcome: 'Hello', roleHelperLbl: 'Katulong', roleElderLbl: 'Matanda', roleEmployerLbl: 'Amo',
+      roleGuestLbl: 'Bisita', roleUndisclosedLbl: 'Ayaw sabihin',
     },
     id: {
       member: 'Anggota', onboard: 'Selamat datang di CantoBuddy', onboardSub: 'Ceritakan sedikit tentangmu agar saya bisa membantu.',
       nickname: 'Nama panggilan', nicknamePh: 'Panggilan apa yang kamu suka?', role: 'Kamu adalah…',
       roleHelper: 'Pembantu / pekerja rumah', roleElder: 'Lansia', roleEmployer: 'Majikan',
+      roleGuest: 'Tamu / pengunjung', roleUndisclosed: 'Tidak ingin menyebut',
       email: 'Email (opsional)', emailPh: 'example@email.com',
       password: 'Kata sandi (opsional)', passwordPh: 'Isi jika ingin masuk nanti',
       skip: 'Lewati', save: 'Simpan', close: 'Tutup',
@@ -99,6 +107,7 @@
       storyTitle: 'Judul', storyBody: 'Ceritamu', storyTopic: 'Topik', storyLang: 'Bahasa',
       signName: 'Tanda tangan dengan nama (centang untuk tampilkan)', signYes: 'Tanda tangan dengan panggilanku', needTitle: 'Mohon isi judul.', needBody: 'Mohon tulis sesuatu.',
       welcome: 'Halo', roleHelperLbl: 'Pembantu', roleElderLbl: 'Lansia', roleEmployerLbl: 'Majikan',
+      roleGuestLbl: 'Tamu', roleUndisclosedLbl: 'Lainnya',
     },
   };
 
@@ -191,8 +200,10 @@
   // After onboarding, send each learner to the site built for her role. A helper
   // belongs on the Cantonese site at /; an elder belongs on the English site at
   // /en. "Skip" chooses the default helper role, so it follows the same route.
-  // Employer is deliberately left where it is: no operator request to move it.
-  // The profile is already saved (and the overlay closed) before this runs.
+  // A guest or someone who prefers not to say is not an elder either, so they
+  // land on / as well. Employer is deliberately left where it is: no operator
+  // request to move it. The profile is already saved (and the overlay closed)
+  // before this runs.
   function atRoleHome(path, target) {
     path = String(path || '/');
     return target === '/'
@@ -200,7 +211,7 @@
       : (path === '/en' || path === '/en/' || path === '/en/index.html');
   }
   function goToRoleHome(role) {
-    var target = role === 'helper' ? '/' : role === 'elder' ? '/en' : '';
+    var target = (role === 'helper' || role === 'guest' || role === 'undisclosed') ? '/' : role === 'elder' ? '/en' : '';
     if (!target) return;
     var loc = (window && window.location) || location;
     if (!loc || typeof loc.assign !== 'function') return;
@@ -299,6 +310,7 @@
       '<div class="cbm-field"><label>' + esc(T('role')) + '</label>' +
         '<div class="cbm-roles" id="cbm-roles">' +
           roleChip('helper') + roleChip('elder') + roleChip('employer') +
+          roleChip('guest') + roleChip('undisclosed') +
         '</div></div>' +
       '<div class="cbm-field"><label>' + esc(T('email')) + '</label>' +
         '<input id="cbm-email" type="email" maxlength="200" autocomplete="off" spellcheck="false" placeholder="' + esc(T('emailPh')) + '" value=""></div>' +
@@ -407,6 +419,7 @@
       '<div class="cbm-field"><label>' + esc(T('role')) + '</label>' +
         '<div class="cbm-roles" id="cbm-p-roles">' +
           roleChip('helper', p.role) + roleChip('elder', p.role) + roleChip('employer', p.role) +
+          roleChip('guest', p.role) + roleChip('undisclosed', p.role) +
         '</div></div>' +
       '<div class="cbm-field"><label>' + esc(T('email')) + '</label>' +
         '<input id="cbm-p-email" type="email" maxlength="200" autocomplete="off" spellcheck="false" value="' + esc(savedEmail) + '"></div>' +

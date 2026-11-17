@@ -5188,7 +5188,9 @@ function identifyLearner({ public_id, display_name, referrer }) {
 // helpers who skip onboarding keep role='helper' and no credentials.
 // ---------------------------------------------------------------------------
 
-const MEMBER_ROLES = ['helper', 'elder', 'employer'];
+// Guest / prefer-not-to-say are also member roles: neither is an elder, so both
+// land on the helper site. Keep this allowlist in sync with public/member.js.
+const MEMBER_ROLES = ['helper', 'elder', 'employer', 'guest', 'undisclosed'];
 
 function updateLearnerProfile(id, { display_name, role, email } = {}) {
   S.updateLearnerProfile.run(

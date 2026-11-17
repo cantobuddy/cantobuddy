@@ -148,6 +148,11 @@
 // admin preview link change; without a bump an installed PWA keeps the old
 // anchor and the operator's reported destination never takes effect.
 //
+// v184 — 2026-11-18: the member popup and profile sheet offer two more roles
+// (guest, prefer not to say), both routed to the helper site at /. member.js is
+// cache-first in APP_SHELL, so an installed PWA would otherwise keep the old
+// three-chip popup and never offer — or route — the new choices.
+//
 // v183 — 2026-11-16: the member profile sheet also closes and routes after Save
 // (helper → /, elder → /en). Same cache-first member.js: an installed PWA would
 // otherwise keep showing "Saved!" in a popup that never closes.
@@ -160,7 +165,7 @@
 // elder leaderboard. en.html/en-app.js/admin.js change and en-games.js is a new
 // EN_TRACK asset with an offline copy here, so the cache name must move or an
 // installed PWA keeps the old home-anchor card and a silent leaderboard.
-const CACHE = 'cantobuddy-v183';
+const CACHE = 'cantobuddy-v184';
 
 // Which paths are server-rendered SEO documents rather than app-shell assets.
 // Kept as one matcher so it can be asserted against `LANG_PREFIX` in seo.js —

@@ -2692,6 +2692,17 @@ const S = {
   ),
   touchLearner: db.prepare('UPDATE learners SET last_seen_at = ? WHERE id = ?'),
   listLearners: db.prepare('SELECT * FROM learners ORDER BY id'),
+  // Admin "Members" view. A fixed projection, never SELECT *: an operator may
+  // see what a member typed (nickname / email / chosen role), but password_hash
+  // must never leave this module — the same rule as publicUser() in server.js.
+  // has_password is a boolean so the operator can tell a member who can sign
+  // back in without ever seeing the hash itself.
+  listLearnerProfiles: db.prepare(
+    `SELECT id, public_id, display_name, email, role, created_at, last_seen_at, updated_at,
+            CASE WHEN password_hash IS NOT NULL AND password_hash <> '' THEN 1 ELSE 0 END AS has_password
+       FROM learners
+      ORDER BY COALESCE(updated_at, created_at, last_seen_at) DESC, id DESC`
+  ),
   // A row created by the schema migration (public_id 'legacy_…') has no device
   // behind it yet. When a device first appears carrying the same name it adopts
   // that row, so progress recorded before device tokens existed is not orphaned.
@@ -5200,6 +5211,11 @@ function updateLearnerProfile(id, { display_name, role, email } = {}) {
     new Date().toISOString(),
     Number(id)
   );
+}
+
+/** Whitelisted member profiles for the admin Members tab. No password hashes. */
+function listLearnerProfilesForAdmin() {
+  return S.listLearnerProfiles.all();
 }
 
 function setLearnerPassword(id, hash) {
@@ -8346,6 +8362,7 @@ module.exports = {
   revokeLink,
   getLearnerReport,
   getPeopleOverview,
+  listLearnerProfilesForAdmin,
 
   getReport,
   getReportTotals,

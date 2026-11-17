@@ -151,6 +151,7 @@ function switchTab(tab) {
   if (tab === 'english') renderAdminEnglish();
   if (tab === 'content') renderAdminContent();
   if (tab === 'leaderboard') renderAdminLeaderboard();
+  if (tab === 'members') renderAdminMembers();
 }
 
 // ---- Push notifications -----------------------------------------------------
@@ -3303,6 +3304,84 @@ async function reissueAdminLbBadges() {
   } catch (e) {
     alert('Could not re-issue badges: ' + e.message);
   }
+}
+
+// ---- Members tab (v184) ---------------------------------------------------
+// Learner-supplied nickname / email / role. Cached in ADMIN so typing in the
+// search box filters locally instead of hitting the API on every keystroke.
+// Operator labels only — no i18n: this table is admin-only, English on purpose.
+const ADMIN_MEMBER_LABELS = {
+  helper: 'Helper / domestic worker',
+  elder: 'Elder',
+  employer: 'Employer',
+  guest: 'Guest / visitor',
+  undisclosed: 'Prefer not to say',
+};
+
+function renderAdminMembers() {
+  const table = document.getElementById('admin-member-table');
+  if (!table) return;
+  if (!ADMIN.members) { loadAdminMembers(); return; }
+  adminMembersPaint();
+}
+
+async function loadAdminMembers() {
+  const table = document.getElementById('admin-member-table');
+  if (!table) return;
+  table.innerHTML = '<p class="admin-hint">Loading…</p>';
+  try {
+    const d = await apiGet('/api/admin/members');
+    ADMIN.members = d.members || [];
+    ADMIN.memberCounts = d.counts || {};
+    adminMembersPaint();
+  } catch (e) {
+    table.innerHTML = '<p class="admin-hint">Could not load members: ' + escapeAdmin(e.message) + '</p>';
+  }
+}
+
+function adminMembersPaint() {
+  const table = document.getElementById('admin-member-table');
+  if (!table) return;
+  const summary = document.getElementById('admin-member-summary');
+  const searchEl = document.getElementById('admin-member-search');
+  const members = ADMIN.members || [];
+  const counts = ADMIN.memberCounts || {};
+  const byRole = counts.byRole || {};
+  const q = String((searchEl && searchEl.value) || '').trim().toLowerCase();
+
+  if (summary) {
+    summary.innerHTML =
+      statCard(counts.total == null ? members.length : counts.total, 'Members') +
+      statCard(counts.withEmail == null ? members.filter((m) => !!m.email).length : counts.withEmail, 'With email') +
+      statCard(byRole.elder || 0, 'Elder') +
+      statCard(byRole.guest || 0, 'Guest') +
+      statCard(byRole.undisclosed || 0, 'Prefer not to say');
+  }
+
+  const shown = !q ? members : members.filter((m) => [
+    m.display_name, m.email, m.role, ADMIN_MEMBER_LABELS[m.role], m.public_id,
+  ].some((v) => String(v == null ? '' : v).toLowerCase().indexOf(q) >= 0));
+
+  if (!shown.length) {
+    table.innerHTML = '<p class="admin-hint">' +
+      (q ? 'No members match that search.' : 'No member profiles yet — nothing was submitted.') + '</p>';
+    return;
+  }
+  const rows = shown.map((m) => {
+    const role = ADMIN_MEMBER_LABELS[m.role] || m.role || '—';
+    const when = String(m.updated_at || m.created_at || '').slice(0, 16).replace('T', ' ');
+    return '<tr>' +
+      '<td>' + (escapeAdmin(m.display_name) || '<em>Unnamed</em>') + '</td>' +
+      '<td class="admin-member-mail">' + (escapeAdmin(m.email) || '<span class="admin-hint">—</span>') + '</td>' +
+      '<td>' + escapeAdmin(role) + '</td>' +
+      '<td>' + (m.has_password ? 'Yes' : 'No') + '</td>' +
+      '<td>' + escapeAdmin(when) + '</td>' +
+      '<td class="admin-member-id">' + escapeAdmin(m.public_id) + '</td>' +
+      '</tr>';
+  }).join('');
+  table.innerHTML = '<table class="content-table"><thead><tr>' +
+    '<th>Nickname</th><th>Email (optional)</th><th>Role</th><th>Password</th><th>Updated (UTC)</th><th>Device</th>' +
+    '</tr></thead><tbody>' + rows + '</tbody></table>';
 }
 
 // ---- Init ------------------------------------------------------------------

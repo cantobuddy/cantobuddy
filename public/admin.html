@@ -108,6 +108,9 @@
            operator's authored tab order (and every test that pins it) is
            unchanged, exactly as Content was. -->
       <button class="admin-tab" data-tab="leaderboard" onclick="switchTab('leaderboard')">🏆 Leaderboard</button>
+      <!-- v184 — member profile details. Appended at the END so the operator's
+           authored tab order (and every test that pins it) stays unchanged. -->
+      <button class="admin-tab" data-tab="members" onclick="switchTab('members')">👤 Members</button>
     </div>
 
     <!-- ---- vocab tab ---- -->
@@ -743,6 +746,31 @@
       <div id="admin-lb-summary" class="stats-grid"></div>
       <div id="admin-lb-badges" class="admin-list"></div>
       <div id="admin-lb-table" class="admin-list"></div>
+    </div>
+
+    <!-- ---- Members tab (v184) ---- -->
+    <div id="tab-members" class="admin-tab-content">
+      <style>
+        .admin-member-id { font-size: 11px; color: #7b8493; word-break: break-all; }
+        .admin-member-mail { word-break: break-all; }
+        #admin-member-search { padding: 6px 8px; border: 1px solid #d8dce3; border-radius: 8px; font: inherit; min-width: 210px; }
+      </style>
+      <div class="admin-toolbar">
+        <h3>👤 Members — profile details</h3>
+        <div class="admin-toolbar-actions">
+          <input id="admin-member-search" type="search" placeholder="Nickname, email, role or device"
+                 oninput="renderAdminMembers()" aria-label="Search members">
+          <button class="btn btn-outline btn-sm" onclick="loadAdminMembers()">↻ Refresh</button>
+        </div>
+      </div>
+      <p class="admin-hint">
+        What members typed into the <strong>optional</strong> profile sheet: nickname, email and role.
+        Email is optional, so a blank address means an anonymous learner — not a broken row. Roles are
+        helper, elder, employer, guest and prefer-not-to-say. The device id identifies the device, not
+        an account. Password hashes are never fetched or shown, and this view is read live with no cache.
+      </p>
+      <div id="admin-member-summary" class="stats-grid"></div>
+      <div id="admin-member-table" class="admin-list"></div>
     </div>
 
   </section>

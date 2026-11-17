@@ -2607,6 +2607,30 @@ app.get('/api/admin/people', requireAdmin, (req, res) => {
 });
 
 /**
+ * GET /api/admin/members — what members typed into the OPTIONAL profile sheet:
+ * nickname, email and the role they chose. This is the first admin surface for
+ * learner-supplied contact details, so it is admin-only and no-store; the db
+ * helper returns a fixed projection and never a password hash.
+ */
+app.get('/api/admin/members', requireAdmin, (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  const members = store.listLearnerProfilesForAdmin();
+  const byRole = {};
+  ['helper', 'elder', 'employer', 'guest', 'undisclosed'].forEach((role) => {
+    byRole[role] = members.filter((m) => m.role === role).length;
+  });
+  res.json({
+    members,
+    counts: {
+      total: members.length,
+      withEmail: members.filter((m) => !!m.email).length,
+      byRole,
+    },
+    now: new Date().toISOString(),
+  });
+});
+
+/**
  * POST /api/admin/employers/:id/open-device-reauth — the operator opens a short
  * pairing window for an employer who forgot their device token or switched phones.
  * While it is open, that employer can sign in by name alone on the new device and

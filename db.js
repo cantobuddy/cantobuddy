@@ -3439,7 +3439,7 @@ const S = {
 
      The upper bound matters once posts can be scheduled. This query was the
      one place outside listPosts() that still accepted a future published_at:
-     the 14 morning 長者故事 rows passed the LOWER bound and landed in the Sunday
+     the morning 長者故事 rows passed the LOWER bound and landed in the Sunday
      table before their publish time, where the client then offered a link that
      the API correctly 404'd. A digest is "what happened", not "what will". */
   sundayTableDigest: db.prepare(`

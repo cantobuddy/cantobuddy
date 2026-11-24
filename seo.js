@@ -2999,7 +2999,7 @@ const DISCOVER_UI = {
   },
 };
 
-/* Culture Desk — a stable doorway for the 14-morning article series. The
+/* Culture Desk — a stable doorway for the 45-morning article series. The
  * articles themselves live at /discover/<slug>; this shelf exists so a reader
  * has ONE place to return to every morning instead of hunting in the feed. */
 const CULTURE_DAILY_UI = {
@@ -3010,9 +3010,9 @@ const CULTURE_DAILY_UI = {
     tomorrow: 'Tomorrow at 09:00 HKT',
     open: 'Ends with one open question for you.',
     upcoming: '{n} more mornings in this series. Come back at 09:00 HKT.',
-    complete: 'All 28 mornings are here. Start anywhere — the questions still work.',
+    complete: 'All 45 mornings are here. Start anywhere — the questions still work.',
     back: 'Back to Discover',
-    description: 'Twenty-eight morning articles about Hong Kong housing, love, family, work, ageing, belonging and wellbeing — each ending with an open question.',
+    description: 'Forty-five morning articles about Hong Kong housing, love, family, work, ageing, belonging and wellbeing — each ending with an open question.',
   },
   fil: {
     title: 'Culture Desk — 每日文化閱讀',
@@ -3021,9 +3021,9 @@ const CULTURE_DAILY_UI = {
     tomorrow: 'Bukas sa 09:00 HKT',
     open: 'Nagtatapos ito sa isang bukas na tanong para sa iyo.',
     upcoming: '{n} pang umaga ang darating sa seryeng ito. Bumalik sa 09:00 HKT.',
-    complete: 'Kumpleto na ang 28 umaga. Magsimula sa alinman — gumagana pa rin ang mga tanong.',
+    complete: 'Kumpleto na ang 45 umaga. Magsimula sa alinman — gumagana pa rin ang mga tanong.',
     back: 'Bumalik sa Discover',
-    description: '28 artikulo sa umaga tungkol sa pabahay, pag-ibig, pamilya, trabaho, pagtanda, pag-aanak at kapakanan sa Hong Kong.',
+    description: '45 artikulo sa umaga tungkol sa pabahay, pag-ibig, pamilya, trabaho, pagtanda, pag-aanak at kapakanan sa Hong Kong.',
   },
   zh: {
     title: '每日文化閱讀 — Culture Desk',
@@ -3032,9 +3032,9 @@ const CULTURE_DAILY_UI = {
     tomorrow: '明日香港時間九點',
     open: '每篇最後都留下一個問題，等你用自己的經驗回答。',
     upcoming: '呢個系列仲有 {n} 篇。明早九點再嚟。',
-    complete: '二十八篇已經全部上架。邊一篇先讀都得，問題一樣值得諗。',
+    complete: '四十五篇已經全部上架。邊一篇先讀都得，問題一樣值得諗。',
     back: '返回探索',
-    description: '二十八篇晨讀文章，寫香港住屋、愛情、家庭、工作、長者生活、歸屬感同心靈健康，每篇都留下一個開放問題。',
+    description: '四十五篇晨讀文章，寫香港住屋、愛情、家庭、工作、長者生活、歸屬感同心靈健康，每篇都留下一個開放問題。',
   },
   id: {
     title: 'Culture Desk — 每日文化閱讀',
@@ -3043,9 +3043,9 @@ const CULTURE_DAILY_UI = {
     tomorrow: 'Besok pukul 09:00 HKT',
     open: 'Diakhiri dengan satu pertanyaan terbuka untuk Anda.',
     upcoming: '{n} pagi lagi dalam seri ini. Kembali pukul 09:00 HKT.',
-    complete: 'Ke-28 pagi sudah lengkap. Mulai dari mana saja — pertanyaannya tetap relevan.',
+    complete: 'Ke-45 pagi sudah lengkap. Mulai dari mana saja — pertanyaannya tetap relevan.',
     back: 'Kembali ke Discover',
-    description: '28 artikel pagi tentang perumahan, cinta, keluarga, kerja, usia lanjut, rasa memiliki dan kesejahteraan di Hong Kong.',
+    description: '45 artikel pagi tentang perumahan, cinta, keluarga, kerja, usia lanjut, rasa memiliki dan kesejahteraan di Hong Kong.',
   },
 };
 
@@ -4787,7 +4787,7 @@ ${ctaCard(lang, '', '/')}
    its own crawlable page, a real 原文出處 link, and a link back into /en.
 
    Only published and DUE posts are read (listPosts/getPostBySlug already hide a
-   future published_at), so the 14 scheduled mornings reveal themselves with no
+   future published_at), so the 45 scheduled mornings reveal themselves with no
    cron job. The in-app reader on /en keeps working — this shelf is additive.
    ============================================================================ */
 const { SOURCES: ELDER_DAILY_SOURCES } = require('./elder-daily-stories');

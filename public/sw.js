@@ -148,6 +148,10 @@
 // admin preview link change; without a bump an installed PWA keeps the old
 // anchor and the operator's reported destination never takes effect.
 //
+// v185 — 2026-11-24: Culture Desk and 長者故事 both extend to 31 Dec 2026 with
+// 17 new sourced English articles and 31 new zh-Hant retellings. The installed
+// /en shell must refresh its story cards and shelf links for the new run.
+//
 // v184 — 2026-11-18: the member popup and profile sheet offer two more roles
 // (guest, prefer not to say), both routed to the helper site at /. member.js is
 // cache-first in APP_SHELL, so an installed PWA would otherwise keep the old
@@ -165,7 +169,7 @@
 // elder leaderboard. en.html/en-app.js/admin.js change and en-games.js is a new
 // EN_TRACK asset with an offline copy here, so the cache name must move or an
 // installed PWA keeps the old home-anchor card and a silent leaderboard.
-const CACHE = 'cantobuddy-v184';
+const CACHE = 'cantobuddy-v185';
 
 // Which paths are server-rendered SEO documents rather than app-shell assets.
 // Kept as one matcher so it can be asserted against `LANG_PREFIX` in seo.js —

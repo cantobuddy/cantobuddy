@@ -4081,12 +4081,12 @@ SEED_POSTS.push(...require('./longform-guides'));
    /articles plumbing applies. Guarded on SEED_POSTS.length like the rest. */
 SEED_POSTS.push(...require('./elder-voices'));
 
-/* 長者故事 · 每日一篇 — 14 retellings of real, published reporting about Hong
-   Kong elders. Same channel 'elders' as the four essays above, but each carries
-   a future 09:00-HKT publish date (17–30 Nov 2026) so the existing read-time
+/* 長者故事 · 每日一篇 — 45 retellings of real, published reporting about Hong
+   Kong life and elders. Same channel 'elders' as the four essays above, but each
+   carries a 09:00-HKT publish date (17 Nov–31 Dec 2026) so the existing read-time
    schedule filter reveals one each morning. Guarded on SEED_POSTS.length like
-   the rest: adding these 14 rows makes the guard fire once on the next boot,
-   and INSERT OR IGNORE leaves any row the operator has since edited alone. */
+   the rest: adding rows makes the guard fire once on the next boot, and INSERT
+   OR IGNORE leaves any row the operator has since edited alone. */
 SEED_POSTS.push(...require('./elder-daily-stories').ELDER_DAILY_STORIES);
 
 /* Two long-form Culture features on how Hong Kong people work and what they
@@ -4098,12 +4098,12 @@ SEED_POSTS.push(...require('./elder-daily-stories').ELDER_DAILY_STORIES);
    all read them from SEED_POSTS. The length guard picks up both on next boot. */
 SEED_POSTS.push(...require('./culture-features'));
 
-/* Culture Desk — 14 daily 1000–1500-word articles on the Hong Kong topics
-   people actually argue about: housing, money and love, family, dating,
-   friendship, long-stay and short-stay helpers, elder life, care and distance.
-   Each is a normal `culture` post with published_at at 09:00 HKT on 17–30 Nov
-   2026, so the same read-time gate reveals one every morning with no cron.
-   Generated from gitignored content/ drafts by content/build-culture-daily.js;
+/* Culture Desk — 45 daily 1000–1500-word articles on the Hong Kong topics
+   people actually care about: housing, money and love, family, friendship,
+   helpers and elders, small kindnesses, belonging and starting again.
+   Each is a normal `culture` post with published_at at 09:00 HKT on 17 Nov–31
+   Dec 2026, so the same read-time gate reveals one every morning with no cron.
+   Generated from content/ drafts by content/build-culture-daily.js;
    the deploy manifest must ship culture-daily.js or boot fails. */
 SEED_POSTS.push(...require('./culture-daily').CULTURE_DAILY_POSTS);
 

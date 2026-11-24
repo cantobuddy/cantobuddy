@@ -3318,6 +3318,45 @@ const ADMIN_MEMBER_LABELS = {
   undisclosed: 'Prefer not to say',
 };
 
+const ADMIN_MEMBER_ROLES = Object.keys(ADMIN_MEMBER_LABELS);
+
+// A "value" row is one the member actually filled in. Device-only learners have
+// no nickname and no email; the operator can still reveal them with the toggle.
+function adminMemberNickname(m) {
+  return String((m && m.display_name) || '').trim();
+}
+function adminMemberEmail(m) {
+  return String((m && m.email) || '').trim();
+}
+function adminMemberHasNickname(m) { return !!adminMemberNickname(m); }
+function adminMemberHasEmail(m) { return !!adminMemberEmail(m); }
+function adminMemberHasValue(m) {
+  return !!(adminMemberNickname(m) || adminMemberEmail(m));
+}
+
+/** One row per role across ALL devices, even the rows hidden from the detail table. */
+function adminMemberRoleStats(members) {
+  const list = members || [];
+  const rows = ADMIN_MEMBER_ROLES.map((role) => {
+    const group = list.filter((m) => m.role === role);
+    return {
+      label: ADMIN_MEMBER_LABELS[role],
+      total: group.length,
+      nickname: group.filter(adminMemberHasNickname).length,
+      email: group.filter(adminMemberHasEmail).length,
+    };
+  });
+  const other = list.filter((m) => ADMIN_MEMBER_ROLES.indexOf(m.role) < 0);
+  if (other.length) {
+    rows.push({
+      label: 'Other / unknown', total: other.length,
+      nickname: other.filter(adminMemberHasNickname).length,
+      email: other.filter(adminMemberHasEmail).length,
+    });
+  }
+  return rows;
+}
+
 function renderAdminMembers() {
   const table = document.getElementById('admin-member-table');
   if (!table) return;
@@ -3343,36 +3382,60 @@ function adminMembersPaint() {
   const table = document.getElementById('admin-member-table');
   if (!table) return;
   const summary = document.getElementById('admin-member-summary');
+  const rolesEl = document.getElementById('admin-member-roles');
   const searchEl = document.getElementById('admin-member-search');
+  const showAllEl = document.getElementById('admin-member-show-all');
   const members = ADMIN.members || [];
   const counts = ADMIN.memberCounts || {};
-  const byRole = counts.byRole || {};
   const q = String((searchEl && searchEl.value) || '').trim().toLowerCase();
+  const showAll = !!(showAllEl && showAllEl.checked);
+  const withValue = members.filter(adminMemberHasValue);
 
   if (summary) {
     summary.innerHTML =
-      statCard(counts.total == null ? members.length : counts.total, 'Members') +
-      statCard(counts.withEmail == null ? members.filter((m) => !!m.email).length : counts.withEmail, 'With email') +
-      statCard(byRole.elder || 0, 'Elder') +
-      statCard(byRole.guest || 0, 'Guest') +
-      statCard(byRole.undisclosed || 0, 'Prefer not to say');
+      statCard(counts.total == null ? members.length : counts.total, 'All devices') +
+      statCard(withValue.length, 'With nickname / email') +
+      statCard(withValue.filter(adminMemberHasEmail).length, 'With email') +
+      statCard(withValue.filter(adminMemberHasNickname).length, 'With nickname') +
+      statCard(members.length - withValue.length, 'Blank devices hidden');
   }
 
-  const shown = !q ? members : members.filter((m) => [
+  // Role statistics always cover every device, including rows hidden below.
+  if (rolesEl) {
+    const roleRows = adminMemberRoleStats(members).map((r) => {
+      const share = members.length ? Math.round((r.total * 100) / members.length) : 0;
+      return '<tr><td>' + escapeAdmin(r.label) + '</td><td>' + r.total + '</td><td>' +
+        r.nickname + '</td><td>' + r.email + '</td><td>' + share + '%</td></tr>';
+    }).join('');
+    const allEmail = members.filter(adminMemberHasEmail).length;
+    const allName = members.filter(adminMemberHasNickname).length;
+    rolesEl.innerHTML = '<table class="content-table"><thead><tr>' +
+      '<th>Role</th><th>Members</th><th>With nickname</th><th>With email</th><th>Share</th>' +
+      '</tr></thead><tbody>' + roleRows +
+      '<tr><td><strong>All roles</strong></td><td><strong>' + members.length + '</strong></td><td>' +
+      allName + '</td><td>' + allEmail + '</td><td>100%</td></tr>' +
+      '</tbody></table>';
+  }
+
+  const candidates = showAll ? members : withValue;
+  const shown = !q ? candidates : candidates.filter((m) => [
     m.display_name, m.email, m.role, ADMIN_MEMBER_LABELS[m.role], m.public_id,
   ].some((v) => String(v == null ? '' : v).toLowerCase().indexOf(q) >= 0));
 
   if (!shown.length) {
     table.innerHTML = '<p class="admin-hint">' +
-      (q ? 'No members match that search.' : 'No member profiles yet — nothing was submitted.') + '</p>';
+      (q ? 'No matching records. Try clearing the search or including blank devices.' :
+        showAll ? 'No member records yet — nothing has been submitted.' :
+          'No member has supplied a nickname or email yet. Tick "Include blank devices" to see device-only rows.') +
+      '</p>';
     return;
   }
   const rows = shown.map((m) => {
     const role = ADMIN_MEMBER_LABELS[m.role] || m.role || '—';
     const when = String(m.updated_at || m.created_at || '').slice(0, 16).replace('T', ' ');
     return '<tr>' +
-      '<td>' + (escapeAdmin(m.display_name) || '<em>Unnamed</em>') + '</td>' +
-      '<td class="admin-member-mail">' + (escapeAdmin(m.email) || '<span class="admin-hint">—</span>') + '</td>' +
+      '<td>' + (escapeAdmin(adminMemberNickname(m)) || '<span class="admin-hint">—</span>') + '</td>' +
+      '<td class="admin-member-mail">' + (escapeAdmin(adminMemberEmail(m)) || '<span class="admin-hint">—</span>') + '</td>' +
       '<td>' + escapeAdmin(role) + '</td>' +
       '<td>' + (m.has_password ? 'Yes' : 'No') + '</td>' +
       '<td>' + escapeAdmin(when) + '</td>' +

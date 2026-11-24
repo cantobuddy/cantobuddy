@@ -754,22 +754,33 @@
         .admin-member-id { font-size: 11px; color: #7b8493; word-break: break-all; }
         .admin-member-mail { word-break: break-all; }
         #admin-member-search { padding: 6px 8px; border: 1px solid #d8dce3; border-radius: 8px; font: inherit; min-width: 210px; }
+        .admin-member-filter { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; white-space: nowrap; }
+        .admin-member-filter input { accent-color: #2563eb; }
+        .admin-member-section { margin: 16px 0 8px; font-size: 14px; }
+        .admin-member-section:first-of-type { margin-top: 10px; }
       </style>
       <div class="admin-toolbar">
         <h3>👤 Members — profile details</h3>
         <div class="admin-toolbar-actions">
           <input id="admin-member-search" type="search" placeholder="Nickname, email, role or device"
                  oninput="renderAdminMembers()" aria-label="Search members">
+          <label class="admin-member-filter">
+            <input id="admin-member-show-all" type="checkbox" onchange="renderAdminMembers()">
+            Include blank devices
+          </label>
           <button class="btn btn-outline btn-sm" onclick="loadAdminMembers()">↻ Refresh</button>
         </div>
       </div>
       <p class="admin-hint">
         What members typed into the <strong>optional</strong> profile sheet: nickname, email and role.
-        Email is optional, so a blank address means an anonymous learner — not a broken row. Roles are
-        helper, elder, employer, guest and prefer-not-to-say. The device id identifies the device, not
-        an account. Password hashes are never fetched or shown, and this view is read live with no cache.
+        The detail table lists only records with a nickname or email — blank devices are hidden unless
+        you tick "Include blank devices". The role table counts every device. Password hashes are never
+        fetched or shown, and this view is read live with no cache.
       </p>
       <div id="admin-member-summary" class="stats-grid"></div>
+      <h4 class="admin-member-section">Role statistics — all devices</h4>
+      <div id="admin-member-roles" class="admin-list"></div>
+      <h4 class="admin-member-section">Members with a nickname or email</h4>
       <div id="admin-member-table" class="admin-list"></div>
     </div>
 

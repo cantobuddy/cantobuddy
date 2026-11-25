@@ -2058,30 +2058,6 @@ async function deleteAdminPost(id) {
 }
 
 /**
- * Runs the news importer now. Reports what actually happened — how many were
- * new, and which feed failed if one did — rather than a bare "done", because a
- * silent zero is the one result worth noticing.
- */async function fetchNewsNow() {
-  const btn = event && event.target ? event.target : null;
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ Fetching…'; }
-  try {
-    const r = await apiPost('/api/admin/posts/import', {});
-    await renderAdminPosts();
-    const errs = (r.errors || []).length ? `\n\nFeed problems:\n${r.errors.join('\n')}` : '';
-    // A retirement is shown rather than hidden: it means the feed just LOST
-    // stories, because this build no longer ships the source they came from.
-    const gone = r.removed
-      ? `\nRetired ${r.removed} item(s) from a source no longer in use (${(r.retired || []).join(', ')}).`
-      : '';
-    alert(`Fetched ${r.fetched} items · ${r.inserted} new · ${r.skipped} already had.${gone}${errs}`);
-  } catch (err) {
-    alert('Import failed: ' + err.message);
-  } finally {
-    if (btn) { btn.disabled = false; btn.textContent = '⬇ Fetch news now'; }
-  }
-}
-
-/**
  * Fills in the topic of every news item that has none.
  *
  * Reports a zero honestly rather than as a failure — "nothing needed it" is

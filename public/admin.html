@@ -333,16 +333,15 @@
 
          The two live in one tab because they are one feed with two channels,
          and because the thing an operator does to them is the same: look at the
-         list, publish or hide an item, add one by hand. The only asymmetry is
-         the "Fetch news now" button, which only makes sense for news — it is
-         labelled as such rather than hidden, so it is obvious why it exists. -->
+         list, publish or hide an item, add one by hand. Manual news fetching is
+         retired: the import endpoint returns 410 and the scheduled pull is off
+         by default, so no "Fetch news now" control belongs here. -->
     <div id="tab-posts" class="admin-tab-content">
       <div class="admin-toolbar">
         <h3>Discover feed</h3>
         <div class="admin-toolbar-actions">
           <button class="btn btn-outline btn-sm" onclick="renderAdminPosts()">↻ Refresh</button>
           <button class="btn btn-outline btn-sm" onclick="classifyNewsPosts()" title="Fill in the topic of any news item that has none. Never changes a topic you have already set by hand.">🏷 Re-classify news</button>
-          <button class="btn btn-outline btn-sm" onclick="fetchNewsNow()" title="Import the latest stories from the public HK sources">⬇ Fetch news now</button>
           <button class="btn btn-primary" onclick="openPostForm()">+ New post</button>
         </div>
       </div>

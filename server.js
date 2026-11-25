@@ -878,20 +878,12 @@ app.delete('/api/admin/posts/:id', requireAdmin, (req, res) => {
 });
 
 /**
- * Runs the news importer on demand — the "Fetch news now" button.
- *
- * Admin-only, and deliberately synchronous in its response: the operator asked
- * for it and should see what happened (how many stories, from where, and any
- * feed that failed), not a job id. It is idempotent, so pressing it twice does
- * not duplicate anything — see importPost in db.js.
+ * News import is retired. The route stays so an old bookmark, admin script or
+ * Render Cron Job gets a clear answer instead of a 404 — but no feed is fetched
+ * and no post is written. Existing news posts are untouched.
  */
-app.post('/api/admin/posts/import', requireAdmin, async (req, res) => {
-  try {
-    const report = await news.importNews({ limitPerSource: Number(req.body && req.body.limit) || 0 });
-    res.json({ ...report, counts: store.getPostCounts() });
-  } catch (err) {
-    res.status(500).json({ error: err && err.message ? err.message : 'Import failed' });
-  }
+app.post('/api/admin/posts/import', requireAdmin, (req, res) => {
+  res.status(410).json({ error: 'News import is disabled on this site.' });
 });
 
 /**
@@ -3475,29 +3467,18 @@ const server = app.listen(PORT, HOST, () => {
 });
 
 // ---------------------------------------------------------------------------
-// News importer schedule
+// News importer schedule — OFF.
 //
-// ON BY DEFAULT: an hourly pull. The importer is idempotent (it only ever
-// inserts posts it does not already have, keyed on the source GUID), so running
-// it costs nothing but a couple of HTTP requests and the feed stays current
-// without the operator pressing "Fetch news now" in the admin Posts tab. The
-// 3-day retention (see db.js pruneExpiredNews) keeps the schedule harmless —
-// a stale item is gone after 72h and re-fetched fresh when the feed moves.
+// News fetching is retired on this site. Nothing is imported on a timer and
+// nothing is pulled at startup; the admin import route returns 410 as well.
+// Existing news posts are untouched — only new fetching is stopped.
 //
-// OVERRIDE:
-//   NEWS_FETCH_INTERVAL_HOURS=6   -> pull every 6 hours instead
-//   NEWS_FETCH_INTERVAL_HOURS=0   -> off (revert to manual-only)
-//
-// ON A SLEEPING HOST this timer does not fire while the instance is asleep
-// (Render's free tier sleeps after inactivity), so it is a convenience, not a
-// hard guarantee. A Render Cron Job hitting POST /api/admin/posts/import is the
-// reliable version; the startup pull below is the belt-and-braces one. Both
-// exist. When the var is unset we default to 1h; when it is explicitly "0" we
-// honour the opt-out (Number('0') is 0, so the `|| 1` must not swallow it).
+// To bring it back deliberately, set NEWS_FETCH_INTERVAL_HOURS to a positive
+// number (e.g. 1 or 6). Leaving it unset or setting 0 keeps it off.
 // ---------------------------------------------------------------------------
 const rawNewsInterval = process.env.NEWS_FETCH_INTERVAL_HOURS;
 const NEWS_FETCH_INTERVAL_HOURS =
-  rawNewsInterval === undefined ? 1 : Number(rawNewsInterval);
+  rawNewsInterval === undefined ? 0 : Number(rawNewsInterval);
 
 if (NEWS_FETCH_INTERVAL_HOURS > 0) {
   const everyMs = Math.max(NEWS_FETCH_INTERVAL_HOURS, 0.25) * 60 * 60 * 1000;

@@ -169,7 +169,12 @@
 // elder leaderboard. en.html/en-app.js/admin.js change and en-games.js is a new
 // EN_TRACK asset with an offline copy here, so the cache name must move or an
 // installed PWA keeps the old home-anchor card and a silent leaderboard.
-const CACHE = 'cantobuddy-v185';
+//
+// v186 — 2026-11-26: News is retired from the Discover menu. index.html (tab
+// row + heading/lead), app.js (offline default) and i18n.js (four languages)
+// all change, so the cache-first APP_SHELL must move or an installed PWA keeps
+// showing the old News tab and the old "HK life, news & stories" copy.
+const CACHE = 'cantobuddy-v186';
 
 // Which paths are server-rendered SEO documents rather than app-shell assets.
 // Kept as one matcher so it can be asserted against `LANG_PREFIX` in seo.js —

@@ -2926,8 +2926,8 @@ const FESTIVAL_BANNER_UI = {
 
 const DISCOVER_UI = {
   en: {
-    title: 'Discover: Hong Kong life, news and stories from home',
-    lede: 'Hong Kong life for domestic helpers — how things work at home — plus news from the Philippines, Indonesia and Hong Kong, and stories written by helpers themselves, in plain English.',
+    title: 'Discover: Hong Kong life and stories from home',
+    lede: 'Hong Kong life for domestic helpers — how things work at home — and stories written by helpers themselves, in plain English.',
     culture: 'Hong Kong culture',
     cultureLede: 'The customs nobody explains — the altar, the festivals, and the two ways to say thank you.',
     cultureDaily: 'Culture Desk — one deep article every morning',
@@ -2944,8 +2944,8 @@ const DISCOVER_UI = {
     notFoundTitle: 'Article not found',
   },
   fil: {
-    title: 'Tuklasin: buhay sa Hong Kong, balita at mga kuwento',
-    lede: 'Buhay sa Hong Kong para sa mga helper — kung paano gumagana ang tahanan — at balita mula sa Pilipinas, Indonesia at Hong Kong, at mga kuwentong isinulat mismo ng mga helper, sa simpleng Ingles.',
+    title: 'Tuklasin: buhay sa Hong Kong at mga kuwento',
+    lede: 'Buhay sa Hong Kong para sa mga helper — kung paano gumagana ang tahanan — at mga kuwentong isinulat mismo ng mga helper, sa simpleng Ingles.',
     culture: 'Kultura ng Hong Kong',
     cultureLede: 'Ang mga kaugaliang walang nagpapaliwanag — ang altar, ang mga pista, at ang dalawang paraan ng pagpapasalamat.',
     cultureDaily: 'Culture Desk — isang malalim na artikulo bawat umaga',
@@ -2962,8 +2962,8 @@ const DISCOVER_UI = {
     notFoundTitle: 'Hindi mahanap ang artikulo',
   },
   zh: {
-    title: '发现：香港生活、新闻与家佣故事',
-    lede: '为家佣准备的香港生活——家里的事是怎么运作的——以及来自菲律宾、印尼和香港的新闻，还有家佣亲手写下的故事，都用简单的英文讲清楚。',
+    title: '发现：香港生活与家佣故事',
+    lede: '为家佣准备的香港生活——家里的事是怎么运作的——以及家佣亲手写下的故事，都用简单的英文讲清楚。',
     culture: '香港文化',
     cultureLede: '那些没人会解释的习俗——神枱、节庆，以及两个「谢谢」的区别。',
     cultureDaily: '每日文化閱讀 — 每天早上一篇文章',
@@ -2980,8 +2980,8 @@ const DISCOVER_UI = {
     notFoundTitle: '找不到文章',
   },
   id: {
-    title: 'Jelajahi: kehidupan Hong Kong, berita & kisah',
-    lede: 'Kehidupan di Hong Kong untuk asisten rumah tangga — bagaimana rumah tangga bekerja — serta berita dari Indonesia, Filipina, dan Hong Kong, dan kisah yang ditulis sendiri oleh para asisten, dalam bahasa Inggris sederhana.',
+    title: 'Jelajahi: kehidupan Hong Kong & kisah',
+    lede: 'Kehidupan di Hong Kong untuk asisten rumah tangga — bagaimana rumah tangga bekerja — dan kisah yang ditulis sendiri oleh para asisten, dalam bahasa Inggris sederhana.',
     culture: 'Budaya Hong Kong',
     cultureLede: 'Kebiasaan yang tak pernah dijelaskan — altar, perayaan, dan dua cara mengucapkan terima kasih.',
     cultureDaily: 'Culture Desk — satu artikel mendalam setiap pagi',
@@ -3419,17 +3419,17 @@ ${ctaCard(lang)}
 `;
 
   const title = {
-    en: 'Discover: Hong Kong Life, News and Helper Stories | CantoBuddy',
-    fil: 'Tuklasin: Buhay sa Hong Kong, Balita at mga Kuwento | CantoBuddy',
-    zh: '发现：香港生活、新闻与家佣故事 | CantoBuddy',
-    id: 'Jelajahi: Kehidupan Hong Kong, Berita dan Kisah | CantoBuddy',
+    en: 'Discover: Hong Kong Life and Helper Stories | CantoBuddy',
+    fil: 'Tuklasin: Buhay sa Hong Kong at mga Kuwento | CantoBuddy',
+    zh: '发现：香港生活与家佣故事 | CantoBuddy',
+    id: 'Jelajahi: Kehidupan Hong Kong dan Kisah | CantoBuddy',
   }[lang];
 
   const description = {
-    en: 'Hong Kong customs explained, news from the Philippines, Indonesia and Hong Kong in English, and real stories written by domestic helpers — written for helpers.',
-    fil: 'Paliwanag sa mga kaugalian ng Hong Kong, balita mula sa Pilipinas, Indonesia at Hong Kong sa Ingles, at totoong kuwento ng mga helper — para sa mga helper.',
-    zh: '香港习俗讲解、来自菲律宾、印尼和香港的英文新闻，以及家佣写下的真实故事——为家佣而写。',
-    id: 'Penjelasan kebiasaan Hong Kong, berita dari Indonesia, Filipina, dan Hong Kong dalam bahasa Inggris, serta kisah nyata dari para asisten rumah tangga — untuk para asisten.',
+    en: 'Hong Kong customs explained and real stories written by domestic helpers — written for helpers.',
+    fil: 'Paliwanag sa mga kaugalian ng Hong Kong at totoong kuwento ng mga helper — para sa mga helper.',
+    zh: '香港习俗讲解与家佣写下的真实故事——为家佣而写。',
+    id: 'Penjelasan kebiasaan Hong Kong dan kisah nyata dari para asisten rumah tangga — untuk para asisten.',
   }[lang];
 
   // Every published story is part of this page's structured data, so a story is

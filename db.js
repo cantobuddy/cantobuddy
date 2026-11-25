@@ -5737,13 +5737,13 @@ function saveNavigationConfig({ more, bottom } = {}) {
 // ---------------------------------------------------------------------------
 // Discover channel order + visibility (operator-controlled)
 // ---------------------------------------------------------------------------
-// The five Discover tabs: Culture, Outings, Living, News, Stories. The operator
-// can reorder AND hide them; the first ENABLED tab is the default a visitor
-// sees on the Discover screen (so a hidden Culture does not dead-end the view).
-// There is deliberately no pinned tab — unlike the bottom bar there is no single
-// way-back that must survive a bad config — and every channel is democratically
-// movable. Stored as ONE JSON array in app_settings; the constant list IS the
-// default and readDiscoverConfig() re-validates on every read, so a missing,
+// The Discover tabs: Culture, Outings, Living, News, Stories. News is retired
+// and forced off below; the operator can reorder and hide the other four. The
+// first ENABLED tab is the default a visitor sees on the Discover screen (so a
+// hidden Culture does not dead-end the view). There is deliberately no pinned
+// tab — unlike the bottom bar there is no single way-back that must survive a
+// bad config. Stored as ONE JSON array in app_settings; the constant list IS
+// the default and readDiscoverConfig() re-validates on every read, so a missing,
 // hand-edited or older value can never ship an unknown id or drop a channel.
 // No seed: the whitelist is the default, exactly like the navigation config.
 
@@ -5785,7 +5785,11 @@ function normalizeDiscoverList(input, previous) {
     seen.add(id);
     rows.push({ id, enabled: true });
   }
-  return rows;
+  // News is retired from the Discover menu. Keep its id in the saved order so
+  // old configs stay readable, but force it off on EVERY read — public API,
+  // admin list and persisted saves. A stale "enabled: true" from before this
+  // release cannot bring the tab back.
+  return rows.map((r) => (r.id === 'news' ? { ...r, enabled: false } : r));
 }
 
 /** Re-validate on every read, so a stale or hand-edited value is harmless. */

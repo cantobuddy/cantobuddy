@@ -200,9 +200,9 @@ const I18N = {
     'sunday.shareText': 'I won {wins} of {played} at the CantoBuddy Sunday Table 🎉',
 
 
-    // discover — the culture + news feed
-    'discover.title': 'Discover: HK life, news & stories from home',
-    'discover.lead': 'Hong Kong life, news from the Philippines and Indonesia, and stories written by helpers.',
+    // discover — the culture and stories feed (news is retired)
+    'discover.title': 'Discover: HK life & stories from home',
+    'discover.lead': 'Hong Kong life and stories written by helpers.',
     // The Categories page — the Learn tab's destination. `{n}` is the number of
     // categories and `{w}` the number of words behind them.
     'categories.backHome': '← Home',
@@ -975,9 +975,9 @@ const I18N = {
     'sunday.shareText': 'Nanalo ako ng {wins} sa {played} sa CantoBuddy Sunday Table 🎉',
 
 
-    // discover — ang feed ng kultura at balita
-    'discover.title': 'Tuklasin: buhay sa HK, balita at mga kuwento',
-    'discover.lead': 'Buhay sa Hong Kong, balita mula sa Pilipinas at Indonesia, at mga kuwentong isinulat ng mga helper.',
+    // discover — ang feed ng kultura at mga kuwento (retired na ang balita)
+    'discover.title': 'Tuklasin: buhay sa HK at mga kuwento',
+    'discover.lead': 'Buhay sa Hong Kong at mga kuwentong isinulat ng mga helper.',
     'categories.backHome': '← Home',
     'categories.title': 'Mga kategorya',
     'categories.lead': '{n} kategorya, {w} salita. Piliin kung saan ka magsisimula.',
@@ -1708,9 +1708,9 @@ const I18N = {
     'sunday.shareText': '我在 CantoBuddy 周日聚会赢了 {wins}/{played} 局 🎉',
 
 
-    // discover — 文化与新闻
-    'discover.title': '发现：香港生活、新闻与家佣故事',
-    'discover.lead': '香港生活、来自菲律宾和印尼的消息，以及家佣写下的故事。',
+    // discover — 文化与故事（新闻已停用）
+    'discover.title': '发现：香港生活与家佣故事',
+    'discover.lead': '香港生活与家佣写下的故事。',
     'categories.backHome': '← 首页',
     'categories.title': '分类',
     'categories.lead': '{n} 个分类，{w} 个词语。选一个开始吧。',
@@ -2440,9 +2440,9 @@ const I18N = {
     'sunday.shareText': 'Aku menang {wins} dari {played} di CantoBuddy Sunday Table 🎉',
 
 
-    // discover — umpan budaya dan berita
-    'discover.title': 'Jelajahi: kehidupan HK, berita & kisah',
-    'discover.lead': 'Kehidupan di Hong Kong, berita dari Indonesia dan Filipina, serta kisah yang ditulis para asisten.',
+    // discover — umpan budaya dan kisah (berita sudah dihentikan)
+    'discover.title': 'Jelajahi: kehidupan HK & kisah',
+    'discover.lead': 'Kehidupan di Hong Kong dan kisah yang ditulis para asisten.',
     'categories.backHome': '← Beranda',
     'categories.title': 'Kategori',
     'categories.lead': '{n} kategori, {w} kata. Pilih mau mulai dari mana.',

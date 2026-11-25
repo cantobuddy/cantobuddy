@@ -1390,12 +1390,14 @@ function renderHomeDiscoverPromo() {
 /**
  * The default Discover order (also the authored HTML order and the DB default),
  * used as the fallback before /api/discover-channels resolves or if it fails.
+ * News is retired and stays off even in this offline fallback, so the tab never
+ * flashes back for a visitor with a slow or failed API call.
  */
 const DISCOVER_CHANNELS_DEFAULT = [
   { id: 'culture', enabled: true },
   { id: 'places',  enabled: true },
   { id: 'living',  enabled: true },
-  { id: 'news',    enabled: true },
+  { id: 'news',    enabled: false },
   { id: 'stories', enabled: true },
 ];
 

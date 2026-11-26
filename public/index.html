@@ -703,6 +703,11 @@
 
     <p class="discover-lead" data-i18n="discover.lead">Hong Kong life and stories written by helpers.</p>
 
+    <!-- The three social icons, top and bottom of the shelf. Filled by
+         renderDiscover() so the buttons follow the active channel and the
+         reader's language, just like the cards do. -->
+    <div id="discover-share-top" class="discover-share discover-share--top"></div>
+
     <div class="discover-tabs" role="tablist">
       <button class="discover-tab active" data-channel="culture" role="tab"
               onclick="showChannel('culture')" data-i18n="discover.tabCulture">Culture</button>
@@ -740,6 +745,8 @@
          feed element keeps holding exactly the cards and a test that counts
          them is still counting cards. -->
     <div id="discover-pager" class="discover-pager" hidden></div>
+
+    <div id="discover-share-bottom" class="discover-share discover-share--bottom"></div>
   </section>
 
   <!-- ---- ARTICLE VIEW ---- -->

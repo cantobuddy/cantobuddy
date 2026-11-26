@@ -645,6 +645,13 @@ function openViewFromUrl() {
   }
   if (!document.getElementById('view-' + name)) return;
   if (name !== 'home') navigate(name);
+  /* A shared Discover link names its tab, so the friend lands on the same
+     shelf instead of on Culture. Validate the name against the tab list the
+     same way showChannel() does. */
+  if (name === 'discover') {
+    const channel = qs.get('channel');
+    if (['places', 'living', 'stories', 'news'].includes(channel)) showChannel(channel);
+  }
   /* A shared leaderboard link names its weekend. navigate() has already
      started a request for the current one; this second request wins the race
      through LB.seq, so the URL's week is the one she actually sees. */
@@ -5885,12 +5892,12 @@ function shareRowHtml(actions) {
  * share URL at all, so it shares the CARD (see shareToInstagram) — which on a
  * phone surfaces Instagram inside the OS share sheet.
  */
-function socialRowHtml(post) {
+function socialRowFor(fnName, arg) {
   const btn = (kind, icon, labelKey) => `
         <button type="button" class="social-row-btn social-row-btn--${kind}"
                 data-share="${kind}"
                 title="${escapeHtml(t(labelKey))}" aria-label="${escapeHtml(t(labelKey))}"
-                onclick="shareArticle('${post.slug}', '${kind}')">${icon}</button>`;
+                onclick="${fnName}('${arg}', '${kind}')">${icon}</button>`;
   return `<div class="social-row" role="group" aria-label="${escapeHtml(t('share.shareThis'))}">${btn(
     'facebook',
     FACEBOOK_ICON_SVG,
@@ -5901,6 +5908,21 @@ function socialRowHtml(post) {
     'share.shareOnWhatsApp'
   )}
       </div>`;
+}
+
+/** The article row, unchanged for culture and news posts. */
+function socialRowHtml(post) {
+  return socialRowFor('shareArticle', post.slug);
+}
+
+/** The Discover shelf row. Shares the shelf she is looking at, top and bottom. */
+function discoverSocialRowHtml() {
+  return socialRowFor('shareDiscover', '');
+}
+
+/** One outing's row, on its own detail page. */
+function placeSocialRowHtml(p) {
+  return socialRowFor('shareOuting', p.slug);
 }
 
 // ---- The six card layouts --------------------------------------------------
@@ -6130,6 +6152,99 @@ async function shareArticle(slug, mode) {
     url,
     filename: `cantobuddy-${slug}.png`,
   });
+}
+
+/**
+ * A deep link into one in-app view. Same origin-only rule as shareUrl(): never
+ * forward the current path, because it might hold a private ?join= code. The
+ * receiving app opens `view` on load (and strips the query again), so a friend
+ * lands on the shelf or the outing that was shared, not on Home.
+ */
+function shareViewUrl(view, extra) {
+  const url = new URL(location.origin);
+  url.searchParams.set('view', view);
+  if (extra && extra.channel) url.searchParams.set('channel', extra.channel);
+  if (extra && extra.p) url.searchParams.set('p', extra.p);
+  const code = myReferralCode();
+  if (code) url.searchParams.set('ref', code);
+  return url.toString();
+}
+
+/** Card for the Discover shelf. The Outings tab gets the days-out line. */
+function discoverSpec(channel) {
+  const k = cardTokens();
+  const outings = channel === 'places';
+  return {
+    accent: k.secondary,
+    tint: '#e6f5f3',
+    eyebrow: t(outings ? 'share.cardOuting' : 'share.cardArticle'),
+    blocks: [
+      { type: 'emojiRow', values: outings ? ['🌃', '⛴️', '🥾', '🏝️'] : ['📖', '🍲', '🛍️', '🌿'], size: 92, y: 310 },
+      {
+        type: 'wrap',
+        value: t(outings ? 'discover.placesLead' : 'discover.lead'),
+        size: 46,
+        y: 510,
+        maxLines: 3,
+        lineHeight: 62,
+      },
+      { type: 'text', value: 'CantoBuddy · Hong Kong', weight: 400, size: 38, color: k.soft, y: 810 },
+    ],
+  };
+}
+
+/** Card for one outing. Built from the same record the detail page reads. */
+function outingSpec(p) {
+  const k = cardTokens();
+  return {
+    accent: k.secondary,
+    tint: '#e6f5f3',
+    eyebrow: t('share.cardOuting'),
+    blocks: [
+      { type: 'emoji', value: p.emoji || '📍', size: 120, y: 290 },
+      { type: 'wrap', value: p.name, size: 58, y: 450, maxLines: 2, lineHeight: 74 },
+      p.nameZh ? { type: 'text', value: p.nameZh, weight: 400, size: 42, color: k.soft, y: 600 } : null,
+      {
+        type: 'wrap',
+        value: placeSummary(p),
+        size: 34,
+        weight: 400,
+        color: k.soft,
+        y: 740,
+        maxLines: 3,
+        lineHeight: 46,
+      },
+    ].filter(Boolean),
+  };
+}
+
+/**
+ * Share the Discover shelf from its top or bottom strip. `mode` comes from the
+ * icon that was tapped; the first argument exists only because all three rows
+ * in the app share one button builder and take (slug, mode).
+ */
+async function shareDiscover(_slug, mode) {
+  const channel = STATE.discover.channel;
+  const text = channel === 'places' ? t('share.outingsText') : t('share.discoverText');
+  const url = shareViewUrl('discover', { channel: channel === 'culture' ? null : channel });
+  const args = { spec: discoverSpec(channel), text, url, filename: 'cantobuddy-discover.png' };
+  if (mode === 'whatsapp') return shareToWhatsApp(text, url);
+  if (mode === 'facebook') return shareToFacebook(args);
+  if (mode === 'instagram') return shareToInstagram(args);
+  return sharePicture(args);
+}
+
+/** Share one outing, with a link that opens that exact place in the app. */
+async function shareOuting(slug, mode) {
+  const p = placeList().find((x) => x.slug === slug);
+  if (!p) return;
+  const text = t('share.outingText').replace('{title}', `${p.name} (${p.nameZh})`);
+  const url = shareViewUrl('place', { p: slug });
+  const args = { spec: outingSpec(p), text, url, filename: `cantobuddy-outing-${slug}.png` };
+  if (mode === 'whatsapp') return shareToWhatsApp(text, url);
+  if (mode === 'facebook') return shareToFacebook(args);
+  if (mode === 'instagram') return shareToInstagram(args);
+  return sharePicture(args);
 }
 
 /**
@@ -6658,6 +6773,15 @@ async function renderDiscover() {
               : 'discover.cultureLead'
     );
   }
+  // The three social icons sit at BOTH ends of the shelf. They are rebuilt
+  // here, with the rest of the chrome, so a tab or language switch changes the
+  // link and the aria-labels along with the cards.
+  const shareRows = discoverSocialRowHtml();
+  const shareTop = document.getElementById('discover-share-top');
+  const shareBottom = document.getElementById('discover-share-bottom');
+  if (shareTop) shareTop.innerHTML = shareRows;
+  if (shareBottom) shareBottom.innerHTML = shareRows;
+
   // The "share your story" button belongs to one channel only. It is a
   // destination of its own (its own view), so it is a real button rather than
   // something the feed renderer draws.
@@ -6906,6 +7030,8 @@ function renderPlace(p) {
         <span class="place-chip">⏱ ${escapeHtml(t(PLACE_TIME_KEYS[p.time] || 'place.timeFew'))}</span>
         <span class="place-chip${free ? ' place-chip--free' : ''}">💵 ${escapeHtml(placePriceChip(p))}</span>
       </div>
+      <!-- Top of the outing: the same three icons the shelf carries. -->
+      <div class="place-share-top">${placeSocialRowHtml(p)}</div>
     </div>
 
     <p class="place-summary">${escapeHtml(placeSummary(p))}</p>
@@ -6928,7 +7054,10 @@ function renderPlace(p) {
     <h2 class="place-h2">💡 ${escapeHtml(t('place.goodToKnow'))}</h2>
     <ul class="place-tips">${tips}</ul>
 
-    ${creditHtml}`;
+    ${creditHtml}
+    <!-- And again at the foot: she has just finished reading, which is the
+         moment she is most likely to send it to a friend. -->
+    <div class="place-share-bottom">${placeSocialRowHtml(p)}</div>`;
 }
 
 /** The Stories channel: the shelf of published stories, newest first. */

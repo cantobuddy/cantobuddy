@@ -3638,6 +3638,13 @@ a.game-tile:active { transform: scale(0.96); background: var(--c-primary-tint); 
   margin-bottom: 14px;
 }
 
+/* The same three social icons at both ends of the Discover shelf. The row
+   already draws its own circles; these rules only place it relative to the
+   lead, the tabs and the last card. */
+.discover-share .social-row { margin-top: 0; }
+.discover-share--top { margin: 4px 0 16px; }
+.discover-share--bottom { margin: 20px 0 4px; }
+
 .discover-feed { display: flex; flex-direction: column; gap: 10px; }
 
 .discover-loading,
@@ -6412,6 +6419,12 @@ a.game-tile:active { transform: scale(0.96); background: var(--c-primary-tint); 
   margin-top: 10px;
 }
 .place-meta-row .place-chip { font-size: 0.74rem; padding: 3px 9px; }
+
+/* Share icons on one outing: left-aligned under the title at the top, centred
+   after the credit at the foot. Same buttons as the shelf, same tap targets. */
+.place-share-top .social-row { justify-content: flex-start; margin-top: 14px; }
+.place-share-bottom { margin-top: 24px; }
+.place-share-bottom .social-row { margin-top: 0; }
 
 .place-summary {
   font-size: 0.98rem;

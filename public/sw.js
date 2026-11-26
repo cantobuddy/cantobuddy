@@ -174,7 +174,12 @@
 // row + heading/lead), app.js (offline default) and i18n.js (four languages)
 // all change, so the cache-first APP_SHELL must move or an installed PWA keeps
 // showing the old News tab and the old "HK life, news & stories" copy.
-const CACHE = 'cantobuddy-v186';
+// v187 — 2026-11-26: the Discover shelf and every in-app outing carry the same
+// three social icons (Facebook, Instagram, WhatsApp) at the top and bottom.
+// index.html (two new rows), app.js/i18n.js (share handlers in four languages)
+// and styles.css all change, so the cache-first APP_SHELL must move or an
+// installed PWA keeps the old shelf with no way to forward an outing.
+const CACHE = 'cantobuddy-v187';
 
 // Which paths are server-rendered SEO documents rather than app-shell assets.
 // Kept as one matcher so it can be asserted against `LANG_PREFIX` in seo.js —

@@ -662,6 +662,10 @@ const I18N = {
     'share.storyText': 'A helper wrote this: "{title}" — read it on CantoBuddy',
     'share.livingText': '"{title}" — a passage for helpers in Hong Kong. Read it on CantoBuddy',
     'share.articleText': '"{title}" — worth reading on CantoBuddy',
+    'share.discoverText': 'Discover Hong Kong life and stories on CantoBuddy 🇭🇰',
+    'share.outingsText': 'Free days out in Hong Kong — where to go, how to get there, and what it costs. On CantoBuddy 🇭🇰',
+    'share.outingText': '{title} — a day out in Hong Kong with the route, cost and opening hours. On CantoBuddy 🇭🇰',
+    'share.cardOuting': 'A day out in Hong Kong',
 
     // the share hub — the different parts of the app she can send
     'share.hubAlbum': 'My sticker album',
@@ -1391,6 +1395,10 @@ const I18N = {
     'share.storyText': 'Isinulat ito ng isang helper: "{title}" — basahin sa CantoBuddy',
     'share.livingText': '"{title}" — isang pagpapalakas para sa mga helper sa Hong Kong. Basahin sa CantoBuddy',
     'share.articleText': '"{title}" — sulit basahin sa CantoBuddy',
+    'share.discoverText': 'Tuklasin ang buhay at mga kuwento sa Hong Kong sa CantoBuddy 🇭🇰',
+    'share.outingsText': 'Libreng gala sa Hong Kong — saan pupunta, paano makarating, at magkano. Sa CantoBuddy 🇭🇰',
+    'share.outingText': '{title} — isang gala sa Hong Kong na may ruta, gastos at oras ng pagbubukas. Sa CantoBuddy 🇭🇰',
+    'share.cardOuting': 'Isang gala sa Hong Kong',
 
     'share.hubAlbum': 'Ang album ko ng sticker',
     'share.hubAlbumSub': '{n} sa {total} ang nakuha — ipadala bilang larawan',
@@ -2125,6 +2133,10 @@ const I18N = {
     'share.storyText': '一位家佣写的：{title} —— 在 CantoBuddy 读读看',
     'share.livingText': '「{title}」—— 写给在香港的家佣。在 CantoBuddy 读读看',
     'share.articleText': '{title} —— 值得在 CantoBuddy 一读',
+    'share.discoverText': '用 CantoBuddy 探索香港生活与故事 🇭🇰',
+    'share.outingsText': '香港放假好去处 — 去边、点去、几钱。尽在 CantoBuddy 🇭🇰',
+    'share.outingText': '{title} — 香港一日游：交通路线、费用同开放时间。来自 CantoBuddy 🇭🇰',
+    'share.cardOuting': '香港好去处',
 
     'share.hubAlbum': '我的贴纸册',
     'share.hubAlbumSub': '已收集 {n}/{total} —— 以图片分享',
@@ -2856,6 +2868,10 @@ const I18N = {
     'share.storyText': 'Seorang asisten menulis ini: "{title}" — baca di CantoBuddy',
     'share.livingText': '"{title}" — sebuah tulisan untuk asisten di Hong Kong. Baca di CantoBuddy',
     'share.articleText': '"{title}" — layak dibaca di CantoBuddy',
+    'share.discoverText': 'Jelajahi kehidupan dan cerita Hong Kong di CantoBuddy 🇭🇰',
+    'share.outingsText': 'Jalan-jalan gratis di Hong Kong — ke mana, bagaimana kesana, dan biayanya. Di CantoBuddy 🇭🇰',
+    'share.outingText': '{title} — jalan-jalan di Hong Kong lengkap dengan rute, biaya, dan jam buka. Di CantoBuddy 🇭🇰',
+    'share.cardOuting': 'Jalan-jalan di Hong Kong',
 
     'share.hubAlbum': 'Album stiker saya',
     'share.hubAlbumSub': '{n} dari {total} terkumpul — kirim sebagai gambar',

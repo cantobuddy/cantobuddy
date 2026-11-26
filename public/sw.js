@@ -185,7 +185,10 @@
 // v189 — 2026-11-26: the Discover shelf's top share row moves to the top-right
 // corner. styles.css is cache-first in APP_SHELL, so an installed PWA would
 // otherwise keep the centred row.
-const CACHE = 'cantobuddy-v189';
+// v190 — 2026-11-27: the same row moves one line up, onto the lead-text line.
+// index.html and styles.css are cache-first in APP_SHELL, so an installed PWA
+// would otherwise keep the icons on their own line below the lead.
+const CACHE = 'cantobuddy-v190';
 
 // Which paths are server-rendered SEO documents rather than app-shell assets.
 // Kept as one matcher so it can be asserted against `LANG_PREFIX` in seo.js —

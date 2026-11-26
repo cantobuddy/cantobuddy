@@ -3577,10 +3577,21 @@ a.game-tile:active { transform: scale(0.96); background: var(--c-primary-tint); 
    DISCOVER FEED (culture + news)
    =========================================================================== */
 
+/* The lead and the top share row are one line: the icons sit at its right
+   end, one line above the old standalone row. On a narrow screen the lead
+   wraps inside its half of the flex line and the icons keep their tap size. */
+.discover-intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: -4px 0 14px;
+}
+
 .discover-lead {
   color: var(--c-text-soft);
   font-size: 0.92rem;
-  margin: -4px 0 14px;
+  margin: 0;
 }
 
 /* A segmented control rather than two loose buttons: culture and news are one
@@ -3642,8 +3653,8 @@ a.game-tile:active { transform: scale(0.96); background: var(--c-primary-tint); 
    already draws its own circles; these rules only place it relative to the
    lead, the tabs and the last card. */
 .discover-share .social-row { margin-top: 0; }
-/* Top row sits in the top-right corner of the shelf; the bottom one stays centred. */
-.discover-share--top { margin: 4px 0 16px; }
+/* Top row sits at the right end of the lead-text line; the bottom one stays centred. */
+.discover-share--top { margin: 0; flex: 0 0 auto; }
 .discover-share--top .social-row { justify-content: flex-end; }
 .discover-share--bottom { margin: 20px 0 4px; }
 

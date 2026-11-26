@@ -701,12 +701,15 @@
       <h2 data-i18n="discover.title">Discover: HK life &amp; stories from home</h2>
     </div>
 
-    <p class="discover-lead" data-i18n="discover.lead">Hong Kong life and stories written by helpers.</p>
+    <div class="discover-intro">
+      <p class="discover-lead" data-i18n="discover.lead">Hong Kong life and stories written by helpers.</p>
 
-    <!-- The three social icons, top and bottom of the shelf. Filled by
-         renderDiscover() so the buttons follow the active channel and the
-         reader's language, just like the cards do. -->
-    <div id="discover-share-top" class="discover-share discover-share--top"></div>
+      <!-- The three social icons, top and bottom of the shelf. Filled by
+           renderDiscover() so the buttons follow the active channel and the
+           reader's language, just like the cards do. The top row shares the
+           lead-text line; the bottom one stays under the feed. -->
+      <div id="discover-share-top" class="discover-share discover-share--top"></div>
+    </div>
 
     <div class="discover-tabs" role="tablist">
       <button class="discover-tab active" data-channel="culture" role="tab"

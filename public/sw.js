@@ -179,7 +179,10 @@
 // index.html (two new rows), app.js/i18n.js (share handlers in four languages)
 // and styles.css all change, so the cache-first APP_SHELL must move or an
 // installed PWA keeps the old shelf with no way to forward an outing.
-const CACHE = 'cantobuddy-v187';
+// v188 — 2026-11-26: the outing page's top share row moves from the left to
+// the right of the title area. styles.css is cache-first in APP_SHELL, so an
+// installed PWA would otherwise keep the old left-aligned row.
+const CACHE = 'cantobuddy-v188';
 
 // Which paths are server-rendered SEO documents rather than app-shell assets.
 // Kept as one matcher so it can be asserted against `LANG_PREFIX` in seo.js —

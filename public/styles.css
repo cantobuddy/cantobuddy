@@ -3642,7 +3642,9 @@ a.game-tile:active { transform: scale(0.96); background: var(--c-primary-tint); 
    already draws its own circles; these rules only place it relative to the
    lead, the tabs and the last card. */
 .discover-share .social-row { margin-top: 0; }
+/* Top row sits in the top-right corner of the shelf; the bottom one stays centred. */
 .discover-share--top { margin: 4px 0 16px; }
+.discover-share--top .social-row { justify-content: flex-end; }
 .discover-share--bottom { margin: 20px 0 4px; }
 
 .discover-feed { display: flex; flex-direction: column; gap: 10px; }

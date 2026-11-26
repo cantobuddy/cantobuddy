@@ -182,7 +182,10 @@
 // v188 — 2026-11-26: the outing page's top share row moves from the left to
 // the right of the title area. styles.css is cache-first in APP_SHELL, so an
 // installed PWA would otherwise keep the old left-aligned row.
-const CACHE = 'cantobuddy-v188';
+// v189 — 2026-11-26: the Discover shelf's top share row moves to the top-right
+// corner. styles.css is cache-first in APP_SHELL, so an installed PWA would
+// otherwise keep the centred row.
+const CACHE = 'cantobuddy-v189';
 
 // Which paths are server-rendered SEO documents rather than app-shell assets.
 // Kept as one matcher so it can be asserted against `LANG_PREFIX` in seo.js —

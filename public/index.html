@@ -382,19 +382,6 @@
          .cb-tn-* styles (also injected by games-common.js on the game pages). -->
     <section id="sunday-showdown" class="home-card" hidden></section>
 
-    <!-- ---- Daily Word Challenge ---------------------------------------------
-         Filled by renderDailyChallenge() in app.js. A bite-sized micro-quiz:
-         one deterministic word per HKT day, four options, and this device's own
-         🔥 challenge streak. Reuses the .cb-dc-* styles injected in app.js. -->
-    <section id="daily-challenge" class="home-card" hidden></section>
-
-    <!-- ---- Today in Hong Kong -------------------------------------------------
-         Filled by renderTodayInHk() in app.js. A live weather + next-holiday
-         widget backed by /api/today-in-hk (HKO + 1823, aggregated server-side
-         so the browser never hits CORS). Reuses the .cb-tk-* styles injected
-         in app.js. -->
-    <section id="today-in-hk" class="home-card" hidden></section>
-
     <!-- ---- Returning-learner cards ------------------------------------
          Both are filled by JS and both are EMPTY for a device that has never
          practised, so a first-time visitor sees exactly the screen that
@@ -503,6 +490,20 @@
          Filled by JS (renderHomeGamesPromo) exactly like the Discover promo
          beside it, so it re-translates on a language switch. -->
     <div id="home-games-promo"></div>
+
+    <!-- ---- Today in Hong Kong -------------------------------------------------
+         Filled by renderTodayInHk() in app.js. A live weather + next-holiday
+         widget backed by /api/today-in-hk (HKO + 1823, aggregated server-side
+         so the browser never hits CORS). Reuses the .cb-tk-* styles injected
+         in app.js. Sits directly under the games row, before the challenge. -->
+    <section id="today-in-hk" class="home-card" hidden></section>
+
+    <!-- ---- Daily Word Challenge ---------------------------------------------
+         Filled by renderDailyChallenge() in app.js. A bite-sized micro-quiz:
+         one deterministic word per HKT day, four options, and this device's own
+         🔥 challenge streak. Reuses the .cb-dc-* styles injected in app.js.
+         Sits directly under the games row, after the weather widget. -->
+    <section id="daily-challenge" class="home-card" hidden></section>
 
     <!-- ---- Levels ---------------------------------------------------------
          Three compact colour-coded rows rather than three tall centred cards.

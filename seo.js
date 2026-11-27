@@ -41,6 +41,10 @@ const { PRACTICAL_CHANNELS, practicalText, practicalSection } = require('./pract
 // edit in the admin is reflected on the index without a code change.
 const LONGFORM_GUIDES = require('./longform-guides');
 const todayInHk = require('./today-in-hk');
+// /ch — the new-arrivals shelf. Authored once in Traditional Chinese, rendered
+// in either script with the same character-level converter the /en track uses.
+const CH = require('./ch-content');
+const { toSimplified } = require('./zh-convert');
 
 /* ---------------------------------------------------------------------------
    Outings (/places) — ONE data source, two runtimes
@@ -1428,6 +1432,79 @@ p.news-note{color:var(--muted);font-size:13px;margin-top:12px}
 .tk-unavailable{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:12px;
   padding:12px 14px;margin:0 0 14px;line-height:1.6}
 @media(max-width:560px){.tk-grid{grid-template-columns:1fr}}
+/* /ch — new arrivals. Deliberately its own prefix: these cards want to read
+   like a noticeboard, not like the vocabulary tables the rest of PAGE_CSS was
+   built around. Still the same light palette and the same 320px floor. */
+.ch-switch-wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin:0 0 22px}
+.ch-switch-label{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.ch-switch{display:inline-flex;gap:3px;background:#f4f7f9;border-radius:999px;padding:3px}
+.ch-switch a{display:inline-block;min-width:64px;text-align:center;padding:7px 14px;border-radius:999px;
+  text-decoration:none;font-size:14px;font-weight:600;color:var(--muted)}
+.ch-switch a[aria-current="true"]{background:var(--red);color:#fff}
+.ch-switch-note{width:100%;font-size:12.5px;color:var(--muted);margin:0}
+.ch-hero{background:linear-gradient(135deg,#fff4f4,#fff);border:1px solid #f3c2c7;
+  border-left:5px solid var(--red);border-radius:16px;padding:26px 28px;margin:0 0 28px}
+.ch-kicker{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#c1121f;margin:0 0 10px}
+.ch-hero h1{margin:0 0 10px;font-size:clamp(26px,4.4vw,34px)}
+.ch-hero p{font-size:16.5px;color:var(--muted);margin:0;max-width:62ch;line-height:1.7;overflow-wrap:anywhere}
+.ch-actions{display:flex;flex-wrap:wrap;gap:10px;margin:20px 0 0}
+.ch-btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 18px;
+  border-radius:999px;background:var(--red);color:#fff;text-decoration:none;font-size:14.5px;font-weight:600}
+.ch-btn.alt{background:#fff;color:#c1121f;border:1px solid #f3c2c7}
+.ch-grid{list-style:none;padding:0;margin:0 0 26px;display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.ch-card{display:block;min-height:100%;background:#fff;border:1px solid var(--line);border-radius:14px;
+  padding:18px;text-decoration:none;color:var(--ink);overflow-wrap:anywhere}
+.ch-card:hover{border-color:#f3c2c7;box-shadow:0 3px 14px rgba(29,39,51,.06)}
+.ch-card-num{display:block;font-size:11px;font-weight:700;letter-spacing:.08em;color:#c1121f;margin-bottom:6px}
+.ch-card h3{font-size:18px;line-height:1.35;margin:0 0 6px}
+.ch-card p{font-size:14.5px;color:var(--muted);line-height:1.6;margin:0}
+.ch-card-more{display:block;font-size:13.5px;font-weight:600;color:#c1121f;margin-top:12px}
+.ch-note{background:#fff8f1;border:1px solid #f6d9bd;border-left:4px solid #f4a261;border-radius:12px;
+  padding:14px 16px;margin:22px 0;color:#6b4a2f;font-size:14.5px;line-height:1.65}
+.ch-steps{list-style:none;counter-reset:chstep;padding:0;margin:0 0 30px;max-width:72ch}
+.ch-steps li{position:relative;padding:12px 0 12px 46px;border-bottom:1px solid var(--line);line-height:1.7}
+.ch-steps li:before{counter-increment:chstep;content:counter(chstep);position:absolute;left:0;top:12px;
+  width:30px;height:30px;border-radius:50%;background:#fff5f5;color:#c1121f;font-size:13px;
+  font-weight:700;display:flex;align-items:center;justify-content:center}
+.ch-steps strong{display:block;font-size:16px;margin-bottom:3px}
+.ch-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin:0 0 30px}
+.ch-panel{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 20px;min-width:0}
+.ch-panel h2{font-size:19px;margin:0 0 14px}
+.ch-phrases,.ch-resources,.ch-check{list-style:none;padding:0;margin:0}
+.ch-phrases li{padding:10px 0;border-bottom:1px solid var(--line);font-size:14.5px;line-height:1.6}
+.ch-phrases li:last-child,.ch-resources li:last-child,.ch-check li:last-child{border-bottom:0}
+.ch-yue{font-family:"Noto Sans SC","PingFang HK","Microsoft JhengHei",sans-serif;
+  font-size:16.5px;font-weight:700;color:#c1121f;display:block}
+.ch-meaning{color:var(--muted);display:block;margin-top:2px}
+.ch-resources li{padding:10px 0;border-bottom:1px solid var(--line)}
+.ch-resources a{font-weight:600;font-size:15px}
+.ch-resources p{margin:3px 0 0;font-size:13.5px;color:var(--muted);line-height:1.55}
+.ch-check li{padding:10px 0 10px 24px;border-bottom:1px solid var(--line);font-size:14.5px;position:relative;line-height:1.6}
+.ch-check li:before{content:"";position:absolute;left:0;top:17px;width:9px;height:9px;
+  border:2px solid var(--red);border-radius:2px}
+.ch-people{list-style:none;padding:0;margin:0 0 30px;display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.ch-person{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 18px;min-width:0}
+.ch-person-top{display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap}
+.ch-person h3{font-size:16px;margin:0 0 4px}
+.ch-phone{font-size:13px;color:#c1121f;font-weight:600;white-space:nowrap}
+.ch-person p{font-size:13.5px;color:var(--muted);line-height:1.55;margin:6px 0 10px;overflow-wrap:anywhere}
+.ch-person a{font-size:13.5px;font-weight:600}
+.ch-nav{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 26px}
+.ch-nav a{display:inline-block;padding:7px 13px;background:#fff;border:1px solid var(--line);
+  border-radius:999px;text-decoration:none;font-size:13.5px;font-weight:600}
+.ch-nav a:hover{border-color:#f3c2c7;color:#c1121f}
+.ch-cta{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px 22px;margin:28px 0 10px}
+.ch-cta h2{margin:0 0 6px;font-size:20px}
+.ch-cta p{margin:0 0 16px;color:var(--muted);font-size:15px;line-height:1.65}
+@media(max-width:620px){
+  .ch-grid,.ch-two,.ch-people{grid-template-columns:1fr}
+  .ch-hero{padding:22px 20px}
+  .ch-actions .ch-btn{width:100%}
+  .ch-switch a{flex:1 1 0;min-width:0}
+}
 `;
 
 /**
@@ -1535,6 +1612,9 @@ function page(o) {
     .join('\n  ');
 
   const OG_LOCALE = { en: 'en_HK', fil: 'fil_PH', zh: 'zh_CN', id: 'id_ID' };
+  // /ch writes both Chinese scripts at one URL. Its renderer passes the right
+  // locale explicitly; every other caller keeps the per-language default.
+  const ogLocale = o.ogLocale || OG_LOCALE[lang];
 
   // A 512px app icon was the social card for EVERY server-rendered page.
   // WhatsApp and Facebook render that as a tiny square in the middle of a
@@ -1565,7 +1645,7 @@ function page(o) {
   <meta property="og:url" content="${esc(canonical)}" />
   <meta property="og:image" content="${esc(ogImage)}" />
   <meta property="og:image:alt" content="${esc(ogImageAlt)}" />
-  <meta property="og:locale" content="${OG_LOCALE[lang]}" />
+  <meta property="og:locale" content="${esc(ogLocale)}" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${esc(o.title)}" />
   <meta name="twitter:description" content="${esc(o.description)}" />
@@ -1584,7 +1664,7 @@ function page(o) {
 <header class="site">
   <div class="wrap">
   <a class="brand" href="${esc(o.brandHref || appHomeHref(lang))}" aria-label="CantoBuddy — ${esc(L[lang].home || 'Home')}"><span class="em">🦜</span>CantoBuddy</a>
-  <a class="cta" data-funnel-cta href="${esc(o.ctaHref || appHomeHref(lang))}">${esc(L[lang].openApp)}</a>
+  <a class="cta" data-funnel-cta href="${esc(o.ctaHref || appHomeHref(lang))}">${esc(o.ctaLabel || L[lang].openApp)}</a>
   </div>
 </header>
 <main>
@@ -1594,12 +1674,13 @@ ${o.body}
 </main>
 <footer class="site">
   <div class="wrap">
-    <p>${esc(L[lang].footerNote)}</p>
+    <p>${esc(o.footerNote || L[lang].footerNote)}</p>
     <p>${languageLinks(lang)}
        &nbsp;·&nbsp; <a href="${LANG_PREFIX[lang]}/learn">${esc(L[lang].browse)}</a>
        &nbsp;·&nbsp; <a href="${LANG_PREFIX[lang]}/guide">${esc((GUIDE_UI[lang] || GUIDE_UI.en).guides)}</a>
        &nbsp;·&nbsp; <a href="${LANG_PREFIX[lang]}/discover">${esc(L[lang].discover)}</a>
        &nbsp;·&nbsp; <a href="${LANG_PREFIX[lang]}/stories">${esc((STORIES_UI[lang] || STORIES_UI.en).title)}</a>
+       &nbsp;·&nbsp; <a href="/ch">新來港人士</a>
        &nbsp;·&nbsp; <a href="${LANG_PREFIX[lang]}/privacy">${esc(PRIVACY[lang].title)}</a>
        &nbsp;·&nbsp; <a href="${FOR_EMPLOYERS_HREF[lang]}">${esc(FOR_EMPLOYERS_LABEL[lang])}</a>
        &nbsp;·&nbsp; <a href="/about">About Us</a>
@@ -4564,6 +4645,177 @@ function enAlternates(path) {
   return [{ lang: 'en', path }, { lang: 'x-default', path }];
 }
 
+/* ---------------------------------------------------------------------------
+   /ch — new arrivals from the mainland
+   ---------------------------------------------------------------------------
+   One authored corpus, two scripts. The script is read from `?script=sc` or
+   the same cookie the toggle writes, so a shared URL always opens in the
+   reader's own script on their next visit. Both variants share ONE canonical
+   URL; the Simplified response is noindex so it cannot split link equity.
+   --------------------------------------------------------------------------- */
+function chScript(req) {
+  const q = req && req.query && req.query.script;
+  if (q === 'sc' || q === 'hant') return q;
+  const cookie = String((req && req.headers && req.headers.cookie) || '');
+  const m = /(?:^|;\s*)cb_ch_script=(sc|hant)/.exec(cookie);
+  return m ? m[1] : 'hant';
+}
+
+function chT(s, script) {
+  const text = String(s == null ? '' : s);
+  return script === 'sc' ? toSimplified(text) : text;
+}
+
+function chAlternates(p) {
+  return [{ lang: 'zh-Hant', path: p }, { lang: 'x-default', path: p }];
+}
+
+function chScriptBar(p, script, ui) {
+  const opt = (value, label, current) => `<a href="${esc(p)}?script=${value}" aria-current="${current ? 'true' : 'false'}"
+    onclick="document.cookie='cb_ch_script=${value};path=/;max-age=31536000'">${esc(label)}</a>`;
+  return `<div class="ch-switch-wrap">
+  <span class="ch-switch-label">${esc(chT(ui.scriptLabel, script))}</span>
+  <span class="ch-switch">${opt('hant', chT(ui.traditional, script), script === 'hant')}${opt('sc', chT(ui.simplified, script), script === 'sc')}</span>
+  <p class="ch-switch-note">${esc(chT(ui.scriptNote, script))}</p>
+</div>`;
+}
+
+function chTopicNav(script, activeSlug) {
+  return `<nav class="ch-nav" aria-label="${esc(chT(CH.CH_UI.allTopics, script))}">${CH.CH_TOPICS.map((t) =>
+    `<a href="/ch/${esc(t.slug)}"${t.slug === activeSlug ? ' aria-current="page"' : ''}>${esc(chT(t.title, script))}</a>`
+  ).join('')}</nav>`;
+}
+
+function chDocument(req, p, o, script) {
+  const T = (s) => chT(s, script);
+  const langTag = script === 'sc' ? 'zh-Hans' : 'zh-Hant';
+  return page({
+    lang: 'zh',
+    htmlLang: langTag,
+    ogLocale: script === 'sc' ? 'zh_CN' : 'zh_HK',
+    title: T(o.title),
+    description: T(o.description),
+    path: p,
+    body: o.body,
+    brandHref: '/ch',
+    ctaHref: '/',
+    ctaLabel: T(CH.CH_UI.appButton),
+    footerNote: T(CH.CH_UI.footerNote),
+    alternates: chAlternates(p),
+    // The two scripts are the same document, not two indexed pages.
+    noindex: script === 'sc',
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@graph': [
+        ORG_LD,
+        breadcrumbLd(o.crumbs || [{ name: CH.CH_UI.eyebrow, path: '/ch' }]),
+        {
+          '@type': 'WebPage',
+          name: T(o.title),
+          description: T(o.description),
+          url: SITE_ORIGIN + p,
+          inLanguage: langTag,
+          isPartOf: { '@type': 'WebSite', name: 'CantoBuddy', url: SITE_ORIGIN },
+        },
+      ],
+    },
+  });
+}
+
+function renderChHub(req) {
+  const script = chScript(req);
+  const T = (s) => chT(s, script);
+  const ui = CH.CH_UI;
+  const cards = CH.CH_TOPICS.map((t, i) => `<li><a class="ch-card" href="/ch/${esc(t.slug)}">
+    <span class="ch-card-num">${String(i + 1).padStart(2, '0')}</span>
+    <h3>${esc(T(t.title))}</h3>
+    <p>${esc(T(t.summary))}</p>
+    <span class="ch-card-more">${esc(T(ui.explore))} →</span>
+  </a></li>`).join('\n');
+  const body = `${chScriptBar('/ch', script, ui)}
+<div class="ch-hero">
+  <p class="ch-kicker">${esc(T(ui.eyebrow))}</p>
+  <h1>${esc(T(ui.homeTitle))}</h1>
+  <p>${esc(T(ui.homeLede))}</p>
+  <div class="ch-actions">
+    <a class="ch-btn" href="/ch/start">${esc(T(ui.startHere))}</a>
+    <a class="ch-btn alt" href="/ch/community">${esc(T(CH.topicBySlug('community').title))}</a>
+  </div>
+</div>
+<h2>${esc(T(ui.allTopics))}</h2>
+<ul class="ch-grid">
+${cards}
+</ul>
+<p class="ch-note">${esc(T(ui.officialNote))}</p>
+<div class="ch-cta">
+  <h2>${esc(T(ui.appTitle))}</h2>
+  <p>${esc(T(ui.appText))}</p>
+  <a class="ch-btn" href="/">${esc(T(ui.appButton))}</a>
+</div>`;
+  return chDocument(req, '/ch', {
+    title: `${ui.homeTitle} | CantoBuddy`,
+    description: ui.homeLede,
+    body,
+  }, script);
+}
+
+function renderChTopic(req, slug) {
+  const topic = CH.topicBySlug(slug);
+  if (!topic) return null;
+  const script = chScript(req);
+  const T = (s) => chT(s, script);
+  const ui = CH.CH_UI;
+  const idx = CH.CH_TOPICS.indexOf(topic);
+  const next = CH.CH_TOPICS[(idx + 1) % CH.CH_TOPICS.length];
+  const steps = topic.steps.map((s) => `<li><strong>${esc(T(s.title))}</strong>${esc(T(s.body))}</li>`).join('\n');
+  const phrases = topic.phrases.map((p) => `<li><span class="ch-yue">${esc(T(p.cantonese))}</span>
+    <span class="ch-meaning">${esc(T(p.meaning))}</span></li>`).join('\n');
+  const resources = topic.resources.map((r) => `<li><a href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">${esc(T(r.name))}</a>
+    <p>${esc(T(r.note))}</p></li>`).join('\n');
+  const people = topic.people ? `<h2>${esc(T(ui.peopleTitle))}</h2>
+<ul class="ch-people">${topic.people.map((p) => `<li class="ch-person">
+  <div class="ch-person-top"><h3>${esc(T(p.name))}</h3><span class="ch-phone">${esc(p.phone)}</span></div>
+  <p>${esc(T(p.note))}</p>
+  <a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer">${esc(T(ui.resourcesTitle))} →</a>
+</li>`).join('')}</ul>` : '';
+  const week = topic.week.map((w) => `<li>${esc(T(w))}</li>`).join('\n');
+  const body = `${chScriptBar(`/ch/${esc(slug)}`, script, ui)}
+<nav class="crumbs" aria-label="Breadcrumb"><a href="/ch">${esc(T(ui.eyebrow))}</a><span class="sep">›</span><span>${esc(T(topic.title))}</span></nav>
+<article>
+<h1>${esc(T(topic.title))}</h1>
+<p class="lede">${esc(T(topic.summary))}</p>
+<h2>${esc(T(ui.stepsTitle))}</h2>
+<ol class="ch-steps">
+${steps}
+</ol>
+<div class="ch-two">
+  <section class="ch-panel"><h2>${esc(T(ui.phrasesTitle))}</h2><ul class="ch-phrases">${phrases}</ul></section>
+  <section class="ch-panel"><h2>${esc(T(ui.resourcesTitle))}</h2><ul class="ch-resources">${resources}</ul></section>
+</div>
+${people}
+<h2>${esc(T(ui.weekTitle))}</h2>
+<ul class="ch-check">${week}</ul>
+<p class="ch-note">${esc(T(ui.officialNote))}</p>
+<div class="ch-cta">
+  <h2>${esc(T(ui.appTitle))}</h2>
+  <p>${esc(T(ui.appText))}</p>
+  <a class="ch-btn" href="/">${esc(T(ui.appButton))}</a>
+</div>
+${chTopicNav(script, slug)}
+<p><a href="/ch/${esc(next.slug)}">${esc(T(ui.nextLabel))}：${esc(T(next.title))} →</a></p>
+<p><a href="/ch">${esc(T(ui.backHome))} →</a></p>
+</article>`;
+  return chDocument(req, `/ch/${slug}`, {
+    title: topic.metaTitle,
+    description: topic.metaDescription,
+    body,
+    crumbs: [
+      { name: CH.CH_UI.eyebrow, path: '/ch' },
+      { name: topic.title, path: `/ch/${slug}` },
+    ],
+  }, script);
+}
+
 function renderEnLearnHub() {
   const cats = enCategoryRows();
   const words = enWordRows();
@@ -5391,6 +5643,14 @@ ${alts}
     add(p, '0.6', 'monthly', enAlternates(p), SITE_STRUCTURE_DATE);
   }
 
+  // /ch — new arrivals. One canonical URL per topic; the Simplified rendering
+  // is a noindex query variant, not a second sitemap entry.
+  add('/ch', '0.9', 'weekly', chAlternates('/ch'), CH.CH_SOURCE_DATE);
+  for (const t of CH.CH_TOPICS) {
+    const p = `/ch/${t.slug}`;
+    add(p, t.slug === 'community' ? '0.8' : '0.7', 'monthly', chAlternates(p), CH.CH_SOURCE_DATE);
+  }
+
   // 長者故事 — a separate Chinese-language shelf on the English track. Unlike
   // /stories (helper-written, mirrored into four trees), these are Chinese-only
   // retellings and have ONE canonical home. Only posts that are actually due
@@ -5471,6 +5731,7 @@ Allow: /id
 Allow: /privacy
 Allow: /portal
 Allow: /en
+Allow: /ch
 Allow: /phrase
 Allow: /cantonese-for-domestic-helpers
 Allow: /cantonese-for-elderly-learners
@@ -6243,6 +6504,22 @@ function mount(app) {
     catch (e) { console.error('  ! /forums render failed:', e.message); html(res, renderNotFound('en'), 500); }
   });
 
+  // --- /ch: new arrivals from the mainland ---
+  // Server-rendered in both Chinese scripts from one source. Registered here,
+  // before the /en siblings and pillar routes, so no other family can capture
+  // the two-segment /ch/<topic> URL.
+  app.get('/ch', (req, res) => {
+    try { html(res, renderChHub(req)); }
+    catch (e) { console.error('  ! /ch render failed:', e.message); html(res, renderNotFound('zh'), 500); }
+  });
+  app.get('/ch/:slug', (req, res) => {
+    try {
+      const b = renderChTopic(req, req.params.slug);
+      if (!b) return html(res, renderNotFound('zh'), 404);
+      html(res, b);
+    } catch (e) { console.error('  ! /ch/:slug render failed:', e.message); html(res, renderNotFound('zh'), 500); }
+  });
+
   // --- English track (/en) SEO siblings of the /en SPA ---
   app.get('/en/learn', (req, res) => {
     try { const b = renderEnLearnHub(); if (!b) return html(res, renderNotFound('en'), 404); html(res, b); }
@@ -6300,4 +6577,4 @@ function mount(app) {
   console.log(`  SEO:          ${SITE_ORIGIN}/sitemap.xml  (${store.listVocabulary({ enabledOnly: true }).length} words, ${store.listEnabledCategories().length} categories, ${LANGS.length} languages)`);
 }
 
-module.exports = { mount, portalPage, livingPostShell, renderLivingHub, SITE_ORIGIN, slugify, buildWordIndex, wordSlugMap, LANG_PREFIX, LANGS, ROUTE_FAMILIES, HK_FESTIVALS, upcomingFestivals, upcomingFestivalPayload, festivalBanner };
+module.exports = { mount, portalPage, livingPostShell, renderLivingHub, renderChHub, renderChTopic, chScript, chT, SITE_ORIGIN, slugify, buildWordIndex, wordSlugMap, LANG_PREFIX, LANGS, ROUTE_FAMILIES, HK_FESTIVALS, upcomingFestivals, upcomingFestivalPayload, festivalBanner };

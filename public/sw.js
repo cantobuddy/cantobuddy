@@ -188,7 +188,13 @@
 // v190 — 2026-11-27: the same row moves one line up, onto the lead-text line.
 // index.html and styles.css are cache-first in APP_SHELL, so an installed PWA
 // would otherwise keep the icons on their own line below the lead.
-const CACHE = 'cantobuddy-v190';
+// v191 — 2026-11-27: the Today in HK and Daily Word Challenge cards move below
+// the Home games row, in that order. index.html is cache-first in APP_SHELL,
+// so an installed PWA would otherwise keep the old card order and position.
+// v192 — 2026-11-27: /ch joins the server-rendered network-first family, and
+// the app shell carries the navigation-id change. Both are APP_SHELL-facing,
+// so the cache bucket must move or returning installs keep the old bytes.
+const CACHE = 'cantobuddy-v192';
 
 // Which paths are server-rendered SEO documents rather than app-shell assets.
 // Kept as one matcher so it can be asserted against `LANG_PREFIX` in seo.js —
@@ -201,7 +207,9 @@ const CACHE = 'cantobuddy-v190';
 // privacy policy or contact page must never be served from a stale cache, and
 // /articles joins them because a withdrawn or corrected article index has to
 // reach a returning reader on its next visit, not after the next cache bump.
-const SEO_NETWORK_FIRST = /^\/(learn|words|level|guide|discover|forums|articles|today|stories|privacy|about|contact|terms|disclaimer|for-employers|places|living|fil|zh|id)(\/|$)/;
+// /ch joins the family for the same reason: it is server-rendered in either
+// Chinese script, and a stale shell-fallback would show the SPA instead.
+const SEO_NETWORK_FIRST = /^\/(learn|words|level|guide|discover|forums|articles|today|stories|privacy|about|contact|terms|disclaimer|for-employers|places|living|fil|zh|id|ch)(\/|$)/;
 
 /* /places is BOTH a server-rendered document family AND the folder that holds
    the 34 outing photographs and credits.js. A .jpg there is an asset, not a

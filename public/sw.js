@@ -200,7 +200,10 @@
 // v194 — 2026-11-28: the daily kitchen-phrase card moves below the Daily Word
 // Challenge. index.html is cache-first in APP_SHELL, so returning installs
 // would otherwise keep the old card position.
-const CACHE = 'cantobuddy-v194';
+// v195 — 2026-11-28: the games row moves directly under the Days out strip.
+// index.html is cache-first in APP_SHELL, so a returning install would keep
+// the old Home order.
+const CACHE = 'cantobuddy-v195';
 
 // Which paths are server-rendered SEO documents rather than app-shell assets.
 // Kept as one matcher so it can be asserted against `LANG_PREFIX` in seo.js —

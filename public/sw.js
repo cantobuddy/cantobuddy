@@ -197,7 +197,10 @@
 // v193 — 2026-11-28: member.js stops auto-opening the onboarding overlay for
 // the AdSense review. member.js is a cache-first APP_SHELL file, so without a
 // new bucket an installed PWA would keep popping the old overlay.
-const CACHE = 'cantobuddy-v193';
+// v194 — 2026-11-28: the daily kitchen-phrase card moves below the Daily Word
+// Challenge. index.html is cache-first in APP_SHELL, so returning installs
+// would otherwise keep the old card position.
+const CACHE = 'cantobuddy-v194';
 
 // Which paths are server-rendered SEO documents rather than app-shell assets.
 // Kept as one matcher so it can be asserted against `LANG_PREFIX` in seo.js —

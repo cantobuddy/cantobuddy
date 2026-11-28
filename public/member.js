@@ -20,6 +20,16 @@
 (function () {
   'use strict';
 
+  // TEMPORARY — AdSense site review, 2026-11-28. Do not pop an onboarding card
+  // at a first-time visitor on either landing page (/ or /en): a full-screen
+  // overlay is exactly what a policy crawler flags. The header avatar button
+  // and window.CBMember.openOnboarding() still open the card on demand, and all
+  // save / skip / role-routing logic is untouched. To restore automatic
+  // onboarding, set this to true again (and bump the APP_SHELL cache version).
+  // The test harness opts in with window.CB_ENABLE_ONBOARDING = true so the
+  // routing suite keeps exercising the real popup.
+  var AUTO_ONBOARDING_ENABLED = typeof window !== 'undefined' && window.CB_ENABLE_ONBOARDING === true;
+
   var STORE_KEY = 'cb_member';
   var MEMBER_ROLES = ['helper', 'elder', 'employer', 'guest', 'undisclosed'];
   var GAME_NAMES = {
@@ -602,8 +612,9 @@
     // an existing local profile also suppresses the popup on the other site.
     if (p.onboarded || p.nickname) setSeenCookie();
     // Only show onboarding for a device that has neither finished onboarding,
-    // stored a name, nor carries the cross-site "seen" cookie.
-    if (deviceId() && !p.onboarded && !p.nickname && !hasSeenCookie()) {
+    // stored a name, nor carries the cross-site "seen" cookie — and only while
+    // automatic onboarding is enabled (temporarily off for the AdSense review).
+    if (AUTO_ONBOARDING_ENABLED && deviceId() && !p.onboarded && !p.nickname && !hasSeenCookie()) {
       showOnboarding();
     }
   }

@@ -194,7 +194,10 @@
 // v192 — 2026-11-27: /ch joins the server-rendered network-first family, and
 // the app shell carries the navigation-id change. Both are APP_SHELL-facing,
 // so the cache bucket must move or returning installs keep the old bytes.
-const CACHE = 'cantobuddy-v192';
+// v193 — 2026-11-28: member.js stops auto-opening the onboarding overlay for
+// the AdSense review. member.js is a cache-first APP_SHELL file, so without a
+// new bucket an installed PWA would keep popping the old overlay.
+const CACHE = 'cantobuddy-v193';
 
 // Which paths are server-rendered SEO documents rather than app-shell assets.
 // Kept as one matcher so it can be asserted against `LANG_PREFIX` in seo.js —
